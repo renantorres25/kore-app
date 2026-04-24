@@ -1,28 +1,86 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
-type Props = {
-  tipo: 'personal' | 'nutricionista' | 'ambos'
-}
+type TipoUsuario = 'cliente' | 'personal' | 'nutricionista' | null
 
-export default function ConvitePage({ tipo = 'ambos' }: Props) {
+export default function ConvitePage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
-  const [tipoProfissional, setTipoProfissional] = useState<'personal' | 'nutricionista'>(
-    tipo === 'ambos' ? 'personal' : tipo
-  )
+  const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>(null)
+  const [tipoProfissional, setTipoProfissional] = useState<'personal' | 'nutricionista'>('personal')
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [erro, setErro] = useState('')
 
-  async function handleEnviar() {
-    if (!email.trim()) {
-      setErro('Digite o email para continuar.')
-      return
+  useEffect(() => {
+    async function detectarTipo() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.push('/'); return }
+
+      const { data: perfil } = await supabase
+        .from('perfis')
+        .select('tipo')
+        .eq('id', session.user.id)
+        .single()
+
+      setTipoUsuario(perfil?.tipo ?? null)
     }
+    detectarTipo()
+  }, [router])
+
+  // ── Labels dinâmicos por tipo de usuário ──────────────────────────────────
+
+  function getTituloConvite() {
+    if (tipoUsuario === 'personal') return 'Convidar Aluno'
+    if (tipoUsuario === 'nutricionista') return 'Convidar Paciente'
+    return 'Convidar para o KORE'
+  }
+
+  function getLabelEmail() {
+    if (tipoUsuario === 'personal') return 'Email do aluno'
+    if (tipoUsuario === 'nutricionista') return 'Email do paciente'
+    return `Email do ${tipoProfissional === 'personal' ? 'personal trainer' : 'nutricionista'}`
+  }
+
+  function getTipoParaEnvio(): string {
+    // Personal e nutri convidam clientes
+    if (tipoUsuario === 'personal' || tipoUsuario === 'nutricionista') return tipoUsuario
+    // Cliente convida profissional
+    return tipoProfissional
+  }
+
+  function getItensAcesso(): string[] {
+    if (tipoUsuario === 'personal') return [
+      'Receberá treinos montados por você',
+      'Você verá o score de recuperação dele',
+      'Acompanhe cargas e evolução em tempo real',
+      'Alertas automáticos quando precisar de atenção',
+    ]
+    if (tipoUsuario === 'nutricionista') return [
+      'Receberá o plano alimentar de você',
+      'Você verá o gasto calórico real por treino',
+      'Acompanhe peso e composição corporal',
+      'Dados de sono e recuperação integrados',
+    ]
+    // Cliente
+    return tipoProfissional === 'personal' ? [
+      'Seu score de recuperação diário',
+      'Dados de sono e bem-estar',
+      'Histórico de cargas e evolução',
+      'Alertas quando precisar de atenção',
+    ] : [
+      'Seu gasto calórico real por treino',
+      'Dados de sono e recuperação',
+      'Histórico de bem-estar e sintomas',
+      'Evolução de peso e composição',
+    ]
+  }
+
+  async function handleEnviar() {
+    if (!email.trim()) { setErro('Digite o email para continuar.'); return }
 
     setEnviando(true)
     setErro('')
@@ -41,7 +99,7 @@ export default function ConvitePage({ tipo = 'ambos' }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email_convidado: email.trim(),
-        tipo_profissional: perfil?.tipo === 'cliente' ? tipoProfissional : perfil?.tipo,
+        tipo_profissional: getTipoParaEnvio(),
         profissional_id: session.user.id,
         nome_profissional: perfil?.nome ?? session.user.email,
       }),
@@ -58,6 +116,12 @@ export default function ConvitePage({ tipo = 'ambos' }: Props) {
     setEnviado(true)
     setEnviando(false)
   }
+
+  function getVoltar() {
+    router.push('/dashboard')
+  }
+
+  // ── Estado: enviado ───────────────────────────────────────────────────────
 
   if (enviado) {
     return (
@@ -87,6 +151,8 @@ export default function ConvitePage({ tipo = 'ambos' }: Props) {
     )
   }
 
+  // ── Tela principal ────────────────────────────────────────────────────────
+
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white">
       <div className="max-w-md mx-auto px-4 py-8">
@@ -94,19 +160,23 @@ export default function ConvitePage({ tipo = 'ambos' }: Props) {
         {/* Header */}
         <div className="flex items-center gap-3 mb-10">
           <button
-            onClick={() => router.push('/dashboard')}
-            className="w-9 h-9 rounded-xl bg-zinc-900 border border-white/8 flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95"
+            onClick={getVoltar}
+            className="w-9 h-9 rounded-xl bg-zinc-900 border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95"
           >
             ←
           </button>
           <div>
-            <h1 className="text-xl font-black tracking-tight">Convidar para o KORE</h1>
-            <p className="text-zinc-500 text-xs">Conecte seu time de performance</p>
+            <h1 className="text-xl font-black tracking-tight">{getTituloConvite()}</h1>
+            <p className="text-zinc-500 text-xs">
+              {tipoUsuario === 'personal' ? 'Conecte seu aluno ao KORE'
+               : tipoUsuario === 'nutricionista' ? 'Conecte seu paciente ao KORE'
+               : 'Conecte seu time de performance'}
+            </p>
           </div>
         </div>
 
-        {/* Escolha quem convidar — só aparece para clientes */}
-        {tipo === 'ambos' && (
+        {/* Seletor de tipo — só para clientes */}
+        {tipoUsuario === 'cliente' && (
           <div className="mb-6">
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Quem você quer convidar?</p>
             <div className="grid grid-cols-2 gap-3">
@@ -116,9 +186,9 @@ export default function ConvitePage({ tipo = 'ambos' }: Props) {
               ].map((p) => (
                 <button
                   key={p.valor}
-                  onClick={() => setTipoProfissional(p.valor as any)}
+                  onClick={() => setTipoProfissional(p.valor as 'personal' | 'nutricionista')}
                   className={`flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all active:scale-95 ${
-                    tipoProfissional === p.valor ? p.corAtivo : 'bg-zinc-900 border-white/8'
+                    tipoProfissional === p.valor ? p.corAtivo : 'bg-zinc-900 border-white/[0.08]'
                   }`}
                 >
                   <div className={`w-12 h-12 rounded-xl border flex items-center justify-center text-sm font-black ${p.cor}`}>
@@ -132,20 +202,12 @@ export default function ConvitePage({ tipo = 'ambos' }: Props) {
         )}
 
         {/* O que o convidado vai ter acesso */}
-        <div className="rounded-2xl p-5 border border-white/6 mb-6" style={{ background: '#0f0f0f' }}>
-          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">O que ele vai ver no KORE</p>
+        <div className="rounded-2xl p-5 border border-white/[0.06] mb-6" style={{ background: '#0f0f0f' }}>
+          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">
+            {tipoUsuario === 'cliente' ? 'O que ele vai ver no KORE' : 'O que você vai acompanhar'}
+          </p>
           <div className="space-y-3">
-            {(tipoProfissional === 'personal' ? [
-              'Seu score de recuperação diário',
-              'Dados de sono e bem-estar',
-              'Histórico de cargas e evolução',
-              'Alertas quando precisar de atenção',
-            ] : [
-              'Seu gasto calórico real por treino',
-              'Dados de sono e recuperação',
-              'Histórico de bem-estar e sintomas',
-              'Evolução de peso e composição',
-            ]).map((item) => (
+            {getItensAcesso().map((item) => (
               <div key={item} className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                 <p className="text-zinc-400 text-sm">{item}</p>
@@ -157,7 +219,7 @@ export default function ConvitePage({ tipo = 'ambos' }: Props) {
         {/* Campo de email */}
         <div className="mb-6">
           <label className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-2 block">
-            Email do {tipoProfissional === 'personal' ? 'personal trainer' : 'nutricionista'}
+            {getLabelEmail()}
           </label>
           <input
             type="email"
@@ -165,7 +227,7 @@ export default function ConvitePage({ tipo = 'ambos' }: Props) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleEnviar()}
-            className="w-full bg-zinc-900 text-white placeholder-zinc-600 rounded-xl px-4 py-4 text-sm outline-none focus:ring-2 focus:ring-white/20 border border-white/8 transition-all"
+            className="w-full bg-zinc-900 text-white placeholder-zinc-600 rounded-xl px-4 py-4 text-sm outline-none focus:ring-2 focus:ring-white/20 border border-white/[0.08] transition-all"
           />
         </div>
 
