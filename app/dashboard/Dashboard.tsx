@@ -19,6 +19,13 @@ type BemEstar = {
   qualidade_sono: number
 } | null
 
+type Vinculo = {
+  tipo: string
+  profissional_id: string
+  nome: string | null
+  email: string
+} | null
+
 // ─── UTILITÁRIOS DE DATA (FUSO BRASIL) ───────────────────────────────────────
 
 /**
@@ -170,6 +177,7 @@ export default function Dashboard() {
   const [bemEstar, setBemEstar] = useState<BemEstar>(null)
   const [scoreRecuperacao, setScoreRecuperacao] = useState<number | null>(null)
   const [streak, setStreak] = useState<number>(0)
+  const [vinculos, setVinculos] = useState<Vinculo[]>([])
   const [carregando, setCarregando] = useState(true)
   const [activeTab, setActiveTab] = useState('home')
 
@@ -191,7 +199,7 @@ export default function Dashboard() {
         // ✅ Data sempre no fuso de São Paulo — nunca toISOString()
         const hoje = getTodayBR()
 
-        const [{ data: be }, { data: sonoHoje }, { data: treinos }] = await Promise.all([
+        const [{ data: be }, { data: sonoHoje }, { data: treinos }, { data: vinculosData }] = await Promise.all([
           supabase
             .from('bem_estar')
             .select('energia, humor, dor_muscular, qualidade_sono')
@@ -211,11 +219,30 @@ export default function Dashboard() {
             .eq('concluido', true)
             .order('data', { ascending: false })
             .limit(60),
+          supabase
+            .from('vinculos')
+            .select('tipo, profissional_id')
+            .eq('cliente_id', session.user.id)
+            .eq('ativo', true),
         ])
 
         if (be) setBemEstar(be)
         if (sonoHoje?.score_recuperacao) setScoreRecuperacao(sonoHoje.score_recuperacao)
         if (treinos) setStreak(calcularStreak(treinos.map((t: { data: string }) => t.data)))
+
+        // Busca perfis dos profissionais vinculados
+        if (vinculosData?.length) {
+          const ids = vinculosData.map((v: { profissional_id: string }) => v.profissional_id)
+          const { data: perfis } = await supabase
+            .from('perfis')
+            .select('id, nome, email')
+            .in('id', ids)
+          const vinculosComPerfil = vinculosData.map((v: { tipo: string; profissional_id: string }) => {
+            const p = perfis?.find((pf: { id: string }) => pf.id === v.profissional_id)
+            return { tipo: v.tipo, profissional_id: v.profissional_id, nome: p?.nome ?? null, email: p?.email ?? '' }
+          })
+          setVinculos(vinculosComPerfil)
+        }
       }
 
       setCarregando(false)
@@ -248,6 +275,7 @@ export default function Dashboard() {
             bemEstar={bemEstar}
             scoreRecuperacao={scoreRecuperacao}
             streak={streak}
+            vinculos={vinculos}
             activeTab={activeTab}
             onLogout={handleLogout}
           />
@@ -276,6 +304,8 @@ export default function Dashboard() {
               key={item.id}
               onClick={() => {
                 if (item.id === 'perfil') router.push('/perfil')
+                else if (item.id === 'alunos') router.push('/personal')
+                else if (item.id === 'pacientes') router.push('/personal')
                 else setActiveTab(item.id)
               }}
               className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90"
@@ -315,12 +345,14 @@ function DashboardCliente({
   bemEstar,
   scoreRecuperacao,
   streak,
+  vinculos,
   onLogout: _onLogout,
 }: {
   perfil: Perfil
   bemEstar: BemEstar
   scoreRecuperacao: number | null
   streak: number
+  vinculos: Vinculo[]
   activeTab: string
   onLogout: () => void
 }) {
@@ -525,28 +557,40 @@ function DashboardCliente({
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meu time</p>
         <div className="space-y-3">
           {[
-            { sigla: 'PT', label: 'Personal Trainer', cor: 'bg-blue-500/10 text-blue-400 border-blue-500/20'  },
-            { sigla: 'NU', label: 'Nutricionista',    cor: 'bg-green-500/10 text-green-400 border-green-500/20' },
-          ].map((p, i) => (
-            <div key={p.label}>
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${p.cor}`}>
-                  {p.sigla}
+            { tipo: 'personal',      sigla: 'PT', label: 'Personal Trainer', cor: 'bg-blue-500/10 text-blue-400 border-blue-500/20'   },
+            { tipo: 'nutricionista', sigla: 'NU', label: 'Nutricionista',    cor: 'bg-green-500/10 text-green-400 border-green-500/20' },
+          ].map((p, i) => {
+            const vinculo = vinculos.find(v => v?.tipo === p.tipo)
+            return (
+              <div key={p.label}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${p.cor}`}>
+                    {p.sigla}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-semibold">{p.label}</p>
+                    {vinculo ? (
+                      <p className="text-emerald-400 text-xs">{vinculo.nome ?? vinculo.email}</p>
+                    ) : (
+                      <p className="text-zinc-600 text-xs">Não conectado</p>
+                    )}
+                  </div>
+                  {!vinculo && (
+                    <button
+                      onClick={() => router.push('/convite')}
+                      className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0"
+                    >
+                      + Conectar
+                    </button>
+                  )}
+                  {vinculo && (
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold">{p.label}</p>
-                  <p className="text-zinc-600 text-xs">Não conectado</p>
-                </div>
-                <button
-                  onClick={() => router.push('/convite')}
-                  className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0"
-                >
-                  + Conectar
-                </button>
+                {i === 0 && <div className="h-px bg-white/[0.04] mt-3" />}
               </div>
-              {i === 0 && <div className="h-px bg-white/[0.04] mt-3" />}
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>
