@@ -315,50 +315,48 @@ export default function TreinoCliente() {
 
                   {/* Séries */}
                   <div className="px-4 pb-4 space-y-2">
-                    {/* Header colunas */}
-                    <div className="grid grid-cols-[1.5rem_1fr_1fr_3rem] gap-2 px-1">
-                      <p className="text-zinc-700 text-[9px] uppercase tracking-wider">Nº</p>
-                      <p className="text-zinc-700 text-[9px] uppercase tracking-wider text-center">Carga (kg)</p>
-                      <p className="text-zinc-700 text-[9px] uppercase tracking-wider text-center">Reps</p>
-                      <p className="text-zinc-700 text-[9px] uppercase tracking-wider text-center">✓</p>
-                    </div>
-
                     {exSeries.map((serie, sIdx) => (
                       <div
                         key={sIdx}
-                        className={`grid grid-cols-[1.5rem_1fr_1fr_3rem] gap-2 items-center rounded-xl px-1 py-1 transition-all ${serie.concluida ? 'opacity-60' : ''}`}
+                        className={`flex items-center gap-2 rounded-xl p-2 transition-all ${serie.concluida ? 'bg-emerald-500/5' : 'bg-white/[0.02]'}`}
                       >
                         {/* Número série */}
-                        <p className={`text-sm font-bold text-center ${serie.concluida ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                        <p className={`text-sm font-bold w-6 text-center shrink-0 ${serie.concluida ? 'text-emerald-400' : 'text-zinc-500'}`}>
                           {sIdx + 1}
                         </p>
 
                         {/* Carga */}
-                        <input
-                          type="number"
-                          value={serie.carga ?? ''}
-                          onChange={e => atualizarCarga(ex.id, sIdx, e.target.value ? parseFloat(e.target.value) : null)}
-                          placeholder="—"
-                          disabled={serie.concluida}
-                          className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 transition-colors placeholder:text-zinc-700 disabled:opacity-50"
-                        />
+                        <div className="flex-1">
+                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Carga (kg)</p>
+                          <input
+                            type="number"
+                            value={serie.carga ?? ''}
+                            onChange={e => atualizarCarga(ex.id, sIdx, e.target.value ? parseFloat(e.target.value) : null)}
+                            placeholder="—"
+                            disabled={serie.concluida}
+                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 transition-colors placeholder:text-zinc-700 disabled:opacity-50"
+                          />
+                        </div>
 
                         {/* Reps */}
-                        <input
-                          type="number"
-                          value={serie.repeticoes}
-                          onChange={e => atualizarReps(ex.id, sIdx, parseInt(e.target.value) || 0)}
-                          disabled={serie.concluida}
-                          className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 transition-colors disabled:opacity-50"
-                        />
+                        <div className="flex-1">
+                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Reps</p>
+                          <input
+                            type="number"
+                            value={serie.repeticoes}
+                            onChange={e => atualizarReps(ex.id, sIdx, parseInt(e.target.value) || 0)}
+                            disabled={serie.concluida}
+                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 transition-colors disabled:opacity-50"
+                          />
+                        </div>
 
-                        {/* Check */}
+                        {/* Botão concluir */}
                         <button
                           onClick={() => toggleSerie(ex.id, sIdx)}
-                          className={`w-9 h-9 rounded-xl border flex items-center justify-center text-sm font-bold transition-all active:scale-90 ${
+                          className={`w-11 h-11 rounded-xl border flex items-center justify-center text-sm font-bold transition-all active:scale-90 shrink-0 ${
                             serie.concluida
                               ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                              : 'bg-white/[0.04] border-white/[0.08] text-zinc-600 hover:border-white/20'
+                              : 'bg-white/[0.06] border-white/[0.12] text-zinc-400 hover:border-white/30 hover:text-white'
                           }`}
                         >
                           {serie.concluida ? '✓' : '○'}
