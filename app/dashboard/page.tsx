@@ -81,14 +81,17 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Bottom Navigation — com safe area para iPhone */}
+      {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-md border-t border-zinc-800/60 z-50"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
           {getNavItems(perfil?.tipo).map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                if (item.id === 'perfil') router.push('/perfil')
+                else setActiveTab(item.id)
+              }}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 active:scale-95"
             >
               <span className={`text-xl transition-all duration-200 ${activeTab === item.id ? 'scale-110' : 'opacity-35'}`}>
@@ -144,7 +147,6 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
   return (
     <div className="max-w-md mx-auto px-4 pt-8" style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}>
 
-      {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <p className="text-zinc-500 text-sm mb-0.5">{getGreeting()},</p>
@@ -164,7 +166,6 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </div>
       </div>
 
-      {/* Card destaque — Prontidão */}
       <div className="relative rounded-2xl p-5 mb-3 overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border border-zinc-700/40">
         <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5 blur-2xl pointer-events-none" />
         <p className="text-zinc-400 text-[10px] uppercase tracking-widest mb-2">Prontidão do dia</p>
@@ -175,7 +176,6 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </div>
       </div>
 
-      {/* Grid sono + streak */}
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
           <div className="text-xl mb-2">🌙</div>
@@ -191,7 +191,6 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </div>
       </div>
 
-      {/* Treino de hoje */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-start justify-between mb-2">
           <div>
@@ -206,7 +205,6 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </button>
       </div>
 
-      {/* Plano alimentar */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-start justify-between">
           <div>
@@ -218,7 +216,6 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </div>
       </div>
 
-      {/* Meu time */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-4">Meu time</p>
         <div className="space-y-3">
@@ -257,7 +254,6 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}>
 
-      {/* Header */}
       <div className="flex items-start justify-between mb-5">
         <div>
           <p className="text-zinc-500 text-sm mb-0.5">{getGreeting()},</p>
@@ -270,13 +266,11 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
         </div>
       </div>
 
-      {/* Badge */}
       <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 mb-5">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="text-zinc-300 text-[10px] uppercase tracking-widest font-semibold">Personal Trainer</span>
       </div>
 
-      {/* Métricas */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { valor: '0', label: 'Alunos', icon: '👥' },
@@ -291,7 +285,6 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
         ))}
       </div>
 
-      {/* Agenda */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Agenda de hoje</p>
@@ -305,7 +298,6 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
         </div>
       </div>
 
-      {/* Alertas */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Alertas</p>
@@ -314,7 +306,6 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
         <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
 
-      {/* CTA */}
       <button className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase">
         + Convidar aluno
       </button>
@@ -331,7 +322,6 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}>
 
-      {/* Header */}
       <div className="flex items-start justify-between mb-5">
         <div>
           <p className="text-zinc-500 text-sm mb-0.5">{getGreeting()},</p>
@@ -344,13 +334,11 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
         </div>
       </div>
 
-      {/* Badge */}
       <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 mb-5">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="text-zinc-300 text-[10px] uppercase tracking-widest font-semibold">Nutricionista</span>
       </div>
 
-      {/* Métricas */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { valor: '0', label: 'Pacientes', icon: '👥' },
@@ -365,7 +353,6 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
         ))}
       </div>
 
-      {/* Agenda */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Agenda de hoje</p>
@@ -379,7 +366,6 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
         </div>
       </div>
 
-      {/* Alertas */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Alertas</p>
@@ -388,7 +374,6 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
         <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
 
-      {/* CTA */}
       <button className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase mb-3">
         + Convidar paciente
       </button>
