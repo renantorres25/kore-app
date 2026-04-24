@@ -60,15 +60,14 @@ export default function TreinoCliente() {
   }, [])
 
   useEffect(() => {
-    if (treinoEmExecucao) {
+    if (treinoEmExecucao && !treinoConcluido) {
       setTempoInicio(new Date())
       timerRef.current = setInterval(() => setTempo(t => t + 1), 1000)
     } else {
       if (timerRef.current) clearInterval(timerRef.current)
-      setTempo(0)
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [treinoEmExecucao])
+  }, [treinoEmExecucao, treinoConcluido])
 
   async function carregarTreinos() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -200,6 +199,7 @@ export default function TreinoCliente() {
 
     setSalvandoTreino(false)
     setTreinoConcluido(true)
+    // Não limpa treinoEmExecucao aqui — precisa dele na tela de conclusão
   }
 
   // ── TELA: Carregando ──────────────────────────────────────────────────────
@@ -241,7 +241,11 @@ export default function TreinoCliente() {
           </div>
 
           <button
-            onClick={() => { setTreinoEmExecucao(null); setTreinoConcluido(false) }}
+            onClick={() => { 
+            setTreinoEmExecucao(null)
+            setTreinoConcluido(false)
+            setTempo(0)
+          }}
             className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all tracking-wide"
           >
             Voltar aos treinos
