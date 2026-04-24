@@ -10,6 +10,13 @@ type Perfil = {
   email: string
 }
 
+type BemEstar = {
+  energia: number
+  humor: number
+  dor_muscular: number
+  qualidade_sono: number
+} | null
+
 function getGreeting() {
   const h = new Date().getHours()
   if (h < 12) return 'Bom dia'
@@ -26,9 +33,30 @@ function getTodayString() {
   return new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
+function getMediaBemEstar(be: BemEstar) {
+  if (!be) return null
+  const vals = [be.energia, be.humor, be.dor_muscular, be.qualidade_sono]
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
+}
+
+function getCorMedia(media: number) {
+  if (media <= 2) return 'text-red-400'
+  if (media === 3) return 'text-yellow-400'
+  return 'text-emerald-400'
+}
+
+function getLabelMedia(media: number) {
+  if (media <= 1) return 'Dia difícil'
+  if (media === 2) return 'Abaixo do normal'
+  if (media === 3) return 'Normal'
+  if (media === 4) return 'Bem disposto'
+  return 'No seu melhor!'
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const [perfil, setPerfil] = useState<Perfil | null>(null)
+  const [bemEstar, setBemEstar] = useState<BemEstar>(null)
   const [carregando, setCarregando] = useState(true)
   const [activeTab, setActiveTab] = useState('home')
 
@@ -46,6 +74,19 @@ export default function Dashboard() {
       if (!data) { router.push('/onboarding'); return }
 
       setPerfil(data)
+
+      // Carrega bem-estar de hoje se for cliente
+      if (data.tipo === 'cliente') {
+        const hoje = new Date().toISOString().split('T')[0]
+        const { data: be } = await supabase
+          .from('bem_estar')
+          .select('energia, humor, dor_muscular, qualidade_sono')
+          .eq('usuario_id', session.user.id)
+          .eq('data', hoje)
+          .single()
+        if (be) setBemEstar(be)
+      }
+
       setCarregando(false)
     }
     carregarPerfil()
@@ -71,7 +112,7 @@ export default function Dashboard() {
     <main className="min-h-[100dvh] bg-[#0a0a0a] text-white flex flex-col">
       <div className="flex-1 overflow-y-auto pb-28">
         {perfil?.tipo === 'cliente' && (
-          <DashboardCliente perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />
+          <DashboardCliente perfil={perfil} bemEstar={bemEstar} activeTab={activeTab} onLogout={handleLogout} />
         )}
         {perfil?.tipo === 'personal' && (
           <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />
@@ -81,7 +122,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-md border-t border-zinc-800/60 z-50"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
@@ -141,8 +181,10 @@ function getNavItems(tipo?: string) {
 
 // ─── DASHBOARD CLIENTE ────────────────────────────────────────────────────────
 
-function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
+function DashboardCliente({ perfil, bemEstar, onLogout }: { perfil: Perfil; bemEstar: BemEstar; activeTab: string; onLogout: () => void }) {
+  const router = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
+  const media = getMediaBemEstar(bemEstar)
 
   return (
     <div className="max-w-md mx-auto px-4 pt-8" style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}>
@@ -166,22 +208,51 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </div>
       </div>
 
-      <div className="relative rounded-2xl p-5 mb-3 overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border border-zinc-700/40">
+      {/* Card bem-estar — dinâmico */}
+      <button
+        onClick={() => router.push('/bem-estar')}
+        className="w-full text-left relative rounded-2xl p-5 mb-3 overflow-hidden border transition-all active:scale-95 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border-zinc-700/40"
+      >
         <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5 blur-2xl pointer-events-none" />
-        <p className="text-zinc-400 text-[10px] uppercase tracking-widest mb-2">Prontidão do dia</p>
-        <p className="text-4xl font-black text-zinc-400 mb-1">—</p>
-        <p className="text-zinc-600 text-xs mb-3">Conecte um wearable para ver sua prontidão</p>
-        <div className="h-1 bg-zinc-800 rounded-full">
-          <div className="h-1 rounded-full bg-zinc-600 w-0" />
-        </div>
-      </div>
+        {media ? (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Como estou hoje</p>
+              <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Atualizar →</span>
+            </div>
+            <p className={`text-3xl font-black mb-1 ${getCorMedia(media)}`}>{getLabelMedia(media)}</p>
+            <div className="h-1 bg-zinc-800 rounded-full mt-3">
+              <div
+                className={`h-1 rounded-full transition-all ${media <= 2 ? 'bg-red-400' : media === 3 ? 'bg-yellow-400' : 'bg-emerald-400'}`}
+                style={{ width: `${(media / 5) * 100}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-zinc-400 text-[10px] uppercase tracking-widest mb-2">Como estou hoje</p>
+            <p className="text-white font-bold text-base mb-1">Registrar bem-estar</p>
+            <p className="text-zinc-600 text-xs">Leva menos de 30 segundos →</p>
+          </>
+        )}
+      </button>
 
+      {/* Grid sono + streak */}
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
           <div className="text-xl mb-2">🌙</div>
           <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Sono</p>
-          <p className="text-white text-2xl font-black">—</p>
-          <p className="text-zinc-600 text-[10px] mt-1">Sem dados</p>
+          {bemEstar ? (
+            <>
+              <p className="text-white text-2xl font-black">{bemEstar.qualidade_sono}/5</p>
+              <p className="text-zinc-600 text-[10px] mt-1">Qualidade hoje</p>
+            </>
+          ) : (
+            <>
+              <p className="text-white text-2xl font-black">—</p>
+              <p className="text-zinc-600 text-[10px] mt-1">Sem dados</p>
+            </>
+          )}
         </div>
         <div className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
           <div className="text-xl mb-2">🔥</div>
@@ -191,6 +262,7 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </div>
       </div>
 
+      {/* Treino de hoje */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-start justify-between mb-2">
           <div>
@@ -205,6 +277,7 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </button>
       </div>
 
+      {/* Plano alimentar */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-start justify-between">
           <div>
@@ -216,6 +289,7 @@ function DashboardCliente({ perfil, onLogout }: { perfil: Perfil; activeTab: str
         </div>
       </div>
 
+      {/* Meu time */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-4">Meu time</p>
         <div className="space-y-3">
