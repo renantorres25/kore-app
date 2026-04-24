@@ -316,8 +316,8 @@ export default function TreinoCliente() {
                   {/* Séries */}
                   <div className="px-4 pb-4 space-y-2">
                     {/* Header colunas */}
-                    <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 px-1">
-                      <p className="text-zinc-700 text-[9px] uppercase tracking-wider">Série</p>
+                    <div className="grid grid-cols-[1.5rem_1fr_1fr_3rem] gap-2 px-1">
+                      <p className="text-zinc-700 text-[9px] uppercase tracking-wider">Nº</p>
                       <p className="text-zinc-700 text-[9px] uppercase tracking-wider text-center">Carga (kg)</p>
                       <p className="text-zinc-700 text-[9px] uppercase tracking-wider text-center">Reps</p>
                       <p className="text-zinc-700 text-[9px] uppercase tracking-wider text-center">✓</p>
@@ -326,7 +326,7 @@ export default function TreinoCliente() {
                     {exSeries.map((serie, sIdx) => (
                       <div
                         key={sIdx}
-                        className={`grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 items-center rounded-xl px-1 py-1 transition-all ${serie.concluida ? 'opacity-60' : ''}`}
+                        className={`grid grid-cols-[1.5rem_1fr_1fr_3rem] gap-2 items-center rounded-xl px-1 py-1 transition-all ${serie.concluida ? 'opacity-60' : ''}`}
                       >
                         {/* Número série */}
                         <p className={`text-sm font-bold text-center ${serie.concluida ? 'text-emerald-400' : 'text-zinc-500'}`}>
