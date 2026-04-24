@@ -75,7 +75,6 @@ export default function Dashboard() {
 
       setPerfil(data)
 
-      // Carrega bem-estar de hoje se for cliente
       if (data.tipo === 'cliente') {
         const hoje = new Date().toISOString().split('T')[0]
         const { data: be } = await supabase
@@ -208,7 +207,7 @@ function DashboardCliente({ perfil, bemEstar, onLogout }: { perfil: Perfil; bemE
         </div>
       </div>
 
-      {/* Card bem-estar — dinâmico */}
+      {/* Card bem-estar */}
       <button
         onClick={() => router.push('/bem-estar')}
         className="w-full text-left relative rounded-2xl p-5 mb-3 overflow-hidden border transition-all active:scale-95 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border-zinc-700/40"
@@ -237,23 +236,26 @@ function DashboardCliente({ perfil, bemEstar, onLogout }: { perfil: Perfil; bemE
         )}
       </button>
 
-      {/* Grid sono + streak */}
+      {/* Grid sono + streak — SONO CLICÁVEL */}
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
+        <button
+          onClick={() => router.push('/sono')}
+          className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800 text-left active:scale-95 transition-all hover:border-zinc-600"
+        >
           <div className="text-xl mb-2">🌙</div>
           <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Sono</p>
           {bemEstar ? (
             <>
               <p className="text-white text-2xl font-black">{bemEstar.qualidade_sono}/5</p>
-              <p className="text-zinc-600 text-[10px] mt-1">Qualidade hoje</p>
+              <p className="text-zinc-600 text-[10px] mt-1">Ver análise →</p>
             </>
           ) : (
             <>
               <p className="text-white text-2xl font-black">—</p>
-              <p className="text-zinc-600 text-[10px] mt-1">Sem dados</p>
+              <p className="text-zinc-600 text-[10px] mt-1">Registrar →</p>
             </>
           )}
-        </div>
+        </button>
         <div className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
           <div className="text-xl mb-2">🔥</div>
           <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Streak</p>
