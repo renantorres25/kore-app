@@ -383,7 +383,7 @@ function DashboardCliente({ perfil, bemEstar, scoreRecuperacao, onLogout }: {
             <p className="text-white font-bold text-base">Nenhum treino montado</p>
             <p className="text-zinc-600 text-xs mt-1">Aguardando seu personal trainer</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg">⚡</div>
+          <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 bg-yellow-500/20 text-yellow-400 border-yellow-500/20">TR</div>
         </div>
 
         {/* Sugestão inteligente */}
@@ -413,7 +413,7 @@ function DashboardCliente({ perfil, bemEstar, scoreRecuperacao, onLogout }: {
             <p className="text-white font-bold">Nenhum plano ativo</p>
             <p className="text-zinc-600 text-xs mt-0.5">Aguardando sua nutricionista</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg">🥗</div>
+          <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 bg-green-500/20 text-green-400 border-green-500/20">PA</div>
         </div>
       </div>
 
