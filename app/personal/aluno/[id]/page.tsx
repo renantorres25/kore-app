@@ -61,7 +61,7 @@ export default function PersonalAluno() {
 
   function abrirNovo() {
     setErroSalvar('')
-    setEditandoTreino({ id: '', nome: `Treino ${planoAtivo}`, descricao: '', plano: planoAtivo, status: 'ativo', data: null, exercicios: [vazio(1)] })
+    setEditandoTreino({ id: '', nome: `Treino ${planoAtivo}`, descricao: '', plano: planoAtivo, status: 'pendente', data: null, exercicios: [vazio(1)] })
     setModalAberto(true)
   }
 
@@ -100,7 +100,7 @@ export default function PersonalAluno() {
         const { data: novo, error } = await supabase.from('treinos').insert({
           personal_id: session.user.id, cliente_id: clienteId,
           nome: editandoTreino.nome, descricao: editandoTreino.descricao,
-          plano: editandoTreino.plano, status: 'ativo',
+          plano: editandoTreino.plano, status: 'pendente',
         }).select('id').single()
         if (error) throw error
         tid = novo.id
