@@ -434,7 +434,10 @@ function DashboardCliente({ perfil, bemEstar, scoreRecuperacao, onLogout }: {
                   <p className="text-white text-sm font-semibold">{p.label}</p>
                   <p className="text-zinc-600 text-xs">Não conectado</p>
                 </div>
-                <button className="text-[10px] text-zinc-500 border border-white/10 rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0">
+                <button
+                  onClick={() => router.push('/convite')}
+                  className="text-[10px] text-zinc-500 border border-white/10 rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0"
+                >
                   + Conectar
                 </button>
               </div>
@@ -451,6 +454,7 @@ function DashboardCliente({ perfil, bemEstar, scoreRecuperacao, onLogout }: {
 // ─── DASHBOARD PERSONAL ───────────────────────────────────────────────────────
 
 function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
+  const router = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials = getInitials(perfil.nome, perfil.email)
 
@@ -511,7 +515,10 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
         <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
 
-      <button className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">
+      <button
+        onClick={() => router.push('/convite')}
+        className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase"
+      >
         + Convidar aluno
       </button>
     </div>
@@ -521,6 +528,7 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
 // ─── DASHBOARD NUTRICIONISTA ──────────────────────────────────────────────────
 
 function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
+  const router = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials = getInitials(perfil.nome, perfil.email)
 
@@ -578,7 +586,10 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
         <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
 
-      <button className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">
+      <button
+        onClick={() => router.push('/convite')}
+        className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3"
+      >
         + Convidar paciente
       </button>
     </div>
