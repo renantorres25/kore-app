@@ -74,23 +74,12 @@ export default function TreinoCliente() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/'); return }
 
-    // Busca vínculo com personal
-    const { data: vinculo } = await supabase
-      .from('vinculos')
-      .select('profissional_id')
-      .eq('cliente_id', session.user.id)
-      .eq('tipo', 'personal')
-      .eq('ativo', true)
-      .single()
-
-    if (!vinculo) { setCarregando(false); return }
-
-    // Busca treinos do personal para este cliente
+    // Busca treinos do cliente diretamente — independente do personal
     const { data: treinosData } = await supabase
       .from('treinos')
       .select('id, nome, descricao, plano')
       .eq('cliente_id', session.user.id)
-      .eq('personal_id', vinculo.profissional_id)
+      .eq('status', 'pendente')
       .order('plano')
 
     if (!treinosData?.length) { setCarregando(false); return }
