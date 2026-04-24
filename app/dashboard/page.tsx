@@ -57,6 +57,7 @@ export default function Dashboard() {
   const router = useRouter()
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [bemEstar, setBemEstar] = useState<BemEstar>(null)
+  const [scoreRecuperacao, setScoreRecuperacao] = useState<number | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [activeTab, setActiveTab] = useState('home')
 
@@ -77,6 +78,7 @@ export default function Dashboard() {
 
       if (data.tipo === 'cliente') {
         const hoje = new Date().toISOString().split('T')[0]
+
         const { data: be } = await supabase
           .from('bem_estar')
           .select('energia, humor, dor_muscular, qualidade_sono')
@@ -84,6 +86,14 @@ export default function Dashboard() {
           .eq('data', hoje)
           .single()
         if (be) setBemEstar(be)
+
+        const { data: sonoHoje } = await supabase
+          .from('sono')
+          .select('score_recuperacao')
+          .eq('usuario_id', session.user.id)
+          .eq('data', hoje)
+          .single()
+        if (sonoHoje?.score_recuperacao) setScoreRecuperacao(sonoHoje.score_recuperacao)
       }
 
       setCarregando(false)
@@ -111,7 +121,7 @@ export default function Dashboard() {
     <main className="min-h-[100dvh] bg-[#0a0a0a] text-white flex flex-col">
       <div className="flex-1 overflow-y-auto pb-28">
         {perfil?.tipo === 'cliente' && (
-          <DashboardCliente perfil={perfil} bemEstar={bemEstar} activeTab={activeTab} onLogout={handleLogout} />
+          <DashboardCliente perfil={perfil} bemEstar={bemEstar} scoreRecuperacao={scoreRecuperacao} activeTab={activeTab} onLogout={handleLogout} />
         )}
         {perfil?.tipo === 'personal' && (
           <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />
@@ -180,7 +190,13 @@ function getNavItems(tipo?: string) {
 
 // ─── DASHBOARD CLIENTE ────────────────────────────────────────────────────────
 
-function DashboardCliente({ perfil, bemEstar, onLogout }: { perfil: Perfil; bemEstar: BemEstar; activeTab: string; onLogout: () => void }) {
+function DashboardCliente({ perfil, bemEstar, scoreRecuperacao, onLogout }: {
+  perfil: Perfil
+  bemEstar: BemEstar
+  scoreRecuperacao: number | null
+  activeTab: string
+  onLogout: () => void
+}) {
   const router = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const media = getMediaBemEstar(bemEstar)
@@ -195,15 +211,8 @@ function DashboardCliente({ perfil, bemEstar, onLogout }: { perfil: Perfil; bemE
           <p className="text-zinc-600 text-xs mt-1 capitalize">{getTodayString()}</p>
         </div>
         <div className="flex gap-2 mt-1">
-          <button className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-base active:scale-95 transition-all">
-            🔔
-          </button>
-          <button
-            onClick={onLogout}
-            className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white active:scale-95 transition-all text-sm font-bold"
-          >
-            ↪
-          </button>
+          <button className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-base active:scale-95 transition-all">🔔</button>
+          <button onClick={onLogout} className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white active:scale-95 transition-all text-sm font-bold">↪</button>
         </div>
       </div>
 
@@ -236,18 +245,20 @@ function DashboardCliente({ perfil, bemEstar, onLogout }: { perfil: Perfil; bemE
         )}
       </button>
 
-      {/* Grid sono + streak — SONO CLICÁVEL */}
+      {/* Grid recuperação + streak */}
       <div className="grid grid-cols-2 gap-3 mb-3">
         <button
           onClick={() => router.push('/sono')}
           className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800 text-left active:scale-95 transition-all hover:border-zinc-600"
         >
           <div className="text-xl mb-2">🌙</div>
-          <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Sono</p>
-          {bemEstar ? (
+          <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Recuperação</p>
+          {scoreRecuperacao ? (
             <>
-              <p className="text-white text-2xl font-black">{bemEstar.qualidade_sono}/5</p>
-              <p className="text-zinc-600 text-[10px] mt-1">Ver análise →</p>
+              <p className={`text-2xl font-black ${scoreRecuperacao >= 80 ? 'text-emerald-400' : scoreRecuperacao >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {scoreRecuperacao}
+              </p>
+              <p className="text-zinc-600 text-[10px] mt-1">de 100 →</p>
             </>
           ) : (
             <>
@@ -301,9 +312,7 @@ function DashboardCliente({ perfil, bemEstar, onLogout }: { perfil: Perfil; bemE
           ].map((p, i) => (
             <div key={p.label}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-lg shrink-0">
-                  {p.icon}
-                </div>
+                <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-lg shrink-0">{p.icon}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-semibold">{p.label}</p>
                   <p className="text-zinc-600 text-xs">Não conectado</p>
@@ -326,10 +335,8 @@ function DashboardCliente({ perfil, bemEstar, onLogout }: { perfil: Perfil; bemE
 
 function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
   const firstName = getFirstName(perfil.nome, perfil.email)
-
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}>
-
       <div className="flex items-start justify-between mb-5">
         <div>
           <p className="text-zinc-500 text-sm mb-0.5">{getGreeting()},</p>
@@ -341,12 +348,10 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
           <button onClick={onLogout} className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white active:scale-95 transition-all text-sm font-bold">↪</button>
         </div>
       </div>
-
       <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 mb-5">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="text-zinc-300 text-[10px] uppercase tracking-widest font-semibold">Personal Trainer</span>
       </div>
-
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { valor: '0', label: 'Alunos', icon: '👥' },
@@ -360,7 +365,6 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
           </div>
         ))}
       </div>
-
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Agenda de hoje</p>
@@ -368,12 +372,9 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
         </div>
         <div className="flex flex-col items-center py-5 gap-3">
           <p className="text-zinc-600 text-sm">Nenhum aluno agendado</p>
-          <button className="text-xs border border-zinc-700 rounded-xl px-4 py-2 text-zinc-400 hover:border-white hover:text-white active:scale-95 transition-all uppercase tracking-wider">
-            + Agendar sessão
-          </button>
+          <button className="text-xs border border-zinc-700 rounded-xl px-4 py-2 text-zinc-400 hover:border-white hover:text-white active:scale-95 transition-all uppercase tracking-wider">+ Agendar sessão</button>
         </div>
       </div>
-
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Alertas</p>
@@ -381,11 +382,7 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
         </div>
         <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
-
-      <button className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase">
-        + Convidar aluno
-      </button>
-
+      <button className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase">+ Convidar aluno</button>
     </div>
   )
 }
@@ -394,10 +391,8 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
 
 function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
   const firstName = getFirstName(perfil.nome, perfil.email)
-
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))' }}>
-
       <div className="flex items-start justify-between mb-5">
         <div>
           <p className="text-zinc-500 text-sm mb-0.5">{getGreeting()},</p>
@@ -409,12 +404,10 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
           <button onClick={onLogout} className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white active:scale-95 transition-all text-sm font-bold">↪</button>
         </div>
       </div>
-
       <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 mb-5">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="text-zinc-300 text-[10px] uppercase tracking-widest font-semibold">Nutricionista</span>
       </div>
-
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { valor: '0', label: 'Pacientes', icon: '👥' },
@@ -428,7 +421,6 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
           </div>
         ))}
       </div>
-
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Agenda de hoje</p>
@@ -436,12 +428,9 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
         </div>
         <div className="flex flex-col items-center py-5 gap-3">
           <p className="text-zinc-600 text-sm">Nenhum paciente agendado</p>
-          <button className="text-xs border border-zinc-700 rounded-xl px-4 py-2 text-zinc-400 hover:border-white hover:text-white active:scale-95 transition-all uppercase tracking-wider">
-            + Agendar consulta
-          </button>
+          <button className="text-xs border border-zinc-700 rounded-xl px-4 py-2 text-zinc-400 hover:border-white hover:text-white active:scale-95 transition-all uppercase tracking-wider">+ Agendar consulta</button>
         </div>
       </div>
-
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-3">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-400 text-[10px] uppercase tracking-widest">Alertas</p>
@@ -449,11 +438,7 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
         </div>
         <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
-
-      <button className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase mb-3">
-        + Convidar paciente
-      </button>
-
+      <button className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase mb-3">+ Convidar paciente</button>
     </div>
   )
 }

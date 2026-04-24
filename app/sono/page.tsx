@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 type DadosSono = {
+  id?: string
   duracao_minutos: number | null
   qualidade: number | null
   fc_repouso: number | null
   hrv: number | null
   spo2: number | null
   fonte: string
+  analise_ia?: string | null
+  score_recuperacao?: number | null
 }
 
 type DadosBemEstar = {
@@ -76,13 +79,14 @@ export default function Sono() {
     hrv: null,
     spo2: null,
     fonte: 'manual',
+    analise_ia: null,
+    score_recuperacao: null,
   })
   const [bemEstar, setBemEstar] = useState<DadosBemEstar | null>(null)
   const [historico, setHistorico] = useState<any[]>([])
   const [analiseIA, setAnaliseIA] = useState<string | null>(null)
   const [editando, setEditando] = useState(false)
 
-  // Campos de edição
   const [horasSono, setHorasSono] = useState('')
   const [minutosSono, setMinutosSono] = useState('')
   const [fcRepouso, setFcRepouso] = useState('')
@@ -98,7 +102,6 @@ export default function Sono() {
 
       const hoje = new Date().toISOString().split('T')[0]
 
-      // Carrega perfil
       const { data: perfil } = await supabase
         .from('perfis')
         .select('nome, peso, altura, objetivo')
@@ -112,7 +115,6 @@ export default function Sono() {
         setObjetivo(perfil.objetivo)
       }
 
-      // Carrega sono de hoje
       const { data: sonoHoje } = await supabase
         .from('sono')
         .select('*')
@@ -122,6 +124,7 @@ export default function Sono() {
 
       if (sonoHoje) {
         setSono(sonoHoje)
+        if (sonoHoje.analise_ia) setAnaliseIA(sonoHoje.analise_ia)
         if (sonoHoje.duracao_minutos) {
           setHorasSono(String(Math.floor(sonoHoje.duracao_minutos / 60)))
           setMinutosSono(String(sonoHoje.duracao_minutos % 60))
@@ -134,7 +137,6 @@ export default function Sono() {
         setEditando(true)
       }
 
-      // Carrega bem-estar de hoje
       const { data: be } = await supabase
         .from('bem_estar')
         .select('energia, humor, dor_muscular, qualidade_sono, notas')
@@ -144,10 +146,9 @@ export default function Sono() {
 
       if (be) setBemEstar(be)
 
-      // Histórico 7 dias
       const { data: hist } = await supabase
         .from('sono')
-        .select('data, duracao_minutos, qualidade, hrv')
+        .select('data, duracao_minutos, qualidade, hrv, score_recuperacao')
         .eq('usuario_id', session.user.id)
         .order('data', { ascending: false })
         .limit(7)
@@ -161,6 +162,14 @@ export default function Sono() {
 
   async function handleSalvar() {
     const duracao = (parseInt(horasSono || '0') * 60) + parseInt(minutosSono || '0')
+    const scoreCalculado = getScoreRecuperacao({
+      duracao_minutos: duracao || null,
+      qualidade: qualidade || null,
+      fc_repouso: fcRepouso ? parseInt(fcRepouso) : null,
+      hrv: hrv ? parseInt(hrv) : null,
+      spo2: spo2 ? parseFloat(spo2) : null,
+      fonte: 'manual',
+    }, bemEstar)
 
     const payload = {
       usuario_id: userId,
@@ -171,35 +180,37 @@ export default function Sono() {
       hrv: hrv ? parseInt(hrv) : null,
       spo2: spo2 ? parseFloat(spo2) : null,
       fonte: 'manual',
+      score_recuperacao: scoreCalculado,
+      analise_ia: null, // reseta análise ao editar
     }
 
-    const { data: existente } = await supabase
-      .from('sono')
-      .select('id')
-      .eq('usuario_id', userId)
-      .eq('data', payload.data)
-      .single()
-
-    if (existente) {
-      await supabase.from('sono').update(payload).eq('id', existente.id)
+    if (sono.id) {
+      await supabase.from('sono').update(payload).eq('id', sono.id)
     } else {
       await supabase.from('sono').insert(payload)
     }
 
-    setSono(payload as DadosSono)
-    setEditando(false)
+    setSono({ ...payload, id: sono.id })
     setAnaliseIA(null)
+    setEditando(false)
+
+    // Recarrega dados
+    const { data: sonoAtualizado } = await supabase
+      .from('sono')
+      .select('*')
+      .eq('usuario_id', userId)
+      .eq('data', new Date().toISOString().split('T')[0])
+      .single()
+    if (sonoAtualizado) setSono(sonoAtualizado)
   }
 
   async function gerarAnaliseIA() {
     setAnalisando(true)
-    setAnaliseIA(null)
 
     const score = getScoreRecuperacao(sono, bemEstar)
     const duracao = formatarDuracao(sono.duracao_minutos)
 
-    const contexto = `
-Você é um especialista em performance humana e recuperação. Analise os dados abaixo e gere uma análise personalizada, direta e útil para o atleta. Seja específico, use os números, e termine com 1-2 recomendações práticas para hoje.
+    const contexto = `Você é um especialista em performance humana e recuperação. Analise os dados abaixo e gere uma análise personalizada, direta e útil para o atleta. Seja específico, use os números, e termine com 1-2 recomendações práticas para hoje.
 
 DADOS DO ATLETA:
 - Nome: ${nomePerfil}
@@ -218,13 +229,11 @@ COMO ESTÁ HOJE (bem-estar):
 - Energia: ${bemEstar ? `${bemEstar.energia}/5` : 'não registrado'}
 - Humor: ${bemEstar ? `${bemEstar.humor}/5` : 'não registrado'}
 - Dor muscular: ${bemEstar ? `${bemEstar.dor_muscular}/5 (5=nenhuma dor)` : 'não registrado'}
-- Qualidade do sono (percepção): ${bemEstar ? `${bemEstar.qualidade_sono}/5` : 'não registrado'}
 ${bemEstar?.notas ? `- Observações: ${bemEstar.notas}` : ''}
 
 SCORE DE RECUPERAÇÃO CALCULADO: ${score ? `${score}/100` : 'insuficiente para calcular'}
 
-Responda em português, de forma direta e pessoal (use o nome do atleta). Máximo 4 parágrafos curtos. Não use markdown, bullets ou títulos — apenas texto corrido natural.
-`
+Responda em português, de forma direta e pessoal (use o nome do atleta). Máximo 4 parágrafos curtos. Não use markdown, bullets ou títulos — apenas texto corrido natural.`
 
     try {
       const response = await fetch('/api/analise-sono', {
@@ -234,15 +243,25 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
       })
 
       const data = await response.json()
-      setAnaliseIA(data.analise)
+      const analise = data.analise
+
+      setAnaliseIA(analise)
+
+      // Salva análise e score no banco
+      if (sono.id) {
+        await supabase
+          .from('sono')
+          .update({ analise_ia: analise, score_recuperacao: score })
+          .eq('id', sono.id)
+      }
     } catch {
-      setAnaliseIA('Não foi possível gerar a análise agora. Tente novamente.')
+      setAnaliseIA('Não foi possível gerar a análise. Tente novamente.')
     }
 
     setAnalisando(false)
   }
 
-  const score = getScoreRecuperacao(sono, bemEstar)
+  const score = sono.score_recuperacao ?? getScoreRecuperacao(sono, bemEstar)
   const corScore = score ? getCorScore(score) : null
   const temDadosSono = sono.duracao_minutos || sono.qualidade || sono.fc_repouso
 
@@ -302,7 +321,7 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
           </div>
         )}
 
-        {/* Dados de sono — visualização */}
+        {/* Dados da noite */}
         {temDadosSono && !editando && (
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 mb-4 overflow-hidden">
             <div className="px-5 py-4 border-b border-zinc-800">
@@ -313,13 +332,7 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
                 <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Duração</p>
                 <p className="text-white text-xl font-black">{formatarDuracao(sono.duracao_minutos)}</p>
                 <p className="text-zinc-600 text-[10px] mt-0.5">
-                  {sono.duracao_minutos && sono.duracao_minutos >= 420 && sono.duracao_minutos <= 540
-                    ? '✓ Ideal'
-                    : sono.duracao_minutos && sono.duracao_minutos < 420
-                    ? '↓ Abaixo do ideal'
-                    : sono.duracao_minutos
-                    ? '↑ Acima do ideal'
-                    : 'Não informado'}
+                  {sono.duracao_minutos && sono.duracao_minutos >= 420 && sono.duracao_minutos <= 540 ? '✓ Ideal' : sono.duracao_minutos && sono.duracao_minutos < 420 ? '↓ Abaixo do ideal' : sono.duracao_minutos ? '↑ Acima do ideal' : 'Não informado'}
                 </p>
               </div>
               <div className="p-4">
@@ -329,12 +342,12 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
               </div>
               <div className="p-4">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">FC Repouso</p>
-                <p className="text-white text-xl font-black">{sono.fc_repouso ? `${sono.fc_repouso}` : '—'}</p>
+                <p className="text-white text-xl font-black">{sono.fc_repouso ?? '—'}</p>
                 <p className="text-zinc-600 text-[10px] mt-0.5">{sono.fc_repouso ? 'bpm' : 'Wearable'}</p>
               </div>
               <div className="p-4">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">HRV</p>
-                <p className="text-white text-xl font-black">{sono.hrv ? `${sono.hrv}` : '—'}</p>
+                <p className="text-white text-xl font-black">{sono.hrv ?? '—'}</p>
                 <p className="text-zinc-600 text-[10px] mt-0.5">{sono.hrv ? 'ms' : 'Wearable'}</p>
               </div>
               <div className="p-4 col-span-2">
@@ -346,7 +359,7 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
           </div>
         )}
 
-        {/* Bem-estar cruzado */}
+        {/* Cruzamento bem-estar */}
         {bemEstar && !editando && (
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 mb-4 overflow-hidden">
             <div className="px-5 py-4 border-b border-zinc-800">
@@ -354,18 +367,15 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
             </div>
             <div className="grid grid-cols-3 divide-x divide-zinc-800">
               {[
-                { label: 'Energia', valor: bemEstar.energia, max: 5 },
-                { label: 'Humor', valor: bemEstar.humor, max: 5 },
-                { label: 'Dor musc.', valor: 6 - bemEstar.dor_muscular, max: 5 },
+                { label: 'Energia', valor: bemEstar.energia },
+                { label: 'Humor', valor: bemEstar.humor },
+                { label: 'Dor musc.', valor: 6 - bemEstar.dor_muscular },
               ].map((item) => (
                 <div key={item.label} className="p-4 text-center">
                   <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-2">{item.label}</p>
                   <div className="flex justify-center gap-0.5 mb-1">
                     {[1,2,3,4,5].map((i) => (
-                      <div
-                        key={i}
-                        className={`w-2 h-2 rounded-full ${i <= item.valor ? 'bg-white' : 'bg-zinc-700'}`}
-                      />
+                      <div key={i} className={`w-2 h-2 rounded-full ${i <= item.valor ? 'bg-white' : 'bg-zinc-700'}`} />
                     ))}
                   </div>
                   <p className="text-white text-sm font-bold">{item.valor}/5</p>
@@ -390,7 +400,15 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
                 </div>
               )}
               {analiseIA && !analisando && (
-                <p className="text-zinc-300 text-sm leading-relaxed">{analiseIA}</p>
+                <>
+                  <p className="text-zinc-300 text-sm leading-relaxed">{analiseIA}</p>
+                  <button
+                    onClick={gerarAnaliseIA}
+                    className="mt-4 text-[10px] text-zinc-500 underline underline-offset-4 hover:text-white transition-all"
+                  >
+                    Gerar nova análise
+                  </button>
+                </>
               )}
               {!analiseIA && !analisando && (
                 <div className="flex flex-col items-center py-4 gap-3">
@@ -402,14 +420,6 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
                     ✦ Gerar análise
                   </button>
                 </div>
-              )}
-              {analiseIA && (
-                <button
-                  onClick={gerarAnaliseIA}
-                  className="mt-4 text-[10px] text-zinc-500 underline underline-offset-4 hover:text-white transition-all"
-                >
-                  Gerar nova análise
-                </button>
               )}
             </div>
           </div>
@@ -425,14 +435,11 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
               <div className="flex items-end gap-2 h-16">
                 {historico.slice().reverse().map((d, i) => {
                   const horas = d.duracao_minutos ? d.duracao_minutos / 60 : 0
-                  const altura = Math.min(100, (horas / 10) * 100)
+                  const alt = Math.min(100, (horas / 10) * 100)
                   const cor = d.qualidade >= 4 ? 'bg-emerald-400' : d.qualidade >= 3 ? 'bg-yellow-400' : 'bg-red-400'
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div
-                        className={`w-full rounded-t-sm ${d.duracao_minutos ? cor : 'bg-zinc-700'}`}
-                        style={{ height: `${Math.max(8, altura)}%` }}
-                      />
+                      <div className={`w-full rounded-t-sm ${d.duracao_minutos ? cor : 'bg-zinc-700'}`} style={{ height: `${Math.max(8, alt)}%` }} />
                       <p className="text-zinc-600 text-[9px]">
                         {new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).slice(0, 3)}
                       </p>
@@ -452,29 +459,18 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
         {/* Formulário de edição */}
         {editando && (
           <div className="space-y-4">
-
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-5">
               <p className="text-zinc-400 text-[10px] uppercase tracking-widest mb-4">Duração do sono</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-zinc-500 text-xs mb-1 block">Horas</label>
-                  <input
-                    type="number"
-                    placeholder="8"
-                    value={horasSono}
-                    onChange={(e) => setHorasSono(e.target.value)}
-                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700"
-                  />
+                  <input type="number" placeholder="8" value={horasSono} onChange={(e) => setHorasSono(e.target.value)}
+                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700" />
                 </div>
                 <div>
                   <label className="text-zinc-500 text-xs mb-1 block">Minutos</label>
-                  <input
-                    type="number"
-                    placeholder="30"
-                    value={minutosSono}
-                    onChange={(e) => setMinutosSono(e.target.value)}
-                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700"
-                  />
+                  <input type="number" placeholder="30" value={minutosSono} onChange={(e) => setMinutosSono(e.target.value)}
+                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700" />
                 </div>
               </div>
             </div>
@@ -489,13 +485,8 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
                   { v: 4, emoji: '😴', label: 'Bom' },
                   { v: 5, emoji: '🌙', label: 'Ótimo' },
                 ].map((q) => (
-                  <button
-                    key={q.v}
-                    onClick={() => setQualidade(q.v)}
-                    className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${
-                      qualidade === q.v ? 'bg-white border-white' : 'bg-zinc-800 border-zinc-700'
-                    }`}
-                  >
+                  <button key={q.v} onClick={() => setQualidade(q.v)}
+                    className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${qualidade === q.v ? 'bg-white border-white' : 'bg-zinc-800 border-zinc-700'}`}>
                     <span className="text-xl">{q.emoji}</span>
                     <span className={`text-[9px] mt-1 font-semibold ${qualidade === q.v ? 'text-black' : 'text-zinc-500'}`}>{q.label}</span>
                   </button>
@@ -509,41 +500,24 @@ Responda em português, de forma direta e pessoal (use o nome do atleta). Máxim
               <div className="space-y-3">
                 <div>
                   <label className="text-zinc-500 text-xs mb-1 block">FC em repouso (bpm)</label>
-                  <input
-                    type="number"
-                    placeholder="Ex: 55"
-                    value={fcRepouso}
-                    onChange={(e) => setFcRepouso(e.target.value)}
-                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700"
-                  />
+                  <input type="number" placeholder="Ex: 55" value={fcRepouso} onChange={(e) => setFcRepouso(e.target.value)}
+                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700" />
                 </div>
                 <div>
                   <label className="text-zinc-500 text-xs mb-1 block">HRV — Variabilidade da FC (ms)</label>
-                  <input
-                    type="number"
-                    placeholder="Ex: 65"
-                    value={hrv}
-                    onChange={(e) => setHrv(e.target.value)}
-                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700"
-                  />
+                  <input type="number" placeholder="Ex: 65" value={hrv} onChange={(e) => setHrv(e.target.value)}
+                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700" />
                 </div>
                 <div>
                   <label className="text-zinc-500 text-xs mb-1 block">SpO2 — Saturação de oxigênio (%)</label>
-                  <input
-                    type="number"
-                    placeholder="Ex: 97"
-                    value={spo2}
-                    onChange={(e) => setSpo2(e.target.value)}
-                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700"
-                  />
+                  <input type="number" placeholder="Ex: 97" value={spo2} onChange={(e) => setSpo2(e.target.value)}
+                    className="w-full bg-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white border border-zinc-700" />
                 </div>
               </div>
             </div>
 
-            <button
-              onClick={handleSalvar}
-              className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase"
-            >
+            <button onClick={handleSalvar}
+              className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase">
               Salvar dados
             </button>
           </div>
