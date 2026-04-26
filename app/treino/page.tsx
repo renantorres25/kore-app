@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 type Exercicio = { id: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
-type Treino = { id: string; nome: string; descricao: string | null; plano: string; exercicios: Exercicio[] }
+type Treino = { id: string; nome: string; descricao: string | null; plano: string; personal_id?: string | null; exercicios: Exercicio[] }
 type SerieRegistrada = { exercicio_id: string; numero_serie: number; carga: number | null; repeticoes: number; concluida: boolean }
 
 const CORES: Record<string, { text: string; bg: string; border: string; glow: string; hex: string }> = {
@@ -60,24 +60,13 @@ export default function TreinoCliente() {
     const { data: sono } = await supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single()
     if (sono?.score_recuperacao) setScore(sono.score_recuperacao)
 
-    // Busca vínculo com personal
-    const { data: vinculo } = await supabase
-      .from('vinculos')
-      .select('profissional_id')
-      .eq('cliente_id', session.user.id)
-      .eq('tipo', 'personal')
-      .eq('ativo', true)
-      .single()
-
-    if (!vinculo) { setCarregando(false); return }
-
-    // Busca treinos do personal para este cliente (pendentes = planos disponíveis)
+    // Busca todos os planos pendentes do cliente (criados pelo personal)
     const { data: td } = await supabase
       .from('treinos')
-      .select('id, nome, descricao, plano')
+      .select('id, nome, descricao, plano, personal_id')
       .eq('cliente_id', session.user.id)
-      .eq('personal_id', vinculo.profissional_id)
       .eq('status', 'pendente')
+      .eq('concluido', false)
       .order('plano')
     if (!td?.length) { setCarregando(false); return }
 
@@ -165,9 +154,9 @@ Gere análise em 3 partes CURTAS (máx 80 palavras total, sem emojis, sem markdo
     const t = tempo
     const hoje = getTodayBR()
 
-    // Cria registro de execução separado — preserva o plano original do personal
-    const { data: reg, error } = await supabase.from('treinos').insert({
-      personal_id: null,
+    // ✅ Cria NOVO registro de execução — nunca altera o plano original do personal
+    const { data: reg } = await supabase.from('treinos').insert({
+      personal_id: em.personal_id ?? null,
       cliente_id: session.user.id,
       nome: em.nome,
       descricao: em.descricao,
