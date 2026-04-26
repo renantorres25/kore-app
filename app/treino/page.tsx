@@ -51,6 +51,10 @@ function calcularPace(duracaoMin: number, distanciaKm: number): string {
   return `${min}:${seg.toString().padStart(2, '0')}`
 }
 
+function getTodayBR(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
 function calcVolume(series: Record<string, SerieRegistrada[]>): number {
   return Object.values(series).flat().filter(s => s.concluida && s.carga).reduce((a, s) => a + (s.carga! * s.repeticoes), 0)
 }
