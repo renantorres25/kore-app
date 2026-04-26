@@ -145,17 +145,30 @@ Gere análise em 3 partes CURTAS (máx 80 palavras total, sem emojis, sem markdo
     if (!session) return
 
     const t = tempo
-    const { data: reg } = await supabase.from('treinos').insert({
-      personal_id: null, cliente_id: session.user.id,
-      nome: em.nome, descricao: em.descricao, plano: em.plano,
-      status: 'concluido', data: getTodayBR(), concluido: true,
-    }).select('id').single()
+    const hoje = getTodayBR()
 
-    if (reg) {
+    // Atualiza o treino existente do personal marcando como concluído
+    const { error: erroUpdate } = await supabase
+      .from('treinos')
+      .update({
+        status: 'concluido',
+        concluido: true,
+        data: hoje,
+      })
+      .eq('id', em.id)
+
+    if (!erroUpdate) {
+      // Registra as séries
       const done = Object.values(series).flat().filter(s => s.concluida)
       if (done.length) {
         await supabase.from('series_registradas').insert(
-          done.map(s => ({ treino_id: reg.id, exercicio_id: s.exercicio_id, numero_serie: s.numero_serie, carga: s.carga, repeticoes: s.repeticoes }))
+          done.map(s => ({
+            treino_id: em.id,
+            exercicio_id: s.exercicio_id,
+            numero_serie: s.numero_serie,
+            carga: s.carga,
+            repeticoes: s.repeticoes,
+          }))
         )
       }
     }
