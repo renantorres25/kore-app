@@ -118,27 +118,25 @@ function CalendarioConsistencia({ atividades, onSelecionarDia }: { atividades: A
 
   return (
     <div>
-      <div className="flex gap-1.5 mb-1.5">
+      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
         {diasSemana.map(d => (
-          <div key={d} className="flex-1 text-center">
+          <div key={d} className="text-center">
             <span className="text-zinc-700 text-[8px] uppercase tracking-wider">{d}</span>
           </div>
         ))}
       </div>
       <div className="space-y-1.5">
         {semanas.map((semana, si) => (
-          <div key={si} className="flex gap-1.5">
+          <div key={si} className="grid grid-cols-7 gap-1.5">
             {semana.map((dia, di) => {
-              if (!dia) return <div key={di} className="flex-1" style={{ height: 28 }} />
+              if (!dia) return <div key={di} style={{ height: 28 }} />
               const treinou = ativoSet.has(dia)
               const isHoje = dia === hoje
               const isSelecionado = dia === diaSelecionado
               return (
                 <button key={dia} onClick={() => handleClick(dia)} title={formatDate(dia)}
-                  className={`flex-1 rounded-lg transition-all active:scale-90 ${
-                    isSelecionado
-                      ? 'ring-2 ring-white ring-offset-1 ring-offset-[#0f0f0f]'
-                      : ''
+                  className={`rounded-lg transition-all active:scale-90 ${
+                    isSelecionado ? 'ring-2 ring-white/60 ring-offset-1 ring-offset-[#0f0f0f]' : ''
                   } ${
                     treinou ? 'bg-emerald-500/80 hover:bg-emerald-500' :
                     isHoje ? 'bg-white/10 ring-1 ring-white/30' :
