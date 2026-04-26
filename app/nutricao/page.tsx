@@ -390,10 +390,10 @@ Gere uma análise em 3 partes CURTAS (máx 90 palavras total, sem markdown, sem 
                 className="w-12 h-12 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white text-xl font-bold active:scale-90 transition-all">
                 −
               </button>
-              <div className="flex-1 flex justify-center gap-1.5 flex-wrap">
+              <div className="flex-1 grid grid-cols-8 gap-1.5">
                 {Array.from({ length: 8 }, (_, i) => (
                   <button key={i} onClick={() => atualizarAgua(i + 1)}
-                    className={`w-7 h-7 rounded-lg transition-all active:scale-90 ${i < macros.copos_agua ? 'bg-blue-400' : 'bg-white/[0.05] border border-white/[0.08]'}`} />
+                    className={`h-7 rounded-lg transition-all active:scale-90 ${i < macros.copos_agua ? 'bg-blue-400' : 'bg-white/[0.05] border border-white/[0.08]'}`} />
                 ))}
               </div>
               <button onClick={() => atualizarAgua(macros.copos_agua + 1)}
