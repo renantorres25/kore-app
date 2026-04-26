@@ -1,24 +1,27 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 const objetivos = [
-  { valor: 'perder_peso', emoji: '🔥', label: 'Perder peso' },
-  { valor: 'ganhar_massa', emoji: '💪', label: 'Ganhar massa' },
-  { valor: 'melhorar_condicionamento', emoji: '⚡', label: 'Melhorar condicionamento' },
-  { valor: 'saude_geral', emoji: '❤️', label: 'Saúde geral' },
+  { valor: 'perder_peso',               emoji: '🔥', label: 'Perder peso' },
+  { valor: 'ganhar_massa',              emoji: '💪', label: 'Ganhar massa' },
+  { valor: 'melhorar_condicionamento',  emoji: '⚡', label: 'Condicionamento' },
+  { valor: 'saude_geral',               emoji: '❤️', label: 'Saúde geral' },
 ]
 
 const niveis = [
-  { valor: 'iniciante', emoji: '🌱', label: 'Iniciante', desc: 'Menos de 1 ano treinando' },
+  { valor: 'iniciante',     emoji: '🌱', label: 'Iniciante',     desc: 'Menos de 1 ano treinando' },
   { valor: 'intermediario', emoji: '📈', label: 'Intermediário', desc: '1 a 3 anos treinando' },
-  { valor: 'avancado', emoji: '🏆', label: 'Avançado', desc: 'Mais de 3 anos treinando' },
+  { valor: 'avancado',      emoji: '🏆', label: 'Avançado',      desc: 'Mais de 3 anos treinando' },
 ]
 
 export default function Perfil() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isNovo = searchParams.get('novo') === 'true'
+
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -76,9 +79,9 @@ export default function Perfil() {
 
   function getStatusIMC(imc: number) {
     if (imc < 18.5) return { label: 'Abaixo do peso', cor: 'text-blue-400' }
-    if (imc < 25) return { label: 'Peso normal', cor: 'text-emerald-400' }
-    if (imc < 30) return { label: 'Sobrepeso', cor: 'text-yellow-400' }
-    return { label: 'Obesidade', cor: 'text-red-400' }
+    if (imc < 25)   return { label: 'Peso normal',    cor: 'text-emerald-400' }
+    if (imc < 30)   return { label: 'Sobrepeso',      cor: 'text-yellow-400' }
+    return                  { label: 'Obesidade',      cor: 'text-red-400' }
   }
 
   async function handleSalvar() {
@@ -101,9 +104,15 @@ export default function Perfil() {
 
     if (error) { setErro('Erro ao salvar. Tente novamente.'); setSalvando(false); return }
 
-    setSucesso(true)
-    setTimeout(() => setSucesso(false), 2000)
     setSalvando(false)
+
+    // Se é novo usuário, vai para o dashboard após salvar
+    if (isNovo) {
+      router.push('/dashboard')
+    } else {
+      setSucesso(true)
+      setTimeout(() => setSucesso(false), 2000)
+    }
   }
 
   async function handleLogout() {
@@ -117,6 +126,9 @@ export default function Perfil() {
   const tipoLabel = tipo === 'personal' ? 'Personal Trainer' : tipo === 'nutricionista' ? 'Nutricionista' : 'Atleta'
   const tipoColor = tipo === 'personal' ? 'text-blue-400 border-blue-500/20 bg-blue-500/10' : tipo === 'nutricionista' ? 'text-green-400 border-green-500/20 bg-green-500/10' : 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
 
+  const camposPreenchidos = dataNascimento && sexo && peso && altura && objetivo && nivel
+  const progresso = [dataNascimento, sexo, peso, altura, objetivo, nivel].filter(Boolean).length
+
   if (carregando) return (
     <main className="min-h-screen bg-[#080808] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -128,18 +140,42 @@ export default function Perfil() {
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">KORE</p>
-            <h1 className="text-[1.85rem] font-black tracking-tight text-white">Perfil</h1>
+            <h1 className="text-[1.85rem] font-black tracking-tight text-white">
+              {isNovo ? 'Bem-vindo! 👋' : 'Perfil'}
+            </h1>
+            {isNovo && (
+              <p className="text-zinc-500 text-xs mt-1">Complete seu perfil para a IA te ajudar melhor</p>
+            )}
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider"
-          >
-            Sair
-          </button>
+          {!isNovo && (
+            <button onClick={handleLogout}
+              className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">
+              Sair
+            </button>
+          )}
         </div>
+
+        {/* Barra de progresso — só para novo usuário */}
+        {isNovo && (
+          <div className="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/5 mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-emerald-400 text-[11px] font-bold uppercase tracking-wider">Configuração do perfil</p>
+              <p className="text-emerald-400 text-[11px] font-bold">{progresso}/6</p>
+            </div>
+            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                style={{ width: `${(progresso / 6) * 100}%` }} />
+            </div>
+            <p className="text-zinc-600 text-[10px] mt-2">
+              {progresso === 6
+                ? '✓ Tudo preenchido! Salve para entrar no KORE.'
+                : 'Preencha todos os dados para que a IA possa te ajudar com precisão.'}
+            </p>
+          </div>
+        )}
 
         {/* Card identidade */}
         <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
@@ -158,7 +194,7 @@ export default function Perfil() {
           </div>
         </div>
 
-        {/* Stats IMC */}
+        {/* Stats IMC — só se tiver dados */}
         {imc && (
           <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
             <div className="grid grid-cols-3 gap-4 text-center">
@@ -255,34 +291,51 @@ export default function Perfil() {
         </div>
 
         {erro && <p className="text-red-400 text-sm text-center mt-4">{erro}</p>}
-        {sucesso && <p className="text-emerald-400 text-sm text-center mt-4">✓ Perfil salvo com sucesso!</p>}
+        {sucesso && <p className="text-emerald-400 text-sm text-center mt-4">✓ Perfil salvo!</p>}
 
-        <button onClick={handleSalvar} disabled={salvando}
-          className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-40 text-sm tracking-widest uppercase mt-6">
-          {salvando ? 'Salvando...' : 'Salvar perfil'}
+        <button onClick={handleSalvar} disabled={salvando || !camposPreenchidos}
+          className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-30 text-sm tracking-widest uppercase mt-6">
+          {salvando ? 'Salvando...' : isNovo ? 'Entrar no KORE →' : 'Salvar perfil'}
         </button>
+
+        {isNovo && !camposPreenchidos && (
+          <p className="text-zinc-600 text-[11px] text-center mt-3">
+            Preencha todos os campos para continuar
+          </p>
+        )}
+
+        {/* Pular por enquanto — só para novo usuário */}
+        {isNovo && (
+          <button onClick={() => router.push('/dashboard')}
+            className="w-full text-zinc-600 text-xs py-3 mt-2 hover:text-zinc-400 transition-colors">
+            Pular por enquanto — completar depois
+          </button>
+        )}
+
       </div>
 
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-          {[
-            { id: 'home',     icon: '⬜', label: 'Início',   path: '/dashboard' },
-            { id: 'treino',   icon: '◈',  label: 'Treino',   path: '/treino'    },
-            { id: 'nutri',    icon: '◇',  label: 'Nutrição', path: null         },
-            { id: 'evolucao', icon: '△',  label: 'Evolução', path: '/evolucao'  },
-            { id: 'perfil',   icon: '◉',  label: 'Perfil',   path: '/perfil'    },
-          ].map((item) => (
-            <button key={item.id} onClick={() => item.path && router.push(item.path)}
-              className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90">
-              <span className={`text-lg transition-all duration-200 ${item.id === 'perfil' ? 'opacity-100' : 'opacity-20'}`}>{item.icon}</span>
-              <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold transition-all ${item.id === 'perfil' ? 'text-white' : 'text-zinc-700'}`}>{item.label}</span>
-              {item.id === 'perfil' && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
-            </button>
-          ))}
-        </div>
-      </nav>
+      {/* Bottom Nav — esconde para novo usuário para não distrair */}
+      {!isNovo && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
+          <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
+            {[
+              { id: 'home',     icon: '⬜', label: 'Início',   path: '/dashboard' },
+              { id: 'treino',   icon: '◈',  label: 'Treino',   path: '/treino'    },
+              { id: 'nutri',    icon: '◇',  label: 'Nutrição', path: '/nutricao'  },
+              { id: 'evolucao', icon: '△',  label: 'Evolução', path: '/evolucao'  },
+              { id: 'perfil',   icon: '◉',  label: 'Perfil',   path: '/perfil'    },
+            ].map((item) => (
+              <button key={item.id} onClick={() => router.push(item.path)}
+                className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90">
+                <span className={`text-lg transition-all duration-200 ${item.id === 'perfil' ? 'opacity-100' : 'opacity-20'}`}>{item.icon}</span>
+                <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold transition-all ${item.id === 'perfil' ? 'text-white' : 'text-zinc-700'}`}>{item.label}</span>
+                {item.id === 'perfil' && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
     </main>
   )
 }
