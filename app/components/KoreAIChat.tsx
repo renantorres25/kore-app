@@ -18,6 +18,7 @@ type ContextoAtleta = {
   scoreHoje: number | null
   bemEstar: { energia: number; humor: number; dor_muscular: number } | null
   treinosRecentes: { nome: string; plano: string; data: string }[]
+  atividadesRecentes: { modalidade: string; duracao_min: number; distancia_km: number | null; calorias_estimadas: number | null; data: string }[]
   macrosHoje: { calorias: number | null; proteina: number | null; carboidrato: number | null; gordura: number | null; copos_agua: number } | null
   streak: number
   mediaScore7d: number | null
@@ -58,7 +59,8 @@ DADOS DE HOJE (${hoje}, ${hora}h):
 HISTÓRICO RECENTE:
 - Streak atual: ${ctx.streak} dias consecutivos
 - Score médio 7 dias: ${ctx.mediaScore7d ? `${ctx.mediaScore7d}/100` : 'não disponível'}
-- Últimos treinos: ${ctx.treinosRecentes.length ? ctx.treinosRecentes.map(t => `${t.nome} (${t.data})`).join(', ') : 'nenhum registrado'}
+- Últimos treinos de musculação: ${ctx.treinosRecentes.length ? ctx.treinosRecentes.map(t => `${t.nome} (${t.data})`).join(', ') : 'nenhum registrado'}
+- Últimas atividades livres: ${ctx.atividadesRecentes.length ? ctx.atividadesRecentes.map(a => `${a.modalidade} ${a.duracao_min}min${a.distancia_km ? ` ${a.distancia_km}km` : ''}${a.calorias_estimadas ? ` ~${a.calorias_estimadas}kcal` : ''} (${a.data})`).join(', ') : 'nenhuma registrada'}
 
 REGRAS DE RESPOSTA:
 - Sempre use os dados reais acima
@@ -73,8 +75,8 @@ REGRAS DE RESPOSTA:
 function KoreIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="M12 2L14.5 9.5H22L16 14L18.5 21.5L12 17L5.5 21.5L8 14L2 9.5H9.5L12 2Z"
-        fill="currentColor" fillOpacity="0.9" />
+      <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
@@ -114,7 +116,7 @@ export default function KoreAIChat() {
     const [
       { data: perfil }, { data: sonoHoje }, { data: be },
       { data: macros }, { data: treinos }, { data: scores7d },
-      { data: perfilTipo }, { data: historico },
+      { data: perfilTipo }, { data: historico }, { data: atividadesLivres },
     ] = await Promise.all([
       supabase.from('perfis').select('nome, objetivo, peso, altura, nivel').eq('id', session.user.id).single(),
       supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -123,8 +125,8 @@ export default function KoreAIChat() {
       supabase.from('treinos').select('nome, plano, data').eq('cliente_id', session.user.id).eq('concluido', true).order('data', { ascending: false }).limit(5),
       supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).gte('data', semanaStr).not('score_recuperacao', 'is', null),
       supabase.from('perfis').select('tipo').eq('id', session.user.id).single(),
-      // Busca histórico de mensagens dos últimos 7 dias
       supabase.from('chat_historico').select('role, content, created_at').eq('usuario_id', session.user.id).gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order('created_at', { ascending: true }).limit(50),
+      supabase.from('atividades_livres').select('modalidade, duracao_min, distancia_km, calorias_estimadas, data').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(5),
     ])
 
     setTipo(perfilTipo?.tipo ?? null)
@@ -145,6 +147,7 @@ export default function KoreAIChat() {
       peso: perfil?.peso ?? null, altura: perfil?.altura ?? null,
       nivel: perfil?.nivel ?? null, scoreHoje: sonoHoje?.score_recuperacao ?? null,
       bemEstar: be ?? null, treinosRecentes: treinos ?? [],
+      atividadesRecentes: atividadesLivres ?? [],
       macrosHoje: macros ?? null, streak, mediaScore7d,
     }
 
