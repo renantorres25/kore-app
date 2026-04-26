@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import OnboardingTour from '../components/OnboardingTour'
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -28,17 +29,10 @@ type Vinculo = {
 
 // ─── UTILITÁRIOS DE DATA (FUSO BRASIL) ───────────────────────────────────────
 
-/**
- * Retorna a data de hoje no fuso de São Paulo, formato YYYY-MM-DD.
- * Usado em TODAS as queries ao Supabase — nunca usar toISOString() para datas.
- */
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
-/**
- * Hora atual no fuso de São Paulo.
- */
 function getHourBR(): number {
   return parseInt(
     new Date().toLocaleString('en-US', {
@@ -123,15 +117,11 @@ function getScoreCores(score: number) {
 
 // ─── STREAK ───────────────────────────────────────────────────────────────────
 
-/**
- * Calcula streak de dias consecutivos de treino.
- * Recebe array de datas YYYY-MM-DD já ordenadas desc.
- */
 function calcularStreak(datas: string[]): number {
   if (!datas.length) return 0
   const hoje = getTodayBR()
   let streak = 0
-  const cursor = new Date(hoje + 'T12:00:00-03:00') // meio-dia BRT evita drift de fuso
+  const cursor = new Date(hoje + 'T12:00:00-03:00')
 
   for (const d of datas) {
     const cursorStr = cursor.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -197,7 +187,6 @@ export default function Dashboard() {
       setPerfil(perfilData)
 
       if (perfilData.tipo === 'cliente') {
-        // ✅ Data sempre no fuso de São Paulo — nunca toISOString()
         const hoje = getTodayBR()
 
         const [{ data: be }, { data: sonoHoje }, { data: treinos }, { data: vinculosData }, { data: treinoHojeData }] = await Promise.all([
@@ -240,7 +229,6 @@ export default function Dashboard() {
         if (treinos) setStreak(calcularStreak(treinos.map((t: { data: string }) => t.data)))
         if (treinoHojeData) setTreinoHoje(treinoHojeData)
 
-        // Busca perfis dos profissionais vinculados
         if (vinculosData?.length) {
           const ids = vinculosData.map((v: { profissional_id: string }) => v.profissional_id)
           const { data: perfis } = await supabase
@@ -278,6 +266,10 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
+
+      {/* ── Tour de onboarding — só aparece na primeira vez para clientes ── */}
+      {perfil?.tipo === 'cliente' && <OnboardingTour />}
+
       <div className="flex-1 overflow-y-auto pb-28">
         {perfil?.tipo === 'cliente' && (
           <DashboardCliente
