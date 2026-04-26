@@ -41,7 +41,23 @@ export default function TreinoCliente() {
   const [analise, setAnalise] = useState({ texto: '', carregando: false })
   const timer = useRef<NodeJS.Timeout | null>(null)
 
-  useEffect(() => { carregar() }, [])
+  // Busca treinos concluídos hoje para mostrar badge
+  const [treinosConcluidosHoje, setTreinosConcluidosHoje] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    async function verificarHoje() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from('treinos')
+        .select('plano')
+        .eq('cliente_id', session.user.id)
+        .eq('concluido', true)
+        .eq('data', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }))
+      if (data) setTreinosConcluidosHoje(new Set(data.map(t => t.plano)))
+    }
+    verificarHoje()
+  }, [concluido]) // re-verifica quando conclui um treino
 
   useEffect(() => {
     if (em && !concluido) {
@@ -444,7 +460,9 @@ Gere análise em 3 partes CURTAS (máx 80 palavras total, sem emojis, sem markdo
                 return (
                   <button key={t.plano} onClick={() => setPlanoAtivo(t.plano)} className={`flex-1 py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === t.plano ? `${co.bg} ${co.border} ${co.text}` : 'bg-white/[0.03] border-white/[0.06] text-zinc-600'}`}>
                     Plano {t.plano}
-                    <span className="block text-[9px] font-normal mt-0.5 opacity-70">{t.exercicios.length} exerc.</span>
+                    <span className="block text-[9px] font-normal mt-0.5 opacity-70">
+                      {treinosConcluidosHoje.has(t.plano) ? '✓ Feito hoje' : `${t.exercicios.length} exerc.`}
+                    </span>
                   </button>
                 )
               })}

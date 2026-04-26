@@ -643,11 +643,67 @@ function DashboardPersonal({
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
 
+  const [totalAlunos, setTotalAlunos] = useState(0)
+  const [treinaramHoje, setTreinaramHoje] = useState(0)
+  const [alertas, setAlertas] = useState(0)
+  const [alunosRecentes, setAlunosRecentes] = useState<{ nome: string | null; email: string; treinouHoje: boolean; score: number | null }[]>([])
+  const [loadingStats, setLoadingStats] = useState(true)
+
+  useEffect(() => {
+    async function carregarStats() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const { data: vinculos } = await supabase
+        .from('vinculos')
+        .select('cliente_id')
+        .eq('profissional_id', session.user.id)
+        .eq('tipo', 'personal')
+        .eq('ativo', true)
+
+      if (!vinculos?.length) { setLoadingStats(false); return }
+
+      const hoje = getTodayBR()
+      const semanaAtras = new Date()
+      semanaAtras.setDate(semanaAtras.getDate() - 7)
+      const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+      const ids = vinculos.map(v => v.cliente_id)
+      setTotalAlunos(ids.length)
+
+      const [{ data: perfis }, { data: treinosHoje }, { data: treinos7d }, { data: scores }] = await Promise.all([
+        supabase.from('perfis').select('id, nome, email').in('id', ids),
+        supabase.from('treinos').select('cliente_id').eq('concluido', true).eq('data', hoje).in('cliente_id', ids),
+        supabase.from('treinos').select('cliente_id, data').eq('concluido', true).gte('data', semanaStr).in('cliente_id', ids),
+        supabase.from('sono').select('usuario_id, score_recuperacao').eq('data', hoje).in('usuario_id', ids),
+      ])
+
+      const treinaramSet = new Set(treinosHoje?.map(t => t.cliente_id) ?? [])
+      const scoreMap = new Map(scores?.map(s => [s.usuario_id, s.score_recuperacao]) ?? [])
+      const treinos7dSet = new Map<string, number>()
+      treinos7d?.forEach(t => treinos7dSet.set(t.cliente_id, (treinos7dSet.get(t.cliente_id) ?? 0) + 1))
+
+      const alertasCount = ids.filter(id => (treinos7dSet.get(id) ?? 0) === 0).length
+
+      setTreinaramHoje(treinaramSet.size)
+      setAlertas(alertasCount)
+      setAlunosRecentes(
+        (perfis ?? []).map(p => ({
+          nome: p.nome,
+          email: p.email,
+          treinouHoje: treinaramSet.has(p.id),
+          score: scoreMap.get(p.id) ?? null,
+        })).slice(0, 4)
+      )
+      setLoadingStats(false)
+    }
+    carregarStats()
+  }, [])
+
   return (
-    <div
-      className="max-w-md mx-auto px-4"
-      style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}
-    >
+    <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
@@ -656,10 +712,7 @@ function DashboardPersonal({
         </div>
         <div className="flex items-center gap-2">
           <button className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">🔔</button>
-          <button
-            onClick={onLogout}
-            className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all"
-          >
+          <button onClick={onLogout} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
@@ -670,43 +723,67 @@ function DashboardPersonal({
         <span className="text-emerald-400 text-[10px] uppercase tracking-[0.15em] font-semibold">Personal Trainer</span>
       </div>
 
+      {/* Stats reais */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
-          { valor: '0', label: 'Alunos',    sub: 'ativos'    },
-          { valor: '0', label: 'Treinaram', sub: 'hoje'      },
-          { valor: '0', label: 'Alertas',   sub: 'pendentes' },
+          { valor: loadingStats ? '—' : String(totalAlunos), label: 'Alunos', sub: 'ativos', cor: 'text-white' },
+          { valor: loadingStats ? '—' : String(treinaramHoje), label: 'Treinaram', sub: 'hoje', cor: treinaramHoje > 0 ? 'text-emerald-400' : 'text-white' },
+          { valor: loadingStats ? '—' : String(alertas), label: 'Alertas', sub: 'sem treinar 7d', cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
         ].map((m) => (
           <div key={m.label} className="rounded-2xl p-4 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
-            <p className="text-white text-2xl font-black">{m.valor}</p>
+            <p className={`text-2xl font-black ${m.cor}`}>{m.valor}</p>
             <p className="text-zinc-500 text-[10px] mt-0.5 leading-tight">{m.label}</p>
             <p className="text-zinc-700 text-[9px]">{m.sub}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl p-5 border border-white/[0.06] mb-3" style={{ background: '#0f0f0f' }}>
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-zinc-400 text-[10px] uppercase tracking-[0.15em]">Agenda de hoje</p>
-          <span className="text-zinc-700 text-[10px] uppercase tracking-widest">{getTodayString().split(',')[0]}</span>
+      {/* Alunos recentes */}
+      {alunosRecentes.length > 0 && (
+        <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Seus alunos hoje</p>
+            <button onClick={() => router.push('/personal')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
+          </div>
+          <div className="divide-y divide-white/[0.04]">
+            {alunosRecentes.map((a, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${a.treinouHoje ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/[0.04] text-zinc-500'}`}>
+                  {(a.nome ?? a.email)[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-semibold truncate">{a.nome ?? a.email.split('@')[0]}</p>
+                  <p className={`text-[11px] ${a.treinouHoje ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                    {a.treinouHoje ? '✓ Treinou hoje' : 'Não treinou hoje'}
+                  </p>
+                </div>
+                {a.score && (
+                  <div className={`text-xs font-bold shrink-0 ${a.score >= 70 ? 'text-emerald-400' : a.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {a.score}/100
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col items-center py-8 gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-2xl opacity-40">📅</div>
-          <p className="text-zinc-600 text-sm">Nenhum aluno agendado</p>
-          <button className="text-[11px] border border-white/[0.08] rounded-xl px-4 py-2 text-zinc-400 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">
-            + Agendar sessão
+      )}
+
+      {/* Alertas */}
+      {alertas > 0 && (
+        <div className="rounded-2xl p-4 border border-orange-500/20 bg-orange-500/5 mb-4">
+          <p className="text-orange-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚠ {alertas} aluno{alertas > 1 ? 's' : ''} sem treinar há 7+ dias</p>
+          <p className="text-zinc-500 text-xs">Acesse a lista de alunos para ver quem precisa de atenção.</p>
+          <button onClick={() => router.push('/personal')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">
+            Ver alunos →
           </button>
         </div>
-      </div>
+      )}
 
-      <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
-        <p className="text-zinc-400 text-[10px] uppercase tracking-[0.15em] mb-3">Alertas</p>
-        <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
-      </div>
+      <button onClick={() => router.push('/personal')} className="w-full border border-white/[0.08] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">
+        Ver todos os alunos
+      </button>
 
-      <button
-        onClick={() => router.push('/convite')}
-        className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase"
-      >
+      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">
         + Convidar aluno
       </button>
     </div>
