@@ -100,15 +100,25 @@ function CalendarioConsistencia({ atividades }: { atividades: AtividadeDia[] }) 
   const hoje = getTodayBR()
   const dias = getLastNDays(28)
   const ativoSet = new Set(atividades.map(a => a.data))
-  const semanas: string[][] = []
-  for (let i = 0; i < dias.length; i += 7) semanas.push(dias.slice(i, i + 7))
 
-  // dias da semana abreviados
+  // Agrupa em semanas reais (domingo a sábado)
+  // Descobre qual dia da semana é o primeiro dia do array
+  const primeiroDia = new Date(dias[0] + 'T12:00:00')
+  const diaDaSemana = primeiroDia.getDay() // 0=dom, 1=seg...
+
+  // Preenche com dias vazios no início para alinhar com domingo
+  const diasPadded = [...Array(diaDaSemana).fill(null), ...dias]
+
+  // Divide em semanas de 7
+  const semanas: (string | null)[][] = []
+  for (let i = 0; i < diasPadded.length; i += 7) {
+    semanas.push(diasPadded.slice(i, i + 7))
+  }
+
   const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
   return (
     <div>
-      {/* Labels dias da semana */}
       <div className="flex gap-1.5 mb-1.5">
         {diasSemana.map(d => (
           <div key={d} className="flex-1 text-center">
@@ -119,7 +129,8 @@ function CalendarioConsistencia({ atividades }: { atividades: AtividadeDia[] }) 
       <div className="space-y-1.5">
         {semanas.map((semana, si) => (
           <div key={si} className="flex gap-1.5">
-            {semana.map(dia => {
+            {semana.map((dia, di) => {
+              if (!dia) return <div key={di} className="flex-1" style={{ height: 28 }} />
               const treinou = ativoSet.has(dia)
               const isHoje = dia === hoje
               return (
