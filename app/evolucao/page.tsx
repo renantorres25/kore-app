@@ -96,26 +96,25 @@ function Sparkline({ data, color, height = 60 }: { data: (number | null)[]; colo
   )
 }
 
-function CalendarioConsistencia({ atividades }: { atividades: AtividadeDia[] }) {
+function CalendarioConsistencia({ atividades, onSelecionarDia }: { atividades: AtividadeDia[], onSelecionarDia: (data: string | null) => void }) {
   const hoje = getTodayBR()
   const dias = getLastNDays(28)
   const ativoSet = new Set(atividades.map(a => a.data))
+  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
 
-  // Agrupa em semanas reais (domingo a sábado)
-  // Descobre qual dia da semana é o primeiro dia do array
   const primeiroDia = new Date(dias[0] + 'T12:00:00')
-  const diaDaSemana = primeiroDia.getDay() // 0=dom, 1=seg...
-
-  // Preenche com dias vazios no início para alinhar com domingo
+  const diaDaSemana = primeiroDia.getDay()
   const diasPadded = [...Array(diaDaSemana).fill(null), ...dias]
-
-  // Divide em semanas de 7
   const semanas: (string | null)[][] = []
-  for (let i = 0; i < diasPadded.length; i += 7) {
-    semanas.push(diasPadded.slice(i, i + 7))
-  }
+  for (let i = 0; i < diasPadded.length; i += 7) semanas.push(diasPadded.slice(i, i + 7))
 
   const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+  function handleClick(dia: string) {
+    const novo = dia === diaSelecionado ? null : dia
+    setDiaSelecionado(novo)
+    onSelecionarDia(novo)
+  }
 
   return (
     <div>
@@ -133,9 +132,18 @@ function CalendarioConsistencia({ atividades }: { atividades: AtividadeDia[] }) 
               if (!dia) return <div key={di} className="flex-1" style={{ height: 28 }} />
               const treinou = ativoSet.has(dia)
               const isHoje = dia === hoje
+              const isSelecionado = dia === diaSelecionado
               return (
-                <div key={dia} title={formatDate(dia)}
-                  className={`flex-1 rounded-lg transition-all ${treinou ? 'bg-emerald-500/80' : isHoje ? 'bg-white/10 ring-1 ring-white/30' : 'bg-white/[0.05]'}`}
+                <button key={dia} onClick={() => handleClick(dia)} title={formatDate(dia)}
+                  className={`flex-1 rounded-lg transition-all active:scale-90 ${
+                    isSelecionado
+                      ? 'ring-2 ring-white ring-offset-1 ring-offset-[#0f0f0f]'
+                      : ''
+                  } ${
+                    treinou ? 'bg-emerald-500/80 hover:bg-emerald-500' :
+                    isHoje ? 'bg-white/10 ring-1 ring-white/30' :
+                    'bg-white/[0.05] hover:bg-white/10'
+                  }`}
                   style={{ height: 28 }} />
               )
             })}
@@ -145,6 +153,7 @@ function CalendarioConsistencia({ atividades }: { atividades: AtividadeDia[] }) 
       <div className="flex gap-4 mt-3">
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-500/80" /><span className="text-zinc-600 text-[9px] uppercase tracking-wider">Ativo</span></div>
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-white/[0.05]" /><span className="text-zinc-600 text-[9px] uppercase tracking-wider">Descanso</span></div>
+        {diaSelecionado && <span className="text-zinc-600 text-[9px] uppercase tracking-wider ml-auto">Toque para fechar</span>}
       </div>
     </div>
   )
@@ -162,6 +171,7 @@ export default function Evolucao() {
   const [analise, setAnalise] = useState({ texto: '', carregando: false, gerado: false })
   const [mediaScore, setMediaScore] = useState<number | null>(null)
   const [melhorScore, setMelhorScore] = useState<number | null>(null)
+  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -376,15 +386,65 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
               </div>
             )}
 
-            {/* Consistência */}
             <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
               <div className="px-5 pt-5 pb-5">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Consistência</p>
-                  <p className="text-zinc-600 text-[10px]">28 dias</p>
+                  <p className="text-zinc-600 text-[10px]">28 dias · toque para ver detalhes</p>
                 </div>
-                <CalendarioConsistencia atividades={atividades} />
+                <CalendarioConsistencia atividades={atividades} onSelecionarDia={setDiaSelecionado} />
               </div>
+
+              {/* Painel de detalhes do dia selecionado */}
+              {diaSelecionado && (() => {
+                const atividadesDia = atividades.filter(a => a.data === diaSelecionado)
+                const scoreDia = scores.find(s => s.data === diaSelecionado)
+                return (
+                  <div className="border-t border-white/[0.06] px-5 py-4">
+                    <p className="text-zinc-400 text-[11px] font-semibold uppercase tracking-wider mb-3">
+                      {formatDateFull(diaSelecionado)}
+                    </p>
+                    {atividadesDia.length === 0 && !scoreDia?.score ? (
+                      <p className="text-zinc-600 text-sm">Dia de descanso</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {scoreDia?.score && (
+                          <div className="flex items-center gap-3 py-2 border-b border-white/[0.04]">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-sm">⚡</div>
+                            <div className="flex-1">
+                              <p className="text-white text-sm font-semibold">Recuperação</p>
+                              <p className="text-zinc-600 text-[11px]">Score do dia</p>
+                            </div>
+                            <p className={`text-sm font-bold ${scoreDia.score >= 70 ? 'text-emerald-400' : scoreDia.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {scoreDia.score}/100
+                            </p>
+                          </div>
+                        )}
+                        {atividadesDia.map((a, i) => {
+                          const cfg = MOD_CONFIG[a.tipo] ?? MOD_CONFIG['outro']
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-xl ${cfg.cor} border ${cfg.corBorder} flex items-center justify-center shrink-0 text-base`}>
+                                {cfg.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-semibold">{a.nome}</p>
+                                <p className="text-zinc-600 text-[11px]">{a.detalhe}</p>
+                              </div>
+                              {a.calorias && (
+                                <p className="text-orange-400 text-xs font-bold shrink-0">~{a.calorias} kcal</p>
+                              )}
+                            </div>
+                          )
+                        })}
+                        {atividadesDia.length === 0 && (
+                          <p className="text-zinc-600 text-sm">Nenhuma atividade registrada</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Frequência semanal */}
