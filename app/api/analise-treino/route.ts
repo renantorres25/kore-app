@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
-      system: 'Você é o coach de IA do KORE. Responda SEMPRE em texto corrido, sem markdown, sem asteriscos, sem negrito. Seja direto e objetivo.',
+      max_tokens: 400,
+      system: 'Você é coach de IA do KORE. Responda SEMPRE em texto corrido, sem títulos, sem markdown, sem asteriscos, sem negrito, sem emojis. Vá direto ao conteúdo, nunca use cabeçalhos como "Análise:" ou "Balanço do dia:".',
       messages: [
         { role: 'user', content: prompt }
       ],
