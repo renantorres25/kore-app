@@ -60,7 +60,25 @@ export default function TreinoCliente() {
     const { data: sono } = await supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single()
     if (sono?.score_recuperacao) setScore(sono.score_recuperacao)
 
-    const { data: td } = await supabase.from('treinos').select('id, nome, descricao, plano').eq('cliente_id', session.user.id).eq('status', 'pendente').order('plano')
+    // Busca vínculo com personal
+    const { data: vinculo } = await supabase
+      .from('vinculos')
+      .select('profissional_id')
+      .eq('cliente_id', session.user.id)
+      .eq('tipo', 'personal')
+      .eq('ativo', true)
+      .single()
+
+    if (!vinculo) { setCarregando(false); return }
+
+    // Busca treinos do personal para este cliente (pendentes = planos disponíveis)
+    const { data: td } = await supabase
+      .from('treinos')
+      .select('id, nome, descricao, plano')
+      .eq('cliente_id', session.user.id)
+      .eq('personal_id', vinculo.profissional_id)
+      .eq('status', 'pendente')
+      .order('plano')
     if (!td?.length) { setCarregando(false); return }
 
     const ids = td.map(t => t.id)
@@ -147,23 +165,24 @@ Gere análise em 3 partes CURTAS (máx 80 palavras total, sem emojis, sem markdo
     const t = tempo
     const hoje = getTodayBR()
 
-    // Atualiza o treino existente do personal marcando como concluído
-    const { error: erroUpdate } = await supabase
-      .from('treinos')
-      .update({
-        status: 'concluido',
-        concluido: true,
-        data: hoje,
-      })
-      .eq('id', em.id)
+    // Cria registro de execução separado — preserva o plano original do personal
+    const { data: reg, error } = await supabase.from('treinos').insert({
+      personal_id: null,
+      cliente_id: session.user.id,
+      nome: em.nome,
+      descricao: em.descricao,
+      plano: em.plano,
+      status: 'concluido',
+      data: hoje,
+      concluido: true,
+    }).select('id').single()
 
-    if (!erroUpdate) {
-      // Registra as séries
+    if (reg) {
       const done = Object.values(series).flat().filter(s => s.concluida)
       if (done.length) {
         await supabase.from('series_registradas').insert(
           done.map(s => ({
-            treino_id: em.id,
+            treino_id: reg.id,
             exercicio_id: s.exercicio_id,
             numero_serie: s.numero_serie,
             carga: s.carga,
