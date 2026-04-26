@@ -15,10 +15,10 @@ function getHourBR(): number {
 type Perfil = { nome: string | null; peso: number | null; objetivo: string | null }
 
 const QUALIDADE_OPCOES = [
-  { valor: 1, label: 'Ruim',     emoji: '😞', desc: 'Comi mal hoje',         cor: 'border-red-500/40 bg-red-500/10 text-red-400' },
-  { valor: 2, label: 'Regular',  emoji: '😐', desc: 'Poderia ser melhor',    cor: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' },
-  { valor: 3, label: 'Boa',      emoji: '🙂', desc: 'Me alimentei bem',      cor: 'border-blue-500/40 bg-blue-500/10 text-blue-400' },
-  { valor: 4, label: 'Ótima',    emoji: '💪', desc: 'Dieta perfeita hoje',   cor: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' },
+  { valor: 1, label: 'Ruim',    emoji: '😞', desc: 'Comi mal hoje',       cor: 'border-red-500/40 bg-red-500/10 text-red-400' },
+  { valor: 2, label: 'Regular', emoji: '😐', desc: 'Poderia ser melhor',  cor: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' },
+  { valor: 3, label: 'Boa',     emoji: '🙂', desc: 'Me alimentei bem',    cor: 'border-blue-500/40 bg-blue-500/10 text-blue-400' },
+  { valor: 4, label: 'Ótima',   emoji: '💪', desc: 'Dieta perfeita hoje', cor: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' },
 ]
 
 function getMetaProteina(peso: number | null, objetivo: string | null): number | null {
@@ -44,6 +44,64 @@ const OBJETIVO_LABEL: Record<string, string> = {
   saude_geral: 'Saúde geral',
 }
 
+// ─── NAV ICONS SVG ────────────────────────────────────────────────────────────
+
+function IconHome({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
+      <path d="M9 21V12h6v9" />
+    </svg>
+  )
+}
+
+function IconTreino({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" />
+      <path d="M7.5 6.5v11M17.5 6.5v11" />
+      <path d="M7.5 12h9" />
+      <path d="M3 10.5v3M21 10.5v3" />
+    </svg>
+  )
+}
+
+function IconNutricao({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" />
+      <path d="M12 6.5V4" />
+      <path d="M12 4c0 0 1.5-1 3-1.5" />
+    </svg>
+  )
+}
+
+function IconEvolucao({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  )
+}
+
+function IconPerfil({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  )
+}
+
+const NAV_ITEMS = [
+  { id: 'home',     label: 'Início',   Icon: IconHome,     path: '/dashboard' },
+  { id: 'treino',   label: 'Treino',   Icon: IconTreino,   path: '/treino'    },
+  { id: 'nutri',    label: 'Nutrição', Icon: IconNutricao, path: '/nutricao'  },
+  { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao, path: '/evolucao'  },
+  { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil,   path: '/perfil'    },
+]
+
 export default function Nutricao() {
   const router = useRouter()
   const [carregando, setCarregando] = useState(true)
@@ -55,14 +113,11 @@ export default function Nutricao() {
   const [registroId, setRegistroId] = useState<string | null>(null)
   const [vinculoNutri, setVinculoNutri] = useState<{ nome: string | null } | null>(null)
 
-  // Campos do registro
   const [qualidade, setQualidade] = useState<number | null>(null)
   const [calorias, setCalorias] = useState('')
   const [proteina, setProteina] = useState('')
   const [coposAgua, setCoposAgua] = useState(0)
   const [observacoes, setObservacoes] = useState('')
-
-  // Análise IA
   const [analise, setAnalise] = useState({ texto: '', carregando: false, gerado: false })
   const [jaRegistrou, setJaRegistrou] = useState(false)
 
@@ -189,7 +244,6 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
   const hora = getHourBR()
   const isManha = hora < 12
   const isTarde = hora >= 12 && hora < 18
-  const isNoite = hora >= 18
 
   if (carregando) return (
     <main className="min-h-screen bg-[#080808] flex items-center justify-center">
@@ -210,7 +264,6 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
               {new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
-          {/* Badge hora do dia */}
           <div className={`mt-1 px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider ${
             isManha ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
             isTarde ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
@@ -247,7 +300,7 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
           </div>
 
           <div className="p-5 space-y-5">
-            {/* Qualidade — 4 botões */}
+            {/* Qualidade */}
             <div>
               <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-3">Avaliação geral</p>
               <div className="grid grid-cols-4 gap-2">
@@ -274,8 +327,7 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
                   {metaCal && <span className="text-zinc-700 text-[9px]">meta {metaCal}</span>}
                 </div>
                 <div className="relative">
-                  <input type="number" placeholder="ex: 2000" value={calorias}
-                    onChange={e => setCalorias(e.target.value)}
+                  <input type="number" placeholder="ex: 2000" value={calorias} onChange={e => setCalorias(e.target.value)}
                     className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">kcal</span>
                 </div>
@@ -295,8 +347,7 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
                   {metaProt && <span className="text-zinc-700 text-[9px]">meta {metaProt}g</span>}
                 </div>
                 <div className="relative">
-                  <input type="number" placeholder="ex: 150" value={proteina}
-                    onChange={e => setProteina(e.target.value)}
+                  <input type="number" placeholder="ex: 150" value={proteina} onChange={e => setProteina(e.target.value)}
                     className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">g</span>
                 </div>
@@ -311,18 +362,14 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
               </div>
             </div>
 
-            {/* Observações livres */}
+            {/* Observações */}
             <div>
               <label className="text-zinc-600 text-[10px] uppercase tracking-wider mb-2 block">
                 Observações <span className="text-zinc-700 normal-case">— opcional mas ajuda a IA</span>
               </label>
-              <textarea
-                placeholder="Ex: comi fora hoje, tive muita fome à tarde, pulei o almoço, me senti com energia..."
-                value={observacoes}
-                onChange={e => setObservacoes(e.target.value)}
-                rows={3}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none leading-relaxed"
-              />
+              <textarea placeholder="Ex: comi fora hoje, tive muita fome à tarde, pulei o almoço, me senti com energia..."
+                value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={3}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none leading-relaxed" />
               <p className="text-zinc-700 text-[10px] mt-1.5">Quanto mais detalhes, melhor o feedback da IA</p>
             </div>
 
@@ -385,9 +432,7 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
             {!analise.gerado && !analise.carregando && (
               <div className="space-y-3">
                 <p className="text-zinc-500 text-sm">
-                  {jaRegistrou
-                    ? 'Seu registro foi salvo. Gere o feedback da IA para análise personalizada.'
-                    : 'Registre sua alimentação acima para receber análise personalizada da IA.'}
+                  {jaRegistrou ? 'Seu registro foi salvo. Gere o feedback da IA para análise personalizada.' : 'Registre sua alimentação acima para receber análise personalizada da IA.'}
                 </p>
                 {jaRegistrou && (
                   <button onClick={gerarAnaliseIA}
@@ -412,16 +457,13 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
         {/* ── NUTRICIONISTA ── */}
         <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-500 border-white/[0.08]'}`}>
-              NU
-            </div>
+            <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-500 border-white/[0.08]'}`}>NU</div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-semibold">Nutricionista</p>
-              {vinculoNutri ? (
-                <p className="text-emerald-400 text-xs">{vinculoNutri.nome ?? 'Conectada'}</p>
-              ) : (
-                <p className="text-zinc-600 text-xs">Sem plano alimentar — registre o essencial acima</p>
-              )}
+              {vinculoNutri
+                ? <p className="text-emerald-400 text-xs">{vinculoNutri.nome ?? 'Conectada'}</p>
+                : <p className="text-zinc-600 text-xs">Sem plano alimentar — registre o essencial acima</p>
+              }
             </div>
             {!vinculoNutri ? (
               <button onClick={() => router.push('/convite')}
@@ -439,24 +481,25 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
 
       </div>
 
-      {/* Bottom Nav */}
+      {/* ── Bottom Nav SVG ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-          {[
-            { id: 'home',     icon: '⬜', label: 'Início',   path: '/dashboard' },
-            { id: 'treino',   icon: '◈',  label: 'Treino',   path: '/treino'    },
-            { id: 'nutri',    icon: '◇',  label: 'Nutrição', path: '/nutricao'  },
-            { id: 'evolucao', icon: '△',  label: 'Evolução', path: '/evolucao'  },
-            { id: 'perfil',   icon: '◉',  label: 'Perfil',   path: '/perfil'    },
-          ].map((item) => (
-            <button key={item.id} onClick={() => router.push(item.path)}
-              className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90">
-              <span className={`text-lg transition-all duration-200 ${item.id === 'nutri' ? 'opacity-100' : 'opacity-20'}`}>{item.icon}</span>
-              <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold transition-all ${item.id === 'nutri' ? 'text-white' : 'text-zinc-700'}`}>{item.label}</span>
-              {item.id === 'nutri' && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
-            </button>
-          ))}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
+        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
+          {NAV_ITEMS.map((item) => {
+            const active = item.id === 'nutri'
+            return (
+              <button key={item.id} onClick={() => router.push(item.path)}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90">
+                <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                  <item.Icon active={active} />
+                </span>
+                <span className={`text-[9px] tracking-[0.1em] uppercase font-semibold transition-all ${active ? 'text-emerald-400' : 'text-zinc-700'}`}>
+                  {item.label}
+                </span>
+                {active && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
+              </button>
+            )
+          })}
         </div>
       </nav>
     </main>

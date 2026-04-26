@@ -11,6 +11,8 @@ type Perfil = {
   tipo: 'cliente' | 'personal' | 'nutricionista'
   nome: string | null
   email: string
+  peso: number | null
+  objetivo: string | null
 }
 
 type BemEstar = {
@@ -27,6 +29,12 @@ type Vinculo = {
   email: string
 } | null
 
+type NutricaoHoje = {
+  calorias: number | null
+  proteina: number | null
+  qualidade_alimentacao: number | null
+} | null
+
 // ─── UTILITÁRIOS DE DATA (FUSO BRASIL) ───────────────────────────────────────
 
 function getTodayBR(): string {
@@ -35,12 +43,7 @@ function getTodayBR(): string {
 
 function getHourBR(): number {
   return parseInt(
-    new Date().toLocaleString('en-US', {
-      timeZone: 'America/Sao_Paulo',
-      hour: 'numeric',
-      hour12: false,
-    }),
-    10
+    new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10
   )
 }
 
@@ -53,10 +56,7 @@ function getGreeting(): string {
 
 function getTodayString(): string {
   return new Date().toLocaleDateString('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
+    timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long',
   })
 }
 
@@ -74,6 +74,24 @@ function getInitials(nome: string | null, email: string): string {
     return parts[0][0].toUpperCase()
   }
   return email[0].toUpperCase()
+}
+
+// ─── METAS NUTRICIONAIS ───────────────────────────────────────────────────────
+
+function getMetaCalorias(peso: number | null, objetivo: string | null): number | null {
+  if (!peso) return null
+  const tmb = 10 * peso + 6.25 * 170 - 5 * 25 + 5
+  const tdee = Math.round(tmb * 1.55)
+  if (objetivo === 'perder_peso') return Math.round(tdee * 0.85)
+  if (objetivo === 'ganhar_massa') return Math.round(tdee * 1.1)
+  return tdee
+}
+
+function getMetaProteina(peso: number | null, objetivo: string | null): number | null {
+  if (!peso) return null
+  if (objetivo === 'ganhar_massa') return Math.round(peso * 2.2)
+  if (objetivo === 'perder_peso') return Math.round(peso * 2.0)
+  return Math.round(peso * 1.8)
 }
 
 // ─── BEM-ESTAR ────────────────────────────────────────────────────────────────
@@ -124,12 +142,8 @@ function calcularStreak(datas: string[]): number {
   const cursor = new Date(hoje + 'T12:00:00-03:00')
   for (const d of datas) {
     const cursorStr = cursor.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    if (d === cursorStr) {
-      streak++
-      cursor.setDate(cursor.getDate() - 1)
-    } else {
-      break
-    }
+    if (d === cursorStr) { streak++; cursor.setDate(cursor.getDate() - 1) }
+    else break
   }
   return streak
 }
@@ -156,7 +170,6 @@ function IconTreino({ active }: { active: boolean }) {
   )
 }
 
-// ─── ÍCONE MAÇÃ (nutrição) ────────────────────────────────────────────────────
 function IconNutricao({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -208,11 +221,7 @@ function IconAgenda({ active }: { active: boolean }) {
 
 // ─── NAV ITEMS ────────────────────────────────────────────────────────────────
 
-type NavItem = {
-  id: string
-  label: string
-  Icon: React.FC<{ active: boolean }>
-}
+type NavItem = { id: string; label: string; Icon: React.FC<{ active: boolean }> }
 
 function getNavItems(tipo?: string): NavItem[] {
   if (tipo === 'personal') return [
@@ -246,6 +255,7 @@ export default function Dashboard() {
   const [streak, setStreak] = useState<number>(0)
   const [vinculos, setVinculos] = useState<Vinculo[]>([])
   const [treinoHoje, setTreinoHoje] = useState<{ nome: string; plano: string; concluido: boolean } | null>(null)
+  const [nutricaoHoje, setNutricaoHoje] = useState<NutricaoHoje>(null)
   const [carregando, setCarregando] = useState(true)
   const [activeTab, setActiveTab] = useState('home')
 
@@ -255,7 +265,7 @@ export default function Dashboard() {
       if (!session) { router.push('/'); return }
 
       const { data: perfilData } = await supabase
-        .from('perfis').select('tipo, nome, email').eq('id', session.user.id).single()
+        .from('perfis').select('tipo, nome, email, peso, objetivo').eq('id', session.user.id).single()
 
       if (!perfilData) { router.push('/onboarding'); return }
       setPerfil(perfilData)
@@ -263,18 +273,20 @@ export default function Dashboard() {
       if (perfilData.tipo === 'cliente') {
         const hoje = getTodayBR()
 
-        const [{ data: be }, { data: sonoHoje }, { data: treinos }, { data: vinculosData }, { data: treinoHojeData }] = await Promise.all([
+        const [{ data: be }, { data: sonoHoje }, { data: treinos }, { data: vinculosData }, { data: treinoHojeData }, { data: nutricaoData }] = await Promise.all([
           supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('treinos').select('data').eq('cliente_id', session.user.id).eq('concluido', true).order('data', { ascending: false }).limit(60),
           supabase.from('vinculos').select('tipo, profissional_id').eq('cliente_id', session.user.id).eq('ativo', true),
           supabase.from('treinos').select('nome, plano, concluido').eq('cliente_id', session.user.id).eq('data', hoje).order('concluido', { ascending: false }).limit(1).single(),
+          supabase.from('nutricao').select('calorias, proteina, qualidade_alimentacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
         ])
 
         if (be) setBemEstar(be)
         if (sonoHoje?.score_recuperacao) setScoreRecuperacao(sonoHoje.score_recuperacao)
         if (treinos) setStreak(calcularStreak(treinos.map((t: { data: string }) => t.data)))
         if (treinoHojeData) setTreinoHoje(treinoHojeData)
+        if (nutricaoData) setNutricaoHoje(nutricaoData)
 
         if (vinculosData?.length) {
           const ids = vinculosData.map((v: { profissional_id: string }) => v.profissional_id)
@@ -310,8 +322,6 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
-
-      {/* ── Tour de onboarding — só aparece na primeira vez para clientes ── */}
       {perfil?.tipo === 'cliente' && <OnboardingTour />}
 
       <div className="flex-1 overflow-y-auto pb-28">
@@ -323,34 +333,23 @@ export default function Dashboard() {
             streak={streak}
             vinculos={vinculos}
             treinoHoje={treinoHoje}
+            nutricaoHoje={nutricaoHoje}
             activeTab={activeTab}
             onLogout={handleLogout}
           />
         )}
-        {perfil?.tipo === 'personal' && (
-          <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />
-        )}
-        {perfil?.tipo === 'nutricionista' && (
-          <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />
-        )}
+        {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />}
+        {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />}
       </div>
 
       {/* ── Bottom Navigation ── */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          background: 'rgba(8,8,8,0.97)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-        }}
-      >
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
           {getNavItems(perfil?.tipo).map((item) => {
             const active = activeTab === item.id
             return (
-              <button
-                key={item.id}
+              <button key={item.id}
                 onClick={() => {
                   if (item.id === 'perfil') router.push('/perfil')
                   else if (item.id === 'alunos') router.push('/personal')
@@ -360,8 +359,7 @@ export default function Dashboard() {
                   else if (item.id === 'nutri') router.push('/nutricao')
                   else setActiveTab(item.id)
                 }}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90"
-              >
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90">
                 <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}>
                   <item.Icon active={active} />
                 </span>
@@ -392,13 +390,7 @@ function Metrica({ label, valor }: { label: string; valor: string }) {
 // ─── DASHBOARD CLIENTE ────────────────────────────────────────────────────────
 
 function DashboardCliente({
-  perfil,
-  bemEstar,
-  scoreRecuperacao,
-  streak,
-  vinculos,
-  treinoHoje,
-  onLogout: _onLogout,
+  perfil, bemEstar, scoreRecuperacao, streak, vinculos, treinoHoje, nutricaoHoje, onLogout: _onLogout,
 }: {
   perfil: Perfil
   bemEstar: BemEstar
@@ -406,6 +398,7 @@ function DashboardCliente({
   streak: number
   vinculos: Vinculo[]
   treinoHoje: { nome: string; plano: string; concluido: boolean } | null
+  nutricaoHoje: NutricaoHoje
   activeTab: string
   onLogout: () => void
 }) {
@@ -414,6 +407,9 @@ function DashboardCliente({
   const initials  = getInitials(perfil.nome, perfil.email)
   const media     = getMediaBemEstar(bemEstar)
   const cores     = scoreRecuperacao ? getScoreCores(scoreRecuperacao) : null
+  const metaCal   = getMetaCalorias(perfil.peso, perfil.objetivo)
+  const metaProt  = getMetaProteina(perfil.peso, perfil.objetivo)
+  const vinculoNutri = vinculos.find(v => v?.tipo === 'nutricionista')
 
   function getSugestaoIA(): string {
     if (!scoreRecuperacao) return '✦ Registre seu sono para receber sugestões personalizadas da IA.'
@@ -423,6 +419,11 @@ function DashboardCliente({
     if (scoreRecuperacao >= 40) return '✦ Recuperação baixa. Um treino leve ou mobilidade é o ideal hoje.'
     return '✦ Recuperação crítica. Priorize descanso — seu corpo está pedindo.'
   }
+
+  const pctCal = nutricaoHoje?.calorias && metaCal
+    ? Math.min(100, Math.round((nutricaoHoje.calorias / metaCal) * 100)) : 0
+  const pctProt = nutricaoHoje?.proteina && metaProt
+    ? Math.min(100, Math.round((nutricaoHoje.proteina / metaProt) * 100)) : 0
 
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -444,11 +445,9 @@ function DashboardCliente({
 
       {/* ── HERO: Score de Recuperação ── */}
       {scoreRecuperacao ? (
-        <button
-          onClick={() => router.push('/sono')}
+        <button onClick={() => router.push('/sono')}
           className={`w-full text-left rounded-3xl p-6 mb-3 border ${cores?.border} relative overflow-hidden active:scale-[0.98] transition-all duration-200`}
-          style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}
-        >
+          style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
           <div className={`absolute -top-12 -right-12 w-56 h-56 rounded-full blur-3xl opacity-15 ${cores?.bg}`} />
           <div className="relative">
             <div className="flex items-start justify-between mb-4">
@@ -479,11 +478,9 @@ function DashboardCliente({
           </div>
         </button>
       ) : (
-        <button
-          onClick={() => router.push('/sono')}
+        <button onClick={() => router.push('/sono')}
           className="w-full text-left rounded-3xl p-6 mb-3 border border-white/[0.06] relative overflow-hidden active:scale-[0.98] transition-all group"
-          style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}
-        >
+          style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
           <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full blur-3xl opacity-[0.04] bg-white" />
           <p className="text-zinc-600 text-[10px] uppercase tracking-[0.22em] mb-3">Recuperação hoje</p>
           <p className="text-white text-2xl font-black mb-1 group-hover:text-emerald-400 transition-colors">Registrar sono</p>
@@ -492,11 +489,9 @@ function DashboardCliente({
       )}
 
       {/* ── Bem-estar ── */}
-      <button
-        onClick={() => router.push('/bem-estar')}
+      <button onClick={() => router.push('/bem-estar')}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
-        style={{ background: '#0f0f0f' }}
-      >
+        style={{ background: '#0f0f0f' }}>
         {media ? (
           <div className="flex items-center justify-between">
             <div>
@@ -506,10 +501,8 @@ function DashboardCliente({
             <div className="flex flex-col items-end gap-2">
               <span className="text-[10px] text-zinc-600 uppercase tracking-widest">Atualizar →</span>
               <div className="w-20 h-[3px] bg-white/[0.05] rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${media <= 2 ? 'bg-red-400' : media === 3 ? 'bg-yellow-400' : 'bg-emerald-400'}`}
-                  style={{ width: `${(media / 5) * 100}%` }}
-                />
+                <div className={`h-full rounded-full transition-all duration-500 ${media <= 2 ? 'bg-red-400' : media === 3 ? 'bg-yellow-400' : 'bg-emerald-400'}`}
+                  style={{ width: `${(media / 5) * 100}%` }} />
               </div>
             </div>
           </div>
@@ -570,25 +563,84 @@ function DashboardCliente({
             <p className="text-zinc-400 text-[11px] leading-relaxed">{getSugestaoIA()}</p>
           </div>
         )}
-        <button
-          onClick={() => router.push('/treino')}
-          className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 hover:bg-zinc-100 transition-all tracking-[0.05em]"
-        >
+        <button onClick={() => router.push('/treino')}
+          className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 hover:bg-zinc-100 transition-all tracking-[0.05em]">
           {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treinos →'}
         </button>
       </div>
 
-      {/* ── Plano alimentar ── */}
-      <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-        <div className="flex items-center justify-between">
+      {/* ── Plano Alimentar — CARD INTELIGENTE ── */}
+      <button onClick={() => router.push('/nutricao')}
+        className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
+        style={{ background: '#0f0f0f' }}>
+
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Plano alimentar</p>
-            <p className="text-white font-bold">Nenhum plano ativo</p>
-            <p className="text-zinc-600 text-xs mt-0.5">Aguardando sua nutricionista</p>
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Nutrição hoje</p>
+            {vinculoNutri ? (
+              <p className="text-white font-bold text-base">Plano ativo</p>
+            ) : nutricaoHoje?.calorias ? (
+              <p className="text-white font-bold text-base">{nutricaoHoje.calorias} kcal registradas</p>
+            ) : (
+              <p className="text-white font-bold text-base">Registrar alimentação</p>
+            )}
+            <p className="text-zinc-600 text-xs mt-0.5">
+              {vinculoNutri
+                ? vinculoNutri.nome ?? 'Nutricionista conectada'
+                : metaCal
+                ? `Meta: ${metaCal} kcal · ${metaProt}g proteína`
+                : 'Toque para registrar seu dia'}
+            </p>
           </div>
-          <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 bg-green-500/10 text-green-400 border-green-500/20">PA</div>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : nutricaoHoje?.calorias ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/[0.04] text-zinc-500 border-white/[0.08]'}`}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" />
+              <path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" />
+            </svg>
+          </div>
         </div>
-      </div>
+
+        {/* Barras de progresso quando tem dados */}
+        {(nutricaoHoje?.calorias || nutricaoHoje?.proteina) && metaCal && (
+          <div className="space-y-2 mt-3 pt-3 border-t border-white/[0.04]">
+            {nutricaoHoje?.calorias && (
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Calorias</span>
+                  <span className="text-zinc-500 text-[9px]">{nutricaoHoje.calorias} / {metaCal} kcal</span>
+                </div>
+                <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${pctCal >= 100 ? 'bg-emerald-400' : 'bg-blue-400'}`}
+                    style={{ width: `${pctCal}%` }} />
+                </div>
+              </div>
+            )}
+            {nutricaoHoje?.proteina && metaProt && (
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Proteína</span>
+                  <span className="text-zinc-500 text-[9px]">{nutricaoHoje.proteina}g / {metaProt}g</span>
+                </div>
+                <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${pctProt >= 100 ? 'bg-emerald-400' : 'bg-purple-400'}`}
+                    style={{ width: `${pctProt}%` }} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CTA quando não tem dados e não tem nutri */}
+        {!vinculoNutri && !nutricaoHoje?.calorias && (
+          <div className="mt-3 pt-3 border-t border-white/[0.04]">
+            <p className="text-zinc-600 text-[11px] leading-relaxed">
+              {metaCal
+                ? `Sua meta estimada é ${metaCal} kcal e ${metaProt}g de proteína. Registre seu dia →`
+                : 'Registre sua alimentação diária para receber análise da IA →'}
+            </p>
+          </div>
+        )}
+      </button>
 
       {/* ── Meu time ── */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
@@ -611,10 +663,8 @@ function DashboardCliente({
                     }
                   </div>
                   {!vinculo && (
-                    <button
-                      onClick={() => router.push('/convite')}
-                      className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0"
-                    >
+                    <button onClick={() => router.push('/convite')}
+                      className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0">
                       + Conectar
                     </button>
                   )}
