@@ -122,7 +122,6 @@ function calcularStreak(datas: string[]): number {
   const hoje = getTodayBR()
   let streak = 0
   const cursor = new Date(hoje + 'T12:00:00-03:00')
-
   for (const d of datas) {
     const cursorStr = cursor.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     if (d === cursorStr) {
@@ -135,27 +134,103 @@ function calcularStreak(datas: string[]): number {
   return streak
 }
 
-// ─── NAV ──────────────────────────────────────────────────────────────────────
+// ─── NAV ICONS SVG ────────────────────────────────────────────────────────────
 
-function getNavItems(tipo?: string) {
+function IconHome({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
+      <path d="M9 21V12h6v9" />
+    </svg>
+  )
+}
+
+function IconTreino({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" />
+      <path d="M7.5 6.5v11M17.5 6.5v11" />
+      <path d="M7.5 12h9" />
+      <path d="M3 10.5v3M21 10.5v3" />
+    </svg>
+  )
+}
+
+function IconNutricao({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a7 7 0 00-7 7c0 4 3 6 3 9h8c0-3 3-5 3-9a7 7 0 00-7-7z" />
+      <path d="M8 18h8M9 21h6" />
+    </svg>
+  )
+}
+
+function IconEvolucao({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  )
+}
+
+function IconPerfil({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  )
+}
+
+function IconAlunos({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="7" r="3.5" />
+      <path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6" />
+      <path d="M16 3.5a3.5 3.5 0 010 7" />
+      <path d="M22 20c0-3.5-2.5-5.8-6-6" />
+    </svg>
+  )
+}
+
+function IconAgenda({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+      <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+    </svg>
+  )
+}
+
+// ─── NAV ITEMS ────────────────────────────────────────────────────────────────
+
+type NavItem = {
+  id: string
+  label: string
+  Icon: React.FC<{ active: boolean }>
+}
+
+function getNavItems(tipo?: string): NavItem[] {
   if (tipo === 'personal') return [
-    { id: 'home',    icon: '⬜', label: 'Início'  },
-    { id: 'agenda',  icon: '◫',  label: 'Agenda'  },
-    { id: 'alunos',  icon: '◈',  label: 'Alunos'  },
-    { id: 'perfil',  icon: '◉',  label: 'Perfil'  },
+    { id: 'home',   label: 'Início', Icon: IconHome   },
+    { id: 'agenda', label: 'Agenda', Icon: IconAgenda },
+    { id: 'alunos', label: 'Alunos', Icon: IconAlunos },
+    { id: 'perfil', label: 'Perfil', Icon: IconPerfil },
   ]
   if (tipo === 'nutricionista') return [
-    { id: 'home',      icon: '⬜', label: 'Início'    },
-    { id: 'agenda',    icon: '◫',  label: 'Agenda'    },
-    { id: 'pacientes', icon: '◈',  label: 'Pacientes' },
-    { id: 'perfil',    icon: '◉',  label: 'Perfil'    },
+    { id: 'home',      label: 'Início',    Icon: IconHome   },
+    { id: 'agenda',    label: 'Agenda',    Icon: IconAgenda },
+    { id: 'pacientes', label: 'Pacientes', Icon: IconAlunos },
+    { id: 'perfil',    label: 'Perfil',    Icon: IconPerfil },
   ]
   return [
-    { id: 'home',     icon: '⬜', label: 'Início'   },
-    { id: 'treino',   icon: '◈',  label: 'Treino'   },
-    { id: 'nutri',    icon: '◇',  label: 'Nutrição' },
-    { id: 'evolucao', icon: '△',  label: 'Evolução' },
-    { id: 'perfil',   icon: '◉',  label: 'Perfil'   },
+    { id: 'home',     label: 'Início',   Icon: IconHome     },
+    { id: 'treino',   label: 'Treino',   Icon: IconTreino   },
+    { id: 'nutri',    label: 'Nutrição', Icon: IconNutricao },
+    { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao },
+    { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil   },
   ]
 }
 
@@ -178,10 +253,7 @@ export default function Dashboard() {
       if (!session) { router.push('/'); return }
 
       const { data: perfilData } = await supabase
-        .from('perfis')
-        .select('tipo, nome, email')
-        .eq('id', session.user.id)
-        .single()
+        .from('perfis').select('tipo, nome, email').eq('id', session.user.id).single()
 
       if (!perfilData) { router.push('/onboarding'); return }
       setPerfil(perfilData)
@@ -190,38 +262,11 @@ export default function Dashboard() {
         const hoje = getTodayBR()
 
         const [{ data: be }, { data: sonoHoje }, { data: treinos }, { data: vinculosData }, { data: treinoHojeData }] = await Promise.all([
-          supabase
-            .from('bem_estar')
-            .select('energia, humor, dor_muscular, qualidade_sono')
-            .eq('usuario_id', session.user.id)
-            .eq('data', hoje)
-            .single(),
-          supabase
-            .from('sono')
-            .select('score_recuperacao')
-            .eq('usuario_id', session.user.id)
-            .eq('data', hoje)
-            .single(),
-          supabase
-            .from('treinos')
-            .select('data')
-            .eq('cliente_id', session.user.id)
-            .eq('concluido', true)
-            .order('data', { ascending: false })
-            .limit(60),
-          supabase
-            .from('vinculos')
-            .select('tipo, profissional_id')
-            .eq('cliente_id', session.user.id)
-            .eq('ativo', true),
-          supabase
-            .from('treinos')
-            .select('nome, plano, concluido')
-            .eq('cliente_id', session.user.id)
-            .eq('data', hoje)
-            .order('concluido', { ascending: false })
-            .limit(1)
-            .single(),
+          supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
+          supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
+          supabase.from('treinos').select('data').eq('cliente_id', session.user.id).eq('concluido', true).order('data', { ascending: false }).limit(60),
+          supabase.from('vinculos').select('tipo, profissional_id').eq('cliente_id', session.user.id).eq('ativo', true),
+          supabase.from('treinos').select('nome, plano, concluido').eq('cliente_id', session.user.id).eq('data', hoje).order('concluido', { ascending: false }).limit(1).single(),
         ])
 
         if (be) setBemEstar(be)
@@ -231,10 +276,7 @@ export default function Dashboard() {
 
         if (vinculosData?.length) {
           const ids = vinculosData.map((v: { profissional_id: string }) => v.profissional_id)
-          const { data: perfis } = await supabase
-            .from('perfis')
-            .select('id, nome, email')
-            .in('id', ids)
+          const { data: perfis } = await supabase.from('perfis').select('id, nome, email').in('id', ids)
           const vinculosComPerfil = vinculosData.map((v: { tipo: string; profissional_id: string }) => {
             const p = perfis?.find((pf: { id: string }) => pf.id === v.profissional_id)
             return { tipo: v.tipo, profissional_id: v.profissional_id, nome: p?.nome ?? null, email: p?.email ?? '' }
@@ -296,37 +338,38 @@ export default function Dashboard() {
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
-          background: 'rgba(8,8,8,0.95)',
+          background: 'rgba(8,8,8,0.97)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
         }}
       >
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-          {getNavItems(perfil?.tipo).map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.id === 'perfil') router.push('/perfil')
-                else if (item.id === 'alunos') router.push('/personal')
-                else if (item.id === 'pacientes') router.push('/personal')
-                else if (item.id === 'treino') router.push('/treino')
-                else if (item.id === 'evolucao') router.push('/evolucao')
-                else if (item.id === 'nutri') router.push('/nutricao')
-                else setActiveTab(item.id)
-              }}
-              className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90"
-            >
-              <span className={`text-lg transition-all duration-200 ${activeTab === item.id ? 'opacity-100' : 'opacity-20'}`}>
-                {item.icon}
-              </span>
-              <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold transition-all ${activeTab === item.id ? 'text-white' : 'text-zinc-700'}`}>
-                {item.label}
-              </span>
-              {activeTab === item.id && (
-                <div className="w-1 h-1 rounded-full bg-emerald-400" />
-              )}
-            </button>
-          ))}
+        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
+          {getNavItems(perfil?.tipo).map((item) => {
+            const active = activeTab === item.id
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.id === 'perfil') router.push('/perfil')
+                  else if (item.id === 'alunos') router.push('/personal')
+                  else if (item.id === 'pacientes') router.push('/personal')
+                  else if (item.id === 'treino') router.push('/treino')
+                  else if (item.id === 'evolucao') router.push('/evolucao')
+                  else if (item.id === 'nutri') router.push('/nutricao')
+                  else setActiveTab(item.id)
+                }}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90"
+              >
+                <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                  <item.Icon active={active} />
+                </span>
+                <span className={`text-[9px] tracking-[0.1em] uppercase font-semibold transition-all ${active ? 'text-emerald-400' : 'text-zinc-700'}`}>
+                  {item.label}
+                </span>
+                {active && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
+              </button>
+            )
+          })}
         </div>
       </nav>
     </main>
@@ -380,10 +423,8 @@ function DashboardCliente({
   }
 
   return (
-    <div
-      className="max-w-md mx-auto px-4"
-      style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}
-    >
+    <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -392,13 +433,8 @@ function DashboardCliente({
           <p className="text-zinc-600 text-[11px] mt-1.5 capitalize tracking-wide">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">
-            🔔
-          </button>
-          <button
-            onClick={() => router.push('/perfil')}
-            className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all"
-          >
+          <button className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">🔔</button>
+          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
@@ -417,10 +453,7 @@ function DashboardCliente({
               <div>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.22em] mb-1.5">Recuperação hoje</p>
                 <div className="flex items-baseline gap-2">
-                  <span
-                    className={`text-[5rem] font-black leading-none ${cores?.text}`}
-                    style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.04em' }}
-                  >
+                  <span className={`text-[5rem] font-black leading-none ${cores?.text}`} style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.04em' }}>
                     {scoreRecuperacao}
                   </span>
                   <span className="text-zinc-600 text-xl font-light">/100</span>
@@ -428,16 +461,10 @@ function DashboardCliente({
               </div>
               <span className="text-[10px] text-zinc-600 uppercase tracking-widest mt-1 opacity-70">Ver análise →</span>
             </div>
-
             <p className={`text-sm font-bold mb-4 ${cores?.text}`}>{getScoreLabel(scoreRecuperacao)}</p>
-
             <div className="h-[3px] bg-white/[0.05] rounded-full overflow-hidden mb-4">
-              <div
-                className={`h-full rounded-full ${cores?.bg} transition-all duration-700`}
-                style={{ width: `${scoreRecuperacao}%` }}
-              />
+              <div className={`h-full rounded-full ${cores?.bg} transition-all duration-700`} style={{ width: `${scoreRecuperacao}%` }} />
             </div>
-
             {bemEstar && (
               <div className="flex gap-5">
                 <Metrica label="Energia"   valor={`${bemEstar.energia}/5`} />
@@ -457,9 +484,7 @@ function DashboardCliente({
         >
           <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full blur-3xl opacity-[0.04] bg-white" />
           <p className="text-zinc-600 text-[10px] uppercase tracking-[0.22em] mb-3">Recuperação hoje</p>
-          <p className="text-white text-2xl font-black mb-1 group-hover:text-emerald-400 transition-colors">
-            Registrar sono
-          </p>
+          <p className="text-white text-2xl font-black mb-1 group-hover:text-emerald-400 transition-colors">Registrar sono</p>
           <p className="text-zinc-600 text-xs">Saiba como seu corpo está respondendo →</p>
         </button>
       )}
@@ -504,17 +529,11 @@ function DashboardCliente({
           <div>
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Streak de consistência</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                {streak}
-              </span>
+              <span className="text-4xl font-black text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>{streak}</span>
               <span className="text-zinc-600 text-sm">dias seguidos</span>
             </div>
             <p className="text-zinc-600 text-xs mt-1">
-              {streak === 0
-                ? 'Faça seu primeiro treino hoje'
-                : streak >= 7
-                ? 'Incrível consistência! 💪'
-                : 'Continue assim!'}
+              {streak === 0 ? 'Faça seu primeiro treino hoje' : streak >= 7 ? 'Incrível consistência! 💪' : 'Continue assim!'}
             </p>
           </div>
           <div className={`text-4xl transition-all duration-300 ${streak > 0 ? 'opacity-100' : 'opacity-20'}`}>🔥</div>
@@ -540,21 +559,15 @@ function DashboardCliente({
               </>
             )}
           </div>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${
-            treinoHoje?.concluido
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-          }`}>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${treinoHoje?.concluido ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
             {treinoHoje?.concluido ? '✓' : 'TR'}
           </div>
         </div>
-
         {!treinoHoje?.concluido && (
           <div className="bg-white/[0.03] rounded-xl p-3.5 mb-4 border border-white/[0.05]">
             <p className="text-zinc-400 text-[11px] leading-relaxed">{getSugestaoIA()}</p>
           </div>
         )}
-
         <button
           onClick={() => router.push('/treino')}
           className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 hover:bg-zinc-100 transition-all tracking-[0.05em]"
@@ -571,9 +584,7 @@ function DashboardCliente({
             <p className="text-white font-bold">Nenhum plano ativo</p>
             <p className="text-zinc-600 text-xs mt-0.5">Aguardando sua nutricionista</p>
           </div>
-          <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 bg-green-500/10 text-green-400 border-green-500/20">
-            PA
-          </div>
+          <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 bg-green-500/10 text-green-400 border-green-500/20">PA</div>
         </div>
       </div>
 
@@ -589,16 +600,13 @@ function DashboardCliente({
             return (
               <div key={p.label}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${p.cor}`}>
-                    {p.sigla}
-                  </div>
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${p.cor}`}>{p.sigla}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-semibold">{p.label}</p>
-                    {vinculo ? (
-                      <p className="text-emerald-400 text-xs">{vinculo.nome ?? vinculo.email}</p>
-                    ) : (
-                      <p className="text-zinc-600 text-xs">Não conectado</p>
-                    )}
+                    {vinculo
+                      ? <p className="text-emerald-400 text-xs">{vinculo.nome ?? vinculo.email}</p>
+                      : <p className="text-zinc-600 text-xs">Não conectado</p>
+                    }
                   </div>
                   {!vinculo && (
                     <button
@@ -608,9 +616,7 @@ function DashboardCliente({
                       + Conectar
                     </button>
                   )}
-                  {vinculo && (
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                  )}
+                  {vinculo && <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
                 </div>
                 {i === 0 && <div className="h-px bg-white/[0.04] mt-3" />}
               </div>
@@ -624,14 +630,7 @@ function DashboardCliente({
 
 // ─── DASHBOARD PERSONAL ───────────────────────────────────────────────────────
 
-function DashboardPersonal({
-  perfil,
-  onLogout,
-}: {
-  perfil: Perfil
-  activeTab: string
-  onLogout: () => void
-}) {
+function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
@@ -648,11 +647,7 @@ function DashboardPersonal({
       if (!session) return
 
       const { data: vinculos } = await supabase
-        .from('vinculos')
-        .select('cliente_id')
-        .eq('profissional_id', session.user.id)
-        .eq('tipo', 'personal')
-        .eq('ativo', true)
+        .from('vinculos').select('cliente_id').eq('profissional_id', session.user.id).eq('tipo', 'personal').eq('ativo', true)
 
       if (!vinculos?.length) { setLoadingStats(false); return }
 
@@ -660,7 +655,6 @@ function DashboardPersonal({
       const semanaAtras = new Date()
       semanaAtras.setDate(semanaAtras.getDate() - 7)
       const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-
       const ids = vinculos.map(v => v.cliente_id)
       setTotalAlunos(ids.length)
 
@@ -675,19 +669,11 @@ function DashboardPersonal({
       const scoreMap = new Map(scores?.map(s => [s.usuario_id, s.score_recuperacao]) ?? [])
       const treinos7dSet = new Map<string, number>()
       treinos7d?.forEach(t => treinos7dSet.set(t.cliente_id, (treinos7dSet.get(t.cliente_id) ?? 0) + 1))
-
       const alertasCount = ids.filter(id => (treinos7dSet.get(id) ?? 0) === 0).length
 
       setTreinaramHoje(treinaramSet.size)
       setAlertas(alertasCount)
-      setAlunosRecentes(
-        (perfis ?? []).map(p => ({
-          nome: p.nome,
-          email: p.email,
-          treinouHoje: treinaramSet.has(p.id),
-          score: scoreMap.get(p.id) ?? null,
-        })).slice(0, 4)
-      )
+      setAlunosRecentes((perfis ?? []).map(p => ({ nome: p.nome, email: p.email, treinouHoje: treinaramSet.has(p.id), score: scoreMap.get(p.id) ?? null })).slice(0, 4))
       setLoadingStats(false)
     }
     carregarStats()
@@ -695,8 +681,6 @@ function DashboardPersonal({
 
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
@@ -716,12 +700,11 @@ function DashboardPersonal({
         <span className="text-emerald-400 text-[10px] uppercase tracking-[0.15em] font-semibold">Personal Trainer</span>
       </div>
 
-      {/* Stats reais */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
-          { valor: loadingStats ? '—' : String(totalAlunos), label: 'Alunos', sub: 'ativos', cor: 'text-white' },
-          { valor: loadingStats ? '—' : String(treinaramHoje), label: 'Treinaram', sub: 'hoje', cor: treinaramHoje > 0 ? 'text-emerald-400' : 'text-white' },
-          { valor: loadingStats ? '—' : String(alertas), label: 'Alertas', sub: 'sem treinar 7d', cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
+          { valor: loadingStats ? '—' : String(totalAlunos),   label: 'Alunos',    sub: 'ativos',         cor: 'text-white' },
+          { valor: loadingStats ? '—' : String(treinaramHoje), label: 'Treinaram', sub: 'hoje',           cor: treinaramHoje > 0 ? 'text-emerald-400' : 'text-white' },
+          { valor: loadingStats ? '—' : String(alertas),       label: 'Alertas',   sub: 'sem treinar 7d', cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
         ].map((m) => (
           <div key={m.label} className="rounded-2xl p-4 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
             <p className={`text-2xl font-black ${m.cor}`}>{m.valor}</p>
@@ -731,7 +714,6 @@ function DashboardPersonal({
         ))}
       </div>
 
-      {/* Alunos recentes */}
       {alunosRecentes.length > 0 && (
         <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
@@ -746,14 +728,10 @@ function DashboardPersonal({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-semibold truncate">{a.nome ?? a.email.split('@')[0]}</p>
-                  <p className={`text-[11px] ${a.treinouHoje ? 'text-emerald-400' : 'text-zinc-600'}`}>
-                    {a.treinouHoje ? '✓ Treinou hoje' : 'Não treinou hoje'}
-                  </p>
+                  <p className={`text-[11px] ${a.treinouHoje ? 'text-emerald-400' : 'text-zinc-600'}`}>{a.treinouHoje ? '✓ Treinou hoje' : 'Não treinou hoje'}</p>
                 </div>
                 {a.score && (
-                  <div className={`text-xs font-bold shrink-0 ${a.score >= 70 ? 'text-emerald-400' : a.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {a.score}/100
-                  </div>
+                  <div className={`text-xs font-bold shrink-0 ${a.score >= 70 ? 'text-emerald-400' : a.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{a.score}/100</div>
                 )}
               </div>
             ))}
@@ -761,47 +739,29 @@ function DashboardPersonal({
         </div>
       )}
 
-      {/* Alertas */}
       {alertas > 0 && (
         <div className="rounded-2xl p-4 border border-orange-500/20 bg-orange-500/5 mb-4">
           <p className="text-orange-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚠ {alertas} aluno{alertas > 1 ? 's' : ''} sem treinar há 7+ dias</p>
           <p className="text-zinc-500 text-xs">Acesse a lista de alunos para ver quem precisa de atenção.</p>
-          <button onClick={() => router.push('/personal')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">
-            Ver alunos →
-          </button>
+          <button onClick={() => router.push('/personal')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver alunos →</button>
         </div>
       )}
 
-      <button onClick={() => router.push('/personal')} className="w-full border border-white/[0.08] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">
-        Ver todos os alunos
-      </button>
-
-      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">
-        + Convidar aluno
-      </button>
+      <button onClick={() => router.push('/personal')} className="w-full border border-white/[0.08] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os alunos</button>
+      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">+ Convidar aluno</button>
     </div>
   )
 }
 
 // ─── DASHBOARD NUTRICIONISTA ──────────────────────────────────────────────────
 
-function DashboardNutricionista({
-  perfil,
-  onLogout,
-}: {
-  perfil: Perfil
-  activeTab: string
-  onLogout: () => void
-}) {
+function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
 
   return (
-    <div
-      className="max-w-md mx-auto px-4"
-      style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}
-    >
+    <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
@@ -810,10 +770,7 @@ function DashboardNutricionista({
         </div>
         <div className="flex items-center gap-2">
           <button className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">🔔</button>
-          <button
-            onClick={onLogout}
-            className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all"
-          >
+          <button onClick={onLogout} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
@@ -843,9 +800,7 @@ function DashboardNutricionista({
         <div className="flex flex-col items-center py-8 gap-3">
           <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-2xl opacity-40">📋</div>
           <p className="text-zinc-600 text-sm">Nenhum paciente agendado</p>
-          <button className="text-[11px] border border-white/[0.08] rounded-xl px-4 py-2 text-zinc-400 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">
-            + Agendar consulta
-          </button>
+          <button className="text-[11px] border border-white/[0.08] rounded-xl px-4 py-2 text-zinc-400 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">+ Agendar consulta</button>
         </div>
       </div>
 
@@ -854,10 +809,7 @@ function DashboardNutricionista({
         <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
 
-      <button
-        onClick={() => router.push('/convite')}
-        className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3"
-      >
+      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">
         + Convidar paciente
       </button>
     </div>
