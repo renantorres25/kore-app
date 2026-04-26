@@ -318,6 +318,7 @@ export default function Dashboard() {
                 else if (item.id === 'alunos') router.push('/personal')
                 else if (item.id === 'pacientes') router.push('/personal')
                 else if (item.id === 'treino') router.push('/treino')
+                else if (item.id === 'evolucao') router.push('/evolucao')
                 else setActiveTab(item.id)
               }}
               className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90"
