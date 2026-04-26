@@ -494,6 +494,41 @@ Gere análise em 3 partes CURTAS (máx 80 palavras total, sem emojis, sem markdo
           </>
         )}
       </div>
+
+      {/* ── Bottom Navigation ── */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          background: 'rgba(8,8,8,0.95)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+        }}
+      >
+        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
+          {[
+            { id: 'home',     icon: '⬜', label: 'Início',   path: '/dashboard' },
+            { id: 'treino',   icon: '◈',  label: 'Treino',   path: '/treino'    },
+            { id: 'nutri',    icon: '◇',  label: 'Nutrição', path: null         },
+            { id: 'evolucao', icon: '△',  label: 'Evolução', path: '/evolucao'  },
+            { id: 'perfil',   icon: '◉',  label: 'Perfil',   path: '/perfil'    },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => item.path && router.push(item.path)}
+              className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90"
+            >
+              <span className={`text-lg transition-all duration-200 ${item.id === 'treino' ? 'opacity-100' : 'opacity-20'}`}>
+                {item.icon}
+              </span>
+              <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold transition-all ${item.id === 'treino' ? 'text-white' : 'text-zinc-700'}`}>
+                {item.label}
+              </span>
+              {item.id === 'treino' && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
+            </button>
+          ))}
+        </div>
+      </nav>
     </main>
   )
 }

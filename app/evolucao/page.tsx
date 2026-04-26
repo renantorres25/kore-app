@@ -311,8 +311,6 @@ Máximo 100 palavras. Seja direto, use os números reais, fale como um coach exp
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-
-        {/* Header */}
         <div className="mb-8">
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">KORE</p>
           <h1 className="text-[1.85rem] font-black tracking-tight text-white">Evolução</h1>
@@ -385,23 +383,21 @@ Máximo 100 palavras. Seja direto, use os números reais, fale como um coach exp
 
             {/* ── Frequência semanal ── */}
             {treinos.length > 0 && (() => {
-              // Agrupa por semana
-              const semanas: Record<string, number> = {}
-              treinos.forEach(t => {
-                const d = new Date(t.data + 'T12:00:00')
-                const semana = `S${Math.ceil((new Date().getTime() - d.getTime()) / (7 * 24 * 60 * 60 * 1000) + 1)}`
-                semanas[semana] = (semanas[semana] ?? 0) + 1
-              })
+  const hoje = getTodayBR()
+  const hojeDate = new Date(hoje + 'T12:00:00-03:00')
+  const labels = ['Sem 4', 'Sem 3', 'Sem 2', 'Esta sem']
 
-              // Últimas 4 semanas
-              const labels = ['Sem 4', 'Sem 3', 'Sem 2', 'Esta sem']
-              const counts = [4, 3, 2, 1].map(n => {
-                return treinos.filter(t => {
-                  const d = new Date(t.data + 'T12:00:00')
-                  const diff = (new Date().getTime() - d.getTime()) / (7 * 24 * 60 * 60 * 1000)
-                  return diff >= n - 1 && diff < n
-                }).length
-              })
+  // Últimas 4 semanas — domingo a sábado
+  const counts = [3, 2, 1, 0].map(weeksAgo => {
+    const inicio = new Date(hojeDate)
+    inicio.setDate(inicio.getDate() - (weeksAgo * 7) - 6)
+    const fim = new Date(hojeDate)
+    fim.setDate(fim.getDate() - (weeksAgo * 7))
+    return treinos.filter(t => {
+      const d = new Date(t.data + 'T12:00:00-03:00')
+      return d >= inicio && d <= fim
+    }).length
+  })
               const maxCount = Math.max(...counts, 1)
 
               return (
@@ -532,6 +528,41 @@ Máximo 100 palavras. Seja direto, use os números reais, fale como um coach exp
           </>
         )}
       </div>
+
+      {/* ── Bottom Navigation ── */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          background: 'rgba(8,8,8,0.95)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+        }}
+      >
+        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
+          {[
+            { id: 'home',     icon: '⬜', label: 'Início',   path: '/dashboard' },
+            { id: 'treino',   icon: '◈',  label: 'Treino',   path: '/treino'    },
+            { id: 'nutri',    icon: '◇',  label: 'Nutrição', path: null         },
+            { id: 'evolucao', icon: '△',  label: 'Evolução', path: '/evolucao'  },
+            { id: 'perfil',   icon: '◉',  label: 'Perfil',   path: '/perfil'    },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => item.path && router.push(item.path)}
+              className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90"
+            >
+              <span className={`text-lg transition-all duration-200 ${item.id === 'evolucao' ? 'opacity-100' : 'opacity-20'}`}>
+                {item.icon}
+              </span>
+              <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold transition-all ${item.id === 'evolucao' ? 'text-white' : 'text-zinc-700'}`}>
+                {item.label}
+              </span>
+              {item.id === 'evolucao' && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
+            </button>
+          ))}
+        </div>
+      </nav>
     </main>
   )
 }
