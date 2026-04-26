@@ -536,17 +536,21 @@ function DashboardCliente({
               <>
                 <p className="text-white font-bold text-base">{treinoHoje.nome}</p>
                 <p className={`text-xs mt-0.5 ${treinoHoje.concluido ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                  {treinoHoje.concluido ? '✓ Concluído hoje' : `Plano ${treinoHoje.plano} · Em andamento`}
+                  {treinoHoje.concluido ? '✓ Concluído hoje' : `Plano ${treinoHoje.plano} · Pronto para iniciar`}
                 </p>
               </>
             ) : (
               <>
-                <p className="text-white font-bold text-base">Nenhum treino hoje</p>
-                <p className="text-zinc-600 text-xs mt-0.5">Selecione um plano para começar</p>
+                <p className="text-white font-bold text-base">Escolha seu treino</p>
+                <p className="text-zinc-600 text-xs mt-0.5">Seus planos estão prontos</p>
               </>
             )}
           </div>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${treinoHoje?.concluido ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${
+            treinoHoje?.concluido
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+              : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+          }`}>
             {treinoHoje?.concluido ? '✓' : 'TR'}
           </div>
         </div>
@@ -561,7 +565,7 @@ function DashboardCliente({
           onClick={() => router.push('/treino')}
           className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 hover:bg-zinc-100 transition-all tracking-[0.05em]"
         >
-          {treinoHoje?.concluido ? 'Ver treinos' : treinoHoje ? 'Continuar treino →' : 'Iniciar treino →'}
+          {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treinos →'}
         </button>
       </div>
 
