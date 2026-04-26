@@ -178,6 +178,7 @@ export default function Dashboard() {
   const [scoreRecuperacao, setScoreRecuperacao] = useState<number | null>(null)
   const [streak, setStreak] = useState<number>(0)
   const [vinculos, setVinculos] = useState<Vinculo[]>([])
+  const [treinoHoje, setTreinoHoje] = useState<{ nome: string; plano: string; concluido: boolean } | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [activeTab, setActiveTab] = useState('home')
 
@@ -199,7 +200,7 @@ export default function Dashboard() {
         // ✅ Data sempre no fuso de São Paulo — nunca toISOString()
         const hoje = getTodayBR()
 
-        const [{ data: be }, { data: sonoHoje }, { data: treinos }, { data: vinculosData }] = await Promise.all([
+        const [{ data: be }, { data: sonoHoje }, { data: treinos }, { data: vinculosData }, { data: treinoHojeData }] = await Promise.all([
           supabase
             .from('bem_estar')
             .select('energia, humor, dor_muscular, qualidade_sono')
@@ -215,7 +216,7 @@ export default function Dashboard() {
           supabase
             .from('treinos')
             .select('data')
-            .eq('usuario_id', session.user.id)
+            .eq('cliente_id', session.user.id)
             .eq('concluido', true)
             .order('data', { ascending: false })
             .limit(60),
@@ -224,11 +225,20 @@ export default function Dashboard() {
             .select('tipo, profissional_id')
             .eq('cliente_id', session.user.id)
             .eq('ativo', true),
+          supabase
+            .from('treinos')
+            .select('nome, plano, concluido')
+            .eq('cliente_id', session.user.id)
+            .eq('data', hoje)
+            .order('concluido', { ascending: false })
+            .limit(1)
+            .single(),
         ])
 
         if (be) setBemEstar(be)
         if (sonoHoje?.score_recuperacao) setScoreRecuperacao(sonoHoje.score_recuperacao)
         if (treinos) setStreak(calcularStreak(treinos.map((t: { data: string }) => t.data)))
+        if (treinoHojeData) setTreinoHoje(treinoHojeData)
 
         // Busca perfis dos profissionais vinculados
         if (vinculosData?.length) {
@@ -276,6 +286,7 @@ export default function Dashboard() {
             scoreRecuperacao={scoreRecuperacao}
             streak={streak}
             vinculos={vinculos}
+            treinoHoje={treinoHoje}
             activeTab={activeTab}
             onLogout={handleLogout}
           />
@@ -347,6 +358,7 @@ function DashboardCliente({
   scoreRecuperacao,
   streak,
   vinculos,
+  treinoHoje,
   onLogout: _onLogout,
 }: {
   perfil: Perfil
@@ -354,6 +366,7 @@ function DashboardCliente({
   scoreRecuperacao: number | null
   streak: number
   vinculos: Vinculo[]
+  treinoHoje: { nome: string; plano: string; concluido: boolean } | null
   activeTab: string
   onLogout: () => void
 }) {
@@ -519,23 +532,36 @@ function DashboardCliente({
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Treino de hoje</p>
-            <p className="text-white font-bold text-base">Nenhum treino montado</p>
-            <p className="text-zinc-600 text-xs mt-0.5">Aguardando seu personal trainer</p>
+            {treinoHoje ? (
+              <>
+                <p className="text-white font-bold text-base">{treinoHoje.nome}</p>
+                <p className={`text-xs mt-0.5 ${treinoHoje.concluido ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                  {treinoHoje.concluido ? '✓ Concluído hoje' : `Plano ${treinoHoje.plano} · Em andamento`}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-white font-bold text-base">Nenhum treino hoje</p>
+                <p className="text-zinc-600 text-xs mt-0.5">Selecione um plano para começar</p>
+              </>
+            )}
           </div>
-          <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
-            TR
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${treinoHoje?.concluido ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
+            {treinoHoje?.concluido ? '✓' : 'TR'}
           </div>
         </div>
 
-        <div className="bg-white/[0.03] rounded-xl p-3.5 mb-4 border border-white/[0.05]">
-          <p className="text-zinc-400 text-[11px] leading-relaxed">{getSugestaoIA()}</p>
-        </div>
+        {!treinoHoje?.concluido && (
+          <div className="bg-white/[0.03] rounded-xl p-3.5 mb-4 border border-white/[0.05]">
+            <p className="text-zinc-400 text-[11px] leading-relaxed">{getSugestaoIA()}</p>
+          </div>
+        )}
 
         <button
           onClick={() => router.push('/treino')}
           className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 hover:bg-zinc-100 transition-all tracking-[0.05em]"
         >
-          Iniciar treino livre
+          {treinoHoje?.concluido ? 'Ver treinos' : treinoHoje ? 'Continuar treino →' : 'Iniciar treino →'}
         </button>
       </div>
 
