@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
@@ -17,7 +17,7 @@ const niveis = [
   { valor: 'avancado',      emoji: '🏆', label: 'Avançado',      desc: 'Mais de 3 anos treinando' },
 ]
 
-export default function Perfil() {
+function PerfilConteudo() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isNovo = searchParams.get('novo') === 'true'
@@ -337,5 +337,17 @@ export default function Perfil() {
         </nav>
       )}
     </main>
+  )
+}
+
+export default function Perfil() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      </main>
+    }>
+      <PerfilConteudo />
+    </Suspense>
   )
 }
