@@ -108,26 +108,17 @@ export default function AceitarConvite() {
       return
     }
 
-    // Verifica se vínculo já existe
-    const { data: vinculoExistente } = await supabase
+
+    // Insere vínculo — ignora se já existe (código 23505 = unique violation)
+    const { error: erroVinculo } = await supabase
       .from('vinculos')
-      .select('id')
-      .eq('profissional_id', vinculo.profissional_id)
-      .eq('cliente_id', vinculo.cliente_id)
-      .eq('tipo', vinculo.tipo)
-      .single()
+      .insert({ ...vinculo, ativo: true })
 
-    if (!vinculoExistente) {
-      const { error: erroVinculo } = await supabase
-        .from('vinculos')
-        .insert({ ...vinculo, ativo: true })
-
-      if (erroVinculo) {
-        setErroMsg('Erro ao criar vínculo. Tente novamente.')
-        setEstado('erro')
-        setProcessando(false)
-        return
-      }
+    if (erroVinculo && erroVinculo.code !== '23505') {
+      setErroMsg('Erro ao criar vínculo: ' + erroVinculo.message)
+      setEstado('erro')
+      setProcessando(false)
+      return
     }
 
     // Marca convite como aceito
