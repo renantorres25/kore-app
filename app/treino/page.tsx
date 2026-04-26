@@ -43,10 +43,12 @@ const CORES_PLANO: Record<string, { text: string; bg: string; border: string; gl
   C: { text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20',  glow: 'bg-orange-400',  hex: '#F97316' },
 }
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-function getTodayBR(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+function calcularPace(duracaoMin: number, distanciaKm: number): string {
+  if (!duracaoMin || !distanciaKm || distanciaKm === 0) return ''
+  const paceTotal = duracaoMin / distanciaKm
+  const min = Math.floor(paceTotal)
+  const seg = Math.round((paceTotal - min) * 60)
+  return `${min}:${seg.toString().padStart(2, '0')}`
 }
 
 function calcVolume(series: Record<string, SerieRegistrada[]>): number {
@@ -224,7 +226,8 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     if (!session) return
 
     const duracaoMin = parseInt(form.duracao_min ?? '30') || 30
-    const cals = estimarCalorias(modalidade!, duracaoMin, pesoKg)
+    const cals = form.calorias_wearable ? parseInt(form.calorias_wearable) : estimarCalorias(modalidade!, duracaoMin, pesoKg)
+    const paceCalculado = calcularPace(duracaoMin, parseFloat(form.distancia_km ?? '0'))
     setCaloriasEstimadas(cals)
 
     await supabase.from('atividades_livres').insert({
@@ -234,7 +237,7 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
       duracao_min: duracaoMin,
       intensidade: form.intensidade ?? 3,
       distancia_km: form.distancia_km ?? null,
-      ritmo_medio: form.ritmo_medio ?? null,
+      ritmo_medio: paceCalculado || form.ritmo_medio || null,
       fc_media: form.fc_media ?? null,
       distancia_m: form.distancia_m ?? null,
       voltas: form.voltas ?? null,
@@ -243,7 +246,8 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
       movimentos: form.movimentos ?? null,
       resultado_wod: form.resultado ?? null,
       observacoes: form.observacoes ?? null,
-      calorias_estimadas: cals,
+      calorias_estimadas: form.calorias_wearable ? null : cals,
+      calorias_wearable: form.calorias_wearable ? parseInt(form.calorias_wearable) : null,
     })
 
     setSalvandoLivre(false)
@@ -257,7 +261,8 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
 
     let dadosEspecificos = ''
     if (modalidade === 'corrida' || modalidade === 'bike') {
-      dadosEspecificos = `Distância: ${form.distancia_km ?? 'não informado'}km | Ritmo: ${form.ritmo_medio ?? 'não informado'} | FC média: ${form.fc_media ?? 'não informado'}bpm`
+      const pace = calcularPace(duracaoMin, parseFloat(form.distancia_km ?? '0'))
+      dadosEspecificos = `Distância: ${form.distancia_km ?? 'não informado'}km | Pace: ${pace || 'não calculado'} min/km | FC média: ${form.fc_media ?? 'não informado'}bpm`
     } else if (modalidade === 'natacao') {
       dadosEspecificos = `Distância: ${form.distancia_m ?? 'não informado'}m | Voltas: ${form.voltas ?? 'não informado'} | Estilo: ${form.estilo ?? 'não informado'}`
     } else if (modalidade === 'crossfit') {
@@ -394,6 +399,12 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p>
                 <p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_km}<span className="text-zinc-600 text-lg font-light">km</span></p>
+              </div>
+            )}
+            {form.distancia_km && form.duracao_min && (modalidade === 'corrida' || modalidade === 'bike') && (
+              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Pace médio</p>
+                <p className={`text-3xl font-black ${mod.corText}`}>{calcularPace(parseInt(form.duracao_min), parseFloat(form.distancia_km))}<span className="text-zinc-600 text-sm font-light"> min/km</span></p>
               </div>
             )}
             {form.distancia_m && (
@@ -577,8 +588,19 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                   </div>
                   <div>
                     <label className="text-zinc-600 text-[10px] mb-1 block">Ritmo médio (min/km)</label>
-                    <input type="text" placeholder="5:30" value={form.ritmo_medio ?? ''} onChange={e => setForm((p: any) => ({ ...p, ritmo_medio: e.target.value }))}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                    {(() => {
+                      const pace = calcularPace(parseInt(form.duracao_min ?? '0'), parseFloat(form.distancia_km ?? '0'))
+                      return pace ? (
+                        <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center justify-between">
+                          <span className="text-white font-bold text-sm">{pace} min/km</span>
+                          <span className="text-zinc-600 text-[10px] uppercase tracking-wider">Calculado ✓</span>
+                        </div>
+                      ) : (
+                        <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3">
+                          <span className="text-zinc-600 text-sm">Preencha duração e distância</span>
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div>
                     <label className="text-zinc-600 text-[10px] mb-1 block">FC média (bpm) <span className="text-zinc-700">— Wearable (opcional)</span></label>
