@@ -156,11 +156,13 @@ function IconTreino({ active }: { active: boolean }) {
   )
 }
 
+// ─── ÍCONE MAÇÃ (nutrição) ────────────────────────────────────────────────────
 function IconNutricao({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a7 7 0 00-7 7c0 4 3 6 3 9h8c0-3 3-5 3-9a7 7 0 00-7-7z" />
-      <path d="M8 18h8M9 21h6" />
+      <path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" />
+      <path d="M12 6.5V4" />
+      <path d="M12 4c0 0 1.5-1 3-1.5" />
     </svg>
   )
 }
