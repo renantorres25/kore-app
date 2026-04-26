@@ -60,6 +60,7 @@ export default function Nutricao() {
   const [calorias, setCalorias] = useState('')
   const [proteina, setProteina] = useState('')
   const [coposAgua, setCoposAgua] = useState(0)
+  const [observacoes, setObservacoes] = useState('')
 
   // Análise IA
   const [analise, setAnalise] = useState({ texto: '', carregando: false, gerado: false })
@@ -92,6 +93,7 @@ export default function Nutricao() {
       setCalorias(registroHoje.calorias ? String(registroHoje.calorias) : '')
       setProteina(registroHoje.proteina ? String(registroHoje.proteina) : '')
       setCoposAgua(registroHoje.copos_agua ?? 0)
+      setObservacoes(registroHoje.observacoes ?? '')
       if (registroHoje.qualidade_alimentacao) setJaRegistrou(true)
     }
 
@@ -307,6 +309,21 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Observações livres */}
+            <div>
+              <label className="text-zinc-600 text-[10px] uppercase tracking-wider mb-2 block">
+                Observações <span className="text-zinc-700 normal-case">— opcional mas ajuda a IA</span>
+              </label>
+              <textarea
+                placeholder="Ex: comi fora hoje, tive muita fome à tarde, pulei o almoço, me senti com energia..."
+                value={observacoes}
+                onChange={e => setObservacoes(e.target.value)}
+                rows={3}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none leading-relaxed"
+              />
+              <p className="text-zinc-700 text-[10px] mt-1.5">Quanto mais detalhes, melhor o feedback da IA</p>
             </div>
 
             {/* Botão salvar */}
