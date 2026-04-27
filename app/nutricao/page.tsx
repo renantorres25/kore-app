@@ -8,12 +8,15 @@ import QuizIA, { RespostasQuiz } from '../components/QuizIA'
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
-
 function getHourBR(): number {
   return parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10)
 }
 
 type Perfil = { nome: string | null; peso: number | null; objetivo: string | null }
+
+type Alimento = { nome: string; quantidade: string; calorias: number; proteina: number }
+type Refeicao = { nome: string; horario: string; calorias: number; proteina: number; alimentos: Alimento[]; dica?: string }
+type PlanoEstruturado = { refeicoes: Refeicao[]; estrategia_desafio: string; dica_fome: string; orientacao_treino: string }
 
 type PlanoNutricional = {
   id: string
@@ -22,7 +25,6 @@ type PlanoNutricional = {
   proteina_meta: number | null
   refeicoes_por_dia: number | null
   created_at: string
-  criado_por: string
 }
 
 const QUALIDADE_OPCOES = [
@@ -38,7 +40,6 @@ function getMetaProteina(peso: number | null, objetivo: string | null): number |
   if (objetivo === 'perder_peso') return Math.round(peso * 2.0)
   return Math.round(peso * 1.8)
 }
-
 function getMetaCalorias(peso: number | null, objetivo: string | null): number | null {
   if (!peso) return null
   const tmb = 10 * peso + 6.25 * 170 - 5 * 25 + 5
@@ -79,79 +80,156 @@ const NAV_ITEMS = [
   { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil,   path: '/perfil'    },
 ]
 
-// ─── COMPONENTE PLANO NUTRICIONAL ─────────────────────────────────────────────
+// ─── CARD PLANO ESTRUTURADO ───────────────────────────────────────────────────
 
-function CardPlanoNutricional({
-  plano,
-  onRefazer,
-}: {
-  plano: PlanoNutricional
-  onRefazer: () => void
-}) {
-  const [expandido, setExpandido] = useState(false)
+function CardPlano({ plano, onRefazer }: { plano: PlanoNutricional; onRefazer: () => void }) {
+  const [refeicaoAberta, setRefeicaoAberta] = useState<number | null>(0)
+  const [verDicas, setVerDicas] = useState(false)
+
+  let estruturado: PlanoEstruturado | null = null
+  try {
+    const parsed = JSON.parse(plano.conteudo)
+    if (parsed.refeicoes) estruturado = parsed
+  } catch {
+    // plano legado em texto — não exibe estruturado
+  }
+
   const dataCriacao = new Date(plano.created_at).toLocaleDateString('pt-BR', {
-    timeZone: 'America/Sao_Paulo', day: 'numeric', month: 'long', year: 'numeric',
+    timeZone: 'America/Sao_Paulo', day: 'numeric', month: 'short',
   })
 
+  const ICONE_REFEICAO: Record<string, string> = {
+    'café da manhã': '☀️', 'café': '☀️', 'manhã': '☀️',
+    'almoço': '🌤', 'lanche': '🍎', 'pré-treino': '⚡',
+    'pós-treino': '💪', 'jantar': '🌙', 'ceia': '🌙',
+  }
+  function getIcone(nome: string): string {
+    const key = Object.keys(ICONE_REFEICAO).find(k => nome.toLowerCase().includes(k))
+    return key ? ICONE_REFEICAO[key] : '🍽️'
+  }
+
   return (
-    <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0a0d14 0%, #080a10 100%)' }}>
+    <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#0a0d14' }}>
 
       {/* Header */}
-      <div className="px-5 py-4 border-b border-white/[0.04]">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-            <span className="text-sm font-black text-blue-400">✦</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-blue-400 font-semibold">Plano alimentar · IA</p>
-            <p className="text-zinc-500 text-[10px]">Criado em {dataCriacao}</p>
-          </div>
-          <span className="text-[9px] uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full px-2 py-0.5">Ativo</span>
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
+        <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+          <span className="text-[11px] font-black text-blue-400">✦</span>
         </div>
+        <div className="flex-1">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-blue-400 font-semibold">Plano alimentar · IA</p>
+          <p className="text-zinc-600 text-[10px]">Criado em {dataCriacao}</p>
+        </div>
+        <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">Ativo</span>
       </div>
 
-      {/* Metas rápidas */}
-      {(plano.calorias_meta || plano.proteina_meta) && (
-        <div className="grid grid-cols-3 gap-0 border-b border-white/[0.04]">
-          {[
-            { label: 'Calorias', val: plano.calorias_meta ? `${plano.calorias_meta}` : '—', unit: 'kcal', cor: 'text-orange-400' },
-            { label: 'Proteína', val: plano.proteina_meta ? `${plano.proteina_meta}` : '—', unit: 'g/dia', cor: 'text-blue-400' },
-            { label: 'Refeições', val: plano.refeicoes_por_dia ? `${plano.refeicoes_por_dia}` : '—', unit: 'por dia', cor: 'text-emerald-400' },
-          ].map((m, i) => (
-            <div key={i} className={`px-4 py-3 text-center ${i < 2 ? 'border-r border-white/[0.04]' : ''}`}>
-              <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-0.5">{m.label}</p>
-              <p className={`text-lg font-black ${m.cor}`}>{m.val}</p>
-              <p className="text-zinc-700 text-[9px]">{m.unit}</p>
-            </div>
-          ))}
+      {/* Metas */}
+      <div className="grid grid-cols-3 border-b border-white/[0.04]">
+        {[
+          { label: 'Calorias', val: plano.calorias_meta ?? '—', unit: 'kcal/dia', cor: 'text-orange-400' },
+          { label: 'Proteína', val: plano.proteina_meta ? `${plano.proteina_meta}g` : '—', unit: 'por dia', cor: 'text-blue-400' },
+          { label: 'Refeições', val: plano.refeicoes_por_dia ?? '—', unit: 'por dia', cor: 'text-emerald-400' },
+        ].map((m, i) => (
+          <div key={i} className={`px-3 py-3 text-center ${i < 2 ? 'border-r border-white/[0.04]' : ''}`}>
+            <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-0.5">{m.label}</p>
+            <p className={`text-base font-black ${m.cor}`}>{m.val}</p>
+            <p className="text-zinc-700 text-[9px]">{m.unit}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Refeições estruturadas */}
+      {estruturado ? (
+        <div className="divide-y divide-white/[0.04]">
+          {estruturado.refeicoes.map((ref, i) => {
+            const aberta = refeicaoAberta === i
+            return (
+              <div key={i}>
+                <button
+                  onClick={() => setRefeicaoAberta(aberta ? null : i)}
+                  className="w-full flex items-center gap-3 px-5 py-4 active:bg-white/[0.02] transition-all text-left"
+                >
+                  <span className="text-xl shrink-0">{getIcone(ref.nome)}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-bold text-sm">{ref.nome}</p>
+                    <p className="text-zinc-500 text-[11px]">{ref.horario} · {ref.calorias} kcal · {ref.proteina}g prot</p>
+                  </div>
+                  <span className={`text-zinc-600 text-xs transition-transform ${aberta ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+
+                {aberta && (
+                  <div className="px-5 pb-4 space-y-2">
+                    {ref.alimentos.map((al, j) => (
+                      <div key={j} className="flex items-center justify-between py-2.5 border-b border-white/[0.04] last:border-0">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-zinc-200 text-sm font-medium">{al.nome}</p>
+                          <p className="text-zinc-600 text-[11px]">{al.quantidade}</p>
+                        </div>
+                        <div className="text-right shrink-0 ml-3">
+                          <p className="text-zinc-400 text-[11px] font-bold">{al.calorias} kcal</p>
+                          <p className="text-blue-400 text-[10px]">{al.proteina}g prot</p>
+                        </div>
+                      </div>
+                    ))}
+                    {ref.dica && (
+                      <div className="mt-2 bg-white/[0.03] rounded-xl px-3 py-2.5 border border-white/[0.05]">
+                        <p className="text-zinc-500 text-[11px] leading-relaxed">💡 {ref.dica}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Dicas extras */}
+          <div>
+            <button
+              onClick={() => setVerDicas(d => !d)}
+              className="w-full flex items-center gap-3 px-5 py-4 active:bg-white/[0.02] transition-all text-left"
+            >
+              <span className="text-xl shrink-0">📋</span>
+              <div className="flex-1">
+                <p className="text-white font-bold text-sm">Estratégias e orientações</p>
+                <p className="text-zinc-500 text-[11px]">Treino, desafios e controle de fome</p>
+              </div>
+              <span className={`text-zinc-600 text-xs transition-transform ${verDicas ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+
+            {verDicas && (
+              <div className="px-5 pb-4 space-y-3">
+                {estruturado.orientacao_treino && (
+                  <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3">
+                    <p className="text-emerald-400 text-[10px] uppercase tracking-wider mb-1.5">⚡ Pré e Pós-treino</p>
+                    <p className="text-zinc-300 text-sm leading-relaxed">{estruturado.orientacao_treino}</p>
+                  </div>
+                )}
+                {estruturado.estrategia_desafio && (
+                  <div className="bg-orange-500/5 border border-orange-500/15 rounded-xl p-3">
+                    <p className="text-orange-400 text-[10px] uppercase tracking-wider mb-1.5">🎯 Seu desafio principal</p>
+                    <p className="text-zinc-300 text-sm leading-relaxed">{estruturado.estrategia_desafio}</p>
+                  </div>
+                )}
+                {estruturado.dica_fome && (
+                  <div className="bg-blue-500/5 border border-blue-500/15 rounded-xl p-3">
+                    <p className="text-blue-400 text-[10px] uppercase tracking-wider mb-1.5">💡 Controle de fome</p>
+                    <p className="text-zinc-300 text-sm leading-relaxed">{estruturado.dica_fome}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        // Fallback para plano legado em texto
+        <div className="px-5 py-4">
+          <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-line">{plano.conteudo}</p>
         </div>
       )}
 
-      {/* Conteúdo do plano */}
-      <div className="px-5 py-4">
-        <div className={`overflow-hidden transition-all duration-300 ${expandido ? 'max-h-[2000px]' : 'max-h-24'}`}>
-          <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line">{plano.conteudo}</p>
-        </div>
-
-        {/* Gradiente fade quando colapsado */}
-        {!expandido && (
-          <div className="h-8 -mt-8 mb-2 pointer-events-none" style={{ background: 'linear-gradient(transparent, #080a10)' }} />
-        )}
-
-        <button
-          onClick={() => setExpandido(e => !e)}
-          className="w-full text-center text-[11px] text-blue-400 py-2 rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition-all active:scale-95 mt-1"
-        >
-          {expandido ? '▲ Ver menos' : '▼ Ver plano completo'}
-        </button>
-      </div>
-
-      {/* Footer */}
-      <div className="px-5 pb-4">
-        <button
-          onClick={onRefazer}
-          className="w-full text-center text-[11px] text-zinc-600 py-2 rounded-xl border border-white/[0.06] hover:border-white/[0.12] hover:text-zinc-400 transition-all active:scale-95"
-        >
+      {/* Refazer */}
+      <div className="px-5 py-3 border-t border-white/[0.04]">
+        <button onClick={onRefazer} className="w-full text-center text-[11px] text-zinc-600 py-2 rounded-xl border border-white/[0.06] hover:border-white/[0.12] hover:text-zinc-400 transition-all active:scale-95">
           ↻ Refazer consulta e gerar novo plano
         </button>
       </div>
@@ -159,7 +237,7 @@ function CardPlanoNutricional({
   )
 }
 
-// ─── PAGE PRINCIPAL ───────────────────────────────────────────────────────────
+// ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function Nutricao() {
   const router = useRouter()
@@ -192,13 +270,8 @@ export default function Nutricao() {
 
     const hoje = getTodayBR()
     const [
-      { data: perfilData },
-      { data: sonoHoje },
-      { data: treinoHoje },
-      { data: atividadeHoje },
-      { data: registroHoje },
-      { data: vinculo },
-      { data: planoData },
+      { data: perfilData }, { data: sonoHoje }, { data: treinoHoje },
+      { data: atividadeHoje }, { data: registroHoje }, { data: vinculo }, { data: planoData },
     ] = await Promise.all([
       supabase.from('perfis').select('nome, peso, objetivo').eq('id', session.user.id).single(),
       supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -225,14 +298,14 @@ export default function Nutricao() {
     }
 
     if (vinculo) {
-      const { data: nutriPerfil } = await supabase.from('perfis').select('nome').eq('id', vinculo.profissional_id).single()
-      if (nutriPerfil) setVinculoNutri(nutriPerfil)
+      const { data: np } = await supabase.from('perfis').select('nome').eq('id', vinculo.profissional_id).single()
+      if (np) setVinculoNutri(np)
     }
 
     setCarregando(false)
   }
 
-  // ── GERAR E SALVAR PLANO NUTRICIONAL ─────────────────────────────────────────
+  // ── GERAR PLANO ───────────────────────────────────────────────────────────────
 
   async function gerarPlanoNutricional(respostas: RespostasQuiz) {
     setMostrarQuiz(false)
@@ -244,43 +317,76 @@ export default function Nutricao() {
     const refeicoesPorDia = respostas.refeicoes_dia === '1-2' ? 2 : respostas.refeicoes_dia === '3' ? 3 : respostas.refeicoes_dia === '4-5' ? 4 : 5
 
     const HORARIO_LABEL: Record<string, string> = {
-      jejum_manha: 'Manhã em jejum', manha: 'Manhã com café',
-      almoco: 'Hora do almoço', tarde: 'Tarde', noite: 'Noite', nao_treina: 'Não treina regularmente',
+      jejum_manha: 'Manhã em jejum (sem café da manhã)', manha: 'Manhã com refeição (antes das 9h)',
+      almoco: 'Hora do almoço (12h–14h)', tarde: 'Tarde (14h–18h)',
+      noite: 'Noite (após 18h)', nao_treina: 'Não treina regularmente',
     }
     const ONDE_LABEL: Record<string, string> = {
-      casa: 'Em casa — cozinha', casa_pronto: 'Em casa — comida pronta/delivery',
-      trabalho_rua: 'No trabalho / restaurante', misto: 'Mistura de tudo',
+      casa: 'Em casa — cozinha própria', casa_pronto: 'Em casa — comida pronta ou delivery',
+      trabalho_rua: 'No trabalho / restaurante', misto: 'Mistura de ambientes',
     }
     const ROTINA_LABEL: Record<string, string> = {
-      home_office: 'Home office', presencial_fixo: 'Presencial horário fixo',
-      presencial_var: 'Presencial horários variáveis', fisico: 'Trabalho físico', nao_trabalha: 'Estudante / não trabalha',
+      home_office: 'Home office', presencial_fixo: 'Presencial com horário fixo',
+      presencial_var: 'Presencial com horários variáveis', fisico: 'Trabalho físico / operacional',
+      nao_trabalha: 'Estudante ou não trabalha',
+    }
+    const DESAFIO_LABEL: Record<string, string> = {
+      fome_ansiosa: 'Fome excessiva ou compulsão alimentar',
+      consistencia: 'Falta de consistência e disciplina',
+      tempo: 'Falta de tempo para preparar refeições',
+      proteina: 'Dificuldade em consumir proteína suficiente',
+      noite: 'Come muito à noite',
+      social: 'Dificuldade em situações sociais',
     }
 
-    const prompt = `Você é uma nutricionista especialista. Crie um plano alimentar completo e personalizado para este atleta.
+    const prompt = `Você é uma nutricionista especialista. Crie um plano alimentar diário detalhado e personalizado.
 
-PERFIL:
+PERFIL DO ATLETA:
 - Nome: ${perfil.nome ?? 'Atleta'}
 - Objetivo: ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? 'Saúde geral'}
 - Peso: ${perfil.peso ? `${perfil.peso}kg` : 'não informado'}
-- Meta calórica: ${metaCal ? `${metaCal}kcal/dia` : 'não calculada'}
-- Meta proteína: ${metaProt ? `${metaProt}g/dia` : 'não calculada'}
+- Meta calórica diária: ${metaCal ? `${metaCal}kcal` : 'não calculada'}
+- Meta proteína diária: ${metaProt ? `${metaProt}g` : 'não calculada'}
 
-RESPOSTAS DA CONSULTA:
-- Refeições por dia: ${respostas.refeicoes_dia}
-- Onde come: ${ONDE_LABEL[respostas.onde_come as string] ?? respostas.onde_come}
+PERFIL DE ROTINA:
+- Número de refeições desejadas: ${respostas.refeicoes_dia} refeições/dia
+- Local das refeições: ${ONDE_LABEL[respostas.onde_come as string] ?? respostas.onde_come}
 - Horário de treino: ${HORARIO_LABEL[respostas.horario_treino_nutri as string] ?? respostas.horario_treino_nutri}
-- Maior desafio: ${respostas.desafio}
-- Restrições alimentares: ${restricoesArr}
+- Maior desafio alimentar: ${DESAFIO_LABEL[respostas.desafio as string] ?? respostas.desafio}
+- Restrições: ${restricoesArr}
 - Rotina de trabalho: ${ROTINA_LABEL[respostas.rotina_trabalho as string] ?? respostas.rotina_trabalho}
-- Consumo de álcool: ${respostas.alcool}
-- Maior fome no período: ${respostas.fome_horario}
+- Álcool: ${respostas.alcool}
+- Período de maior fome: ${respostas.fome_horario}
 
-Crie o plano em parágrafos curtos, sem markdown, sem asteriscos, máx 300 palavras. Organize assim:
-1. Distribuição calórica por refeição com horários sugeridos
-2. Exemplos práticos de cada refeição adaptados à rotina
-3. Estratégia para o maior desafio informado
-4. Orientação de pré e pós-treino
-5. Dica para controlar a fome no período crítico`
+INSTRUÇÕES IMPORTANTES:
+- Crie exatamente ${refeicoesPorDia} refeições adaptadas à rotina informada
+- Cada alimento deve ter quantidade em gramas ou unidades, calorias e proteína específicos
+- Adapte os alimentos ao local onde a pessoa come (se restaurante, sugira opções de restaurante)
+- Respeite todas as restrições alimentares
+- A soma de calorias das refeições deve bater com a meta calórica
+- A soma de proteína deve bater com a meta proteica
+
+Responda APENAS em JSON válido, sem texto fora do JSON:
+
+{
+  "refeicoes": [
+    {
+      "nome": "Café da Manhã",
+      "horario": "07:00",
+      "calorias": 450,
+      "proteina": 30,
+      "alimentos": [
+        { "nome": "Ovos mexidos", "quantidade": "3 unidades (150g)", "calorias": 210, "proteina": 18 },
+        { "nome": "Pão integral", "quantidade": "2 fatias (60g)", "calorias": 150, "proteina": 6 },
+        { "nome": "Banana", "quantidade": "1 unidade média (100g)", "calorias": 90, "proteina": 1 }
+      ],
+      "dica": "Dica prática e específica para esta refeição"
+    }
+  ],
+  "orientacao_treino": "Orientação específica de pré e pós-treino baseada no horário informado",
+  "estrategia_desafio": "Estratégia específica para o desafio principal informado pelo atleta",
+  "dica_fome": "Dica específica para controlar a fome no período crítico informado"
+}`
 
     try {
       const res = await fetch('/api/analise-treino', {
@@ -289,12 +395,17 @@ Crie o plano em parágrafos curtos, sem markdown, sem asteriscos, máx 300 palav
         body: JSON.stringify({ prompt }),
       })
       const data = await res.json()
-      const conteudo = data.analise ?? ''
+      const texto = data.analise ?? ''
 
-      // Desativa plano anterior
+      // Extrai JSON da resposta
+      const jsonMatch = texto.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('JSON não encontrado')
+      const planoJSON = JSON.parse(jsonMatch[0])
+      const conteudo = JSON.stringify(planoJSON)
+
+      // Desativa plano anterior e salva novo
       await supabase.from('planos_nutricionais').update({ ativo: false }).eq('usuario_id', userId).eq('ativo', true)
 
-      // Salva novo plano
       const { data: novoPlano } = await supabase.from('planos_nutricionais').insert({
         usuario_id: userId,
         criado_por: 'ia',
@@ -307,8 +418,8 @@ Crie o plano em parágrafos curtos, sem markdown, sem asteriscos, máx 300 palav
 
       if (novoPlano) setPlanoAtivo(novoPlano)
 
-    } catch {
-      console.error('Erro ao gerar plano nutricional')
+    } catch (e) {
+      console.error('Erro ao gerar plano:', e)
     } finally {
       setGerandoPlano(false)
     }
@@ -317,7 +428,6 @@ Crie o plano em parágrafos curtos, sem markdown, sem asteriscos, máx 300 palav
   async function salvarRegistro() {
     if (!qualidade) return
     setSalvando(true)
-
     const payload = {
       usuario_id: userId, data: getTodayBR(),
       qualidade_alimentacao: qualidade,
@@ -325,14 +435,12 @@ Crie o plano em parágrafos curtos, sem markdown, sem asteriscos, máx 300 palav
       proteina: proteina ? parseFloat(proteina) : null,
       carboidrato: null, gordura: null, copos_agua: coposAgua,
     }
-
     if (registroId) {
       await supabase.from('nutricao').update(payload).eq('id', registroId)
     } else {
       const { data } = await supabase.from('nutricao').insert(payload).select('id').single()
       if (data) setRegistroId(data.id)
     }
-
     setJaRegistrou(true); setSalvando(false); gerarAnaliseIA()
   }
 
@@ -343,35 +451,23 @@ Crie o plano em parágrafos curtos, sem markdown, sem asteriscos, máx 300 palav
     const qualLabel = QUALIDADE_OPCOES.find(q => q.valor === qualidade)?.label ?? '?'
     const hora = getHourBR()
 
-    const prompt = `Você é o coach de nutrição do KORE. Analise o dia alimentar deste atleta e dê um feedback direto e personalizado.
+    const prompt = `Coach de nutrição do KORE. Feedback direto do dia alimentar.
 
-PERFIL:
-- Objetivo: ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? 'não informado'}
-- Peso: ${perfil.peso ? `${perfil.peso}kg` : 'não informado'}
-- Meta calórica: ${metaCal ? `${metaCal}kcal` : 'não calculada'}
-- Meta proteína: ${metaProt ? `${metaProt}g` : 'não calculada'}
-${planoAtivo ? `- Tem plano alimentar ativo gerado pela IA` : ''}
+PERFIL: Objetivo ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? '?'} | Peso ${perfil.peso ?? '?'}kg | Meta ${metaCal ?? '?'}kcal / ${metaProt ?? '?'}g prot${planoAtivo ? ' | Tem plano ativo' : ''}
 
-REGISTRO DE HOJE (${hora}h):
-- Avaliação: ${qualLabel}
-- Calorias: ${calorias ? `${calorias}kcal` : 'não informado'}
-- Proteína: ${proteina ? `${proteina}g` : 'não informado'}
-- Hidratação: ${coposAgua * 250}ml (${coposAgua}/8 copos)
-- Treinou hoje: ${treinouHoje ? 'Sim' : 'Não'}
-- Score de recuperação: ${scoreHoje ? `${scoreHoje}/100` : 'não registrado'}
-${observacoes ? `- Observações: ${observacoes}` : ''}
+HOJE (${hora}h): Avaliação ${qualLabel} | Calorias ${calorias || 'não registrado'} | Proteína ${proteina || 'não registrado'} | Água ${coposAgua}/8 copos | Treino ${treinouHoje ? 'sim' : 'não'} | Recuperação ${scoreHoje ?? '?'}/100${observacoes ? ` | Obs: ${observacoes}` : ''}
 
-Feedback em 3 partes curtas (máx 80 palavras, sem markdown):
-1. Balanço do dia
-2. Ponto de atenção
-3. Ação concreta para amanhã${planoAtivo ? ' — referenciando o plano ativo se relevante' : ''}`
+3 partes curtas, máx 70 palavras, sem markdown:
+1. Balanço — o que os dados mostram
+2. Atenção — principal ponto a melhorar  
+3. Amanhã — ação concreta e específica`
 
     try {
       const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
       const data = await res.json()
       setAnalise({ texto: data.analise ?? '', carregando: false, gerado: true })
     } catch {
-      setAnalise({ texto: 'Não foi possível gerar análise agora.', carregando: false, gerado: true })
+      setAnalise({ texto: 'Não foi possível gerar análise.', carregando: false, gerado: true })
     }
   }
 
@@ -395,9 +491,7 @@ Feedback em 3 partes curtas (máx 80 palavras, sem markdown):
   const isManha = hora < 12
   const isTarde = hora >= 12 && hora < 18
 
-  if (mostrarQuiz) {
-    return <QuizIA tipo="nutricao" onConcluir={gerarPlanoNutricional} onCancelar={() => setMostrarQuiz(false)} />
-  }
+  if (mostrarQuiz) return <QuizIA tipo="nutricao" onConcluir={gerarPlanoNutricional} onCancelar={() => setMostrarQuiz(false)} />
 
   if (carregando) return (
     <main className="min-h-screen bg-[#080808] flex items-center justify-center">
@@ -423,73 +517,67 @@ Feedback em 3 partes curtas (máx 80 palavras, sem markdown):
           </div>
         </div>
 
-        {/* Contexto do dia */}
+        {/* Stats do dia */}
         <div className="grid grid-cols-3 gap-2 mb-5">
-          <div className={`rounded-2xl p-3 border text-center ${scoreHoje ? scoreHoje >= 70 ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-yellow-500/20 bg-yellow-500/5' : 'border-white/[0.06] bg-white/[0.02]'}`}>
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-1">Recuperação</p>
-            <p className={`text-2xl font-black ${scoreHoje ? scoreHoje >= 70 ? 'text-emerald-400' : 'text-yellow-400' : 'text-zinc-600'}`}>{scoreHoje ?? '—'}</p>
-            <p className="text-zinc-700 text-[9px]">/100</p>
-          </div>
-          <div className={`rounded-2xl p-3 border text-center ${treinouHoje ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/[0.06] bg-white/[0.02]'}`}>
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-1">Treino</p>
-            <p className={`text-2xl font-black ${treinouHoje ? 'text-emerald-400' : 'text-zinc-600'}`}>{treinouHoje ? '✓' : '—'}</p>
-            <p className="text-zinc-700 text-[9px]">hoje</p>
-          </div>
-          <div className="rounded-2xl p-3 border border-white/[0.06] bg-white/[0.02] text-center">
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-1">Meta</p>
-            <p className="text-2xl font-black text-white">{metaCal ? `${Math.round(metaCal/100)/10}k` : '—'}</p>
-            <p className="text-zinc-700 text-[9px]">kcal</p>
-          </div>
+          {[
+            { label: 'Recuperação', val: scoreHoje ?? '—', sub: '/100', cor: scoreHoje ? scoreHoje >= 70 ? 'text-emerald-400' : 'text-yellow-400' : 'text-zinc-600', border: scoreHoje ? scoreHoje >= 70 ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-yellow-500/20 bg-yellow-500/5' : 'border-white/[0.06] bg-white/[0.02]' },
+            { label: 'Treino', val: treinouHoje ? '✓' : '—', sub: 'hoje', cor: treinouHoje ? 'text-emerald-400' : 'text-zinc-600', border: treinouHoje ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/[0.06] bg-white/[0.02]' },
+            { label: 'Meta', val: metaCal ? `${Math.round(metaCal/100)/10}k` : '—', sub: 'kcal', cor: 'text-white', border: 'border-white/[0.06] bg-white/[0.02]' },
+          ].map((s, i) => (
+            <div key={i} className={`rounded-2xl p-3 border text-center ${s.border}`}>
+              <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-1">{s.label}</p>
+              <p className={`text-2xl font-black ${s.cor}`}>{s.val}</p>
+              <p className="text-zinc-700 text-[9px]">{s.sub}</p>
+            </div>
+          ))}
         </div>
 
         {/* ── PLANO NUTRICIONAL ── */}
         {!vinculoNutri && (
           <>
-            {/* Gerando plano */}
             {gerandoPlano && (
-              <div className="rounded-2xl border border-blue-500/20 mb-4 p-6" style={{ background: 'linear-gradient(145deg, #0a0d14 0%, #080a10 100%)' }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+              <div className="rounded-2xl border border-blue-500/20 mb-4 p-6" style={{ background: '#0a0d14' }}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
                     <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                   <div>
-                    <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold">Gerando seu plano</p>
-                    <p className="text-zinc-500 text-[11px]">Analisando suas respostas...</p>
+                    <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold">Montando seu plano</p>
+                    <p className="text-zinc-500 text-[11px]">Calculando refeições e macros...</p>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  {[1, 0.85, 0.65, 0.5].map((w, i) => (
-                    <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%`, animationDelay: `${i * 0.15}s` }} />
+                <div className="space-y-2.5">
+                  {['Calculando distribuição calórica...', 'Selecionando alimentos...', 'Organizando horários...', 'Criando estratégias personalizadas...'].map((msg, i) => (
+                    <div key={i} className="flex items-center gap-3 opacity-60" style={{ animationDelay: `${i * 0.3}s` }}>
+                      <div className="w-3 h-3 rounded-full border-2 border-blue-400/40 border-t-blue-400 animate-spin shrink-0" />
+                      <p className="text-zinc-500 text-[11px]">{msg}</p>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Plano ativo salvo */}
             {!gerandoPlano && planoAtivo && (
-              <CardPlanoNutricional plano={planoAtivo} onRefazer={() => setMostrarQuiz(true)} />
+              <CardPlano plano={planoAtivo} onRefazer={() => setMostrarQuiz(true)} />
             )}
 
-            {/* Sem plano ainda */}
             {!gerandoPlano && !planoAtivo && (
-              <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0a0d14 0%, #080a10 100%)' }}>
-                <div className="p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                      <span className="text-blue-400 font-black">✦</span>
-                    </div>
-                    <div>
-                      <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold">KORE IA · Nutricionista virtual</p>
-                      <p className="text-white font-bold text-base">Sem nutricionista? A IA monta seu plano</p>
-                    </div>
+              <div className="rounded-2xl border border-blue-500/20 mb-4 p-5" style={{ background: '#0a0d14' }}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                    <span className="text-blue-400 font-black text-lg">✦</span>
                   </div>
-                  <p className="text-zinc-400 text-sm leading-relaxed mb-4">
-                    Responda algumas perguntas sobre sua rotina — como numa consulta de verdade — e a IA cria um plano alimentar completo que fica salvo aqui permanentemente.
-                  </p>
-                  <button onClick={() => setMostrarQuiz(true)} className="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">
-                    ✦ Iniciar consulta nutricional →
-                  </button>
+                  <div>
+                    <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold">Nutricionista virtual · IA</p>
+                    <p className="text-white font-bold">Crie seu plano alimentar</p>
+                  </div>
                 </div>
+                <p className="text-zinc-500 text-sm leading-relaxed mb-4">
+                  Responda uma consulta rápida e a IA monta um plano completo com refeições, gramas, calorias e proteínas — salvo permanentemente aqui.
+                </p>
+                <button onClick={() => setMostrarQuiz(true)} className="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">
+                  ✦ Iniciar consulta nutricional →
+                </button>
               </div>
             )}
           </>
@@ -497,58 +585,67 @@ Feedback em 3 partes curtas (máx 80 palavras, sem markdown):
 
         {/* ── REGISTRO DO DIA ── */}
         <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-          <div className="px-5 pt-5 pb-4 border-b border-white/[0.04]">
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-0.5">Como foi sua alimentação hoje?</p>
-            <p className="text-zinc-600 text-[11px]">Avalie e registre o essencial — leva 30 segundos</p>
+          <div className="px-5 pt-4 pb-3 border-b border-white/[0.04]">
+            <p className="text-zinc-400 text-sm font-bold">Registro de hoje</p>
+            <p className="text-zinc-600 text-[11px]">Leva 30 segundos — avalie e registre o essencial</p>
           </div>
-          <div className="p-5 space-y-5">
-            <div>
-              <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-3">Avaliação geral</p>
-              <div className="grid grid-cols-4 gap-2">
-                {QUALIDADE_OPCOES.map(op => (
-                  <button key={op.valor} onClick={() => setQualidade(op.valor)}
-                    className={`flex flex-col items-center py-3 px-1 rounded-2xl border transition-all active:scale-90 ${qualidade === op.valor ? op.cor : 'border-white/[0.06] bg-white/[0.02] text-zinc-500'}`}>
-                    <span className="text-2xl mb-1.5">{op.emoji}</span>
-                    <span className="text-[10px] font-bold leading-tight text-center">{op.label}</span>
-                  </button>
-                ))}
-              </div>
-              {qualidade && <p className="text-zinc-500 text-[11px] text-center mt-2 italic">"{QUALIDADE_OPCOES.find(q => q.valor === qualidade)?.desc}"</p>}
+          <div className="p-5 space-y-4">
+
+            {/* Qualidade */}
+            <div className="grid grid-cols-4 gap-2">
+              {QUALIDADE_OPCOES.map(op => (
+                <button key={op.valor} onClick={() => setQualidade(op.valor)}
+                  className={`flex flex-col items-center py-3 px-1 rounded-2xl border transition-all active:scale-90 ${qualidade === op.valor ? op.cor : 'border-white/[0.06] bg-white/[0.02] text-zinc-500'}`}>
+                  <span className="text-2xl mb-1">{op.emoji}</span>
+                  <span className="text-[10px] font-bold">{op.label}</span>
+                </button>
+              ))}
             </div>
 
+            {/* Calorias + Proteína */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex justify-between mb-1.5">
                   <label className="text-zinc-600 text-[10px] uppercase tracking-wider">Calorias</label>
                   {metaCal && <span className="text-zinc-700 text-[9px]">meta {metaCal}</span>}
                 </div>
                 <div className="relative">
-                  <input type="number" placeholder="ex: 2000" value={calorias} onChange={e => setCalorias(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                  <input type="number" placeholder="0" value={calorias} onChange={e => setCalorias(e.target.value)}
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">kcal</span>
                 </div>
-                {calorias && metaCal && (<div className="mt-2"><div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${pctCal >= 100 ? 'bg-emerald-400' : pctCal >= 70 ? 'bg-blue-400' : 'bg-zinc-600'}`} style={{ width: `${pctCal}%` }} /></div><p className="text-zinc-700 text-[9px] mt-1 text-center">{pctCal}% da meta</p></div>)}
+                {calorias && metaCal && (
+                  <div className="mt-1.5 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${pctCal >= 100 ? 'bg-emerald-400' : 'bg-blue-400'}`} style={{ width: `${pctCal}%` }} />
+                  </div>
+                )}
               </div>
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex justify-between mb-1.5">
                   <label className="text-zinc-600 text-[10px] uppercase tracking-wider">Proteína</label>
                   {metaProt && <span className="text-zinc-700 text-[9px]">meta {metaProt}g</span>}
                 </div>
                 <div className="relative">
-                  <input type="number" placeholder="ex: 150" value={proteina} onChange={e => setProteina(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                  <input type="number" placeholder="0" value={proteina} onChange={e => setProteina(e.target.value)}
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">g</span>
                 </div>
-                {proteina && metaProt && (<div className="mt-2"><div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${pctProt >= 100 ? 'bg-emerald-400' : pctProt >= 70 ? 'bg-blue-400' : 'bg-zinc-600'}`} style={{ width: `${pctProt}%` }} /></div><p className="text-zinc-700 text-[9px] mt-1 text-center">{pctProt}% da meta</p></div>)}
+                {proteina && metaProt && (
+                  <div className="mt-1.5 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${pctProt >= 100 ? 'bg-emerald-400' : 'bg-purple-400'}`} style={{ width: `${pctProt}%` }} />
+                  </div>
+                )}
               </div>
             </div>
 
-            <div>
-              <label className="text-zinc-600 text-[10px] uppercase tracking-wider mb-2 block">Observações <span className="text-zinc-700 normal-case">— opcional mas ajuda a IA</span></label>
-              <textarea placeholder="Ex: comi fora hoje, tive muita fome à tarde, pulei o almoço..." value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={3} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none leading-relaxed" />
-            </div>
+            {/* Observações */}
+            <textarea placeholder="Como foi a alimentação hoje? (opcional — ajuda a IA)" value={observacoes}
+              onChange={e => setObservacoes(e.target.value)} rows={2}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
 
             <button onClick={salvarRegistro} disabled={!qualidade || salvando}
-              className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${jaRegistrou ? 'bg-white/[0.06] border border-white/[0.10] text-zinc-300' : 'bg-white text-black hover:bg-zinc-100'}`}>
-              {salvando ? 'Salvando...' : jaRegistrou ? '✓ Registrado — atualizar' : 'Registrar meu dia →'}
+              className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all ${jaRegistrou ? 'bg-white/[0.06] border border-white/[0.10] text-zinc-300' : 'bg-white text-black'}`}>
+              {salvando ? 'Salvando...' : jaRegistrou ? '✓ Registrado — atualizar' : 'Registrar →'}
             </button>
           </div>
         </div>
@@ -557,47 +654,57 @@ Feedback em 3 partes curtas (máx 80 palavras, sem markdown):
         <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
           <div className="px-5 pt-4 pb-3 border-b border-white/[0.04]">
             <div className="flex items-center justify-between">
-              <div><p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Hidratação</p><p className="text-white font-black text-2xl mt-0.5">{coposAgua * 250}<span className="text-zinc-600 text-sm font-normal">ml / 2000ml</span></p></div>
-              <p className={`text-3xl font-black tabular-nums ${coposAgua >= 8 ? 'text-emerald-400' : coposAgua >= 4 ? 'text-blue-400' : 'text-zinc-500'}`}>{coposAgua}<span className="text-zinc-600 text-base font-normal">/8</span></p>
+              <div>
+                <p className="text-zinc-400 text-sm font-bold">Hidratação</p>
+                <p className="text-zinc-600 text-[11px]">{coposAgua * 250}ml de 2000ml</p>
+              </div>
+              <p className={`text-2xl font-black ${coposAgua >= 8 ? 'text-emerald-400' : coposAgua >= 4 ? 'text-blue-400' : 'text-zinc-500'}`}>
+                {coposAgua}<span className="text-zinc-600 text-sm font-normal">/8</span>
+              </p>
             </div>
-            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden mt-3">
-              <div className="h-full rounded-full bg-blue-400 transition-all duration-500" style={{ width: `${Math.min(100, (coposAgua / 8) * 100)}%` }} />
+            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden mt-2">
+              <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${Math.min(100, (coposAgua / 8) * 100)}%` }} />
             </div>
           </div>
-          <div className="p-4">
-            <div className="flex items-center justify-between gap-3">
-              <button onClick={() => atualizarAgua(coposAgua - 1)} className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white text-xl font-bold active:scale-90 transition-all">−</button>
-              <div className="flex-1 grid grid-cols-8 gap-1.5">
-                {Array.from({ length: 8 }, (_, i) => (<button key={i} onClick={() => atualizarAgua(i + 1)} className={`h-7 rounded-lg transition-all active:scale-90 ${i < coposAgua ? 'bg-blue-400' : 'bg-white/[0.05] border border-white/[0.08]'}`} />))}
-              </div>
-              <button onClick={() => atualizarAgua(coposAgua + 1)} className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white text-xl font-bold active:scale-90 transition-all">+</button>
+          <div className="p-4 flex items-center gap-3">
+            <button onClick={() => atualizarAgua(coposAgua - 1)} className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white text-lg font-bold active:scale-90 transition-all">−</button>
+            <div className="flex-1 grid grid-cols-8 gap-1">
+              {Array.from({ length: 8 }, (_, i) => (
+                <button key={i} onClick={() => atualizarAgua(i + 1)} className={`h-6 rounded-lg transition-all ${i < coposAgua ? 'bg-blue-400' : 'bg-white/[0.05] border border-white/[0.08]'}`} />
+              ))}
             </div>
-            <p className="text-zinc-700 text-[10px] text-center mt-3 uppercase tracking-wider">{coposAgua >= 8 ? '✓ Hidratação ideal!' : `Faltam ${8 - coposAgua} copo${8 - coposAgua !== 1 ? 's' : ''} para 2L`}</p>
+            <button onClick={() => atualizarAgua(coposAgua + 1)} className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white text-lg font-bold active:scale-90 transition-all">+</button>
           </div>
         </div>
 
-        {/* ── FEEDBACK IA DO DIA ── */}
-        <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
+        {/* ── FEEDBACK IA ── */}
+        <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
           <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
-            <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0"><span className="text-[11px] font-black text-emerald-400">✦</span></div>
-            <div className="flex-1">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400">Feedback do dia · IA</p>
-              <p className="text-zinc-600 text-[10px]">Cruza treino, sono, recuperação e plano ativo</p>
+            <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <span className="text-[11px] font-black text-emerald-400">✦</span>
             </div>
-            {analise.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
+            <div className="flex-1">
+              <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">Feedback do dia · IA</p>
+              <p className="text-zinc-600 text-[10px]">Cruza treino, sono, recuperação e plano</p>
+            </div>
+            {analise.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />}
           </div>
           <div className="px-5 py-4">
             {!analise.gerado && !analise.carregando && (
               <div className="space-y-3">
-                <p className="text-zinc-500 text-sm">{jaRegistrou ? 'Registro salvo. Gere o feedback da IA.' : 'Registre sua alimentação acima primeiro.'}</p>
-                {jaRegistrou && <button onClick={gerarAnaliseIA} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 hover:bg-emerald-500/20 transition-all">✦ Gerar feedback do dia</button>}
+                <p className="text-zinc-500 text-sm">{jaRegistrou ? 'Registro salvo. Gere o feedback personalizado.' : 'Registre sua alimentação acima primeiro.'}</p>
+                {jaRegistrou && (
+                  <button onClick={gerarAnaliseIA} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+                    ✦ Gerar feedback do dia
+                  </button>
+                )}
               </div>
             )}
-            {analise.carregando && <div className="space-y-2">{[1, 0.85, 0.65].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
+            {analise.carregando && <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
             {analise.gerado && !analise.carregando && (
               <div>
                 <p className="text-zinc-300 text-sm leading-relaxed">{analise.texto}</p>
-                <button onClick={gerarAnaliseIA} className="mt-4 text-[10px] text-zinc-600 underline underline-offset-4 hover:text-zinc-400 transition-all">Nova análise</button>
+                <button onClick={gerarAnaliseIA} className="mt-3 text-[10px] text-zinc-600 underline underline-offset-4 hover:text-zinc-400 transition-all">Nova análise</button>
               </div>
             )}
           </div>
@@ -611,7 +718,7 @@ Feedback em 3 partes curtas (máx 80 palavras, sem markdown):
               <p className="text-white text-sm font-semibold">Nutricionista</p>
               {vinculoNutri
                 ? <p className="text-emerald-400 text-xs">{vinculoNutri.nome ?? 'Conectada'}</p>
-                : <p className="text-zinc-600 text-xs">Conecte uma nutricionista para plano profissional</p>
+                : <p className="text-zinc-600 text-xs">Conecte para plano profissional personalizado</p>
               }
             </div>
             {!vinculoNutri
@@ -623,7 +730,7 @@ Feedback em 3 partes curtas (máx 80 palavras, sem markdown):
 
       </div>
 
-      {/* Bottom Nav SVG */}
+      {/* Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]" style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
           {NAV_ITEMS.map((item) => {
