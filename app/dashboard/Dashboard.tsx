@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import OnboardingTour from '../components/OnboardingTour'
 
-// ─── TYPES ────────────────────────────────────────────────────────────────────
-
 type Perfil = {
   tipo: 'cliente' | 'personal' | 'nutricionista'
   nome: string | null
@@ -35,16 +33,12 @@ type NutricaoHoje = {
   qualidade_alimentacao: number | null
 } | null
 
-// ─── UTILITÁRIOS DE DATA (FUSO BRASIL) ───────────────────────────────────────
-
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
 function getHourBR(): number {
-  return parseInt(
-    new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10
-  )
+  return parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10)
 }
 
 function getGreeting(): string {
@@ -60,8 +54,6 @@ function getTodayString(): string {
   })
 }
 
-// ─── UTILITÁRIOS GERAIS ───────────────────────────────────────────────────────
-
 function getFirstName(nome: string | null, email: string): string {
   if (nome) return nome.split(' ')[0]
   return email.split('@')[0]
@@ -75,8 +67,6 @@ function getInitials(nome: string | null, email: string): string {
   }
   return email[0].toUpperCase()
 }
-
-// ─── METAS NUTRICIONAIS ───────────────────────────────────────────────────────
 
 function getMetaCalorias(peso: number | null, objetivo: string | null): number | null {
   if (!peso) return null
@@ -93,8 +83,6 @@ function getMetaProteina(peso: number | null, objetivo: string | null): number |
   if (objetivo === 'perder_peso') return Math.round(peso * 2.0)
   return Math.round(peso * 1.8)
 }
-
-// ─── BEM-ESTAR ────────────────────────────────────────────────────────────────
 
 function getMediaBemEstar(be: BemEstar): number | null {
   if (!be) return null
@@ -116,8 +104,6 @@ function getLabelMedia(media: number): string {
   return 'No seu melhor!'
 }
 
-// ─── SCORE DE RECUPERAÇÃO ─────────────────────────────────────────────────────
-
 function getScoreLabel(score: number): string {
   if (score >= 85) return 'Dia ideal para treino intenso'
   if (score >= 70) return 'Boa recuperação. Pode treinar forte'
@@ -133,8 +119,6 @@ function getScoreCores(score: number) {
   return            { text: 'text-red-400',     bg: 'bg-red-400',     border: 'border-red-400/20'     }
 }
 
-// ─── STREAK ───────────────────────────────────────────────────────────────────
-
 function calcularStreak(datas: string[]): number {
   if (!datas.length) return 0
   const hoje = getTodayBR()
@@ -148,78 +132,27 @@ function calcularStreak(datas: string[]): number {
   return streak
 }
 
-// ─── NAV ICONS SVG ────────────────────────────────────────────────────────────
-
 function IconHome({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
-      <path d="M9 21V12h6v9" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
 }
-
 function IconTreino({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" />
-      <path d="M7.5 6.5v11M17.5 6.5v11" />
-      <path d="M7.5 12h9" />
-      <path d="M3 10.5v3M21 10.5v3" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" /><path d="M7.5 6.5v11M17.5 6.5v11" /><path d="M7.5 12h9" /><path d="M3 10.5v3M21 10.5v3" /></svg>
 }
-
 function IconNutricao({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" />
-      <path d="M12 6.5V4" />
-      <path d="M12 4c0 0 1.5-1 3-1.5" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" /><path d="M12 6.5V4" /><path d="M12 4c0 0 1.5-1 3-1.5" /></svg>
 }
-
 function IconEvolucao({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-      <polyline points="16 7 22 7 22 13" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
 }
-
 function IconPerfil({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>
 }
-
 function IconAlunos({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9" cy="7" r="3.5" />
-      <path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6" />
-      <path d="M16 3.5a3.5 3.5 0 010 7" />
-      <path d="M22 20c0-3.5-2.5-5.8-6-6" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="3.5" /><path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6" /><path d="M16 3.5a3.5 3.5 0 010 7" /><path d="M22 20c0-3.5-2.5-5.8-6-6" /></svg>
 }
-
 function IconAgenda({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-      <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></svg>
 }
-
-// ─── NAV ITEMS ────────────────────────────────────────────────────────────────
 
 type NavItem = { id: string; label: string; Icon: React.FC<{ active: boolean }> }
 
@@ -244,8 +177,6 @@ function getNavItems(tipo?: string): NavItem[] {
     { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil   },
   ]
 }
-
-// ─── PAGE PRINCIPAL ───────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const router = useRouter()
@@ -273,10 +204,19 @@ export default function Dashboard() {
       if (perfilData.tipo === 'cliente') {
         const hoje = getTodayBR()
 
-        const [{ data: be }, { data: sonoHoje }, { data: treinos }, { data: vinculosData }, { data: treinoHojeData }, { data: nutricaoData }] = await Promise.all([
+        const [
+          { data: be },
+          { data: sonoHoje },
+          { data: treinos },
+          { data: atvsLivres },
+          { data: vinculosData },
+          { data: treinoHojeData },
+          { data: nutricaoData },
+        ] = await Promise.all([
           supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('treinos').select('data').eq('cliente_id', session.user.id).eq('concluido', true).order('data', { ascending: false }).limit(60),
+          supabase.from('atividades_livres').select('data').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(60),
           supabase.from('vinculos').select('tipo, profissional_id').eq('cliente_id', session.user.id).eq('ativo', true),
           supabase.from('treinos').select('nome, plano, concluido').eq('cliente_id', session.user.id).eq('data', hoje).order('concluido', { ascending: false }).limit(1).single(),
           supabase.from('nutricao').select('calorias, proteina, qualidade_alimentacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -284,9 +224,16 @@ export default function Dashboard() {
 
         if (be) setBemEstar(be)
         if (sonoHoje?.score_recuperacao) setScoreRecuperacao(sonoHoje.score_recuperacao)
-        if (treinos) setStreak(calcularStreak(treinos.map((t: { data: string }) => t.data)))
         if (treinoHojeData) setTreinoHoje(treinoHojeData)
         if (nutricaoData) setNutricaoHoje(nutricaoData)
+
+        // ── STREAK CORRIGIDO: conta treinos + atividades livres ──
+        const todasDatas = [
+          ...(treinos?.map((t: { data: string }) => t.data) ?? []),
+          ...(atvsLivres?.map((a: { data: string }) => a.data) ?? []),
+        ]
+        const datasUnicas = [...new Set(todasDatas)].sort((a, b) => b.localeCompare(a))
+        setStreak(calcularStreak(datasUnicas))
 
         if (vinculosData?.length) {
           const ids = vinculosData.map((v: { profissional_id: string }) => v.profissional_id)
@@ -342,7 +289,6 @@ export default function Dashboard() {
         {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />}
       </div>
 
-      {/* ── Bottom Navigation ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
@@ -376,8 +322,6 @@ export default function Dashboard() {
   )
 }
 
-// ─── MICRO-COMPONENTE ─────────────────────────────────────────────────────────
-
 function Metrica({ label, valor }: { label: string; valor: string }) {
   return (
     <div>
@@ -387,20 +331,12 @@ function Metrica({ label, valor }: { label: string; valor: string }) {
   )
 }
 
-// ─── DASHBOARD CLIENTE ────────────────────────────────────────────────────────
-
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, vinculos, treinoHoje, nutricaoHoje, onLogout: _onLogout,
 }: {
-  perfil: Perfil
-  bemEstar: BemEstar
-  scoreRecuperacao: number | null
-  streak: number
-  vinculos: Vinculo[]
-  treinoHoje: { nome: string; plano: string; concluido: boolean } | null
-  nutricaoHoje: NutricaoHoje
-  activeTab: string
-  onLogout: () => void
+  perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
+  vinculos: Vinculo[]; treinoHoje: { nome: string; plano: string; concluido: boolean } | null
+  nutricaoHoje: NutricaoHoje; activeTab: string; onLogout: () => void
 }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
@@ -420,15 +356,12 @@ function DashboardCliente({
     return '✦ Recuperação crítica. Priorize descanso — seu corpo está pedindo.'
   }
 
-  const pctCal = nutricaoHoje?.calorias && metaCal
-    ? Math.min(100, Math.round((nutricaoHoje.calorias / metaCal) * 100)) : 0
-  const pctProt = nutricaoHoje?.proteina && metaProt
-    ? Math.min(100, Math.round((nutricaoHoje.proteina / metaProt) * 100)) : 0
+  const pctCal = nutricaoHoje?.calorias && metaCal ? Math.min(100, Math.round((nutricaoHoje.calorias / metaCal) * 100)) : 0
+  const pctProt = nutricaoHoje?.proteina && metaProt ? Math.min(100, Math.round((nutricaoHoje.proteina / metaProt) * 100)) : 0
 
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
-      {/* ── Header ── */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
@@ -443,7 +376,6 @@ function DashboardCliente({
         </div>
       </div>
 
-      {/* ── HERO: Score de Recuperação ── */}
       {scoreRecuperacao ? (
         <button onClick={() => router.push('/sono')}
           className={`w-full text-left rounded-3xl p-6 mb-3 border ${cores?.border} relative overflow-hidden active:scale-[0.98] transition-all duration-200`}
@@ -488,7 +420,6 @@ function DashboardCliente({
         </button>
       )}
 
-      {/* ── Bem-estar ── */}
       <button onClick={() => router.push('/bem-estar')}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
         style={{ background: '#0f0f0f' }}>
@@ -518,7 +449,6 @@ function DashboardCliente({
         )}
       </button>
 
-      {/* ── Streak ── */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <div className="flex items-center justify-between">
           <div>
@@ -535,7 +465,6 @@ function DashboardCliente({
         </div>
       </div>
 
-      {/* ── Treino de hoje ── */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -569,11 +498,9 @@ function DashboardCliente({
         </button>
       </div>
 
-      {/* ── Plano Alimentar — CARD INTELIGENTE ── */}
       <button onClick={() => router.push('/nutricao')}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
         style={{ background: '#0f0f0f' }}>
-
         <div className="flex items-start justify-between mb-3">
           <div>
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Nutrição hoje</p>
@@ -585,10 +512,8 @@ function DashboardCliente({
               <p className="text-white font-bold text-base">Registrar alimentação</p>
             )}
             <p className="text-zinc-600 text-xs mt-0.5">
-              {vinculoNutri
-                ? vinculoNutri.nome ?? 'Nutricionista conectada'
-                : metaCal
-                ? `Meta: ${metaCal} kcal · ${metaProt}g proteína`
+              {vinculoNutri ? vinculoNutri.nome ?? 'Nutricionista conectada'
+                : metaCal ? `Meta: ${metaCal} kcal · ${metaProt}g proteína`
                 : 'Toque para registrar seu dia'}
             </p>
           </div>
@@ -599,8 +524,6 @@ function DashboardCliente({
             </svg>
           </div>
         </div>
-
-        {/* Barras de progresso quando tem dados */}
         {(nutricaoHoje?.calorias || nutricaoHoje?.proteina) && metaCal && (
           <div className="space-y-2 mt-3 pt-3 border-t border-white/[0.04]">
             {nutricaoHoje?.calorias && (
@@ -610,8 +533,7 @@ function DashboardCliente({
                   <span className="text-zinc-500 text-[9px]">{nutricaoHoje.calorias} / {metaCal} kcal</span>
                 </div>
                 <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${pctCal >= 100 ? 'bg-emerald-400' : 'bg-blue-400'}`}
-                    style={{ width: `${pctCal}%` }} />
+                  <div className={`h-full rounded-full transition-all ${pctCal >= 100 ? 'bg-emerald-400' : 'bg-blue-400'}`} style={{ width: `${pctCal}%` }} />
                 </div>
               </div>
             )}
@@ -622,27 +544,21 @@ function DashboardCliente({
                   <span className="text-zinc-500 text-[9px]">{nutricaoHoje.proteina}g / {metaProt}g</span>
                 </div>
                 <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${pctProt >= 100 ? 'bg-emerald-400' : 'bg-purple-400'}`}
-                    style={{ width: `${pctProt}%` }} />
+                  <div className={`h-full rounded-full transition-all ${pctProt >= 100 ? 'bg-emerald-400' : 'bg-purple-400'}`} style={{ width: `${pctProt}%` }} />
                 </div>
               </div>
             )}
           </div>
         )}
-
-        {/* CTA quando não tem dados e não tem nutri */}
         {!vinculoNutri && !nutricaoHoje?.calorias && (
           <div className="mt-3 pt-3 border-t border-white/[0.04]">
             <p className="text-zinc-600 text-[11px] leading-relaxed">
-              {metaCal
-                ? `Sua meta estimada é ${metaCal} kcal e ${metaProt}g de proteína. Registre seu dia →`
-                : 'Registre sua alimentação diária para receber análise da IA →'}
+              {metaCal ? `Sua meta estimada é ${metaCal} kcal e ${metaProt}g de proteína. Registre seu dia →` : 'Registre sua alimentação diária para receber análise da IA →'}
             </p>
           </div>
         )}
       </button>
 
-      {/* ── Meu time ── */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meu time</p>
         <div className="space-y-3">
@@ -657,10 +573,7 @@ function DashboardCliente({
                   <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${p.cor}`}>{p.sigla}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-semibold">{p.label}</p>
-                    {vinculo
-                      ? <p className="text-emerald-400 text-xs">{vinculo.nome ?? vinculo.email}</p>
-                      : <p className="text-zinc-600 text-xs">Não conectado</p>
-                    }
+                    {vinculo ? <p className="text-emerald-400 text-xs">{vinculo.nome ?? vinculo.email}</p> : <p className="text-zinc-600 text-xs">Não conectado</p>}
                   </div>
                   {!vinculo && (
                     <button onClick={() => router.push('/convite')}
@@ -680,13 +593,10 @@ function DashboardCliente({
   )
 }
 
-// ─── DASHBOARD PERSONAL ───────────────────────────────────────────────────────
-
 function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
-
   const [totalAlunos, setTotalAlunos] = useState(0)
   const [treinaramHoje, setTreinaramHoje] = useState(0)
   const [alertas, setAlertas] = useState(0)
@@ -697,32 +607,24 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
     async function carregarStats() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
-
-      const { data: vinculos } = await supabase
-        .from('vinculos').select('cliente_id').eq('profissional_id', session.user.id).eq('tipo', 'personal').eq('ativo', true)
-
+      const { data: vinculos } = await supabase.from('vinculos').select('cliente_id').eq('profissional_id', session.user.id).eq('tipo', 'personal').eq('ativo', true)
       if (!vinculos?.length) { setLoadingStats(false); return }
-
       const hoje = getTodayBR()
-      const semanaAtras = new Date()
-      semanaAtras.setDate(semanaAtras.getDate() - 7)
+      const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 7)
       const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
       const ids = vinculos.map(v => v.cliente_id)
       setTotalAlunos(ids.length)
-
       const [{ data: perfis }, { data: treinosHoje }, { data: treinos7d }, { data: scores }] = await Promise.all([
         supabase.from('perfis').select('id, nome, email').in('id', ids),
         supabase.from('treinos').select('cliente_id').eq('concluido', true).eq('data', hoje).in('cliente_id', ids),
         supabase.from('treinos').select('cliente_id, data').eq('concluido', true).gte('data', semanaStr).in('cliente_id', ids),
         supabase.from('sono').select('usuario_id, score_recuperacao').eq('data', hoje).in('usuario_id', ids),
       ])
-
       const treinaramSet = new Set(treinosHoje?.map(t => t.cliente_id) ?? [])
       const scoreMap = new Map(scores?.map(s => [s.usuario_id, s.score_recuperacao]) ?? [])
       const treinos7dSet = new Map<string, number>()
       treinos7d?.forEach(t => treinos7dSet.set(t.cliente_id, (treinos7dSet.get(t.cliente_id) ?? 0) + 1))
       const alertasCount = ids.filter(id => (treinos7dSet.get(id) ?? 0) === 0).length
-
       setTreinaramHoje(treinaramSet.size)
       setAlertas(alertasCount)
       setAlunosRecentes((perfis ?? []).map(p => ({ nome: p.nome, email: p.email, treinouHoje: treinaramSet.has(p.id), score: scoreMap.get(p.id) ?? null })).slice(0, 4))
@@ -746,12 +648,10 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
           </button>
         </div>
       </div>
-
       <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 border border-emerald-500/20 bg-emerald-500/[0.07]">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="text-emerald-400 text-[10px] uppercase tracking-[0.15em] font-semibold">Personal Trainer</span>
       </div>
-
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { valor: loadingStats ? '—' : String(totalAlunos),   label: 'Alunos',    sub: 'ativos',         cor: 'text-white' },
@@ -765,7 +665,6 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
           </div>
         ))}
       </div>
-
       {alunosRecentes.length > 0 && (
         <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
@@ -782,15 +681,12 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
                   <p className="text-white text-sm font-semibold truncate">{a.nome ?? a.email.split('@')[0]}</p>
                   <p className={`text-[11px] ${a.treinouHoje ? 'text-emerald-400' : 'text-zinc-600'}`}>{a.treinouHoje ? '✓ Treinou hoje' : 'Não treinou hoje'}</p>
                 </div>
-                {a.score && (
-                  <div className={`text-xs font-bold shrink-0 ${a.score >= 70 ? 'text-emerald-400' : a.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{a.score}/100</div>
-                )}
+                {a.score && <div className={`text-xs font-bold shrink-0 ${a.score >= 70 ? 'text-emerald-400' : a.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{a.score}/100</div>}
               </div>
             ))}
           </div>
         </div>
       )}
-
       {alertas > 0 && (
         <div className="rounded-2xl p-4 border border-orange-500/20 bg-orange-500/5 mb-4">
           <p className="text-orange-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚠ {alertas} aluno{alertas > 1 ? 's' : ''} sem treinar há 7+ dias</p>
@@ -798,14 +694,11 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
           <button onClick={() => router.push('/personal')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver alunos →</button>
         </div>
       )}
-
       <button onClick={() => router.push('/personal')} className="w-full border border-white/[0.08] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os alunos</button>
       <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">+ Convidar aluno</button>
     </div>
   )
 }
-
-// ─── DASHBOARD NUTRICIONISTA ──────────────────────────────────────────────────
 
 function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
   const router    = useRouter()
@@ -827,12 +720,10 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
           </button>
         </div>
       </div>
-
       <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 border border-emerald-500/20 bg-emerald-500/[0.07]">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         <span className="text-emerald-400 text-[10px] uppercase tracking-[0.15em] font-semibold">Nutricionista</span>
       </div>
-
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { valor: '0', label: 'Pacientes', sub: 'ativos'    },
@@ -846,7 +737,6 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
           </div>
         ))}
       </div>
-
       <div className="rounded-2xl p-5 border border-white/[0.06] mb-3" style={{ background: '#0f0f0f' }}>
         <p className="text-zinc-400 text-[10px] uppercase tracking-[0.15em] mb-4">Agenda de hoje</p>
         <div className="flex flex-col items-center py-8 gap-3">
@@ -855,12 +745,10 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
           <button className="text-[11px] border border-white/[0.08] rounded-xl px-4 py-2 text-zinc-400 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">+ Agendar consulta</button>
         </div>
       </div>
-
       <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
         <p className="text-zinc-400 text-[10px] uppercase tracking-[0.15em] mb-3">Alertas</p>
         <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
-
       <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">
         + Convidar paciente
       </button>
