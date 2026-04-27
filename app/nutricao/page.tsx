@@ -15,6 +15,16 @@ function getHourBR(): number {
 
 type Perfil = { nome: string | null; peso: number | null; objetivo: string | null }
 
+type PlanoNutricional = {
+  id: string
+  conteudo: string
+  calorias_meta: number | null
+  proteina_meta: number | null
+  refeicoes_por_dia: number | null
+  created_at: string
+  criado_por: string
+}
+
 const QUALIDADE_OPCOES = [
   { valor: 1, label: 'Ruim',    emoji: '😞', desc: 'Comi mal hoje',       cor: 'border-red-500/40 bg-red-500/10 text-red-400' },
   { valor: 2, label: 'Regular', emoji: '😐', desc: 'Poderia ser melhor',  cor: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' },
@@ -69,6 +79,88 @@ const NAV_ITEMS = [
   { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil,   path: '/perfil'    },
 ]
 
+// ─── COMPONENTE PLANO NUTRICIONAL ─────────────────────────────────────────────
+
+function CardPlanoNutricional({
+  plano,
+  onRefazer,
+}: {
+  plano: PlanoNutricional
+  onRefazer: () => void
+}) {
+  const [expandido, setExpandido] = useState(false)
+  const dataCriacao = new Date(plano.created_at).toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo', day: 'numeric', month: 'long', year: 'numeric',
+  })
+
+  return (
+    <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0a0d14 0%, #080a10 100%)' }}>
+
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-white/[0.04]">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+            <span className="text-sm font-black text-blue-400">✦</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-blue-400 font-semibold">Plano alimentar · IA</p>
+            <p className="text-zinc-500 text-[10px]">Criado em {dataCriacao}</p>
+          </div>
+          <span className="text-[9px] uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full px-2 py-0.5">Ativo</span>
+        </div>
+      </div>
+
+      {/* Metas rápidas */}
+      {(plano.calorias_meta || plano.proteina_meta) && (
+        <div className="grid grid-cols-3 gap-0 border-b border-white/[0.04]">
+          {[
+            { label: 'Calorias', val: plano.calorias_meta ? `${plano.calorias_meta}` : '—', unit: 'kcal', cor: 'text-orange-400' },
+            { label: 'Proteína', val: plano.proteina_meta ? `${plano.proteina_meta}` : '—', unit: 'g/dia', cor: 'text-blue-400' },
+            { label: 'Refeições', val: plano.refeicoes_por_dia ? `${plano.refeicoes_por_dia}` : '—', unit: 'por dia', cor: 'text-emerald-400' },
+          ].map((m, i) => (
+            <div key={i} className={`px-4 py-3 text-center ${i < 2 ? 'border-r border-white/[0.04]' : ''}`}>
+              <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-0.5">{m.label}</p>
+              <p className={`text-lg font-black ${m.cor}`}>{m.val}</p>
+              <p className="text-zinc-700 text-[9px]">{m.unit}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Conteúdo do plano */}
+      <div className="px-5 py-4">
+        <div className={`overflow-hidden transition-all duration-300 ${expandido ? 'max-h-[2000px]' : 'max-h-24'}`}>
+          <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line">{plano.conteudo}</p>
+        </div>
+
+        {/* Gradiente fade quando colapsado */}
+        {!expandido && (
+          <div className="h-8 -mt-8 mb-2 pointer-events-none" style={{ background: 'linear-gradient(transparent, #080a10)' }} />
+        )}
+
+        <button
+          onClick={() => setExpandido(e => !e)}
+          className="w-full text-center text-[11px] text-blue-400 py-2 rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition-all active:scale-95 mt-1"
+        >
+          {expandido ? '▲ Ver menos' : '▼ Ver plano completo'}
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 pb-4">
+        <button
+          onClick={onRefazer}
+          className="w-full text-center text-[11px] text-zinc-600 py-2 rounded-xl border border-white/[0.06] hover:border-white/[0.12] hover:text-zinc-400 transition-all active:scale-95"
+        >
+          ↻ Refazer consulta e gerar novo plano
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── PAGE PRINCIPAL ───────────────────────────────────────────────────────────
+
 export default function Nutricao() {
   const router = useRouter()
   const [carregando, setCarregando] = useState(true)
@@ -81,7 +173,7 @@ export default function Nutricao() {
   const [vinculoNutri, setVinculoNutri] = useState<{ nome: string | null } | null>(null)
   const [mostrarQuiz, setMostrarQuiz] = useState(false)
   const [gerandoPlano, setGerandoPlano] = useState(false)
-  const [planoGerado, setPlanoGerado] = useState<string | null>(null)
+  const [planoAtivo, setPlanoAtivo] = useState<PlanoNutricional | null>(null)
 
   const [qualidade, setQualidade] = useState<number | null>(null)
   const [calorias, setCalorias] = useState('')
@@ -99,18 +191,28 @@ export default function Nutricao() {
     setUserId(session.user.id)
 
     const hoje = getTodayBR()
-    const [{ data: perfilData }, { data: sonoHoje }, { data: treinoHoje }, { data: atividadeHoje }, { data: registroHoje }, { data: vinculo }] = await Promise.all([
+    const [
+      { data: perfilData },
+      { data: sonoHoje },
+      { data: treinoHoje },
+      { data: atividadeHoje },
+      { data: registroHoje },
+      { data: vinculo },
+      { data: planoData },
+    ] = await Promise.all([
       supabase.from('perfis').select('nome, peso, objetivo').eq('id', session.user.id).single(),
       supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
       supabase.from('treinos').select('id').eq('cliente_id', session.user.id).eq('concluido', true).eq('data', hoje).limit(1),
       supabase.from('atividades_livres').select('id').eq('usuario_id', session.user.id).eq('data', hoje).limit(1),
       supabase.from('nutricao').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single(),
       supabase.from('vinculos').select('profissional_id').eq('cliente_id', session.user.id).eq('tipo', 'nutricionista').eq('ativo', true).single(),
+      supabase.from('planos_nutricionais').select('*').eq('usuario_id', session.user.id).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
     ])
 
     if (perfilData) setPerfil(perfilData)
     if (sonoHoje?.score_recuperacao) setScoreHoje(sonoHoje.score_recuperacao)
     if ((treinoHoje && treinoHoje.length > 0) || (atividadeHoje && atividadeHoje.length > 0)) setTreinouHoje(true)
+    if (planoData) setPlanoAtivo(planoData)
 
     if (registroHoje) {
       setRegistroId(registroHoje.id)
@@ -130,7 +232,7 @@ export default function Nutricao() {
     setCarregando(false)
   }
 
-  // ── GERAR PLANO NUTRICIONAL COM IA ────────────────────────────────────────────
+  // ── GERAR E SALVAR PLANO NUTRICIONAL ─────────────────────────────────────────
 
   async function gerarPlanoNutricional(respostas: RespostasQuiz) {
     setMostrarQuiz(false)
@@ -138,8 +240,8 @@ export default function Nutricao() {
 
     const metaCal = getMetaCalorias(perfil.peso, perfil.objetivo)
     const metaProt = getMetaProteina(perfil.peso, perfil.objetivo)
-
     const restricoesArr = Array.isArray(respostas.restricoes) ? respostas.restricoes.join(', ') : respostas.restricoes
+    const refeicoesPorDia = respostas.refeicoes_dia === '1-2' ? 2 : respostas.refeicoes_dia === '3' ? 3 : respostas.refeicoes_dia === '4-5' ? 4 : 5
 
     const HORARIO_LABEL: Record<string, string> = {
       jejum_manha: 'Manhã em jejum', manha: 'Manhã com café',
@@ -160,8 +262,8 @@ PERFIL:
 - Nome: ${perfil.nome ?? 'Atleta'}
 - Objetivo: ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? 'Saúde geral'}
 - Peso: ${perfil.peso ? `${perfil.peso}kg` : 'não informado'}
-- Meta calórica estimada: ${metaCal ? `${metaCal}kcal` : 'não calculada'}
-- Meta proteína estimada: ${metaProt ? `${metaProt}g` : 'não calculada'}
+- Meta calórica: ${metaCal ? `${metaCal}kcal/dia` : 'não calculada'}
+- Meta proteína: ${metaProt ? `${metaProt}g/dia` : 'não calculada'}
 
 RESPOSTAS DA CONSULTA:
 - Refeições por dia: ${respostas.refeicoes_dia}
@@ -173,9 +275,12 @@ RESPOSTAS DA CONSULTA:
 - Consumo de álcool: ${respostas.alcool}
 - Maior fome no período: ${respostas.fome_horario}
 
-Crie um plano alimentar diário completo. Seja específico — como uma nutricionista de verdade.
-Inclua: distribuição de macros por refeição, horários sugeridos, exemplos de alimentos, estratégias para o desafio informado, dicas para o período de mais fome e como organizar o pré/pós treino.
-Responda em texto corrido, sem markdown, sem asteriscos, máx 250 palavras. Organize em parágrafos curtos por tema.`
+Crie o plano em parágrafos curtos, sem markdown, sem asteriscos, máx 300 palavras. Organize assim:
+1. Distribuição calórica por refeição com horários sugeridos
+2. Exemplos práticos de cada refeição adaptados à rotina
+3. Estratégia para o maior desafio informado
+4. Orientação de pré e pós-treino
+5. Dica para controlar a fome no período crítico`
 
     try {
       const res = await fetch('/api/analise-treino', {
@@ -184,9 +289,26 @@ Responda em texto corrido, sem markdown, sem asteriscos, máx 250 palavras. Orga
         body: JSON.stringify({ prompt }),
       })
       const data = await res.json()
-      setPlanoGerado(data.analise ?? '')
+      const conteudo = data.analise ?? ''
+
+      // Desativa plano anterior
+      await supabase.from('planos_nutricionais').update({ ativo: false }).eq('usuario_id', userId).eq('ativo', true)
+
+      // Salva novo plano
+      const { data: novoPlano } = await supabase.from('planos_nutricionais').insert({
+        usuario_id: userId,
+        criado_por: 'ia',
+        conteudo,
+        calorias_meta: metaCal,
+        proteina_meta: metaProt,
+        refeicoes_por_dia: refeicoesPorDia,
+        ativo: true,
+      }).select('*').single()
+
+      if (novoPlano) setPlanoAtivo(novoPlano)
+
     } catch {
-      setPlanoGerado('Não foi possível gerar o plano agora. Tente novamente.')
+      console.error('Erro ao gerar plano nutricional')
     } finally {
       setGerandoPlano(false)
     }
@@ -226,21 +348,23 @@ Responda em texto corrido, sem markdown, sem asteriscos, máx 250 palavras. Orga
 PERFIL:
 - Objetivo: ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? 'não informado'}
 - Peso: ${perfil.peso ? `${perfil.peso}kg` : 'não informado'}
-- Meta calórica estimada: ${metaCal ? `${metaCal}kcal` : 'não calculada'}
-- Meta proteína estimada: ${metaProt ? `${metaProt}g` : 'não calculada'}
+- Meta calórica: ${metaCal ? `${metaCal}kcal` : 'não calculada'}
+- Meta proteína: ${metaProt ? `${metaProt}g` : 'não calculada'}
+${planoAtivo ? `- Tem plano alimentar ativo gerado pela IA` : ''}
 
 REGISTRO DE HOJE (${hora}h):
-- Avaliação do atleta: ${qualLabel}
-- Calorias registradas: ${calorias ? `${calorias}kcal` : 'não informado'}
-- Proteína registrada: ${proteina ? `${proteina}g` : 'não informado'}
+- Avaliação: ${qualLabel}
+- Calorias: ${calorias ? `${calorias}kcal` : 'não informado'}
+- Proteína: ${proteina ? `${proteina}g` : 'não informado'}
 - Hidratação: ${coposAgua * 250}ml (${coposAgua}/8 copos)
 - Treinou hoje: ${treinouHoje ? 'Sim' : 'Não'}
 - Score de recuperação: ${scoreHoje ? `${scoreHoje}/100` : 'não registrado'}
+${observacoes ? `- Observações: ${observacoes}` : ''}
 
-Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos):
+Feedback em 3 partes curtas (máx 80 palavras, sem markdown):
 1. Balanço do dia
 2. Ponto de atenção
-3. Ação concreta para amanhã`
+3. Ação concreta para amanhã${planoAtivo ? ' — referenciando o plano ativo se relevante' : ''}`
 
     try {
       const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
@@ -271,7 +395,6 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
   const isManha = hora < 12
   const isTarde = hora >= 12 && hora < 18
 
-  // ── QUIZ ──────────────────────────────────────────────────────────────────────
   if (mostrarQuiz) {
     return <QuizIA tipo="nutricao" onConcluir={gerarPlanoNutricional} onCancelar={() => setMostrarQuiz(false)} />
   }
@@ -319,43 +442,57 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
           </div>
         </div>
 
-        {/* ── PLANO IA NUTRICIONAL ── */}
+        {/* ── PLANO NUTRICIONAL ── */}
         {!vinculoNutri && (
-          <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0a0d14 0%, #080a10 100%)' }}>
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
-              <div className="w-7 h-7 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                <span className="text-[11px] font-black text-blue-400">✦</span>
+          <>
+            {/* Gerando plano */}
+            {gerandoPlano && (
+              <div className="rounded-2xl border border-blue-500/20 mb-4 p-6" style={{ background: 'linear-gradient(145deg, #0a0d14 0%, #080a10 100%)' }}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                  <div>
+                    <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold">Gerando seu plano</p>
+                    <p className="text-zinc-500 text-[11px]">Analisando suas respostas...</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {[1, 0.85, 0.65, 0.5].map((w, i) => (
+                    <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%`, animationDelay: `${i * 0.15}s` }} />
+                  ))}
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-blue-400">KORE IA · Nutricionista virtual</p>
-                <p className="text-zinc-600 text-[10px]">Plano personalizado com base na sua rotina</p>
-              </div>
-              {gerandoPlano && <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />}
-            </div>
-            <div className="px-5 py-4">
-              {gerandoPlano && (
-                <div className="space-y-2">{[1, 0.85, 0.65, 0.5].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>
-              )}
-              {!gerandoPlano && !planoGerado && (
-                <div className="space-y-3">
-                  <p className="text-zinc-500 text-sm leading-relaxed">
-                    Responda algumas perguntas sobre sua rotina e a IA cria um plano alimentar personalizado — como numa consulta de verdade.
+            )}
+
+            {/* Plano ativo salvo */}
+            {!gerandoPlano && planoAtivo && (
+              <CardPlanoNutricional plano={planoAtivo} onRefazer={() => setMostrarQuiz(true)} />
+            )}
+
+            {/* Sem plano ainda */}
+            {!gerandoPlano && !planoAtivo && (
+              <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0a0d14 0%, #080a10 100%)' }}>
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                      <span className="text-blue-400 font-black">✦</span>
+                    </div>
+                    <div>
+                      <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold">KORE IA · Nutricionista virtual</p>
+                      <p className="text-white font-bold text-base">Sem nutricionista? A IA monta seu plano</p>
+                    </div>
+                  </div>
+                  <p className="text-zinc-400 text-sm leading-relaxed mb-4">
+                    Responda algumas perguntas sobre sua rotina — como numa consulta de verdade — e a IA cria um plano alimentar completo que fica salvo aqui permanentemente.
                   </p>
                   <button onClick={() => setMostrarQuiz(true)} className="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">
                     ✦ Iniciar consulta nutricional →
                   </button>
                 </div>
-              )}
-              {!gerandoPlano && planoGerado && (
-                <div>
-                  <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line">{planoGerado}</p>
-                  <button onClick={() => setMostrarQuiz(true)} className="mt-4 text-[10px] text-zinc-600 underline underline-offset-4 hover:text-zinc-400 transition-all">
-                    Refazer consulta
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* ── REGISTRO DO DIA ── */}
@@ -439,17 +576,20 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
           </div>
         </div>
 
-        {/* ── ANÁLISE IA DO DIA ── */}
+        {/* ── FEEDBACK IA DO DIA ── */}
         <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
           <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
             <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0"><span className="text-[11px] font-black text-emerald-400">✦</span></div>
-            <div className="flex-1"><p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400">Feedback nutricional IA</p><p className="text-zinc-600 text-[10px]">Cruzando com treino, recuperação e objetivo</p></div>
+            <div className="flex-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400">Feedback do dia · IA</p>
+              <p className="text-zinc-600 text-[10px]">Cruza treino, sono, recuperação e plano ativo</p>
+            </div>
             {analise.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
           </div>
           <div className="px-5 py-4">
             {!analise.gerado && !analise.carregando && (
               <div className="space-y-3">
-                <p className="text-zinc-500 text-sm">{jaRegistrou ? 'Seu registro foi salvo. Gere o feedback da IA para análise personalizada.' : 'Registre sua alimentação acima para receber análise personalizada da IA.'}</p>
+                <p className="text-zinc-500 text-sm">{jaRegistrou ? 'Registro salvo. Gere o feedback da IA.' : 'Registre sua alimentação acima primeiro.'}</p>
                 {jaRegistrou && <button onClick={gerarAnaliseIA} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 hover:bg-emerald-500/20 transition-all">✦ Gerar feedback do dia</button>}
               </div>
             )}
@@ -469,11 +609,15 @@ Gere feedback em 3 partes curtas (máx 80 palavras, sem markdown, sem asteriscos
             <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-500 border-white/[0.08]'}`}>NU</div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-semibold">Nutricionista</p>
-              {vinculoNutri ? <p className="text-emerald-400 text-xs">{vinculoNutri.nome ?? 'Conectada'}</p> : <p className="text-zinc-600 text-xs">Sem plano alimentar profissional</p>}
+              {vinculoNutri
+                ? <p className="text-emerald-400 text-xs">{vinculoNutri.nome ?? 'Conectada'}</p>
+                : <p className="text-zinc-600 text-xs">Conecte uma nutricionista para plano profissional</p>
+              }
             </div>
-            {!vinculoNutri ? (
-              <button onClick={() => router.push('/convite')} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0">+ Conectar</button>
-            ) : <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
+            {!vinculoNutri
+              ? <button onClick={() => router.push('/convite')} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0">+ Conectar</button>
+              : <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+            }
           </div>
         </div>
 
