@@ -11,22 +11,13 @@ type Treino = { id: string; nome: string; descricao: string | null; plano: strin
 type SerieRegistrada = { exercicio_id: string; numero_serie: number; carga: number | null; repeticoes: number; concluida: boolean }
 type Modalidade = 'musculacao' | 'corrida' | 'bike' | 'natacao' | 'crossfit' | 'outro'
 
-// ─── MET VALUES ──────────────────────────────────────────────────────────────
-// Referência: Compendium of Physical Activities
 const MET: Record<Modalidade, number> = {
-  musculacao: 4.5,
-  corrida:    8.0,
-  bike:       6.0,
-  natacao:    7.0,
-  crossfit:   8.5,
-  outro:      5.0,
+  musculacao: 4.5, corrida: 8.0, bike: 6.0, natacao: 7.0, crossfit: 8.5, outro: 5.0,
 }
 
 function estimarCalorias(modalidade: Modalidade, duracaoMin: number, pesoKg: number): number {
   return Math.round(MET[modalidade] * pesoKg * (duracaoMin / 60))
 }
-
-// ─── MODALIDADES ─────────────────────────────────────────────────────────────
 
 const MODALIDADES: { id: Modalidade; icon: string; label: string; cor: string; corText: string; corBorder: string; hex: string }[] = [
   { id: 'musculacao', icon: '🏋️', label: 'Musculação', cor: 'bg-emerald-500/10', corText: 'text-emerald-400', corBorder: 'border-emerald-500/20', hex: '#10B981' },
@@ -59,32 +50,91 @@ function calcVolume(series: Record<string, SerieRegistrada[]>): number {
   return Object.values(series).flat().filter(s => s.concluida && s.carga).reduce((a, s) => a + (s.carga! * s.repeticoes), 0)
 }
 
+// ─── NAV ICONS SVG ────────────────────────────────────────────────────────────
+
+function IconHome({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
+      <path d="M9 21V12h6v9" />
+    </svg>
+  )
+}
+
+function IconTreino({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" />
+      <path d="M7.5 6.5v11M17.5 6.5v11" />
+      <path d="M7.5 12h9" />
+      <path d="M3 10.5v3M21 10.5v3" />
+    </svg>
+  )
+}
+
+function IconNutricao({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" />
+      <path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" />
+    </svg>
+  )
+}
+
+function IconEvolucao({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  )
+}
+
+function IconPerfil({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  )
+}
+
+const NAV_ITEMS = [
+  { id: 'home',     label: 'Início',   Icon: IconHome,     path: '/dashboard' },
+  { id: 'treino',   label: 'Treino',   Icon: IconTreino,   path: '/treino'    },
+  { id: 'nutri',    label: 'Nutrição', Icon: IconNutricao, path: '/nutricao'  },
+  { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao, path: '/evolucao'  },
+  { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil,   path: '/perfil'    },
+]
+
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function TreinoCliente() {
   const router = useRouter()
 
-  // Planos
   const [treinos, setTreinos] = useState<Treino[]>([])
   const [planoAtivo, setPlanoAtivo] = useState<string | null>(null)
   const [treinosConcluidosHoje, setTreinosConcluidosHoje] = useState<Set<string>>(new Set())
+  const [temPersonal, setTemPersonal] = useState(false)
 
-  // Musculação
   const [em, setEm] = useState<Treino | null>(null)
   const [series, setSeries] = useState<Record<string, SerieRegistrada[]>>({})
   const [concluido, setConcluido] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [analise, setAnalise] = useState({ texto: '', carregando: false })
 
-  // Atividade livre
-  const [tela, setTela] = useState<'principal' | 'formulario' | 'conclusao_livre' | 'executando_musculacao' | 'conclusao_musculacao'>('principal')
+  const [tela, setTela] = useState<'principal' | 'formulario' | 'conclusao_livre' | 'executando_musculacao' | 'conclusao_musculacao' | 'gerando_plano_ia'>('principal')
   const [modalidade, setModalidade] = useState<Modalidade | null>(null)
   const [form, setForm] = useState<Record<string, any>>({ intensidade: 3 })
   const [analiseLivre, setAnaliseLivre] = useState({ texto: '', carregando: false })
   const [salvandoLivre, setSalvandoLivre] = useState(false)
   const [caloriasEstimadas, setCaloriasEstimadas] = useState<number | null>(null)
 
-  // Dados gerais
+  // Estado IA sem personal
+  const [gerandoPlanoIA, setGerandoPlanoIA] = useState(false)
+  const [perfilUsuario, setPerfilUsuario] = useState<{ peso: number | null; objetivo: string | null; nivel: string | null; nome: string | null }>({ peso: null, objetivo: null, nivel: null, nome: null })
+  const [userId, setUserId] = useState('')
+
   const [carregando, setCarregando] = useState(true)
   const [score, setScore] = useState<number | null>(null)
   const [pesoKg, setPesoKg] = useState<number>(70)
@@ -104,16 +154,20 @@ export default function TreinoCliente() {
   async function carregar() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/'); return }
+    setUserId(session.user.id)
 
     const hoje = getTodayBR()
-    const [{ data: sono }, { data: perfil }, { data: td }] = await Promise.all([
+    const [{ data: sono }, { data: perfil }, { data: td }, { data: vinculo }] = await Promise.all([
       supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
-      supabase.from('perfis').select('peso').eq('id', session.user.id).single(),
+      supabase.from('perfis').select('peso, objetivo, nivel, nome').eq('id', session.user.id).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, personal_id').eq('cliente_id', session.user.id).eq('status', 'pendente').eq('concluido', false).order('plano'),
+      supabase.from('vinculos').select('id').eq('cliente_id', session.user.id).eq('tipo', 'personal').eq('ativo', true).single(),
     ])
 
     if (sono?.score_recuperacao) setScore(sono.score_recuperacao)
     if (perfil?.peso) setPesoKg(perfil.peso)
+    if (perfil) setPerfilUsuario(perfil)
+    if (vinculo) setTemPersonal(true)
 
     if (!td?.length) { setCarregando(false); return }
 
@@ -124,6 +178,110 @@ export default function TreinoCliente() {
     setTreinos(completos)
     if (completos.length) setPlanoAtivo(completos[0].plano)
     setCarregando(false)
+  }
+
+  // ── GERAR PLANO COM IA ────────────────────────────────────────────────────────
+
+  async function gerarPlanoComIA() {
+    setGerandoPlanoIA(true)
+    setTela('gerando_plano_ia')
+
+    const OBJETIVO_LABEL: Record<string, string> = {
+      perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa',
+      melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
+    }
+    const NIVEL_LABEL: Record<string, string> = {
+      iniciante: 'Iniciante (menos de 1 ano)', intermediario: 'Intermediário (1-3 anos)', avancado: 'Avançado (3+ anos)',
+    }
+
+    const prompt = `Você é um personal trainer especialista. Crie um plano de musculação completo para este atleta.
+
+PERFIL:
+- Nome: ${perfilUsuario.nome ?? 'Atleta'}
+- Objetivo: ${OBJETIVO_LABEL[perfilUsuario.objetivo ?? ''] ?? 'Saúde geral'}
+- Nível: ${NIVEL_LABEL[perfilUsuario.nivel ?? ''] ?? 'Iniciante'}
+- Peso: ${perfilUsuario.peso ? `${perfilUsuario.peso}kg` : 'não informado'}
+
+Crie exatamente 2 planos (A e B) com 4-5 exercícios cada.
+Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
+
+{
+  "planos": [
+    {
+      "plano": "A",
+      "nome": "Nome do treino A",
+      "descricao": "Foco do treino A em 1 frase",
+      "exercicios": [
+        {
+          "nome": "Nome do exercício",
+          "series": 3,
+          "repeticoes": 12,
+          "carga_sugerida": 20,
+          "observacoes": "Dica técnica curta",
+          "ordem": 1
+        }
+      ]
+    },
+    {
+      "plano": "B",
+      "nome": "Nome do treino B",
+      "descricao": "Foco do treino B em 1 frase",
+      "exercicios": [...]
+    }
+  ]
+}`
+
+    try {
+      const res = await fetch('/api/analise-treino', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const data = await res.json()
+      const texto = data.analise ?? ''
+
+      // Parse JSON da resposta
+      const jsonMatch = texto.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('JSON não encontrado')
+      const planoGerado = JSON.parse(jsonMatch[0])
+
+      // Salva cada plano no banco
+      for (const p of planoGerado.planos) {
+        const { data: treinoSalvo } = await supabase.from('treinos').insert({
+          personal_id: null,
+          cliente_id: userId,
+          nome: p.nome,
+          descricao: p.descricao,
+          plano: p.plano,
+          status: 'pendente',
+          concluido: false,
+          data: getTodayBR(),
+        }).select('id').single()
+
+        if (treinoSalvo && p.exercicios?.length) {
+          await supabase.from('exercicios_treino').insert(
+            p.exercicios.map((ex: any) => ({
+              treino_id: treinoSalvo.id,
+              nome: ex.nome,
+              series: ex.series,
+              repeticoes: ex.repeticoes,
+              carga_sugerida: ex.carga_sugerida ?? null,
+              observacoes: ex.observacoes ?? '',
+              ordem: ex.ordem,
+            }))
+          )
+        }
+      }
+
+      // Recarrega os treinos
+      await carregar()
+      setTela('principal')
+    } catch (e) {
+      console.error('Erro ao gerar plano:', e)
+      setTela('principal')
+    } finally {
+      setGerandoPlanoIA(false)
+    }
   }
 
   // ── Musculação ────────────────────────────────────────────────────────────────
@@ -296,6 +454,33 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     </main>
   )
 
+  // ── TELA GERANDO PLANO IA ─────────────────────────────────────────────────────
+
+  if (tela === 'gerando_plano_ia') {
+    return (
+      <main className="min-h-screen bg-[#080808] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+            <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <p className="text-emerald-400 text-[10px] uppercase tracking-[0.3em] mb-3">✦ KORE IA</p>
+          <h2 className="text-2xl font-black text-white mb-3">Montando seu plano</h2>
+          <p className="text-zinc-500 text-sm leading-relaxed">
+            Analisando seu objetivo, nível e histórico para criar um plano personalizado de musculação...
+          </p>
+          <div className="mt-8 space-y-2">
+            {['Analisando seu perfil', 'Selecionando exercícios', 'Definindo cargas e volumes', 'Salvando planos A e B'].map((s, i) => (
+              <div key={i} className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-4 py-3 border border-white/[0.06]">
+                <div className="w-4 h-4 border-2 border-emerald-400/40 border-t-emerald-400 rounded-full animate-spin shrink-0" style={{ animationDelay: `${i * 0.3}s` }} />
+                <p className="text-zinc-400 text-sm">{s}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   // ── TELA CONCLUSÃO MUSCULAÇÃO ─────────────────────────────────────────────────
 
   if (tela === 'conclusao_musculacao' && em) {
@@ -320,7 +505,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             {[
               { label: 'Séries', val: `${tc}`, extra: `/${tt}`, subEl: <div className="mt-2 h-[3px] bg-white/[0.06] rounded-full overflow-hidden"><div className={`h-full rounded-full ${c.glow}`} style={{ width: `${pct}%` }} /></div> },
@@ -336,7 +520,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             ))}
           </div>
 
-          {/* Aviso calorias */}
           {caloriasEstimadas && (
             <div className="rounded-2xl p-4 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
               <div className="flex items-center gap-2">
@@ -346,7 +529,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             </div>
           )}
 
-          {/* Análise IA */}
           <div className={`rounded-2xl border mb-4 overflow-hidden ${c.border}`} style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
               <div className={`w-7 h-7 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${c.text}`}>✦</span></div>
@@ -389,7 +571,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             <p className="text-zinc-500 text-sm capitalize">{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Duração</p>
@@ -423,7 +604,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             </div>
           </div>
 
-          {/* Aviso calorias */}
           <div className="rounded-2xl p-4 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
@@ -431,7 +611,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             </div>
           </div>
 
-          {/* Análise IA */}
           <div className={`rounded-2xl border mb-4 overflow-hidden ${mod.corBorder}`} style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
               <div className={`w-7 h-7 rounded-xl ${mod.cor} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${mod.corText}`}>✦</span></div>
@@ -517,7 +696,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               )
             })}
 
-            {/* Duração estimada */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração do treino (para estimar calorias)</p>
               <div className="flex items-center gap-3">
@@ -563,8 +741,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
 
         <div className="flex-1 overflow-y-auto pb-32">
           <div className="max-w-md mx-auto px-4 py-5 space-y-4">
-
-            {/* Duração — sempre primeiro */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração</p>
               <div className="flex items-center gap-3">
@@ -580,7 +756,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               )}
             </div>
 
-            {/* Campos específicos */}
             {(modalidade === 'corrida' || modalidade === 'bike') && (
               <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados do percurso</p>
@@ -675,7 +850,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               </div>
             )}
 
-            {/* Intensidade */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Intensidade percebida</p>
               <div className="flex gap-2">
@@ -689,7 +863,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               </div>
             </div>
 
-            {/* Wearable */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xl">⌚</span>
@@ -712,7 +885,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               </div>
             </div>
 
-            {/* Observações */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Observações <span className="text-zinc-700 normal-case">(opcional)</span></p>
               <textarea placeholder="Como foi? Alguma dor ou sensação especial?" value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3}
@@ -721,7 +893,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
           </div>
         </div>
 
-        {/* Footer */}
         <div className="fixed bottom-0 left-0 right-0 border-t border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="max-w-md mx-auto px-4 py-4 flex gap-3">
             <button onClick={() => setTela('principal')} className="w-12 h-12 rounded-2xl border border-white/[0.08] text-zinc-500 flex items-center justify-center active:scale-90 transition-all">✕</button>
@@ -770,10 +941,16 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
 
             {sel && (() => {
               const co = CORES_PLANO[sel.plano]
+              const isPlanoIA = !sel.personal_id
               return (
                 <div>
                   <div className={`rounded-2xl p-5 border ${co.border} mb-4`} style={{ background: '#0f0f0f' }}>
-                    <p className={`text-[10px] uppercase tracking-[0.2em] mb-1 ${co.text}`}>Plano {sel.plano}</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className={`text-[10px] uppercase tracking-[0.2em] ${co.text}`}>Plano {sel.plano}</p>
+                      {isPlanoIA && (
+                        <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ Gerado pela IA</span>
+                      )}
+                    </div>
                     <p className="text-white font-black text-xl mb-1">{sel.nome}</p>
                     {sel.descricao && <p className="text-zinc-500 text-xs mb-4">{sel.descricao}</p>}
                     <div className="space-y-2 mt-4">
@@ -807,6 +984,39 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
           </div>
         )}
 
+        {/* Card IA sem personal — só aparece quando não tem planos ou não tem personal */}
+        {!temPersonal && (
+          <div className="mb-6">
+            {treinos.length === 0 && (
+              <div className="rounded-2xl p-5 border border-emerald-500/20 mb-4" style={{ background: 'linear-gradient(145deg, #0f1a13 0%, #0a0f0a 100%)' }}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <span className="text-emerald-400 font-black">✦</span>
+                  </div>
+                  <div>
+                    <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">KORE IA</p>
+                    <p className="text-white font-black text-base">Sem personal? A IA monta seu plano</p>
+                  </div>
+                </div>
+                <p className="text-zinc-400 text-sm leading-relaxed mb-4">
+                  Baseado no seu objetivo, nível e perfil, a IA cria um plano de musculação completo com exercícios, séries e cargas sugeridas.
+                </p>
+                <button onClick={gerarPlanoComIA} disabled={gerandoPlanoIA}
+                  className="w-full bg-emerald-500 text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all disabled:opacity-50">
+                  {gerandoPlanoIA ? 'Gerando...' : '✦ Gerar meu plano com IA'}
+                </button>
+              </div>
+            )}
+
+            {treinos.length > 0 && (
+              <button onClick={gerarPlanoComIA} disabled={gerandoPlanoIA}
+                className="w-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all mb-4 disabled:opacity-50">
+                {gerandoPlanoIA ? '✦ Gerando novo plano...' : '✦ Gerar novo plano com IA'}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Divisor */}
         <div className="flex items-center gap-3 mb-5">
           <div className="flex-1 h-px bg-white/[0.06]" />
@@ -829,24 +1039,25 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
         </div>
       </div>
 
-      {/* Bottom Nav */}
+      {/* ── Bottom Nav SVG ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-          {[
-            { id: 'home',     icon: '⬜', label: 'Início',   path: '/dashboard' },
-            { id: 'treino',   icon: '◈',  label: 'Treino',   path: '/treino'    },
-            { id: 'nutri',    icon: '◇',  label: 'Nutrição', path: '/nutricao'  },
-            { id: 'evolucao', icon: '△',  label: 'Evolução', path: '/evolucao'  },
-            { id: 'perfil',   icon: '◉',  label: 'Perfil',   path: '/perfil'    },
-          ].map((item) => (
-            <button key={item.id} onClick={() => router.push(item.path)}
-              className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90">
-              <span className={`text-lg transition-all duration-200 ${item.id === 'treino' ? 'opacity-100' : 'opacity-20'}`}>{item.icon}</span>
-              <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold transition-all ${item.id === 'treino' ? 'text-white' : 'text-zinc-700'}`}>{item.label}</span>
-              {item.id === 'treino' && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
-            </button>
-          ))}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
+        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
+          {NAV_ITEMS.map((item) => {
+            const active = item.id === 'treino'
+            return (
+              <button key={item.id} onClick={() => router.push(item.path)}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90">
+                <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                  <item.Icon active={active} />
+                </span>
+                <span className={`text-[9px] tracking-[0.1em] uppercase font-semibold transition-all ${active ? 'text-emerald-400' : 'text-zinc-700'}`}>
+                  {item.label}
+                </span>
+                {active && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
+              </button>
+            )
+          })}
         </div>
       </nav>
     </main>
