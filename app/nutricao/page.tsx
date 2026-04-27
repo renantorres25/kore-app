@@ -423,7 +423,7 @@ CONTEXTO: ${perfil.nome ?? 'Atleta'} | ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?
 HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g prot | Água ${coposAgua}/8 | Treino ${treinouHoje ? 'sim' : 'não'} | Recup. ${scoreHoje ?? '?'}/100${observacoes ? ` | ${observacoes}` : ''}
 3 parágrafos curtos, máx 80 palavras total, sem markdown, sem títulos em maiúsculas, tom de coach direto:`
     try {
-      const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
+      const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, modo: 'plano' })
       const data = await res.json()
       setAnalise({ texto: data.analise ?? '', carregando: false, gerado: true })
     } catch { setAnalise({ texto: 'Não foi possível gerar análise.', carregando: false, gerado: true }) }

@@ -7,16 +7,20 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await req.json()
+    const { prompt, modo } = await req.json()
 
     if (!prompt) {
       return NextResponse.json({ erro: 'Prompt não fornecido.' }, { status: 400 })
     }
 
+    const isPlano = modo === 'plano'
+
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
-      system: 'Você é coach de IA do KORE. Responda SEMPRE em texto corrido, sem títulos, sem markdown, sem asteriscos, sem negrito, sem emojis. Vá direto ao conteúdo, nunca use cabeçalhos como "Análise:" ou "Balanço do dia:".',
+      max_tokens: isPlano ? 4096 : 400,
+      system: isPlano
+        ? 'Você é uma nutricionista ou personal trainer especialista. Responda APENAS com JSON válido e completo, exatamente no formato solicitado. Nunca adicione texto fora do JSON. Nunca trunce o JSON.'
+        : 'Você é coach de IA do KORE. Responda SEMPRE em texto corrido, sem títulos, sem markdown, sem asteriscos, sem negrito, sem emojis. Vá direto ao conteúdo, nunca use cabeçalhos como "Análise:" ou "Balanço do dia:".',
       messages: [
         { role: 'user', content: prompt }
       ],
