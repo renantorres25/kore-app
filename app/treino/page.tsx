@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import QuizIA, { RespostasQuiz } from '../components/QuizIA'
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -19,13 +20,13 @@ function estimarCalorias(modalidade: Modalidade, duracaoMin: number, pesoKg: num
   return Math.round(MET[modalidade] * pesoKg * (duracaoMin / 60))
 }
 
-const MODALIDADES: { id: Modalidade; icon: string; label: string; cor: string; corText: string; corBorder: string; hex: string }[] = [
-  { id: 'musculacao', icon: '🏋️', label: 'Musculação', cor: 'bg-emerald-500/10', corText: 'text-emerald-400', corBorder: 'border-emerald-500/20', hex: '#10B981' },
-  { id: 'corrida',    icon: '🏃', label: 'Corrida',    cor: 'bg-blue-500/10',    corText: 'text-blue-400',    corBorder: 'border-blue-500/20',    hex: '#3B82F6' },
-  { id: 'bike',       icon: '🚴', label: 'Bike',       cor: 'bg-orange-500/10',  corText: 'text-orange-400',  corBorder: 'border-orange-500/20',  hex: '#F97316' },
-  { id: 'natacao',    icon: '🏊', label: 'Natação',    cor: 'bg-cyan-500/10',    corText: 'text-cyan-400',    corBorder: 'border-cyan-500/20',    hex: '#06B6D4' },
-  { id: 'crossfit',   icon: '⚡', label: 'Crossfit',   cor: 'bg-yellow-500/10',  corText: 'text-yellow-400',  corBorder: 'border-yellow-500/20',  hex: '#EAB308' },
-  { id: 'outro',      icon: '🎯', label: 'Outro',      cor: 'bg-purple-500/10',  corText: 'text-purple-400',  corBorder: 'border-purple-500/20',  hex: '#A855F7' },
+const MODALIDADES = [
+  { id: 'musculacao' as Modalidade, icon: '🏋️', label: 'Musculação', cor: 'bg-emerald-500/10', corText: 'text-emerald-400', corBorder: 'border-emerald-500/20', hex: '#10B981' },
+  { id: 'corrida'    as Modalidade, icon: '🏃', label: 'Corrida',    cor: 'bg-blue-500/10',    corText: 'text-blue-400',    corBorder: 'border-blue-500/20',    hex: '#3B82F6' },
+  { id: 'bike'       as Modalidade, icon: '🚴', label: 'Bike',       cor: 'bg-orange-500/10',  corText: 'text-orange-400',  corBorder: 'border-orange-500/20',  hex: '#F97316' },
+  { id: 'natacao'    as Modalidade, icon: '🏊', label: 'Natação',    cor: 'bg-cyan-500/10',    corText: 'text-cyan-400',    corBorder: 'border-cyan-500/20',    hex: '#06B6D4' },
+  { id: 'crossfit'   as Modalidade, icon: '⚡', label: 'Crossfit',   cor: 'bg-yellow-500/10',  corText: 'text-yellow-400',  corBorder: 'border-yellow-500/20',  hex: '#EAB308' },
+  { id: 'outro'      as Modalidade, icon: '🎯', label: 'Outro',      cor: 'bg-purple-500/10',  corText: 'text-purple-400',  corBorder: 'border-purple-500/20',  hex: '#A855F7' },
 ]
 
 const CORES_PLANO: Record<string, { text: string; bg: string; border: string; glow: string; hex: string }> = {
@@ -53,50 +54,19 @@ function calcVolume(series: Record<string, SerieRegistrada[]>): number {
 // ─── NAV ICONS SVG ────────────────────────────────────────────────────────────
 
 function IconHome({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
-      <path d="M9 21V12h6v9" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
 }
-
 function IconTreino({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" />
-      <path d="M7.5 6.5v11M17.5 6.5v11" />
-      <path d="M7.5 12h9" />
-      <path d="M3 10.5v3M21 10.5v3" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" /><path d="M7.5 6.5v11M17.5 6.5v11" /><path d="M7.5 12h9" /><path d="M3 10.5v3M21 10.5v3" /></svg>
 }
-
 function IconNutricao({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" />
-      <path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" /><path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" /></svg>
 }
-
 function IconEvolucao({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-      <polyline points="16 7 22 7 22 13" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
 }
-
 function IconPerfil({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
-  )
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>
 }
 
 const NAV_ITEMS = [
@@ -116,6 +86,7 @@ export default function TreinoCliente() {
   const [planoAtivo, setPlanoAtivo] = useState<string | null>(null)
   const [treinosConcluidosHoje, setTreinosConcluidosHoje] = useState<Set<string>>(new Set())
   const [temPersonal, setTemPersonal] = useState(false)
+  const [mostrarQuiz, setMostrarQuiz] = useState(false)
 
   const [em, setEm] = useState<Treino | null>(null)
   const [series, setSeries] = useState<Record<string, SerieRegistrada[]>>({})
@@ -129,15 +100,21 @@ export default function TreinoCliente() {
   const [analiseLivre, setAnaliseLivre] = useState({ texto: '', carregando: false })
   const [salvandoLivre, setSalvandoLivre] = useState(false)
   const [caloriasEstimadas, setCaloriasEstimadas] = useState<number | null>(null)
+  const [gerandoMensagem, setGerandoMensagem] = useState(0)
 
-  // Estado IA sem personal
-  const [gerandoPlanoIA, setGerandoPlanoIA] = useState(false)
   const [perfilUsuario, setPerfilUsuario] = useState<{ peso: number | null; objetivo: string | null; nivel: string | null; nome: string | null }>({ peso: null, objetivo: null, nivel: null, nome: null })
   const [userId, setUserId] = useState('')
-
   const [carregando, setCarregando] = useState(true)
   const [score, setScore] = useState<number | null>(null)
   const [pesoKg, setPesoKg] = useState<number>(70)
+
+  const MENSAGENS_GERANDO = [
+    'Analisando seu perfil e histórico...',
+    'Selecionando exercícios ideais para seu objetivo...',
+    'Calculando séries, repetições e cargas...',
+    'Estruturando a periodização dos planos...',
+    'Finalizando e salvando seus planos...',
+  ]
 
   useEffect(() => { carregar() }, [])
 
@@ -169,63 +146,85 @@ export default function TreinoCliente() {
     if (perfil) setPerfilUsuario(perfil)
     if (vinculo) setTemPersonal(true)
 
-    if (!td?.length) { setCarregando(false); return }
+    if (td?.length) {
+      const ids = td.map((t: any) => t.id)
+      const { data: ex } = await supabase.from('exercicios_treino').select('*').in('treino_id', ids).order('ordem')
+      const completos: Treino[] = td.map((t: any) => ({ ...t, exercicios: ex?.filter((e: any) => e.treino_id === t.id) ?? [] }))
+      setTreinos(completos)
+      if (completos.length) setPlanoAtivo(completos[0].plano)
+    }
 
-    const ids = td.map((t: any) => t.id)
-    const { data: ex } = await supabase.from('exercicios_treino').select('*').in('treino_id', ids).order('ordem')
-    const completos: Treino[] = td.map((t: any) => ({ ...t, exercicios: ex?.filter((e: any) => e.treino_id === t.id) ?? [] }))
-
-    setTreinos(completos)
-    if (completos.length) setPlanoAtivo(completos[0].plano)
     setCarregando(false)
   }
 
   // ── GERAR PLANO COM IA ────────────────────────────────────────────────────────
 
-  async function gerarPlanoComIA() {
-    setGerandoPlanoIA(true)
+  async function gerarPlanoComIA(respostas: RespostasQuiz) {
+    setMostrarQuiz(false)
     setTela('gerando_plano_ia')
+
+    // Anima as mensagens de progresso
+    let idx = 0
+    const intervalo = setInterval(() => {
+      idx++
+      if (idx < MENSAGENS_GERANDO.length) setGerandoMensagem(idx)
+    }, 2500)
 
     const OBJETIVO_LABEL: Record<string, string> = {
       perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa',
       melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
     }
-    const NIVEL_LABEL: Record<string, string> = {
-      iniciante: 'Iniciante (menos de 1 ano)', intermediario: 'Intermediário (1-3 anos)', avancado: 'Avançado (3+ anos)',
-    }
 
-    const prompt = `Você é um personal trainer especialista. Crie um plano de musculação completo para este atleta.
+    const focoArr = Array.isArray(respostas.foco) ? respostas.foco.join(', ') : respostas.foco
+    const limitacaoArr = Array.isArray(respostas.limitacao) ? respostas.limitacao.join(', ') : respostas.limitacao
 
-PERFIL:
+    const prompt = `Você é um personal trainer especialista. Crie um plano de musculação completo e personalizado.
+
+PERFIL DO ATLETA:
 - Nome: ${perfilUsuario.nome ?? 'Atleta'}
-- Objetivo: ${OBJETIVO_LABEL[perfilUsuario.objetivo ?? ''] ?? 'Saúde geral'}
-- Nível: ${NIVEL_LABEL[perfilUsuario.nivel ?? ''] ?? 'Iniciante'}
+- Objetivo principal: ${OBJETIVO_LABEL[perfilUsuario.objetivo ?? ''] ?? 'Saúde geral'}
 - Peso: ${perfilUsuario.peso ? `${perfilUsuario.peso}kg` : 'não informado'}
 
-Crie exatamente 2 planos (A e B) com 4-5 exercícios cada.
+RESPOSTAS DA CONSULTA:
+- Dias de treino por semana: ${respostas.dias_semana}
+- Duração por sessão: ${respostas.duracao}
+- Período de treino: ${respostas.periodo}
+- Grupos musculares priorizados: ${focoArr}
+- Experiência: ${respostas.experiencia}
+- Limitações físicas: ${limitacaoArr}
+- Objetivo específico: ${respostas.objetivo_treino}
+
+INSTRUÇÕES:
+- Crie exatamente 2 planos (A e B) dividindo os grupos musculares de forma inteligente
+- Respeite as limitações físicas informadas — exclua exercícios que agravem a condição
+- Adapte volume e intensidade ao nível de experiência
+- Ajuste número de exercícios ao tempo disponível por sessão
+- Sugira cargas realistas para o nível informado
+- Cada plano deve ter entre 4 e 6 exercícios
+
 Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
 
 {
   "planos": [
     {
       "plano": "A",
-      "nome": "Nome do treino A",
-      "descricao": "Foco do treino A em 1 frase",
+      "nome": "Nome descritivo do treino A",
+      "descricao": "Grupos musculares trabalhados em 1 frase",
       "exercicios": [
         {
           "nome": "Nome do exercício",
           "series": 3,
           "repeticoes": 12,
           "carga_sugerida": 20,
-          "observacoes": "Dica técnica curta",
+          "observacoes": "Dica técnica ou de segurança",
           "ordem": 1
         }
       ]
     },
     {
       "plano": "B",
-      "nome": "Nome do treino B",
-      "descricao": "Foco do treino B em 1 frase",
+      "nome": "Nome descritivo do treino B",
+      "descricao": "Grupos musculares trabalhados em 1 frase",
       "exercicios": [...]
     }
   ]
@@ -239,13 +238,10 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
       })
       const data = await res.json()
       const texto = data.analise ?? ''
-
-      // Parse JSON da resposta
       const jsonMatch = texto.match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('JSON não encontrado')
       const planoGerado = JSON.parse(jsonMatch[0])
 
-      // Salva cada plano no banco
       for (const p of planoGerado.planos) {
         const { data: treinoSalvo } = await supabase.from('treinos').insert({
           personal_id: null,
@@ -273,18 +269,17 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
         }
       }
 
-      // Recarrega os treinos
       await carregar()
-      setTela('principal')
     } catch (e) {
       console.error('Erro ao gerar plano:', e)
-      setTela('principal')
     } finally {
-      setGerandoPlanoIA(false)
+      clearInterval(intervalo)
+      setTela('principal')
+      setGerandoMensagem(0)
     }
   }
 
-  // ── Musculação ────────────────────────────────────────────────────────────────
+  // ── MUSCULAÇÃO ────────────────────────────────────────────────────────────────
 
   function iniciarMusculacao(treino: Treino) {
     const init: Record<string, SerieRegistrada[]> = {}
@@ -294,11 +289,8 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
         carga: ex.carga_sugerida, repeticoes: ex.repeticoes, concluida: false,
       }))
     })
-    setSeries(init)
-    setEm(treino)
-    setConcluido(false)
-    setAnalise({ texto: '', carregando: false })
-    setTela('executando_musculacao')
+    setSeries(init); setEm(treino); setConcluido(false)
+    setAnalise({ texto: '', carregando: false }); setTela('executando_musculacao')
   }
 
   function toggle(exId: string, idx: number) {
@@ -319,31 +311,22 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
-    const hoje = getTodayBR()
     const duracaoMin = form.duracao_musculacao ? parseInt(form.duracao_musculacao) : 60
     const cals = estimarCalorias('musculacao', duracaoMin, pesoKg)
     setCaloriasEstimadas(cals)
 
     const { data: reg } = await supabase.from('treinos').insert({
-      personal_id: em.personal_id ?? null,
-      cliente_id: session.user.id,
+      personal_id: em.personal_id ?? null, cliente_id: session.user.id,
       nome: em.nome, descricao: em.descricao, plano: em.plano,
-      status: 'concluido', data: hoje, concluido: true,
-      calorias_estimadas: cals,
+      status: 'concluido', data: getTodayBR(), concluido: true, calorias_estimadas: cals,
     }).select('id').single()
 
     if (reg) {
       const done = Object.values(series).flat().filter(s => s.concluida)
-      if (done.length) {
-        await supabase.from('series_registradas').insert(
-          done.map(s => ({ treino_id: reg.id, exercicio_id: s.exercicio_id, numero_serie: s.numero_serie, carga: s.carga, repeticoes: s.repeticoes }))
-        )
-      }
+      if (done.length) await supabase.from('series_registradas').insert(done.map(s => ({ treino_id: reg.id, exercicio_id: s.exercicio_id, numero_serie: s.numero_serie, carga: s.carga, repeticoes: s.repeticoes })))
     }
 
-    setSalvando(false)
-    setConcluido(true)
-    setTela('conclusao_musculacao')
+    setSalvando(false); setConcluido(true); setTela('conclusao_musculacao')
     gerarIAMusculacao(em, series, duracaoMin, cals)
   }
 
@@ -372,14 +355,11 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     }
   }
 
-  // ── Atividade Livre ───────────────────────────────────────────────────────────
+  // ── ATIVIDADE LIVRE ───────────────────────────────────────────────────────────
 
   function abrirFormulario(mod: Modalidade) {
-    setModalidade(mod)
-    setForm({ intensidade: 3 })
-    setAnaliseLivre({ texto: '', carregando: false })
-    setCaloriasEstimadas(null)
-    setTela('formulario')
+    setModalidade(mod); setForm({ intensidade: 3 })
+    setAnaliseLivre({ texto: '', carregando: false }); setCaloriasEstimadas(null); setTela('formulario')
   }
 
   async function salvarAtividadeLivre() {
@@ -393,34 +373,25 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     setCaloriasEstimadas(cals)
 
     await supabase.from('atividades_livres').insert({
-      usuario_id: session.user.id,
-      data: getTodayBR(),
-      modalidade,
-      duracao_min: duracaoMin,
-      intensidade: form.intensidade ?? 3,
+      usuario_id: session.user.id, data: getTodayBR(), modalidade,
+      duracao_min: duracaoMin, intensidade: form.intensidade ?? 3,
       distancia_km: form.distancia_km ?? null,
       ritmo_medio: paceCalculado || form.ritmo_medio || null,
-      fc_media: form.fc_media ?? null,
-      distancia_m: form.distancia_m ?? null,
-      voltas: form.voltas ?? null,
-      estilo_natacao: form.estilo ?? null,
-      tipo_wod: form.tipo_wod ?? null,
-      movimentos: form.movimentos ?? null,
-      resultado_wod: form.resultado ?? null,
-      observacoes: form.observacoes ?? null,
+      fc_media: form.fc_media ?? null, distancia_m: form.distancia_m ?? null,
+      voltas: form.voltas ?? null, estilo_natacao: form.estilo ?? null,
+      tipo_wod: form.tipo_wod ?? null, movimentos: form.movimentos ?? null,
+      resultado_wod: form.resultado ?? null, observacoes: form.observacoes ?? null,
       calorias_estimadas: form.calorias_wearable ? null : cals,
       calorias_wearable: form.calorias_wearable ? parseInt(form.calorias_wearable) : null,
     })
 
-    setSalvandoLivre(false)
-    setTela('conclusao_livre')
+    setSalvandoLivre(false); setTela('conclusao_livre')
     gerarIAAtividadeLivre(duracaoMin, cals)
   }
 
   async function gerarIAAtividadeLivre(duracaoMin: number, cals: number) {
     setAnaliseLivre({ texto: '', carregando: true })
     const mod = MODALIDADES.find(m => m.id === modalidade)!
-
     let dadosEspecificos = ''
     if (modalidade === 'corrida' || modalidade === 'bike') {
       const pace = calcularPace(duracaoMin, parseFloat(form.distancia_km ?? '0'))
@@ -435,7 +406,7 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
 Atividade: ${mod.label} | Duração: ${duracaoMin}min | Intensidade: ${form.intensidade}/5 | Calorias estimadas: ~${cals}kcal | Score de recuperação: ${score ? `${score}/100` : 'não registrado'}
 ${dadosEspecificos}
 ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
-Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaque, Próximo passo — mencione as calorias gastas e impacto na nutrição de hoje`
+Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaque, Próximo passo`
 
     try {
       const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
@@ -446,6 +417,12 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     }
   }
 
+  // ── QUIZ ──────────────────────────────────────────────────────────────────────
+
+  if (mostrarQuiz) {
+    return <QuizIA tipo="treino" onConcluir={gerarPlanoComIA} onCancelar={() => setMostrarQuiz(false)} />
+  }
+
   // ── LOADING ───────────────────────────────────────────────────────────────────
 
   if (carregando) return (
@@ -454,25 +431,32 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     </main>
   )
 
-  // ── TELA GERANDO PLANO IA ─────────────────────────────────────────────────────
+  // ── GERANDO PLANO IA ──────────────────────────────────────────────────────────
 
   if (tela === 'gerando_plano_ia') {
     return (
       <main className="min-h-screen bg-[#080808] flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
+        <div className="text-center max-w-sm w-full">
           <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
             <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
           </div>
           <p className="text-emerald-400 text-[10px] uppercase tracking-[0.3em] mb-3">✦ KORE IA</p>
           <h2 className="text-2xl font-black text-white mb-3">Montando seu plano</h2>
-          <p className="text-zinc-500 text-sm leading-relaxed">
-            Analisando seu objetivo, nível e histórico para criar um plano personalizado de musculação...
-          </p>
-          <div className="mt-8 space-y-2">
-            {['Analisando seu perfil', 'Selecionando exercícios', 'Definindo cargas e volumes', 'Salvando planos A e B'].map((s, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-4 py-3 border border-white/[0.06]">
-                <div className="w-4 h-4 border-2 border-emerald-400/40 border-t-emerald-400 rounded-full animate-spin shrink-0" style={{ animationDelay: `${i * 0.3}s` }} />
-                <p className="text-zinc-400 text-sm">{s}</p>
+          <p className="text-zinc-500 text-sm leading-relaxed mb-8">Personalizando cada detalhe com base nas suas respostas...</p>
+          <div className="space-y-2">
+            {MENSAGENS_GERANDO.map((msg, i) => (
+              <div key={i} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all duration-500 ${
+                i < gerandoMensagem ? 'bg-emerald-500/5 border-emerald-500/20' :
+                i === gerandoMensagem ? 'bg-white/[0.04] border-white/[0.08]' :
+                'bg-white/[0.02] border-white/[0.04] opacity-40'
+              }`}>
+                {i < gerandoMensagem
+                  ? <span className="text-emerald-400 text-sm shrink-0">✓</span>
+                  : i === gerandoMensagem
+                  ? <div className="w-3.5 h-3.5 border-2 border-emerald-400/60 border-t-emerald-400 rounded-full animate-spin shrink-0" />
+                  : <div className="w-3.5 h-3.5 rounded-full border border-white/[0.15] shrink-0" />
+                }
+                <p className={`text-sm ${i <= gerandoMensagem ? 'text-zinc-300' : 'text-zinc-600'}`}>{msg}</p>
               </div>
             ))}
           </div>
@@ -485,10 +469,8 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
 
   if (tela === 'conclusao_musculacao' && em) {
     const c = CORES_PLANO[em.plano]
-    const tc = totalConcluidas()
-    const tt = totalSeries()
-    const vol = calcVolume(series)
-    const pct = tt > 0 ? Math.round((tc / tt) * 100) : 0
+    const tc = totalConcluidas(); const tt = totalSeries()
+    const vol = calcVolume(series); const pct = tt > 0 ? Math.round((tc / tt) * 100) : 0
 
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white overflow-y-auto">
@@ -520,15 +502,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             ))}
           </div>
 
-          {caloriasEstimadas && (
-            <div className="rounded-2xl p-4 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
-                <p className="text-zinc-400 text-[11px]">Estimativa baseada no seu peso ({pesoKg}kg) e duração. Com wearable conectado os dados serão exatos.</p>
-              </div>
-            </div>
-          )}
-
           <div className={`rounded-2xl border mb-4 overflow-hidden ${c.border}`} style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
               <div className={`w-7 h-7 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${c.text}`}>✦</span></div>
@@ -552,7 +525,7 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
-  // ── TELA CONCLUSÃO ATIVIDADE LIVRE ────────────────────────────────────────────
+  // ── TELA CONCLUSÃO LIVRE ──────────────────────────────────────────────────────
 
   if (tela === 'conclusao_livre' && modalidade) {
     const mod = MODALIDADES.find(m => m.id === modalidade)!
@@ -562,15 +535,10 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
       <main className="min-h-[100dvh] bg-[#080808] text-white overflow-y-auto">
         <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
           <div className="text-center pt-4 mb-8">
-            <div className="absolute left-1/2 -translate-x-1/2 w-72 h-72 rounded-full blur-3xl opacity-10 pointer-events-none" style={{ background: mod.hex }} />
-            <div className={`w-20 h-20 rounded-3xl ${mod.cor} border ${mod.corBorder} flex items-center justify-center mx-auto mb-5`} style={{ boxShadow: `0 0 60px ${mod.hex}25` }}>
-              <span className="text-4xl">{mod.icon}</span>
-            </div>
+            <div className={`w-20 h-20 rounded-3xl ${mod.cor} border ${mod.corBorder} flex items-center justify-center mx-auto mb-5`}><span className="text-4xl">{mod.icon}</span></div>
             <p className={`text-[10px] uppercase tracking-[0.3em] mb-2 ${mod.corText}`}>Atividade registrada</p>
             <h1 className="text-3xl font-black text-white mb-1">{mod.label}</h1>
-            <p className="text-zinc-500 text-sm capitalize">{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
           </div>
-
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Duração</p>
@@ -580,51 +548,20 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Calorias est.</p>
               <p className={`text-3xl font-black ${mod.corText}`}>~{caloriasEstimadas ?? '—'}<span className="text-zinc-600 text-lg font-light">kcal</span></p>
             </div>
-            {form.distancia_km && (
-              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p>
-                <p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_km}<span className="text-zinc-600 text-lg font-light">km</span></p>
-              </div>
-            )}
-            {form.distancia_km && form.duracao_min && (modalidade === 'corrida' || modalidade === 'bike') && (
-              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Pace médio</p>
-                <p className={`text-3xl font-black ${mod.corText}`}>{calcularPace(parseInt(form.duracao_min), parseFloat(form.distancia_km))}<span className="text-zinc-600 text-sm font-light"> min/km</span></p>
-              </div>
-            )}
-            {form.distancia_m && (
-              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p>
-                <p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_m}<span className="text-zinc-600 text-lg font-light">m</span></p>
-              </div>
-            )}
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Intensidade</p>
-              <p className={`text-3xl font-black ${mod.corText}`}>{form.intensidade}<span className="text-zinc-600 text-lg font-light">/5</span></p>
-            </div>
           </div>
-
-          <div className="rounded-2xl p-4 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
-              <p className="text-zinc-400 text-[11px]">Estimativa baseada no seu peso ({pesoKg}kg) e duração. Com wearable conectado os dados serão exatos.</p>
-            </div>
-          </div>
-
           <div className={`rounded-2xl border mb-4 overflow-hidden ${mod.corBorder}`} style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
               <div className={`w-7 h-7 rounded-xl ${mod.cor} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${mod.corText}`}>✦</span></div>
-              <div className="flex-1"><p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>Análise KORE IA</p><p className="text-zinc-600 text-[10px]">Powered by Claude</p></div>
+              <div className="flex-1"><p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>Análise KORE IA</p></div>
               {analiseLivre.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
             </div>
             <div className="px-5 py-4">
               {analiseLivre.carregando
                 ? <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>
-                : <p className="text-zinc-300 text-sm leading-relaxed">{analiseLivre.texto || 'Gerando análise...'}</p>
+                : <p className="text-zinc-300 text-sm leading-relaxed">{analiseLivre.texto}</p>
               }
             </div>
           </div>
-
           <div className="space-y-3">
             <button onClick={() => router.push('/dashboard')} className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">Voltar ao dashboard</button>
             <button onClick={() => { setTela('principal'); setModalidade(null); setForm({ intensidade: 3 }) }} className="w-full border border-white/[0.08] text-zinc-400 font-bold py-4 rounded-2xl text-sm active:scale-95 hover:border-white/20 hover:text-white transition-all">Registrar outra atividade</button>
@@ -634,23 +571,18 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
-  // ── TELA EXECUTANDO MUSCULAÇÃO ────────────────────────────────────────────────
+  // ── EXECUTANDO MUSCULAÇÃO ─────────────────────────────────────────────────────
 
   if (tela === 'executando_musculacao' && em) {
     const c = CORES_PLANO[em.plano]
-    const tc = totalConcluidas()
-    const tt = totalSeries()
-    const prog = tt > 0 ? (tc / tt) * 100 : 0
+    const tc = totalConcluidas(); const tt = totalSeries(); const prog = tt > 0 ? (tc / tt) * 100 : 0
 
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
         <div className="shrink-0 border-b border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)' }}>
           <div className="max-w-md mx-auto px-4 pt-12 pb-4">
             <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className={`text-[10px] uppercase tracking-[0.2em] ${c.text}`}>Plano {em.plano}</p>
-                <h1 className="text-xl font-black text-white mt-0.5">{em.nome}</h1>
-              </div>
+              <div><p className={`text-[10px] uppercase tracking-[0.2em] ${c.text}`}>Plano {em.plano}</p><h1 className="text-xl font-black text-white mt-0.5">{em.nome}</h1></div>
               <p className="text-zinc-500 text-sm">{tc}/{tt} séries</p>
             </div>
             <div className="h-[3px] bg-white/[0.06] rounded-full overflow-hidden">
@@ -658,7 +590,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             </div>
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto pb-40">
           <div className="max-w-md mx-auto px-4 py-4 space-y-4">
             {em.exercicios.map((ex, ei) => {
@@ -686,32 +617,26 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                           <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Reps</p>
                           <input type="number" value={s.repeticoes} onChange={e => setReps(ex.id, si, parseInt(e.target.value) || 0)} disabled={s.concluida} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 disabled:opacity-50" />
                         </div>
-                        <button onClick={() => toggle(ex.id, si)} className={`w-11 h-11 rounded-xl border flex items-center justify-center text-sm font-bold transition-all active:scale-90 shrink-0 ${s.concluida ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.06] border-white/[0.12] text-zinc-400'}`}>
-                          {s.concluida ? '✓' : '○'}
-                        </button>
+                        <button onClick={() => toggle(ex.id, si)} className={`w-11 h-11 rounded-xl border flex items-center justify-center text-sm font-bold transition-all active:scale-90 shrink-0 ${s.concluida ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.06] border-white/[0.12] text-zinc-400'}`}>{s.concluida ? '✓' : '○'}</button>
                       </div>
                     ))}
                   </div>
                 </div>
               )
             })}
-
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração do treino (para estimar calorias)</p>
               <div className="flex items-center gap-3">
-                <input type="number" placeholder="60" value={form.duracao_musculacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_musculacao: e.target.value }))}
-                  className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                <input type="number" placeholder="60" value={form.duracao_musculacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_musculacao: e.target.value }))} className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                 <p className="text-zinc-500 text-sm">minutos</p>
               </div>
               {form.duracao_musculacao && <p className="text-zinc-600 text-[11px] mt-2">≈ {estimarCalorias('musculacao', parseInt(form.duracao_musculacao), pesoKg)} kcal estimadas</p>}
             </div>
           </div>
         </div>
-
         <div className="fixed bottom-0 left-0 right-0 border-t border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="max-w-md mx-auto px-4 py-4">
-            <button onClick={finalizarMusculacao} disabled={salvando || tc === 0}
-              className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all ${tc === tt && tt > 0 ? 'bg-white text-black' : 'bg-white/10 text-white border border-white/20'}`}>
+            <button onClick={finalizarMusculacao} disabled={salvando || tc === 0} className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all ${tc === tt && tt > 0 ? 'bg-white text-black' : 'bg-white/10 text-white border border-white/20'}`}>
               {salvando ? 'Salvando...' : tc === tt && tt > 0 ? '🏁 Finalizar treino' : `Finalizar (${tc}/${tt} séries)`}
             </button>
           </div>
@@ -732,60 +657,26 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
         <div className="shrink-0 border-b border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)' }}>
           <div className="max-w-md mx-auto px-4 pt-12 pb-4 flex items-center gap-3">
             <span className="text-3xl">{mod.icon}</span>
-            <div>
-              <p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>{mod.label}</p>
-              <h1 className="text-xl font-black text-white">Registrar atividade</h1>
-            </div>
+            <div><p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>{mod.label}</p><h1 className="text-xl font-black text-white">Registrar atividade</h1></div>
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto pb-32">
           <div className="max-w-md mx-auto px-4 py-5 space-y-4">
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração</p>
               <div className="flex items-center gap-3">
-                <input type="number" placeholder="45" value={form.duracao_min ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))}
-                  className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-lg text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                <input type="number" placeholder="45" value={form.duracao_min ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))} className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-lg text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                 <p className="text-zinc-500 text-sm">minutos</p>
               </div>
-              {calsPreview && (
-                <div className="mt-3 flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2 border border-white/[0.04]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
-                  <p className="text-zinc-400 text-[11px]">Estimativa: <span className="text-white font-bold">~{calsPreview} kcal</span> gastas</p>
-                </div>
-              )}
+              {calsPreview && <div className="mt-3 flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2 border border-white/[0.04]"><div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" /><p className="text-zinc-400 text-[11px]">Estimativa: <span className="text-white font-bold">~{calsPreview} kcal</span> gastas</p></div>}
             </div>
 
             {(modalidade === 'corrida' || modalidade === 'bike') && (
               <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados do percurso</p>
                 <div className="space-y-3">
-                  <div>
-                    <label className="text-zinc-600 text-[10px] mb-1 block">Distância (km)</label>
-                    <input type="number" step="0.1" placeholder="5.0" value={form.distancia_km ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                  </div>
-                  <div>
-                    <label className="text-zinc-600 text-[10px] mb-1 block">Ritmo médio (min/km)</label>
-                    {(() => {
-                      const pace = calcularPace(parseInt(form.duracao_min ?? '0'), parseFloat(form.distancia_km ?? '0'))
-                      return pace ? (
-                        <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center justify-between">
-                          <span className="text-white font-bold text-sm">{pace} min/km</span>
-                          <span className="text-zinc-600 text-[10px] uppercase tracking-wider">Calculado ✓</span>
-                        </div>
-                      ) : (
-                        <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3">
-                          <span className="text-zinc-600 text-sm">Preencha duração e distância</span>
-                        </div>
-                      )
-                    })()}
-                  </div>
-                  <div>
-                    <label className="text-zinc-600 text-[10px] mb-1 block">FC média (bpm) <span className="text-zinc-700">— Wearable (opcional)</span></label>
-                    <input type="number" placeholder="145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                  </div>
+                  <div><label className="text-zinc-600 text-[10px] mb-1 block">Distância (km)</label><input type="number" step="0.1" placeholder="5.0" value={form.distancia_km ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
+                  <div><label className="text-zinc-600 text-[10px] mb-1 block">FC média (bpm)</label><input type="number" placeholder="145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
                 </div>
               </div>
             )}
@@ -795,28 +686,10 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados da natação</p>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-zinc-600 text-[10px] mb-1 block">Distância (m)</label>
-                      <input type="number" placeholder="1000" value={form.distancia_m ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_m: e.target.value }))}
-                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                    </div>
-                    <div>
-                      <label className="text-zinc-600 text-[10px] mb-1 block">Voltas (25m)</label>
-                      <input type="number" placeholder="40" value={form.voltas ?? ''} onChange={e => setForm((p: any) => ({ ...p, voltas: e.target.value }))}
-                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                    </div>
+                    <div><label className="text-zinc-600 text-[10px] mb-1 block">Distância (m)</label><input type="number" placeholder="1000" value={form.distancia_m ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_m: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
+                    <div><label className="text-zinc-600 text-[10px] mb-1 block">Voltas (25m)</label><input type="number" placeholder="40" value={form.voltas ?? ''} onChange={e => setForm((p: any) => ({ ...p, voltas: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
                   </div>
-                  <div>
-                    <label className="text-zinc-600 text-[10px] mb-3 block">Estilo predominante</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {['Livre', 'Costas', 'Peito', 'Borboleta'].map(e => (
-                        <button key={e} onClick={() => setForm((p: any) => ({ ...p, estilo: e }))}
-                          className={`py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${form.estilo === e ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <div><label className="text-zinc-600 text-[10px] mb-3 block">Estilo predominante</label><div className="grid grid-cols-2 gap-2">{['Livre', 'Costas', 'Peito', 'Borboleta'].map(e => (<button key={e} onClick={() => setForm((p: any) => ({ ...p, estilo: e }))} className={`py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${form.estilo === e ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>{e}</button>))}</div></div>
                 </div>
               </div>
             )}
@@ -825,27 +698,9 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados do WOD</p>
                 <div className="space-y-3">
-                  <div>
-                    <label className="text-zinc-600 text-[10px] mb-2 block">Tipo do WOD</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Chipper'].map(t => (
-                        <button key={t} onClick={() => setForm((p: any) => ({ ...p, tipo_wod: t }))}
-                          className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${form.tipo_wod === t ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-zinc-600 text-[10px] mb-1 block">Movimentos principais</label>
-                    <input type="text" placeholder="Ex: Burpee, Deadlift 60kg, Box Jump" value={form.movimentos ?? ''} onChange={e => setForm((p: any) => ({ ...p, movimentos: e.target.value }))}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                  </div>
-                  <div>
-                    <label className="text-zinc-600 text-[10px] mb-1 block">Resultado / Score</label>
-                    <input type="text" placeholder="Ex: 8 rounds + 5 reps" value={form.resultado ?? ''} onChange={e => setForm((p: any) => ({ ...p, resultado: e.target.value }))}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                  </div>
+                  <div><label className="text-zinc-600 text-[10px] mb-2 block">Tipo do WOD</label><div className="flex gap-2 flex-wrap">{['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Chipper'].map(t => (<button key={t} onClick={() => setForm((p: any) => ({ ...p, tipo_wod: t }))} className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${form.tipo_wod === t ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>{t}</button>))}</div></div>
+                  <div><label className="text-zinc-600 text-[10px] mb-1 block">Movimentos principais</label><input type="text" placeholder="Ex: Burpee, Deadlift 60kg, Box Jump" value={form.movimentos ?? ''} onChange={e => setForm((p: any) => ({ ...p, movimentos: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
+                  <div><label className="text-zinc-600 text-[10px] mb-1 block">Resultado / Score</label><input type="text" placeholder="Ex: 8 rounds + 5 reps" value={form.resultado ?? ''} onChange={e => setForm((p: any) => ({ ...p, resultado: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
                 </div>
               </div>
             )}
@@ -854,50 +709,31 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Intensidade percebida</p>
               <div className="flex gap-2">
                 {[{ v: 1, l: 'Leve', e: '😌' }, { v: 2, l: 'Moderado', e: '🙂' }, { v: 3, l: 'Forte', e: '😤' }, { v: 4, l: 'Muito forte', e: '😰' }, { v: 5, l: 'Máximo', e: '🔥' }].map(i => (
-                  <button key={i.v} onClick={() => setForm((p: any) => ({ ...p, intensidade: i.v }))}
-                    className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${form.intensidade === i.v ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
-                    <span className="text-xl">{i.e}</span>
-                    <span className="text-[9px] mt-1 font-semibold leading-tight text-center">{i.l}</span>
+                  <button key={i.v} onClick={() => setForm((p: any) => ({ ...p, intensidade: i.v }))} className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${form.intensidade === i.v ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
+                    <span className="text-xl">{i.e}</span><span className="text-[9px] mt-1 font-semibold leading-tight text-center">{i.l}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-xl">⌚</span>
-                <p className="text-zinc-400 text-sm font-semibold">Dados do wearable <span className="text-zinc-600 font-normal">(opcional)</span></p>
-              </div>
-              <p className="text-zinc-600 text-[11px] mb-3">Garmin, Apple Watch, Whoop, Polar, Suunto e outros</p>
+              <div className="flex items-center gap-3 mb-3"><span className="text-xl">⌚</span><p className="text-zinc-400 text-sm font-semibold">Wearable <span className="text-zinc-600 font-normal">(opcional)</span></p></div>
               <div className="space-y-3">
-                {modalidade !== 'natacao' && modalidade !== 'crossfit' && (
-                  <div>
-                    <label className="text-zinc-600 text-[10px] mb-1 block">FC média (bpm)</label>
-                    <input type="number" placeholder="145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                  </div>
-                )}
-                <div>
-                  <label className="text-zinc-600 text-[10px] mb-1 block">Calorias (do wearable)</label>
-                  <input type="number" placeholder="Ex: 420" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                </div>
+                {modalidade !== 'natacao' && modalidade !== 'crossfit' && (<div><label className="text-zinc-600 text-[10px] mb-1 block">FC média (bpm)</label><input type="number" placeholder="145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>)}
+                <div><label className="text-zinc-600 text-[10px] mb-1 block">Calorias do wearable</label><input type="number" placeholder="Ex: 420" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
               </div>
             </div>
 
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Observações <span className="text-zinc-700 normal-case">(opcional)</span></p>
-              <textarea placeholder="Como foi? Alguma dor ou sensação especial?" value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
+              <textarea placeholder="Como foi? Alguma dor ou sensação especial?" value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
             </div>
           </div>
         </div>
-
         <div className="fixed bottom-0 left-0 right-0 border-t border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="max-w-md mx-auto px-4 py-4 flex gap-3">
             <button onClick={() => setTela('principal')} className="w-12 h-12 rounded-2xl border border-white/[0.08] text-zinc-500 flex items-center justify-center active:scale-90 transition-all">✕</button>
-            <button onClick={salvarAtividadeLivre} disabled={salvandoLivre || !form.duracao_min}
-              className={`flex-1 font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${mod.cor} ${mod.corBorder} ${mod.corText} border`}>
+            <button onClick={salvarAtividadeLivre} disabled={salvandoLivre || !form.duracao_min} className={`flex-1 font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${mod.cor} ${mod.corBorder} ${mod.corText} border`}>
               {salvandoLivre ? 'Salvando...' : `Salvar ${mod.label}`}
             </button>
           </div>
@@ -928,12 +764,9 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               {treinos.map(t => {
                 const co = CORES_PLANO[t.plano]
                 return (
-                  <button key={t.plano} onClick={() => setPlanoAtivo(t.plano)}
-                    className={`flex-1 py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === t.plano ? `${co.bg} ${co.border} ${co.text}` : 'bg-white/[0.03] border-white/[0.06] text-zinc-600'}`}>
+                  <button key={t.plano} onClick={() => setPlanoAtivo(t.plano)} className={`flex-1 py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === t.plano ? `${co.bg} ${co.border} ${co.text}` : 'bg-white/[0.03] border-white/[0.06] text-zinc-600'}`}>
                     Plano {t.plano}
-                    <span className="block text-[9px] font-normal mt-0.5 opacity-70">
-                      {treinosConcluidosHoje.has(t.plano) ? '✓ Feito hoje' : `${t.exercicios.length} exerc.`}
-                    </span>
+                    <span className="block text-[9px] font-normal mt-0.5 opacity-70">{treinosConcluidosHoje.has(t.plano) ? '✓ Feito hoje' : `${t.exercicios.length} exerc.`}</span>
                   </button>
                 )
               })}
@@ -947,18 +780,14 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                   <div className={`rounded-2xl p-5 border ${co.border} mb-4`} style={{ background: '#0f0f0f' }}>
                     <div className="flex items-center justify-between mb-1">
                       <p className={`text-[10px] uppercase tracking-[0.2em] ${co.text}`}>Plano {sel.plano}</p>
-                      {isPlanoIA && (
-                        <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ Gerado pela IA</span>
-                      )}
+                      {isPlanoIA && <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ Gerado pela IA</span>}
                     </div>
                     <p className="text-white font-black text-xl mb-1">{sel.nome}</p>
                     {sel.descricao && <p className="text-zinc-500 text-xs mb-4">{sel.descricao}</p>}
                     <div className="space-y-2 mt-4">
                       {sel.exercicios.map((ex, i) => (
                         <div key={ex.id} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
-                          <div className={`w-6 h-6 rounded-lg ${co.bg} flex items-center justify-center shrink-0`}>
-                            <span className={`text-[10px] font-black ${co.text}`}>{i + 1}</span>
-                          </div>
+                          <div className={`w-6 h-6 rounded-lg ${co.bg} flex items-center justify-center shrink-0`}><span className={`text-[10px] font-black ${co.text}`}>{i + 1}</span></div>
                           <div className="flex-1 min-w-0">
                             <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
                             <p className="text-zinc-600 text-[11px]">{ex.series}×{ex.repeticoes}{ex.carga_sugerida ? ` · ${ex.carga_sugerida}kg` : ''}</p>
@@ -984,34 +813,30 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
           </div>
         )}
 
-        {/* Card IA sem personal — só aparece quando não tem planos ou não tem personal */}
+        {/* Card IA sem personal */}
         {!temPersonal && (
           <div className="mb-6">
-            {treinos.length === 0 && (
-              <div className="rounded-2xl p-5 border border-emerald-500/20 mb-4" style={{ background: 'linear-gradient(145deg, #0f1a13 0%, #0a0f0a 100%)' }}>
+            {treinos.length === 0 ? (
+              <div className="rounded-2xl p-5 border border-emerald-500/20 mb-4" style={{ background: 'linear-gradient(145deg, #0a1410 0%, #080d0a 100%)' }}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                    <span className="text-emerald-400 font-black">✦</span>
+                    <span className="text-emerald-400 font-black text-lg">✦</span>
                   </div>
                   <div>
-                    <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">KORE IA</p>
+                    <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">KORE IA · Personal virtual</p>
                     <p className="text-white font-black text-base">Sem personal? A IA monta seu plano</p>
                   </div>
                 </div>
                 <p className="text-zinc-400 text-sm leading-relaxed mb-4">
-                  Baseado no seu objetivo, nível e perfil, a IA cria um plano de musculação completo com exercícios, séries e cargas sugeridas.
+                  Responda algumas perguntas rápidas — como numa consulta de verdade — e a IA cria um plano de musculação personalizado com exercícios, séries e cargas.
                 </p>
-                <button onClick={gerarPlanoComIA} disabled={gerandoPlanoIA}
-                  className="w-full bg-emerald-500 text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all disabled:opacity-50">
-                  {gerandoPlanoIA ? 'Gerando...' : '✦ Gerar meu plano com IA'}
+                <button onClick={() => setMostrarQuiz(true)} className="w-full bg-emerald-500 text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">
+                  ✦ Iniciar consulta com IA →
                 </button>
               </div>
-            )}
-
-            {treinos.length > 0 && (
-              <button onClick={gerarPlanoComIA} disabled={gerandoPlanoIA}
-                className="w-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all mb-4 disabled:opacity-50">
-                {gerandoPlanoIA ? '✦ Gerando novo plano...' : '✦ Gerar novo plano com IA'}
+            ) : (
+              <button onClick={() => setMostrarQuiz(true)} className="w-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all mb-4">
+                ✦ Gerar novo plano com IA
               </button>
             )}
           </div>
@@ -1029,8 +854,7 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Registrar atividade</p>
           <div className="grid grid-cols-3 gap-2">
             {MODALIDADES.map(mod => (
-              <button key={mod.id} onClick={() => abrirFormulario(mod.id)}
-                className={`rounded-2xl p-4 border ${mod.corBorder} ${mod.cor} active:scale-95 transition-all text-center`}>
+              <button key={mod.id} onClick={() => abrirFormulario(mod.id)} className={`rounded-2xl p-4 border ${mod.corBorder} ${mod.cor} active:scale-95 transition-all text-center`}>
                 <span className="text-3xl block mb-1.5">{mod.icon}</span>
                 <p className={`text-[11px] font-bold ${mod.corText}`}>{mod.label}</p>
               </button>
@@ -1039,21 +863,15 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
         </div>
       </div>
 
-      {/* ── Bottom Nav SVG ── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
+      {/* Bottom Nav SVG */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]" style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
           {NAV_ITEMS.map((item) => {
             const active = item.id === 'treino'
             return (
-              <button key={item.id} onClick={() => router.push(item.path)}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90">
-                <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}>
-                  <item.Icon active={active} />
-                </span>
-                <span className={`text-[9px] tracking-[0.1em] uppercase font-semibold transition-all ${active ? 'text-emerald-400' : 'text-zinc-700'}`}>
-                  {item.label}
-                </span>
+              <button key={item.id} onClick={() => router.push(item.path)} className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90">
+                <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}><item.Icon active={active} /></span>
+                <span className={`text-[9px] tracking-[0.1em] uppercase font-semibold transition-all ${active ? 'text-emerald-400' : 'text-zinc-700'}`}>{item.label}</span>
                 {active && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
               </button>
             )
