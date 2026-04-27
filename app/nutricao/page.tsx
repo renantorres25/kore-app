@@ -64,8 +64,6 @@ function getIconeRefeicao(nome: string): string {
   return key ? ICONE_REFEICAO[key] : '🥗'
 }
 
-// ─── NAV ──────────────────────────────────────────────────────────────────────
-
 function IconHome({ active }: { active: boolean }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
 }
@@ -88,8 +86,6 @@ const NAV_ITEMS = [
   { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao, path: '/evolucao' },
   { id: 'perfil', label: 'Perfil', Icon: IconPerfil, path: '/perfil' },
 ]
-
-// ─── ABA PLANO ────────────────────────────────────────────────────────────────
 
 function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
   plano: PlanoNutricional | null; gerandoPlano: boolean
@@ -150,8 +146,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
     return (
       <div className="pb-6">
-
-        {/* Cabeçalho do plano */}
         <div className="px-4 pt-4 mb-4">
           <div className="flex items-start justify-between">
             <div>
@@ -165,7 +159,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
           </div>
         </div>
 
-        {/* Nota da nutricionista */}
         {e?.nota_nutri && (
           <div className="mx-4 mb-4 rounded-2xl border border-blue-500/15 px-4 py-3.5" style={{ background: 'linear-gradient(135deg,#0a0d14,#080a10)' }}>
             <p className="text-blue-400 text-[9px] uppercase tracking-wider mb-1.5">📋 Nota da nutricionista</p>
@@ -173,7 +166,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
           </div>
         )}
 
-        {/* Resumo macro do dia */}
         <div className="mx-4 mb-4 rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
           <div className="px-4 py-3 border-b border-white/[0.04]">
             <p className="text-zinc-500 text-[10px] uppercase tracking-wider">Resumo diário</p>
@@ -191,7 +183,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
               </div>
             ))}
           </div>
-          {/* Barra progresso calorias vs meta */}
           {totalCalDia > 0 && plano.calorias_meta && (
             <div className="px-4 pb-3">
               <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
@@ -204,8 +195,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
         {e ? (
           <div className="px-4 space-y-3">
-
-            {/* Refeições */}
             {e.refeicoes.map((ref, i) => {
               const aberta = refeicaoAberta === i
               const totalCal = ref.alimentos.reduce((s, a) => s + a.calorias, 0)
@@ -216,7 +205,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                 <div key={i} className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
                   <button onClick={() => setRefeicaoAberta(aberta ? null : i)}
                     className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
-                    {/* Número + ícone */}
                     <div className="relative shrink-0">
                       <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-xl">
                         {getIconeRefeicao(ref.nome)}
@@ -241,7 +229,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
                   {aberta && (
                     <div className="border-t border-white/[0.04]">
-                      {/* Header tabela */}
                       <div className="flex items-center justify-between px-4 py-2 bg-white/[0.02] border-b border-white/[0.03]">
                         <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimento</span>
                         <div className="flex gap-4">
@@ -250,8 +237,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                           <span className="text-zinc-600 text-[9px] uppercase tracking-wider w-10 text-right">Prot</span>
                         </div>
                       </div>
-
-                      {/* Alimentos */}
                       {ref.alimentos.map((al, j) => (
                         <div key={j} className="flex items-center justify-between px-4 py-3 border-b border-white/[0.03] last:border-0">
                           <div className="flex-1 min-w-0 mr-3">
@@ -264,8 +249,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                           </div>
                         </div>
                       ))}
-
-                      {/* Total refeição */}
                       <div className="flex items-center justify-between px-4 py-3 bg-white/[0.02] border-t border-white/[0.06]">
                         <span className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider">Total</span>
                         <div className="flex items-center gap-4">
@@ -274,8 +257,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                           <span className="text-blue-400 text-[12px] font-bold w-10 text-right">{totalProt}g</span>
                         </div>
                       </div>
-
-                      {/* Dica */}
                       {ref.dica && (
                         <div className="mx-4 mb-3 mt-2 rounded-xl bg-white/[0.02] border border-white/[0.05] px-3 py-2.5">
                           <p className="text-emerald-400 text-[9px] uppercase tracking-wider mb-1">💡 Dica</p>
@@ -288,7 +269,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
               )
             })}
 
-            {/* Suplementação */}
             {e.suplementos && e.suplementos.length > 0 && (
               <div className="rounded-2xl border border-purple-500/20 overflow-hidden" style={{ background: '#0f0f0f' }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === 'suplementos' ? null : 'suplementos')}
@@ -304,12 +284,8 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                   <div className="border-t border-white/[0.04] divide-y divide-white/[0.04]">
                     {e.suplementos.map((s, i) => (
                       <div key={i} className="px-4 py-3.5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <p className="text-white font-bold text-sm">{s.nome}</p>
-                            <p className="text-purple-400 text-[11px] mt-0.5">{s.dose} · {s.horario}</p>
-                          </div>
-                        </div>
+                        <p className="text-white font-bold text-sm">{s.nome}</p>
+                        <p className="text-purple-400 text-[11px] mt-0.5">{s.dose} · {s.horario}</p>
                         <p className="text-zinc-500 text-[11px] leading-relaxed mt-1.5">{s.motivo}</p>
                       </div>
                     ))}
@@ -318,7 +294,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
               </div>
             )}
 
-            {/* Hidratação */}
             {e.hidratacao && (
               <div className="rounded-2xl border border-cyan-500/20 overflow-hidden" style={{ background: '#0f0f0f' }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === 'hidratacao' ? null : 'hidratacao')}
@@ -338,11 +313,10 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
               </div>
             )}
 
-            {/* Estratégias */}
             {[
-              { key: 'treino', label: '⚡ Orientação de treino', sub: 'Pré e pós-treino com alimentos', cor: 'border-emerald-500/20 bg-emerald-500/5', textCor: 'text-emerald-400', iconBg: 'bg-emerald-500/10', val: e.orientacao_treino },
-              { key: 'desafio', label: '🎯 Estratégia para seu desafio', sub: 'Como superar seu maior obstáculo', cor: 'border-orange-500/20 bg-orange-500/5', textCor: 'text-orange-400', iconBg: 'bg-orange-500/10', val: e.estrategia_desafio },
-              { key: 'fome', label: '💡 Controle de fome', sub: 'Estratégia para o período crítico', cor: 'border-blue-500/20 bg-blue-500/5', textCor: 'text-blue-400', iconBg: 'bg-blue-500/10', val: e.dica_fome },
+              { key: 'treino', label: '⚡ Orientação de treino', sub: 'Pré e pós-treino com alimentos', cor: 'border-emerald-500/20 bg-emerald-500/5', textCor: 'text-emerald-400', val: e.orientacao_treino },
+              { key: 'desafio', label: '🎯 Estratégia para seu desafio', sub: 'Como superar seu maior obstáculo', cor: 'border-orange-500/20 bg-orange-500/5', textCor: 'text-orange-400', val: e.estrategia_desafio },
+              { key: 'fome', label: '💡 Controle de fome', sub: 'Estratégia para o período crítico', cor: 'border-blue-500/20 bg-blue-500/5', textCor: 'text-blue-400', val: e.dica_fome },
             ].filter(s => s.val).map((s) => (
               <div key={s.key} className={`rounded-2xl border overflow-hidden ${s.cor}`}>
                 <button onClick={() => setSecaoAberta(secaoAberta === s.key ? null : s.key)}
@@ -360,7 +334,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                 )}
               </div>
             ))}
-
           </div>
         ) : (
           <div className="mx-4 rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
@@ -387,8 +360,6 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
   )
 }
 
-// ─── ABA HOJE ─────────────────────────────────────────────────────────────────
-
 function AbaHoje({ perfil, scoreHoje, treinouHoje, planoAtivo, vinculoNutri, userId, registroId, setRegistroId, qualidade, setQualidade, calorias, setCalorias, proteina, setProteina, coposAgua, setCoposAgua, observacoes, setObservacoes, jaRegistrou, setJaRegistrou }: {
   perfil: Perfil; scoreHoje: number | null; treinouHoje: boolean; planoAtivo: PlanoNutricional | null
   vinculoNutri: { nome: string | null } | null; userId: string; registroId: string | null
@@ -409,9 +380,15 @@ function AbaHoje({ perfil, scoreHoje, treinouHoje, planoAtivo, vinculoNutri, use
     if (!qualidade) return
     setSalvando(true)
     const payload = { usuario_id: userId, data: getTodayBR(), qualidade_alimentacao: qualidade, calorias: calorias ? parseInt(calorias) : null, proteina: proteina ? parseFloat(proteina) : null, carboidrato: null, gordura: null, copos_agua: coposAgua }
-    if (registroId) { await supabase.from('nutricao').update(payload).eq('id', registroId) }
-    else { const { data } = await supabase.from('nutricao').insert(payload).select('id').single(); if (data) setRegistroId(data.id) }
-    setJaRegistrou(true); setSalvando(false); gerarAnalise()
+    if (registroId) {
+      await supabase.from('nutricao').update(payload).eq('id', registroId)
+    } else {
+      const { data } = await supabase.from('nutricao').insert(payload).select('id').single()
+      if (data) setRegistroId(data.id)
+    }
+    setJaRegistrou(true)
+    setSalvando(false)
+    gerarAnalise()
   }
 
   async function gerarAnalise() {
@@ -423,23 +400,32 @@ CONTEXTO: ${perfil.nome ?? 'Atleta'} | ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?
 HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g prot | Água ${coposAgua}/8 | Treino ${treinouHoje ? 'sim' : 'não'} | Recup. ${scoreHoje ?? '?'}/100${observacoes ? ` | ${observacoes}` : ''}
 3 parágrafos curtos, máx 80 palavras total, sem markdown, sem títulos em maiúsculas, tom de coach direto:`
     try {
-      const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, modo: 'plano' })
+      const res = await fetch('/api/analise-treino', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
       const data = await res.json()
       setAnalise({ texto: data.analise ?? '', carregando: false, gerado: true })
-    } catch { setAnalise({ texto: 'Não foi possível gerar análise.', carregando: false, gerado: true }) }
+    } catch {
+      setAnalise({ texto: 'Não foi possível gerar análise.', carregando: false, gerado: true })
+    }
   }
 
   async function atualizarAgua(copos: number) {
-    const novos = Math.max(0, Math.min(12, copos)); setCoposAgua(novos)
+    const novos = Math.max(0, Math.min(12, copos))
+    setCoposAgua(novos)
     const hoje = getTodayBR()
-    if (registroId) { await supabase.from('nutricao').update({ copos_agua: novos }).eq('id', registroId) }
-    else { const { data } = await supabase.from('nutricao').insert({ usuario_id: userId, data: hoje, copos_agua: novos }).select('id').single(); if (data) setRegistroId(data.id) }
+    if (registroId) {
+      await supabase.from('nutricao').update({ copos_agua: novos }).eq('id', registroId)
+    } else {
+      const { data } = await supabase.from('nutricao').insert({ usuario_id: userId, data: hoje, copos_agua: novos }).select('id').single()
+      if (data) setRegistroId(data.id)
+    }
   }
 
   return (
     <div className="px-4 pt-4 space-y-4 pb-4">
-
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: 'Recuperação', val: scoreHoje ?? '—', sub: '/100', cor: scoreHoje ? scoreHoje >= 70 ? 'text-emerald-400' : 'text-yellow-400' : 'text-zinc-600', bg: scoreHoje ? scoreHoje >= 70 ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-yellow-500/20 bg-yellow-500/5' : 'border-white/[0.06]' },
@@ -454,7 +440,6 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         ))}
       </div>
 
-      {/* Registro */}
       <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
         <div className="px-5 pt-4 pb-3 border-b border-white/[0.04]">
           <p className="text-white font-bold text-sm">Como foi hoje?</p>
@@ -509,7 +494,6 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         </div>
       </div>
 
-      {/* Hidratação */}
       <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
         <div className="px-5 py-4 border-b border-white/[0.04]">
           <div className="flex items-center justify-between mb-2">
@@ -536,7 +520,6 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         </div>
       </div>
 
-      {/* Feedback IA */}
       <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: '#0f0f0f' }}>
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
           <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0"><span className="text-[11px] font-black text-emerald-400">✦</span></div>
@@ -563,7 +546,6 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         </div>
       </div>
 
-      {/* Nutricionista */}
       <div className="rounded-2xl border border-white/[0.06] p-4" style={{ background: '#0f0f0f' }}>
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-500 border-white/[0.08]'}`}>NU</div>
@@ -578,8 +560,6 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
     </div>
   )
 }
-
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function Nutricao() {
   const router = useRouter()
@@ -626,17 +606,25 @@ export default function Nutricao() {
     if ((treinoHoje && treinoHoje.length > 0) || (atividadeHoje && atividadeHoje.length > 0)) setTreinouHoje(true)
     if (planoData) { setPlanoAtivo(planoData); setAba('plano') }
     if (registroHoje) {
-      setRegistroId(registroHoje.id); setQualidade(registroHoje.qualidade_alimentacao ?? null)
-      setCalorias(registroHoje.calorias ? String(registroHoje.calorias) : ''); setProteina(registroHoje.proteina ? String(registroHoje.proteina) : '')
-      setCoposAgua(registroHoje.copos_agua ?? 0); setObservacoes(registroHoje.observacoes ?? '')
+      setRegistroId(registroHoje.id)
+      setQualidade(registroHoje.qualidade_alimentacao ?? null)
+      setCalorias(registroHoje.calorias ? String(registroHoje.calorias) : '')
+      setProteina(registroHoje.proteina ? String(registroHoje.proteina) : '')
+      setCoposAgua(registroHoje.copos_agua ?? 0)
+      setObservacoes(registroHoje.observacoes ?? '')
       if (registroHoje.qualidade_alimentacao) setJaRegistrou(true)
     }
-    if (vinculo) { const { data: np } = await supabase.from('perfis').select('nome').eq('id', vinculo.profissional_id).single(); if (np) setVinculoNutri(np) }
+    if (vinculo) {
+      const { data: np } = await supabase.from('perfis').select('nome').eq('id', vinculo.profissional_id).single()
+      if (np) setVinculoNutri(np)
+    }
     setCarregando(false)
   }
 
   async function gerarPlanoNutricional(respostas: RespostasQuiz) {
-    setMostrarQuiz(false); setGerandoPlano(true); setAba('plano')
+    setMostrarQuiz(false)
+    setGerandoPlano(true)
+    setAba('plano')
     const metaCal = getMetaCalorias(perfil.peso, perfil.objetivo)
     const metaProt = getMetaProteina(perfil.peso, perfil.objetivo)
     const restricoesArr = Array.isArray(respostas.restricoes) ? respostas.restricoes.join(', ') : respostas.restricoes
@@ -648,43 +636,42 @@ export default function Nutricao() {
     const OBJETIVO_REFEICOES: Record<string, number> = { perder_peso: 5, ganhar_massa: 6, melhorar_condicionamento: 5, saude_geral: 4 }
     const numRefeicoes = OBJETIVO_REFEICOES[perfil.objetivo ?? 'saude_geral'] ?? 5
 
-    const prompt = `Você é uma nutricionista esportiva com 15 anos de experiência clínica. Sua missão é criar um plano alimentar completo, detalhado e verdadeiramente personalizado — não genérico.
+    const prompt = `Você é uma nutricionista esportiva com 15 anos de experiência clínica. Sua missão é criar um plano alimentar completo, detalhado e verdadeiramente personalizado.
 
 PERFIL DO PACIENTE:
 - Nome: ${perfil.nome ?? 'Atleta'}
 - Objetivo: ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? 'Saúde geral'}
 - Peso atual: ${perfil.peso ? `${perfil.peso}kg` : 'não informado'}
-- Meta calórica calculada: ${metaCal ? `${metaCal}kcal/dia` : 'calcule com base no perfil'}
-- Meta proteína calculada: ${metaProt ? `${metaProt}g/dia` : 'calcule com base no perfil'}
+- Meta calórica: ${metaCal ? `${metaCal}kcal/dia` : 'calcule com base no perfil'}
+- Meta proteína: ${metaProt ? `${metaProt}g/dia` : 'calcule com base no perfil'}
 
-ROTINA DO PACIENTE:
-- Come principalmente: ${ONDE_LABEL[respostas.onde_come as string] ?? respostas.onde_come}
+ROTINA:
+- Come: ${ONDE_LABEL[respostas.onde_come as string] ?? respostas.onde_come}
 - Treina: ${HORARIO_LABEL[respostas.horario_treino_nutri as string] ?? respostas.horario_treino_nutri}
-- Maior desafio: ${DESAFIO_LABEL[respostas.desafio as string] ?? respostas.desafio}
-- Restrições alimentares: ${restricoesArr}
-- Rotina de trabalho: ${ROTINA_LABEL[respostas.rotina_trabalho as string] ?? respostas.rotina_trabalho}
-- Consumo de álcool: ${respostas.alcool}
-- Período de maior fome: ${respostas.fome_horario}
-- Paciente diz fazer ${respostas.refeicoes_dia} refeições/dia
+- Desafio: ${DESAFIO_LABEL[respostas.desafio as string] ?? respostas.desafio}
+- Restrições: ${restricoesArr}
+- Trabalho: ${ROTINA_LABEL[respostas.rotina_trabalho as string] ?? respostas.rotina_trabalho}
+- Álcool: ${respostas.alcool}
+- Maior fome: ${respostas.fome_horario}
+- Paciente faz ${respostas.refeicoes_dia} refeições/dia
 
-DECISÃO CLÍNICA SOBRE REFEIÇÕES:
-O paciente mencionou fazer ${respostas.refeicoes_dia} refeições/dia, mas você como nutricionista sabe que para o objetivo "${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? 'saúde geral'}" o ideal são ${numRefeicoes} refeições. Crie o plano com ${numRefeicoes} refeições e escreva uma nota_nutri curta explicando sua decisão de forma direta e educativa (máx 2 frases).
+DECISÃO CLÍNICA: Para o objetivo "${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? 'saúde geral'}" o ideal são ${numRefeicoes} refeições. Crie com ${numRefeicoes} refeições e explique em nota_nutri (máx 2 frases).
 
-REGRAS OBRIGATÓRIAS:
-1. Crie EXATAMENTE ${numRefeicoes} refeições adaptadas à rotina real (horários de trabalho, local das refeições)
-2. Cada alimento DEVE ter quantidade precisa em gramas — ex: "150g", "2 unidades (120g)", "1 colher sopa (15g)"
-3. Calorias e proteína INDIVIDUAIS por alimento — valores reais, não aproximados
-4. Soma total de calorias: ${metaCal ?? 2000}kcal (±100kcal aceitável)
-5. Soma total de proteína: ${metaProt ?? 120}g (±10g aceitável)
-6. Adapte alimentos ao local de refeição — se restaurante, sugira o que pedir; se casa, o que preparar
-7. Respeite TODAS as restrições alimentares
-8. Hidratação baseada no peso (${perfil.peso ?? 70}kg × 35ml) e ajuste pelo treino
-9. Recomende suplementos apenas se realmente justificado pelo objetivo e déficits do plano
+REGRAS:
+1. EXATAMENTE ${numRefeicoes} refeições
+2. Quantidade precisa em gramas para cada alimento
+3. Calorias e proteína individuais por alimento
+4. Total de calorias: ~${metaCal ?? 2000}kcal
+5. Total de proteína: ~${metaProt ?? 120}g
+6. Adapte ao local de refeição informado
+7. Respeite restrições alimentares
+8. Hidratação = peso(${perfil.peso ?? 70}kg) × 35ml + ajuste treino
+9. Suplementos só se justificado
 
-Responda APENAS JSON válido, sem nenhum texto fora do JSON:
+Responda APENAS JSON válido:
 
 {
-  "nota_nutri": "Frase curta explicando a decisão sobre o número de refeições e por que é melhor para o objetivo.",
+  "nota_nutri": "Explicação curta sobre o número de refeições.",
   "refeicoes": [
     {
       "nome": "Café da Manhã",
@@ -692,33 +679,30 @@ Responda APENAS JSON válido, sem nenhum texto fora do JSON:
       "calorias": 480,
       "proteina": 32,
       "alimentos": [
-        { "nome": "Ovo inteiro cozido", "quantidade": "3 unidades (150g)", "calorias": 215, "proteina": 19, "carboidrato": 2, "gordura": 15 },
-        { "nome": "Pão de forma integral", "quantidade": "2 fatias (60g)", "calorias": 148, "proteina": 5, "carboidrato": 28, "gordura": 2 },
-        { "nome": "Queijo cottage light", "quantidade": "4 colheres de sopa (80g)", "calorias": 64, "proteina": 10, "carboidrato": 3, "gordura": 1 },
-        { "nome": "Banana prata", "quantidade": "1 unidade média (100g)", "calorias": 89, "proteina": 1, "carboidrato": 23, "gordura": 0 }
+        { "nome": "Ovos mexidos", "quantidade": "3 unidades (150g)", "calorias": 215, "proteina": 19, "carboidrato": 2, "gordura": 15 },
+        { "nome": "Pão integral", "quantidade": "2 fatias (60g)", "calorias": 148, "proteina": 5, "carboidrato": 28, "gordura": 2 }
       ],
-      "dica": "Dica prática, específica e acionável para esta refeição — não genérica."
+      "dica": "Dica prática e específica."
     }
   ],
   "suplementos": [
-    {
-      "nome": "Whey Protein Isolado",
-      "dose": "30g (1 scoop)",
-      "horario": "Imediatamente após o treino",
-      "motivo": "Motivo clínico específico para este paciente baseado no objetivo e na dificuldade de atingir a meta de proteína pela alimentação."
-    }
+    { "nome": "Whey Protein", "dose": "30g", "horario": "Pós-treino", "motivo": "Motivo clínico específico." }
   ],
   "hidratacao": {
     "litros_dia": 3.2,
-    "orientacao": "Orientação específica de hidratação baseada no peso do paciente, intensidade do treino e período do dia. Inclua quando beber mais e quando distribuir ao longo do dia."
+    "orientacao": "Orientação específica de hidratação."
   },
-  "orientacao_treino": "Orientação detalhada de pré e pós-treino com alimentos específicos, quantidades e timing exato baseado no horário de treino informado.",
-  "estrategia_desafio": "Estratégia prática e detalhada para superar o desafio principal informado. Inclua gatilhos, substituições e ações concretas.",
-  "dica_fome": "Estratégia específica para o período de maior fome com opções de alimentos, quantidades e técnicas comportamentais."
+  "orientacao_treino": "Orientação de pré e pós-treino com alimentos e timing.",
+  "estrategia_desafio": "Estratégia prática para o desafio principal.",
+  "dica_fome": "Estratégia para o período de maior fome."
 }`
 
     try {
-      const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
+      const res = await fetch('/api/analise-treino', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, modo: 'plano' }),
+      })
       const data = await res.json()
       const texto = data.analise ?? ''
       const jsonMatch = texto.match(/\{[\s\S]*\}/)
@@ -732,8 +716,11 @@ Responda APENAS JSON válido, sem nenhum texto fora do JSON:
         calorias_meta: metaCal, proteina_meta: metaProt, refeicoes_por_dia: refeicoesPorDia, ativo: true,
       }).select('*').single()
       if (novoPlano) setPlanoAtivo(novoPlano)
-    } catch (e) { console.error('Erro ao gerar plano:', e) }
-    finally { setGerandoPlano(false) }
+    } catch (e) {
+      console.error('Erro ao gerar plano:', e)
+    } finally {
+      setGerandoPlano(false)
+    }
   }
 
   if (mostrarQuiz) return <QuizIA tipo="nutricao" onConcluir={gerarPlanoNutricional} onCancelar={() => setMostrarQuiz(false)} />

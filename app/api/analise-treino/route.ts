@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: isPlano ? 4096 : 400,
       system: isPlano
-        ? 'Você é uma nutricionista ou personal trainer especialista. Responda APENAS com JSON válido e completo, exatamente no formato solicitado. Nunca adicione texto fora do JSON. Nunca trunce o JSON.'
+        ? 'Você é uma nutricionista ou personal trainer especialista. Responda APENAS com JSON válido e completo, exatamente no formato solicitado. Nunca adicione texto fora do JSON. Nunca truncue o JSON. O JSON deve ser completo e fechado.'
         : 'Você é coach de IA do KORE. Responda SEMPRE em texto corrido, sem títulos, sem markdown, sem asteriscos, sem negrito, sem emojis. Vá direto ao conteúdo, nunca use cabeçalhos como "Análise:" ou "Balanço do dia:".',
       messages: [
         { role: 'user', content: prompt }
