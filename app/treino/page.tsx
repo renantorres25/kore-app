@@ -18,6 +18,32 @@ function estimarCalorias(modalidade: Modalidade, duracaoMin: number, pesoKg: num
   return Math.round(MET[modalidade] * pesoKg * (duracaoMin / 60))
 }
 
+// Pace corrida: min/km
+function calcularPace(duracaoMin: number, distanciaKm: number): string {
+  if (!duracaoMin || !distanciaKm || distanciaKm === 0) return ''
+  const paceTotal = duracaoMin / distanciaKm
+  const min = Math.floor(paceTotal)
+  const seg = Math.round((paceTotal - min) * 60)
+  return `${min}:${seg.toString().padStart(2, '0')}`
+}
+
+// Pace natação: min/100m
+function calcularPaceNatacao(duracaoMin: number, distanciaM: number): string {
+  if (!duracaoMin || !distanciaM || distanciaM === 0) return ''
+  const pacePor100 = (duracaoMin / distanciaM) * 100
+  const min = Math.floor(pacePor100)
+  const seg = Math.round((pacePor100 - min) * 60)
+  return `${min}:${seg.toString().padStart(2, '0')}`
+}
+
+function getTodayBR(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function calcVolume(series: Record<string, SerieRegistrada[]>): number {
+  return Object.values(series).flat().filter(s => s.concluida && s.carga).reduce((a, s) => a + (s.carga! * s.repeticoes), 0)
+}
+
 const MODALIDADES = [
   { id: 'musculacao' as Modalidade, icon: '🏋️', label: 'Musculação', cor: 'bg-emerald-500/10', corText: 'text-emerald-400', corBorder: 'border-emerald-500/20', hex: '#10B981' },
   { id: 'corrida'    as Modalidade, icon: '🏃', label: 'Corrida',    cor: 'bg-blue-500/10',    corText: 'text-blue-400',    corBorder: 'border-blue-500/20',    hex: '#3B82F6' },
@@ -33,21 +59,20 @@ const CORES_PLANO: Record<string, { text: string; bg: string; border: string; gl
   C: { text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20',  glow: 'bg-orange-400',  hex: '#F97316' },
 }
 
-function calcularPace(duracaoMin: number, distanciaKm: number): string {
-  if (!duracaoMin || !distanciaKm || distanciaKm === 0) return ''
-  const paceTotal = duracaoMin / distanciaKm
-  const min = Math.floor(paceTotal)
-  const seg = Math.round((paceTotal - min) * 60)
-  return `${min}:${seg.toString().padStart(2, '0')}`
-}
-
-function getTodayBR(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-}
-
-function calcVolume(series: Record<string, SerieRegistrada[]>): number {
-  return Object.values(series).flat().filter(s => s.concluida && s.carga).reduce((a, s) => a + (s.carga! * s.repeticoes), 0)
-}
+// ─── ZONAS FC ─────────────────────────────────────────────────────────────────
+// Zona 1: recuperação ativa <65% FCmax
+// Zona 2: base aeróbica 65-75%
+// Zona 3: tempo 75-85%
+// Zona 4: limiar anaeróbico 85-92%
+// Zona 5: VO2max >92%
+const ZONAS_FC = [
+  { valor: 'Z1', label: 'Z1 — Recuperação ativa', desc: '< 65% FCmax', cor: 'bg-blue-500/15 border-blue-500/30 text-blue-400' },
+  { valor: 'Z2', label: 'Z2 — Base aeróbica',     desc: '65–75% FCmax', cor: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
+  { valor: 'Z3', label: 'Z3 — Tempo',              desc: '75–85% FCmax', cor: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400' },
+  { valor: 'Z4', label: 'Z4 — Limiar',             desc: '85–92% FCmax', cor: 'bg-orange-500/15 border-orange-500/30 text-orange-400' },
+  { valor: 'Z5', label: 'Z5 — VO2max',             desc: '> 92% FCmax',  cor: 'bg-red-500/15 border-red-500/30 text-red-400' },
+  { valor: 'misto', label: 'Misto',                desc: 'Varias zonas', cor: 'bg-purple-500/15 border-purple-500/30 text-purple-400' },
+]
 
 function IconHome({ active }: { active: boolean }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
@@ -72,6 +97,304 @@ const NAV_ITEMS = [
   { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao, path: '/evolucao'  },
   { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil,   path: '/perfil'    },
 ]
+
+// ─── FORMULÁRIOS POR MODALIDADE ───────────────────────────────────────────────
+
+function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual, pesoKg }: any) {
+  const pace = calcularPace(duracaoAtual, parseFloat(form.distancia_km ?? '0'))
+  return (
+    <>
+      {/* Dados principais */}
+      <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📍 Percurso</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (km)</label>
+              <input type="number" step="0.1" placeholder="Ex: 10.5" value={form.distancia_km ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
+            </div>
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Elevação (m)</label>
+              <input type="number" placeholder="Ex: 150" value={form.elevacao ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, elevacao: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
+            </div>
+          </div>
+          {pace && (
+            <div className="flex items-center gap-2 bg-blue-500/5 border border-blue-500/20 rounded-xl px-4 py-3">
+              <span className="text-blue-400 text-sm">⚡</span>
+              <p className="text-blue-400 text-sm font-bold">Pace: {pace} min/km</p>
+              <p className="text-zinc-600 text-xs ml-auto">calculado automaticamente</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Zona de FC */}
+      <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+        <p className={`text-[10px] uppercase tracking-[0.15em] mb-1 ${mod.corText}`}>❤️ Zona de frequência cardíaca</p>
+        <p className="text-zinc-600 text-xs mb-4">Zona predominante do treino — fundamental para análise da carga</p>
+        <div className="grid grid-cols-2 gap-2">
+          {ZONAS_FC.map(z => (
+            <button key={z.valor} onClick={() => setForm((p: any) => ({ ...p, zona_fc: z.valor }))}
+              className={`flex flex-col items-start p-3 rounded-xl border transition-all active:scale-95 text-left ${form.zona_fc === z.valor ? z.cor : 'bg-white/[0.02] border-white/[0.06] text-zinc-500'}`}>
+              <span className="text-xs font-black">{z.label}</span>
+              <span className="text-[9px] opacity-70 mt-0.5">{z.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* FC e Cadência */}
+      <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label>
+              <input type="number" placeholder="Ex: 155" value={form.fc_media ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
+            </div>
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">FC máxima (bpm)</label>
+              <input type="number" placeholder="Ex: 178" value={form.fc_max ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, fc_max: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Cadência (ppm)</label>
+              <input type="number" placeholder="Ex: 172" value={form.cadencia ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, cadencia: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
+            </div>
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
+              <input type="number" placeholder="Ex: 850" value={form.calorias_wearable ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
+            </div>
+          </div>
+        </div>
+        {!form.calorias_wearable && calsPreview && (
+          <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>
+        )}
+      </div>
+    </>
+  )
+}
+
+function FormBike({ form, setForm, mod, calsPreview, duracaoAtual, pesoKg }: any) {
+  const pace = calcularPace(duracaoAtual, parseFloat(form.distancia_km ?? '0'))
+  const velMedia = form.distancia_km && duracaoAtual
+    ? Math.round((parseFloat(form.distancia_km) / (duracaoAtual / 60)) * 10) / 10
+    : null
+  return (
+    <>
+      <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📍 Percurso</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (km)</label>
+              <input type="number" step="0.1" placeholder="Ex: 40" value={form.distancia_km ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
+            </div>
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Elevação (m)</label>
+              <input type="number" placeholder="Ex: 650" value={form.elevacao ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, elevacao: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
+            </div>
+          </div>
+          {velMedia && (
+            <div className="flex items-center gap-2 bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3">
+              <span className="text-orange-400 text-sm">⚡</span>
+              <p className="text-orange-400 text-sm font-bold">Velocidade média: {velMedia} km/h</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Zona de FC */}
+      <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+        <p className={`text-[10px] uppercase tracking-[0.15em] mb-1 ${mod.corText}`}>❤️ Zona de frequência cardíaca</p>
+        <p className="text-zinc-600 text-xs mb-4">Zona predominante — define se foi treino base ou intenso</p>
+        <div className="grid grid-cols-2 gap-2">
+          {ZONAS_FC.map(z => (
+            <button key={z.valor} onClick={() => setForm((p: any) => ({ ...p, zona_fc: z.valor }))}
+              className={`flex flex-col items-start p-3 rounded-xl border transition-all active:scale-95 text-left ${form.zona_fc === z.valor ? z.cor : 'bg-white/[0.02] border-white/[0.06] text-zinc-500'}`}>
+              <span className="text-xs font-black">{z.label}</span>
+              <span className="text-[9px] opacity-70 mt-0.5">{z.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Potência média (W)</label>
+              <input type="number" placeholder="Ex: 180" value={form.potencia_media ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, potencia_media: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
+            </div>
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Potência máx (W)</label>
+              <input type="number" placeholder="Ex: 320" value={form.potencia_max ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, potencia_max: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label>
+              <input type="number" placeholder="Ex: 148" value={form.fc_media ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
+            </div>
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Cadência média (rpm)</label>
+              <input type="number" placeholder="Ex: 88" value={form.cadencia ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, cadencia: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
+            </div>
+          </div>
+          <div>
+            <label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
+            <input type="number" placeholder="Ex: 1200" value={form.calorias_wearable ?? ''}
+              onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
+          </div>
+        </div>
+        {!form.calorias_wearable && calsPreview && (
+          <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>
+        )}
+      </div>
+    </>
+  )
+}
+
+function FormNatacao({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
+  const distM = parseInt(form.distancia_m ?? '0')
+  const paceNat = calcularPaceNatacao(duracaoAtual, distM)
+  return (
+    <>
+      <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>🏊 Volume</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (m)</label>
+              <input type="number" placeholder="Ex: 2000" value={form.distancia_m ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, distancia_m: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" />
+            </div>
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Voltas (25m)</label>
+              <input type="number" placeholder="Ex: 80" value={form.voltas ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, voltas: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" />
+            </div>
+          </div>
+          {paceNat && (
+            <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/20 rounded-xl px-4 py-3">
+              <span className="text-cyan-400 text-sm">⚡</span>
+              <p className="text-cyan-400 text-sm font-bold">Pace: {paceNat} /100m</p>
+            </div>
+          )}
+          <div>
+            <label className="text-zinc-600 text-[10px] mb-3 block">Estilo predominante</label>
+            <div className="grid grid-cols-2 gap-2">
+              {['Livre', 'Costas', 'Peito', 'Borboleta', 'Medley', 'Misto'].map(e => (
+                <button key={e} onClick={() => setForm((p: any) => ({ ...p, estilo: e }))}
+                  className={`py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${form.estilo === e ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">FC pós-treino (bpm)</label>
+              <input type="number" placeholder="Ex: 145" value={form.fc_media ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" />
+            </div>
+            <div>
+              <label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
+              <input type="number" placeholder="Ex: 600" value={form.calorias_wearable ?? ''}
+                onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" />
+            </div>
+          </div>
+        </div>
+        {!form.calorias_wearable && calsPreview && (
+          <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>
+        )}
+      </div>
+    </>
+  )
+}
+
+function FormCrossfit({ form, setForm, mod, calsPreview }: any) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+      <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>⚡ WOD</p>
+      <div className="space-y-3">
+        <div>
+          <label className="text-zinc-600 text-[10px] mb-2 block">Tipo do WOD</label>
+          <div className="flex gap-2 flex-wrap">
+            {['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Chipper', 'Strength'].map(t => (
+              <button key={t} onClick={() => setForm((p: any) => ({ ...p, tipo_wod: t }))}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${form.tipo_wod === t ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-zinc-600 text-[10px] mb-1.5 block">Movimentos e cargas</label>
+          <textarea placeholder="Ex: 21-15-9 Thrusters 42kg + Pull-ups" value={form.movimentos ?? ''}
+            onChange={e => setForm((p: any) => ({ ...p, movimentos: e.target.value }))} rows={2}
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700 resize-none" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-zinc-600 text-[10px] mb-1.5 block">Resultado / Score</label>
+            <input type="text" placeholder="Ex: 8rds+5 / 12:34" value={form.resultado ?? ''}
+              onChange={e => setForm((p: any) => ({ ...p, resultado: e.target.value }))}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700" />
+          </div>
+          <div>
+            <label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
+            <input type="number" placeholder="Ex: 500" value={form.calorias_wearable ?? ''}
+              onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700" />
+          </div>
+        </div>
+        {!form.calorias_wearable && calsPreview && (
+          <p className="text-zinc-600 text-[10px]">Estimativa sem wearable: ~{calsPreview} kcal</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── PAGE PRINCIPAL ───────────────────────────────────────────────────────────
 
 export default function TreinoCliente() {
   const router = useRouter()
@@ -151,8 +474,6 @@ export default function TreinoCliente() {
     setCarregando(false)
   }
 
-  // ── GERAR PLANO COM IA ────────────────────────────────────────────────────────
-
   async function gerarPlanoComIA(respostas: RespostasQuiz) {
     setMostrarQuiz(false)
     setTela('gerando_plano_ia')
@@ -171,65 +492,24 @@ export default function TreinoCliente() {
     const focoArr = Array.isArray(respostas.foco) ? respostas.foco.join(', ') : respostas.foco
     const limitacaoArr = Array.isArray(respostas.limitacao) ? respostas.limitacao.join(', ') : respostas.limitacao
 
-    const prompt = `Você é um personal trainer especialista com 15 anos de experiência. Crie um plano de musculação completo, detalhado e personalizado — não genérico.
+    const prompt = `Você é um personal trainer especialista com 15 anos de experiência. Crie um plano de musculação completo, detalhado e personalizado.
 
-PERFIL DO ATLETA:
-- Nome: ${perfilUsuario.nome ?? 'Atleta'}
-- Objetivo principal: ${OBJETIVO_LABEL[perfilUsuario.objetivo ?? ''] ?? 'Saúde geral'}
-- Peso: ${perfilUsuario.peso ? `${perfilUsuario.peso}kg` : 'não informado'}
+PERFIL: ${perfilUsuario.nome ?? 'Atleta'} | ${OBJETIVO_LABEL[perfilUsuario.objetivo ?? ''] ?? 'Saúde geral'} | ${perfilUsuario.peso ? `${perfilUsuario.peso}kg` : '?'}
 
-RESPOSTAS DA CONSULTA:
-- Dias de treino por semana: ${respostas.dias_semana}
-- Duração por sessão: ${respostas.duracao}
-- Período de treino: ${respostas.periodo}
-- Grupos musculares priorizados: ${focoArr}
-- Experiência: ${respostas.experiencia}
-- Limitações físicas: ${limitacaoArr}
-- Objetivo específico: ${respostas.objetivo_treino}
+CONSULTA:
+- Dias/semana: ${respostas.dias_semana} | Duração: ${respostas.duracao} | Período: ${respostas.periodo}
+- Foco muscular: ${focoArr} | Experiência: ${respostas.experiencia}
+- Limitações: ${limitacaoArr} | Objetivo: ${respostas.objetivo_treino}
+- Observações: ${respostas.observacoes_treino ?? 'nenhuma'}
 
-REGRAS OBRIGATÓRIAS:
-- Crie EXATAMENTE 2 planos (A e B) com divisão inteligente dos grupos musculares
-- Respeite TODAS as limitações físicas — exclua exercícios que agravem a condição
-- Adapte volume e intensidade ao nível de experiência informado
-- Ajuste o número de exercícios ao tempo disponível por sessão
-- Sugira cargas REALISTAS e específicas para o nível informado
-- Cada plano deve ter entre 5 e 7 exercícios
-- Inclua observações técnicas úteis para cada exercício
-- Distribua os grupos musculares de forma complementar entre os planos
+REGRAS: 2 planos (A e B), 5-7 exercícios cada, cargas realistas, respeitar limitações, observações técnicas úteis por exercício.
 
-Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
-
-{
-  "planos": [
-    {
-      "plano": "A",
-      "nome": "Nome descritivo do treino A",
-      "descricao": "Grupos musculares trabalhados em 1 frase",
-      "exercicios": [
-        {
-          "nome": "Nome do exercício",
-          "series": 4,
-          "repeticoes": 10,
-          "carga_sugerida": 20,
-          "observacoes": "Dica técnica ou de segurança específica para este exercício",
-          "ordem": 1
-        }
-      ]
-    },
-    {
-      "plano": "B",
-      "nome": "Nome descritivo do treino B",
-      "descricao": "Grupos musculares trabalhados em 1 frase",
-      "exercicios": [...]
-    }
-  ]
-}`
+Responda APENAS JSON válido:
+{"planos":[{"plano":"A","nome":"...","descricao":"...","exercicios":[{"nome":"...","series":4,"repeticoes":10,"carga_sugerida":20,"observacoes":"...","ordem":1}]},{"plano":"B","nome":"...","descricao":"...","exercicios":[...]}]}`
 
     try {
       const res = await fetch('/api/analise-treino', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // FIX: modo plano = 4096 tokens + system prompt JSON
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, modo: 'plano' }),
       })
       const data = await res.json()
@@ -240,42 +520,26 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
 
       for (const p of planoGerado.planos) {
         const { data: treinoSalvo } = await supabase.from('treinos').insert({
-          personal_id: null,
-          cliente_id: userId,
-          nome: p.nome,
-          descricao: p.descricao,
-          plano: p.plano,
-          status: 'pendente',
-          concluido: false,
-          data: null, // FIX: planos IA não têm data específica, são permanentes
+          personal_id: null, cliente_id: userId,
+          nome: p.nome, descricao: p.descricao, plano: p.plano,
+          status: 'pendente', concluido: false, data: null,
         }).select('id').single()
 
         if (treinoSalvo && p.exercicios?.length) {
           await supabase.from('exercicios_treino').insert(
             p.exercicios.map((ex: any) => ({
-              treino_id: treinoSalvo.id,
-              nome: ex.nome,
-              series: ex.series,
-              repeticoes: ex.repeticoes,
+              treino_id: treinoSalvo.id, nome: ex.nome,
+              series: ex.series, repeticoes: ex.repeticoes,
               carga_sugerida: ex.carga_sugerida ?? null,
-              observacoes: ex.observacoes ?? '',
-              ordem: ex.ordem,
+              observacoes: ex.observacoes ?? '', ordem: ex.ordem,
             }))
           )
         }
       }
-
       await carregar()
-    } catch (e) {
-      console.error('Erro ao gerar plano:', e)
-    } finally {
-      clearInterval(intervalo)
-      setTela('principal')
-      setGerandoMensagem(0)
-    }
+    } catch (e) { console.error('Erro ao gerar plano:', e) }
+    finally { clearInterval(intervalo); setTela('principal'); setGerandoMensagem(0) }
   }
-
-  // ── MUSCULAÇÃO ────────────────────────────────────────────────────────────────
 
   function iniciarMusculacao(treino: Treino) {
     const init: Record<string, SerieRegistrada[]> = {}
@@ -312,15 +576,9 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
     setCaloriasEstimadas(cals)
 
     const { data: reg } = await supabase.from('treinos').insert({
-      personal_id: em.personal_id ?? null,
-      cliente_id: session.user.id,
-      nome: em.nome,
-      descricao: em.descricao,
-      plano: em.plano,
-      status: 'concluido',
-      data: getTodayBR(),
-      concluido: true,
-      calorias_estimadas: cals,
+      personal_id: em.personal_id ?? null, cliente_id: session.user.id,
+      nome: em.nome, descricao: em.descricao, plano: em.plano,
+      status: 'concluido', data: getTodayBR(), concluido: true, calorias_estimadas: cals,
     }).select('id').single()
 
     if (reg) {
@@ -343,21 +601,17 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
       return `${ex.nome}: ${done.length} séries (${done.map(x => x.carga ? `${x.carga}kg` : 'sem carga').join(', ')})`
     }).filter(Boolean).join(', ')
 
-    const prompt = `Coach de IA do KORE. Analise este treino de musculação de forma direta.
-Treino: ${treino.nome} | Séries: ${tc}/${tt} | Volume: ${vol > 0 ? `${vol}kg` : 'não registrado'} | Duração estimada: ${duracaoMin}min | Calorias estimadas: ~${cals}kcal | Score de recuperação: ${score ? `${score}/100` : 'não registrado'}
-Exercícios: ${resumo || 'não informado'}
-Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaque, Próximo passo`
+    const prompt = `Coach KORE. Analise este treino de musculação.
+${treino.nome} | ${tc}/${tt} séries | Volume: ${vol > 0 ? `${vol}kg` : '?'} | ${duracaoMin}min | ~${cals}kcal | Recuperação: ${score ? `${score}/100` : '?'}
+Exercícios: ${resumo || '?'}
+3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaque, Próximo passo`
 
     try {
       const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
       const data = await res.json()
       setAnalise({ texto: data.analise ?? '', carregando: false })
-    } catch {
-      setAnalise({ texto: 'Não foi possível gerar análise.', carregando: false })
-    }
+    } catch { setAnalise({ texto: 'Não foi possível gerar análise.', carregando: false }) }
   }
-
-  // ── ATIVIDADE LIVRE ───────────────────────────────────────────────────────────
 
   function abrirFormulario(mod: Modalidade) {
     setModalidade(mod); setForm({ intensidade: 3 })
@@ -370,19 +624,38 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     if (!session) return
 
     const duracaoMin = parseInt(form.duracao_min ?? '30') || 30
-    const cals = form.calorias_wearable ? parseInt(form.calorias_wearable) : estimarCalorias(modalidade!, duracaoMin, pesoKg)
+    const cals = form.calorias_wearable
+      ? parseInt(form.calorias_wearable)
+      : estimarCalorias(modalidade!, duracaoMin, pesoKg)
     const paceCalculado = calcularPace(duracaoMin, parseFloat(form.distancia_km ?? '0'))
+    const paceNatCalculado = calcularPaceNatacao(duracaoMin, parseInt(form.distancia_m ?? '0'))
     setCaloriasEstimadas(cals)
 
     await supabase.from('atividades_livres').insert({
       usuario_id: session.user.id, data: getTodayBR(), modalidade,
       duracao_min: duracaoMin, intensidade: form.intensidade ?? 3,
-      distancia_km: form.distancia_km ?? null,
-      ritmo_medio: paceCalculado || form.ritmo_medio || null,
-      fc_media: form.fc_media ?? null, distancia_m: form.distancia_m ?? null,
-      voltas: form.voltas ?? null, estilo_natacao: form.estilo ?? null,
-      tipo_wod: form.tipo_wod ?? null, movimentos: form.movimentos ?? null,
-      resultado_wod: form.resultado ?? null, observacoes: form.observacoes ?? null,
+      // Corrida e bike
+      distancia_km: form.distancia_km ? parseFloat(form.distancia_km) : null,
+      elevacao: form.elevacao ? parseInt(form.elevacao) : null,
+      ritmo_medio: paceCalculado || null,
+      zona_fc: form.zona_fc ?? null,
+      fc_media: form.fc_media ? parseInt(form.fc_media) : null,
+      fc_max: form.fc_max ? parseInt(form.fc_max) : null,
+      cadencia: form.cadencia ? parseInt(form.cadencia) : null,
+      // Bike específico
+      potencia_media: form.potencia_media ? parseInt(form.potencia_media) : null,
+      potencia_max: form.potencia_max ? parseInt(form.potencia_max) : null,
+      // Natação
+      distancia_m: form.distancia_m ? parseInt(form.distancia_m) : null,
+      voltas: form.voltas ? parseInt(form.voltas) : null,
+      estilo_natacao: form.estilo ?? null,
+      ritmo_natacao: paceNatCalculado || null,
+      // Crossfit
+      tipo_wod: form.tipo_wod ?? null,
+      movimentos: form.movimentos ?? null,
+      resultado_wod: form.resultado ?? null,
+      // Geral
+      observacoes: form.observacoes ?? null,
       calorias_estimadas: form.calorias_wearable ? null : cals,
       calorias_wearable: form.calorias_wearable ? parseInt(form.calorias_wearable) : null,
     })
@@ -394,34 +667,35 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
   async function gerarIAAtividadeLivre(duracaoMin: number, cals: number) {
     setAnaliseLivre({ texto: '', carregando: true })
     const mod = MODALIDADES.find(m => m.id === modalidade)!
+
     let dadosEspecificos = ''
-    if (modalidade === 'corrida' || modalidade === 'bike') {
+    if (modalidade === 'corrida') {
       const pace = calcularPace(duracaoMin, parseFloat(form.distancia_km ?? '0'))
-      dadosEspecificos = `Distância: ${form.distancia_km ?? 'não informado'}km | Pace: ${pace || 'não calculado'} min/km | FC média: ${form.fc_media ?? 'não informado'}bpm`
+      dadosEspecificos = `Distância: ${form.distancia_km ?? '?'}km | Pace: ${pace || '?'} min/km | Elevação: ${form.elevacao ?? '?'}m | Zona FC: ${form.zona_fc ?? '?'} | FC média: ${form.fc_media ?? '?'}bpm | FC máx: ${form.fc_max ?? '?'}bpm | Cadência: ${form.cadencia ?? '?'}ppm`
+    } else if (modalidade === 'bike') {
+      const vel = form.distancia_km && duracaoMin ? Math.round((parseFloat(form.distancia_km) / (duracaoMin / 60)) * 10) / 10 : null
+      dadosEspecificos = `Distância: ${form.distancia_km ?? '?'}km | Vel. média: ${vel ?? '?'}km/h | Elevação: ${form.elevacao ?? '?'}m | Zona FC: ${form.zona_fc ?? '?'} | Potência média: ${form.potencia_media ?? '?'}W | Potência máx: ${form.potencia_max ?? '?'}W | Cadência: ${form.cadencia ?? '?'}rpm | FC média: ${form.fc_media ?? '?'}bpm`
     } else if (modalidade === 'natacao') {
-      dadosEspecificos = `Distância: ${form.distancia_m ?? 'não informado'}m | Voltas: ${form.voltas ?? 'não informado'} | Estilo: ${form.estilo ?? 'não informado'}`
+      const paceNat = calcularPaceNatacao(duracaoMin, parseInt(form.distancia_m ?? '0'))
+      dadosEspecificos = `Distância: ${form.distancia_m ?? '?'}m | Voltas: ${form.voltas ?? '?'} | Estilo: ${form.estilo ?? '?'} | Pace: ${paceNat || '?'}/100m | FC pós: ${form.fc_media ?? '?'}bpm`
     } else if (modalidade === 'crossfit') {
-      dadosEspecificos = `WOD: ${form.tipo_wod ?? 'não informado'} | Movimentos: ${form.movimentos ?? 'não informado'} | Resultado: ${form.resultado ?? 'não informado'}`
+      dadosEspecificos = `WOD: ${form.tipo_wod ?? '?'} | Movimentos: ${form.movimentos ?? '?'} | Resultado: ${form.resultado ?? '?'}`
     }
 
-    const prompt = `Coach de IA do KORE. Analise esta atividade de forma direta e motivadora.
-Atividade: ${mod.label} | Duração: ${duracaoMin}min | Intensidade: ${form.intensidade}/5 | Calorias estimadas: ~${cals}kcal | Score de recuperação: ${score ? `${score}/100` : 'não registrado'}
+    const prompt = `Coach KORE. Analise esta atividade de ${mod.label} de forma direta e específica com os dados abaixo.
+${duracaoMin}min | Intensidade: ${form.intensidade}/5 | ~${cals}kcal | Recuperação: ${score ? `${score}/100` : '?'}
 ${dadosEspecificos}
 ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
-Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaque, Próximo passo`
+3 partes curtas (máx 80 palavras, sem markdown): Desempenho com dados reais, Ponto de atenção, Próximo treino`
 
     try {
       const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
       const data = await res.json()
       setAnaliseLivre({ texto: data.analise ?? '', carregando: false })
-    } catch {
-      setAnaliseLivre({ texto: 'Não foi possível gerar análise.', carregando: false })
-    }
+    } catch { setAnaliseLivre({ texto: 'Não foi possível gerar análise.', carregando: false }) }
   }
 
-  if (mostrarQuiz) {
-    return <QuizIA tipo="treino" onConcluir={gerarPlanoComIA} onCancelar={() => setMostrarQuiz(false)} />
-  }
+  if (mostrarQuiz) return <QuizIA tipo="treino" onConcluir={gerarPlanoComIA} onCancelar={() => setMostrarQuiz(false)} />
 
   if (carregando) return (
     <main className="min-h-screen bg-[#080808] flex items-center justify-center">
@@ -441,17 +715,8 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
           <p className="text-zinc-500 text-sm leading-relaxed mb-8">Personalizando cada detalhe com base nas suas respostas...</p>
           <div className="space-y-2">
             {MENSAGENS_GERANDO.map((msg, i) => (
-              <div key={i} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all duration-500 ${
-                i < gerandoMensagem ? 'bg-emerald-500/5 border-emerald-500/20' :
-                i === gerandoMensagem ? 'bg-white/[0.04] border-white/[0.08]' :
-                'bg-white/[0.02] border-white/[0.04] opacity-40'
-              }`}>
-                {i < gerandoMensagem
-                  ? <span className="text-emerald-400 text-sm shrink-0">✓</span>
-                  : i === gerandoMensagem
-                  ? <div className="w-3.5 h-3.5 border-2 border-emerald-400/60 border-t-emerald-400 rounded-full animate-spin shrink-0" />
-                  : <div className="w-3.5 h-3.5 rounded-full border border-white/[0.15] shrink-0" />
-                }
+              <div key={i} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all duration-500 ${i < gerandoMensagem ? 'bg-emerald-500/5 border-emerald-500/20' : i === gerandoMensagem ? 'bg-white/[0.04] border-white/[0.08]' : 'bg-white/[0.02] border-white/[0.04] opacity-40'}`}>
+                {i < gerandoMensagem ? <span className="text-emerald-400 text-sm shrink-0">✓</span> : i === gerandoMensagem ? <div className="w-3.5 h-3.5 border-2 border-emerald-400/60 border-t-emerald-400 rounded-full animate-spin shrink-0" /> : <div className="w-3.5 h-3.5 rounded-full border border-white/[0.15] shrink-0" />}
                 <p className={`text-sm ${i <= gerandoMensagem ? 'text-zinc-300' : 'text-zinc-600'}`}>{msg}</p>
               </div>
             ))}
@@ -465,7 +730,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     const c = CORES_PLANO[em.plano]
     const tc = totalConcluidas(); const tt = totalSeries()
     const vol = calcVolume(series); const pct = tt > 0 ? Math.round((tc / tt) * 100) : 0
-
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white overflow-y-auto">
         <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -501,10 +765,8 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               {analise.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
             </div>
             <div className="px-5 py-4">
-              {analise.carregando
-                ? <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>
-                : <p className="text-zinc-300 text-sm leading-relaxed">{analise.texto || 'Gerando análise...'}</p>
-              }
+              {analise.carregando ? <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>
+                : <p className="text-zinc-300 text-sm leading-relaxed">{analise.texto || 'Gerando análise...'}</p>}
             </div>
           </div>
           <div className="space-y-3">
@@ -522,21 +784,36 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white overflow-y-auto">
         <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-          <div className="text-center pt-4 mb-8">
+          <div className="text-center pt-4 mb-6">
             <div className={`w-20 h-20 rounded-3xl ${mod.cor} border ${mod.corBorder} flex items-center justify-center mx-auto mb-5`}><span className="text-4xl">{mod.icon}</span></div>
             <p className={`text-[10px] uppercase tracking-[0.3em] mb-2 ${mod.corText}`}>Atividade registrada</p>
             <h1 className="text-3xl font-black text-white mb-1">{mod.label}</h1>
           </div>
+
+          {/* Stats principais */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Duração</p>
               <p className={`text-3xl font-black ${mod.corText}`}>{duracaoMin}<span className="text-zinc-600 text-lg font-light">min</span></p>
             </div>
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Calorias est.</p>
+              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Calorias</p>
               <p className={`text-3xl font-black ${mod.corText}`}>~{caloriasEstimadas ?? '—'}<span className="text-zinc-600 text-lg font-light">kcal</span></p>
             </div>
+            {form.distancia_km && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p>
+              <p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_km}<span className="text-zinc-600 text-lg font-light">km</span></p>
+            </div>}
+            {form.distancia_m && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p>
+              <p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_m}<span className="text-zinc-600 text-lg font-light">m</span></p>
+            </div>}
+            {form.potencia_media && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Potência média</p>
+              <p className={`text-3xl font-black ${mod.corText}`}>{form.potencia_media}<span className="text-zinc-600 text-lg font-light">W</span></p>
+            </div>}
           </div>
+
           <div className={`rounded-2xl border mb-4 overflow-hidden ${mod.corBorder}`} style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
               <div className={`w-7 h-7 rounded-xl ${mod.cor} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${mod.corText}`}>✦</span></div>
@@ -544,10 +821,8 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               {analiseLivre.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
             </div>
             <div className="px-5 py-4">
-              {analiseLivre.carregando
-                ? <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>
-                : <p className="text-zinc-300 text-sm leading-relaxed">{analiseLivre.texto}</p>
-              }
+              {analiseLivre.carregando ? <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>
+                : <p className="text-zinc-300 text-sm leading-relaxed">{analiseLivre.texto}</p>}
             </div>
           </div>
           <div className="space-y-3">
@@ -610,7 +885,7 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               )
             })}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração do treino (para estimar calorias)</p>
+              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração do treino</p>
               <div className="flex items-center gap-3">
                 <input type="number" placeholder="60" value={form.duracao_musculacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_musculacao: e.target.value }))} className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                 <p className="text-zinc-500 text-sm">minutos</p>
@@ -630,86 +905,101 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
+  // ── FORMULÁRIO DE ATIVIDADE LIVRE ─────────────────────────────────────────────
   if (tela === 'formulario' && modalidade) {
     const mod = MODALIDADES.find(m => m.id === modalidade)!
     const duracaoAtual = parseInt(form.duracao_min ?? '0') || 0
     const calsPreview = duracaoAtual > 0 ? estimarCalorias(modalidade, duracaoAtual, pesoKg) : null
+
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
         <div className="shrink-0 border-b border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)' }}>
           <div className="max-w-md mx-auto px-4 pt-12 pb-4 flex items-center gap-3">
             <span className="text-3xl">{mod.icon}</span>
-            <div><p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>{mod.label}</p><h1 className="text-xl font-black text-white">Registrar atividade</h1></div>
+            <div>
+              <p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>{mod.label}</p>
+              <h1 className="text-xl font-black text-white">Registrar atividade</h1>
+            </div>
           </div>
         </div>
+
         <div className="flex-1 overflow-y-auto pb-32">
           <div className="max-w-md mx-auto px-4 py-5 space-y-4">
+
+            {/* Aviso dados opcionais */}
+            <div className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.06] rounded-2xl px-4 py-3">
+              <span className="text-lg shrink-0">💡</span>
+              <p className="text-zinc-500 text-xs leading-relaxed">Quanto mais dados você preencher, mais precisa e personalizada será a análise da IA. Todos os campos são opcionais exceto a duração.</p>
+            </div>
+
+            {/* Duração — único obrigatório */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração</p>
+              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">⏱ Duração <span className={`${mod.corText}`}>*</span></p>
               <div className="flex items-center gap-3">
-                <input type="number" placeholder="45" value={form.duracao_min ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))} className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-lg text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                <input type="number" placeholder="45" value={form.duracao_min ?? ''}
+                  onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))}
+                  className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-lg text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                 <p className="text-zinc-500 text-sm">minutos</p>
               </div>
-              {calsPreview && <div className="mt-3 flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2 border border-white/[0.04]"><div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" /><p className="text-zinc-400 text-[11px]">Estimativa: <span className="text-white font-bold">~{calsPreview} kcal</span> gastas</p></div>}
+              {calsPreview && !form.calorias_wearable && (
+                <div className="mt-3 flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2 border border-white/[0.04]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
+                  <p className="text-zinc-400 text-[11px]">Estimativa: <span className="text-white font-bold">~{calsPreview} kcal</span> (sem wearable)</p>
+                </div>
+              )}
             </div>
-            {(modalidade === 'corrida' || modalidade === 'bike') && (
+
+            {/* Formulários específicos por modalidade */}
+            {modalidade === 'corrida' && <FormCorrida form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} duracaoAtual={duracaoAtual} pesoKg={pesoKg} />}
+            {modalidade === 'bike' && <FormBike form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} duracaoAtual={duracaoAtual} pesoKg={pesoKg} />}
+            {modalidade === 'natacao' && <FormNatacao form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} duracaoAtual={duracaoAtual} />}
+            {modalidade === 'crossfit' && <FormCrossfit form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} />}
+
+            {/* Outro esporte — formulário genérico */}
+            {modalidade === 'outro' && (
               <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados do percurso</p>
+                <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Dados gerais</p>
                 <div className="space-y-3">
-                  <div><label className="text-zinc-600 text-[10px] mb-1 block">Distância (km)</label><input type="number" step="0.1" placeholder="5.0" value={form.distancia_km ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
-                  <div><label className="text-zinc-600 text-[10px] mb-1 block">FC média (bpm)</label><input type="number" placeholder="145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
-                </div>
-              </div>
-            )}
-            {modalidade === 'natacao' && (
-              <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados da natação</p>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className="text-zinc-600 text-[10px] mb-1 block">Distância (m)</label><input type="number" placeholder="1000" value={form.distancia_m ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_m: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
-                    <div><label className="text-zinc-600 text-[10px] mb-1 block">Voltas (25m)</label><input type="number" placeholder="40" value={form.voltas ?? ''} onChange={e => setForm((p: any) => ({ ...p, voltas: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
+                  <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label>
+                    <input type="number" placeholder="Ex: 140" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" />
                   </div>
-                  <div><label className="text-zinc-600 text-[10px] mb-3 block">Estilo predominante</label><div className="grid grid-cols-2 gap-2">{['Livre', 'Costas', 'Peito', 'Borboleta'].map(e => (<button key={e} onClick={() => setForm((p: any) => ({ ...p, estilo: e }))} className={`py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${form.estilo === e ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>{e}</button>))}</div></div>
+                  <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
+                    <input type="number" placeholder="Ex: 400" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" />
+                  </div>
+                  {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px]">Estimativa sem wearable: ~{calsPreview} kcal</p>}
                 </div>
               </div>
             )}
-            {modalidade === 'crossfit' && (
-              <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados do WOD</p>
-                <div className="space-y-3">
-                  <div><label className="text-zinc-600 text-[10px] mb-2 block">Tipo do WOD</label><div className="flex gap-2 flex-wrap">{['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Chipper'].map(t => (<button key={t} onClick={() => setForm((p: any) => ({ ...p, tipo_wod: t }))} className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${form.tipo_wod === t ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>{t}</button>))}</div></div>
-                  <div><label className="text-zinc-600 text-[10px] mb-1 block">Movimentos principais</label><input type="text" placeholder="Ex: Burpee, Deadlift 60kg, Box Jump" value={form.movimentos ?? ''} onChange={e => setForm((p: any) => ({ ...p, movimentos: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
-                  <div><label className="text-zinc-600 text-[10px] mb-1 block">Resultado / Score</label><input type="text" placeholder="Ex: 8 rounds + 5 reps" value={form.resultado ?? ''} onChange={e => setForm((p: any) => ({ ...p, resultado: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
-                </div>
-              </div>
-            )}
+
+            {/* Intensidade percebida — todas as modalidades */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Intensidade percebida</p>
+              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">😤 Intensidade percebida (PSE)</p>
               <div className="flex gap-2">
                 {[{ v: 1, l: 'Leve', e: '😌' }, { v: 2, l: 'Moderado', e: '🙂' }, { v: 3, l: 'Forte', e: '😤' }, { v: 4, l: 'Muito forte', e: '😰' }, { v: 5, l: 'Máximo', e: '🔥' }].map(i => (
-                  <button key={i.v} onClick={() => setForm((p: any) => ({ ...p, intensidade: i.v }))} className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${form.intensidade === i.v ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
+                  <button key={i.v} onClick={() => setForm((p: any) => ({ ...p, intensidade: i.v }))}
+                    className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${form.intensidade === i.v ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
                     <span className="text-xl">{i.e}</span><span className="text-[9px] mt-1 font-semibold leading-tight text-center">{i.l}</span>
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Observações */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-              <div className="flex items-center gap-3 mb-3"><span className="text-xl">⌚</span><p className="text-zinc-400 text-sm font-semibold">Wearable <span className="text-zinc-600 font-normal">(opcional)</span></p></div>
-              <div className="space-y-3">
-                {modalidade !== 'natacao' && modalidade !== 'crossfit' && (<div><label className="text-zinc-600 text-[10px] mb-1 block">FC média (bpm)</label><input type="number" placeholder="145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>)}
-                <div><label className="text-zinc-600 text-[10px] mb-1 block">Calorias do wearable</label><input type="number" placeholder="Ex: 420" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Observações <span className="text-zinc-700 normal-case">(opcional)</span></p>
-              <textarea placeholder="Como foi? Alguma dor ou sensação especial?" value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
+              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">📝 Observações <span className="text-zinc-700 normal-case">(opcional)</span></p>
+              <textarea
+                placeholder="Como você se sentiu? Alguma dor, sensação especial, condição climática, estratégia de pace... Quanto mais contexto, melhor a análise."
+                value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))}
+                rows={3} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
             </div>
           </div>
         </div>
+
         <div className="fixed bottom-0 left-0 right-0 border-t border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="max-w-md mx-auto px-4 py-4 flex gap-3">
             <button onClick={() => setTela('principal')} className="w-12 h-12 rounded-2xl border border-white/[0.08] text-zinc-500 flex items-center justify-center active:scale-90 transition-all">✕</button>
-            <button onClick={salvarAtividadeLivre} disabled={salvandoLivre || !form.duracao_min} className={`flex-1 font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${mod.cor} ${mod.corBorder} ${mod.corText} border`}>
+            <button onClick={salvarAtividadeLivre} disabled={salvandoLivre || !form.duracao_min}
+              className={`flex-1 font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${mod.cor} ${mod.corBorder} ${mod.corText} border`}>
               {salvandoLivre ? 'Salvando...' : `Salvar ${mod.label}`}
             </button>
           </div>
@@ -718,6 +1008,7 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
+  // ── TELA PRINCIPAL ────────────────────────────────────────────────────────────
   const sel = treinos.find(t => t.plano === planoAtivo)
 
   return (
@@ -751,7 +1042,7 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                   <div className={`rounded-2xl p-5 border ${co.border} mb-4`} style={{ background: '#0f0f0f' }}>
                     <div className="flex items-center justify-between mb-1">
                       <p className={`text-[10px] uppercase tracking-[0.2em] ${co.text}`}>Plano {sel.plano}</p>
-                      {isPlanoIA && <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ Gerado pela IA</span>}
+                      {isPlanoIA && <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ IA</span>}
                     </div>
                     <p className="text-white font-black text-xl mb-1">{sel.nome}</p>
                     {sel.descricao && <p className="text-zinc-500 text-xs mb-4">{sel.descricao}</p>}
@@ -771,7 +1062,7 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                     <div className="rounded-2xl p-4 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                        <p className="text-zinc-400 text-[11px]">Recuperação: <span className="text-white font-bold">{score}/100</span> {score >= 70 ? '— ótimo para treinar forte!' : score >= 50 ? '— moderação.' : '— leve.'}</p>
+                        <p className="text-zinc-400 text-[11px]">Recuperação: <span className="text-white font-bold">{score}/100</span> {score >= 70 ? '— ótimo para treinar forte!' : score >= 50 ? '— moderação.' : '— leve hoje.'}</p>
                       </div>
                     </div>
                   )}
@@ -789,25 +1080,17 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
             {treinos.length === 0 ? (
               <div className="rounded-2xl p-5 border border-emerald-500/20 mb-4" style={{ background: 'linear-gradient(145deg, #0a1410 0%, #080d0a 100%)' }}>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                    <span className="text-emerald-400 font-black text-lg">✦</span>
-                  </div>
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><span className="text-emerald-400 font-black text-lg">✦</span></div>
                   <div>
                     <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">KORE IA · Personal virtual</p>
                     <p className="text-white font-black text-base">Sem personal? A IA monta seu plano</p>
                   </div>
                 </div>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-4">
-                  Responda algumas perguntas rápidas — como numa consulta de verdade — e a IA cria um plano de musculação personalizado com exercícios, séries e cargas.
-                </p>
-                <button onClick={() => setMostrarQuiz(true)} className="w-full bg-emerald-500 text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">
-                  ✦ Iniciar consulta com IA →
-                </button>
+                <p className="text-zinc-400 text-sm leading-relaxed mb-4">Responda uma consulta rápida e a IA cria um plano personalizado com exercícios, séries e cargas.</p>
+                <button onClick={() => setMostrarQuiz(true)} className="w-full bg-emerald-500 text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">✦ Iniciar consulta com IA →</button>
               </div>
             ) : (
-              <button onClick={() => setMostrarQuiz(true)} className="w-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all mb-4">
-                ✦ Gerar novo plano com IA
-              </button>
+              <button onClick={() => setMostrarQuiz(true)} className="w-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all mb-4">✦ Gerar novo plano com IA</button>
             )}
           </div>
         )}
