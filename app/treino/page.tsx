@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
 
-// ─── TYPES ────────────────────────────────────────────────────────────────────
-
 type Exercicio = { id: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; personal_id?: string | null; exercicios: Exercicio[] }
 type SerieRegistrada = { exercicio_id: string; numero_serie: number; carga: number | null; repeticoes: number; concluida: boolean }
@@ -51,8 +49,6 @@ function calcVolume(series: Record<string, SerieRegistrada[]>): number {
   return Object.values(series).flat().filter(s => s.concluida && s.carga).reduce((a, s) => a + (s.carga! * s.repeticoes), 0)
 }
 
-// ─── NAV ICONS SVG ────────────────────────────────────────────────────────────
-
 function IconHome({ active }: { active: boolean }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
 }
@@ -76,8 +72,6 @@ const NAV_ITEMS = [
   { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao, path: '/evolucao'  },
   { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil,   path: '/perfil'    },
 ]
-
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function TreinoCliente() {
   const router = useRouter()
@@ -163,7 +157,6 @@ export default function TreinoCliente() {
     setMostrarQuiz(false)
     setTela('gerando_plano_ia')
 
-    // Anima as mensagens de progresso
     let idx = 0
     const intervalo = setInterval(() => {
       idx++
@@ -178,7 +171,7 @@ export default function TreinoCliente() {
     const focoArr = Array.isArray(respostas.foco) ? respostas.foco.join(', ') : respostas.foco
     const limitacaoArr = Array.isArray(respostas.limitacao) ? respostas.limitacao.join(', ') : respostas.limitacao
 
-    const prompt = `Você é um personal trainer especialista. Crie um plano de musculação completo e personalizado.
+    const prompt = `Você é um personal trainer especialista com 15 anos de experiência. Crie um plano de musculação completo, detalhado e personalizado — não genérico.
 
 PERFIL DO ATLETA:
 - Nome: ${perfilUsuario.nome ?? 'Atleta'}
@@ -194,13 +187,15 @@ RESPOSTAS DA CONSULTA:
 - Limitações físicas: ${limitacaoArr}
 - Objetivo específico: ${respostas.objetivo_treino}
 
-INSTRUÇÕES:
-- Crie exatamente 2 planos (A e B) dividindo os grupos musculares de forma inteligente
-- Respeite as limitações físicas informadas — exclua exercícios que agravem a condição
-- Adapte volume e intensidade ao nível de experiência
-- Ajuste número de exercícios ao tempo disponível por sessão
-- Sugira cargas realistas para o nível informado
-- Cada plano deve ter entre 4 e 6 exercícios
+REGRAS OBRIGATÓRIAS:
+- Crie EXATAMENTE 2 planos (A e B) com divisão inteligente dos grupos musculares
+- Respeite TODAS as limitações físicas — exclua exercícios que agravem a condição
+- Adapte volume e intensidade ao nível de experiência informado
+- Ajuste o número de exercícios ao tempo disponível por sessão
+- Sugira cargas REALISTAS e específicas para o nível informado
+- Cada plano deve ter entre 5 e 7 exercícios
+- Inclua observações técnicas úteis para cada exercício
+- Distribua os grupos musculares de forma complementar entre os planos
 
 Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
 
@@ -213,10 +208,10 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
       "exercicios": [
         {
           "nome": "Nome do exercício",
-          "series": 3,
-          "repeticoes": 12,
+          "series": 4,
+          "repeticoes": 10,
           "carga_sugerida": 20,
-          "observacoes": "Dica técnica ou de segurança",
+          "observacoes": "Dica técnica ou de segurança específica para este exercício",
           "ordem": 1
         }
       ]
@@ -234,7 +229,8 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
       const res = await fetch('/api/analise-treino', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        // FIX: modo plano = 4096 tokens + system prompt JSON
+        body: JSON.stringify({ prompt, modo: 'plano' }),
       })
       const data = await res.json()
       const texto = data.analise ?? ''
@@ -251,7 +247,7 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
           plano: p.plano,
           status: 'pendente',
           concluido: false,
-          data: getTodayBR(),
+          data: null, // FIX: planos IA não têm data específica, são permanentes
         }).select('id').single()
 
         if (treinoSalvo && p.exercicios?.length) {
@@ -316,9 +312,15 @@ Responda APENAS em JSON válido, sem markdown, sem texto fora do JSON:
     setCaloriasEstimadas(cals)
 
     const { data: reg } = await supabase.from('treinos').insert({
-      personal_id: em.personal_id ?? null, cliente_id: session.user.id,
-      nome: em.nome, descricao: em.descricao, plano: em.plano,
-      status: 'concluido', data: getTodayBR(), concluido: true, calorias_estimadas: cals,
+      personal_id: em.personal_id ?? null,
+      cliente_id: session.user.id,
+      nome: em.nome,
+      descricao: em.descricao,
+      plano: em.plano,
+      status: 'concluido',
+      data: getTodayBR(),
+      concluido: true,
+      calorias_estimadas: cals,
     }).select('id').single()
 
     if (reg) {
@@ -417,21 +419,15 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     }
   }
 
-  // ── QUIZ ──────────────────────────────────────────────────────────────────────
-
   if (mostrarQuiz) {
     return <QuizIA tipo="treino" onConcluir={gerarPlanoComIA} onCancelar={() => setMostrarQuiz(false)} />
   }
-
-  // ── LOADING ───────────────────────────────────────────────────────────────────
 
   if (carregando) return (
     <main className="min-h-screen bg-[#080808] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
-
-  // ── GERANDO PLANO IA ──────────────────────────────────────────────────────────
 
   if (tela === 'gerando_plano_ia') {
     return (
@@ -465,8 +461,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
-  // ── TELA CONCLUSÃO MUSCULAÇÃO ─────────────────────────────────────────────────
-
   if (tela === 'conclusao_musculacao' && em) {
     const c = CORES_PLANO[em.plano]
     const tc = totalConcluidas(); const tt = totalSeries()
@@ -486,7 +480,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               <p className="text-zinc-500 text-sm capitalize">{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-3 mb-4">
             {[
               { label: 'Séries', val: `${tc}`, extra: `/${tt}`, subEl: <div className="mt-2 h-[3px] bg-white/[0.06] rounded-full overflow-hidden"><div className={`h-full rounded-full ${c.glow}`} style={{ width: `${pct}%` }} /></div> },
@@ -501,7 +494,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               </div>
             ))}
           </div>
-
           <div className={`rounded-2xl border mb-4 overflow-hidden ${c.border}`} style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
               <div className={`w-7 h-7 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${c.text}`}>✦</span></div>
@@ -515,7 +507,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               }
             </div>
           </div>
-
           <div className="space-y-3">
             <button onClick={() => router.push('/dashboard')} className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">Voltar ao dashboard</button>
             <button onClick={() => { setEm(null); setConcluido(false); setTela('principal') }} className="w-full border border-white/[0.08] text-zinc-400 font-bold py-4 rounded-2xl text-sm active:scale-95 hover:border-white/20 hover:text-white transition-all">Registrar outra atividade</button>
@@ -525,12 +516,9 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
-  // ── TELA CONCLUSÃO LIVRE ──────────────────────────────────────────────────────
-
   if (tela === 'conclusao_livre' && modalidade) {
     const mod = MODALIDADES.find(m => m.id === modalidade)!
     const duracaoMin = parseInt(form.duracao_min ?? '30') || 30
-
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white overflow-y-auto">
         <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -571,12 +559,9 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
-  // ── EXECUTANDO MUSCULAÇÃO ─────────────────────────────────────────────────────
-
   if (tela === 'executando_musculacao' && em) {
     const c = CORES_PLANO[em.plano]
     const tc = totalConcluidas(); const tt = totalSeries(); const prog = tt > 0 ? (tc / tt) * 100 : 0
-
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
         <div className="shrink-0 border-b border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)' }}>
@@ -645,13 +630,10 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
-  // ── FORMULÁRIO ATIVIDADE LIVRE ────────────────────────────────────────────────
-
   if (tela === 'formulario' && modalidade) {
     const mod = MODALIDADES.find(m => m.id === modalidade)!
     const duracaoAtual = parseInt(form.duracao_min ?? '0') || 0
     const calsPreview = duracaoAtual > 0 ? estimarCalorias(modalidade, duracaoAtual, pesoKg) : null
-
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
         <div className="shrink-0 border-b border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)' }}>
@@ -670,7 +652,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
               </div>
               {calsPreview && <div className="mt-3 flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2 border border-white/[0.04]"><div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" /><p className="text-zinc-400 text-[11px]">Estimativa: <span className="text-white font-bold">~{calsPreview} kcal</span> gastas</p></div>}
             </div>
-
             {(modalidade === 'corrida' || modalidade === 'bike') && (
               <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados do percurso</p>
@@ -680,7 +661,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                 </div>
               </div>
             )}
-
             {modalidade === 'natacao' && (
               <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados da natação</p>
@@ -693,7 +673,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                 </div>
               </div>
             )}
-
             {modalidade === 'crossfit' && (
               <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Dados do WOD</p>
@@ -704,7 +683,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                 </div>
               </div>
             )}
-
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Intensidade percebida</p>
               <div className="flex gap-2">
@@ -715,7 +693,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                 ))}
               </div>
             </div>
-
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <div className="flex items-center gap-3 mb-3"><span className="text-xl">⌚</span><p className="text-zinc-400 text-sm font-semibold">Wearable <span className="text-zinc-600 font-normal">(opcional)</span></p></div>
               <div className="space-y-3">
@@ -723,7 +700,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                 <div><label className="text-zinc-600 text-[10px] mb-1 block">Calorias do wearable</label><input type="number" placeholder="Ex: 420" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" /></div>
               </div>
             </div>
-
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Observações <span className="text-zinc-700 normal-case">(opcional)</span></p>
               <textarea placeholder="Como foi? Alguma dor ou sensação especial?" value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
@@ -742,21 +718,17 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
     )
   }
 
-  // ── TELA PRINCIPAL ────────────────────────────────────────────────────────────
-
   const sel = treinos.find(t => t.plano === planoAtivo)
 
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white">
       <div className="max-w-md mx-auto px-4 pb-24" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-
         <div className="mb-6">
           <button onClick={() => router.push('/dashboard')} className="text-zinc-600 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-1 hover:text-zinc-400 transition-colors">← Dashboard</button>
           <h1 className="text-2xl font-black text-white tracking-tight">Treinos</h1>
           <p className="text-zinc-600 text-xs mt-1">Planos do personal ou registre qualquer atividade</p>
         </div>
 
-        {/* Meus Planos */}
         {treinos.length > 0 && (
           <div className="mb-6">
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meus planos</p>
@@ -771,7 +743,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
                 )
               })}
             </div>
-
             {sel && (() => {
               const co = CORES_PLANO[sel.plano]
               const isPlanoIA = !sel.personal_id
@@ -813,7 +784,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
           </div>
         )}
 
-        {/* Card IA sem personal */}
         {!temPersonal && (
           <div className="mb-6">
             {treinos.length === 0 ? (
@@ -842,14 +812,12 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
           </div>
         )}
 
-        {/* Divisor */}
         <div className="flex items-center gap-3 mb-5">
           <div className="flex-1 h-px bg-white/[0.06]" />
           <p className="text-zinc-600 text-[10px] uppercase tracking-widest">ou</p>
           <div className="flex-1 h-px bg-white/[0.06]" />
         </div>
 
-        {/* Atividades Livres */}
         <div>
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Registrar atividade</p>
           <div className="grid grid-cols-3 gap-2">
@@ -863,7 +831,6 @@ Análise em 3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaq
         </div>
       </div>
 
-      {/* Bottom Nav SVG */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]" style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
           {NAV_ITEMS.map((item) => {
