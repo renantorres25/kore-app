@@ -33,6 +33,15 @@ type NutricaoHoje = {
   qualidade_alimentacao: number | null
 } | null
 
+type DecisaoDia = {
+  decisao: string        // "Treino moderado — não force hoje"
+  motivo: string         // "HRV baixo, sono 6h20"
+  treino: string         // "Plano B com volume reduzido"
+  nutricao: string       // "Aumente carboidrato hoje"
+  sono: string           // "Tente dormir antes das 23h"
+  cor: 'verde' | 'amarelo' | 'laranja' | 'vermelho'
+} | null
+
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
@@ -116,7 +125,7 @@ function getScoreCores(score: number) {
   if (score >= 80) return { text: 'text-emerald-400', bg: 'bg-emerald-400', border: 'border-emerald-400/20' }
   if (score >= 60) return { text: 'text-yellow-400',  bg: 'bg-yellow-400',  border: 'border-yellow-400/20'  }
   if (score >= 40) return { text: 'text-orange-400',  bg: 'bg-orange-400',  border: 'border-orange-400/20'  }
-  return            { text: 'text-red-400',     bg: 'bg-red-400',     border: 'border-red-400/20'     }
+  return              { text: 'text-red-400',     bg: 'bg-red-400',     border: 'border-red-400/20'     }
 }
 
 function calcularStreak(datas: string[]): number {
@@ -132,6 +141,15 @@ function calcularStreak(datas: string[]): number {
   return streak
 }
 
+// ─── CORES DO CARD DE DECISÃO ────────────────────────────────────────────────
+function getCoresDecisao(cor: 'verde' | 'amarelo' | 'laranja' | 'vermelho') {
+  if (cor === 'verde')    return { border: 'border-emerald-500/30', badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', dot: 'bg-emerald-400', glow: '#10B981' }
+  if (cor === 'amarelo')  return { border: 'border-yellow-500/30',  badge: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',    dot: 'bg-yellow-400',  glow: '#EAB308' }
+  if (cor === 'laranja')  return { border: 'border-orange-500/30',  badge: 'bg-orange-500/10 text-orange-400 border-orange-500/20',    dot: 'bg-orange-400',  glow: '#F97316' }
+  return                         { border: 'border-red-500/30',     badge: 'bg-red-500/10 text-red-400 border-red-500/20',            dot: 'bg-red-400',     glow: '#EF4444' }
+}
+
+// ─── NAV ICONS ────────────────────────────────────────────────────────────────
 function IconHome({ active }: { active: boolean }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
 }
@@ -139,7 +157,7 @@ function IconTreino({ active }: { active: boolean }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" /><path d="M7.5 6.5v11M17.5 6.5v11" /><path d="M7.5 12h9" /><path d="M3 10.5v3M21 10.5v3" /></svg>
 }
 function IconNutricao({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" /><path d="M12 6.5V4" /><path d="M12 4c0 0 1.5-1 3-1.5" /></svg>
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" /><path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" /></svg>
 }
 function IconEvolucao({ active }: { active: boolean }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
@@ -187,13 +205,18 @@ export default function Dashboard() {
   const [vinculos, setVinculos] = useState<Vinculo[]>([])
   const [treinoHoje, setTreinoHoje] = useState<{ nome: string; plano: string; concluido: boolean } | null>(null)
   const [nutricaoHoje, setNutricaoHoje] = useState<NutricaoHoje>(null)
+  const [decisaoDia, setDecisaoDia] = useState<DecisaoDia>(null)
+  const [gerandoDecisao, setGerandoDecisao] = useState(false)
+  const [temSonoHoje, setTemSonoHoje] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [activeTab, setActiveTab] = useState('home')
+  const [userId, setUserId] = useState('')
 
   useEffect(() => {
     async function carregarDados() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/'); return }
+      setUserId(session.user.id)
 
       const { data: perfilData } = await supabase
         .from('perfis').select('tipo, nome, email, peso, objetivo').eq('id', session.user.id).single()
@@ -212,28 +235,46 @@ export default function Dashboard() {
           { data: vinculosData },
           { data: treinoHojeData },
           { data: nutricaoData },
+          { data: decisaoData },
         ] = await Promise.all([
           supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
-          supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
+          supabase.from('sono').select('score_recuperacao, duracao_minutos, hrv, sono_profundo, sono_rem').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('treinos').select('data').eq('cliente_id', session.user.id).eq('concluido', true).order('data', { ascending: false }).limit(60),
           supabase.from('atividades_livres').select('data').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(60),
           supabase.from('vinculos').select('tipo, profissional_id').eq('cliente_id', session.user.id).eq('ativo', true),
           supabase.from('treinos').select('nome, plano, concluido').eq('cliente_id', session.user.id).eq('data', hoje).order('concluido', { ascending: false }).limit(1).single(),
           supabase.from('nutricao').select('calorias, proteina, qualidade_alimentacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
+          supabase.from('decisao_dia').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single(),
         ])
 
         if (be) setBemEstar(be)
         if (sonoHoje?.score_recuperacao) setScoreRecuperacao(sonoHoje.score_recuperacao)
+        if (sonoHoje) setTemSonoHoje(true)
         if (treinoHojeData) setTreinoHoje(treinoHojeData)
         if (nutricaoData) setNutricaoHoje(nutricaoData)
 
-        // ── STREAK CORRIGIDO: conta treinos + atividades livres ──
+        // Streak — une treinos + atividades livres
         const todasDatas = [
           ...(treinos?.map((t: { data: string }) => t.data) ?? []),
           ...(atvsLivres?.map((a: { data: string }) => a.data) ?? []),
         ]
         const datasUnicas = [...new Set(todasDatas)].sort((a, b) => b.localeCompare(a))
         setStreak(calcularStreak(datasUnicas))
+
+        // Decisão do dia já salva no banco?
+        if (decisaoData) {
+          setDecisaoDia({
+            decisao: decisaoData.decisao,
+            motivo: decisaoData.motivo,
+            treino: decisaoData.treino,
+            nutricao: decisaoData.nutricao,
+            sono: decisaoData.sono_rec,
+            cor: decisaoData.cor,
+          })
+        } else if (sonoHoje?.score_recuperacao) {
+          // Tem sono mas ainda não tem decisão — gera automaticamente
+          gerarDecisaoDia(session.user.id, sonoHoje, be, perfilData)
+        }
 
         if (vinculosData?.length) {
           const ids = vinculosData.map((v: { profissional_id: string }) => v.profissional_id)
@@ -250,6 +291,71 @@ export default function Dashboard() {
     }
     carregarDados()
   }, [router])
+
+  async function gerarDecisaoDia(uid: string, sono: any, be: any, perfil: any) {
+    setGerandoDecisao(true)
+    try {
+      const score = sono?.score_recuperacao ?? 0
+      const prompt = `Você é o coach de IA do KORE. Analise os dados abaixo e gere a DECISÃO DO DIA para este atleta.
+
+ATLETA: ${perfil.nome ?? 'Atleta'} | Objetivo: ${perfil.objetivo ?? 'saúde geral'}
+
+DADOS DE HOJE:
+- Score de recuperação: ${score}/100
+- Sono: ${sono?.duracao_minutos ? `${Math.floor(sono.duracao_minutos/60)}h${sono.duracao_minutos%60}min` : 'não informado'}
+- HRV: ${sono?.hrv ? `${sono.hrv}ms` : 'não informado'}
+- Sono profundo: ${sono?.sono_profundo ? `${sono.sono_profundo}min` : 'não informado'}
+- REM: ${sono?.sono_rem ? `${sono.sono_rem}min` : 'não informado'}
+- Energia: ${be?.energia ?? '?'}/5
+- Humor: ${be?.humor ?? '?'}/5
+- Dor muscular: ${be?.dor_muscular ?? '?'}/5
+
+Responda APENAS em JSON válido, sem markdown:
+{
+  "decisao": "frase curta e direta (ex: Treino intenso — você está ótimo hoje)",
+  "motivo": "1 linha explicando o porquê com dados reais",
+  "treino": "recomendação específica de treino para hoje",
+  "nutricao": "ajuste nutricional para hoje se necessário",
+  "sono_rec": "recomendação de sono para esta noite",
+  "cor": "verde | amarelo | laranja | vermelho"
+}`
+
+      const res = await fetch('/api/analise-treino', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, modo: 'plano' }),
+      })
+      const data = await res.json()
+      const texto = data.analise ?? ''
+      const jsonMatch = texto.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('JSON inválido')
+      const resultado = JSON.parse(jsonMatch[0])
+
+      // Salva no banco
+      await supabase.from('decisao_dia').upsert({
+        usuario_id: uid,
+        data: getTodayBR(),
+        decisao: resultado.decisao,
+        motivo: resultado.motivo,
+        treino: resultado.treino,
+        nutricao: resultado.nutricao,
+        sono_rec: resultado.sono_rec,
+        cor: resultado.cor,
+      }, { onConflict: 'usuario_id,data' })
+
+      setDecisaoDia({
+        decisao: resultado.decisao,
+        motivo: resultado.motivo,
+        treino: resultado.treino,
+        nutricao: resultado.nutricao,
+        sono: resultado.sono_rec,
+        cor: resultado.cor,
+      })
+    } catch (e) {
+      console.error('Erro ao gerar decisão do dia:', e)
+    }
+    setGerandoDecisao(false)
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -281,6 +387,9 @@ export default function Dashboard() {
             vinculos={vinculos}
             treinoHoje={treinoHoje}
             nutricaoHoje={nutricaoHoje}
+            decisaoDia={decisaoDia}
+            gerandoDecisao={gerandoDecisao}
+            temSonoHoje={temSonoHoje}
             activeTab={activeTab}
             onLogout={handleLogout}
           />
@@ -331,12 +440,98 @@ function Metrica({ label, valor }: { label: string; valor: string }) {
   )
 }
 
+// ─── CARD DECISÃO DO DIA ──────────────────────────────────────────────────────
+function CardDecisaoDia({
+  decisao, gerandoDecisao, temSonoHoje, router
+}: {
+  decisao: DecisaoDia
+  gerandoDecisao: boolean
+  temSonoHoje: boolean
+  router: ReturnType<typeof useRouter>
+}) {
+  // Sem sono → convite para registrar
+  if (!temSonoHoje) {
+    return (
+      <button onClick={() => router.push('/sono')}
+        className="w-full text-left rounded-3xl p-5 mb-3 border border-white/[0.06] relative overflow-hidden active:scale-[0.98] transition-all group"
+        style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0 text-lg">🌙</div>
+          <div>
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em]">✦ Decisão do dia</p>
+            <p className="text-white font-black text-base group-hover:text-emerald-400 transition-colors">Registre seu sono</p>
+          </div>
+        </div>
+        <p className="text-zinc-600 text-xs leading-relaxed">Assim que você registrar como dormiu, a IA gera sua decisão do dia: o que treinar, o que comer e como se recuperar.</p>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <p className="text-emerald-400 text-[11px] font-semibold">Registrar agora → 30 segundos</p>
+        </div>
+      </button>
+    )
+  }
+
+  // Gerando...
+  if (gerandoDecisao || (!decisao && temSonoHoje)) {
+    return (
+      <div className="rounded-3xl p-5 mb-3 border border-emerald-500/20 relative overflow-hidden"
+        style={{ background: 'linear-gradient(145deg, #0a1410 0%, #080d0a 100%)' }}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />
+          <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">✦ Gerando decisão do dia...</p>
+        </div>
+        <div className="space-y-2">
+          {[1, 0.75, 0.55].map((w, i) => (
+            <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!decisao) return null
+
+  const cores = getCoresDecisao(decisao.cor)
+
+  return (
+    <div className={`rounded-3xl p-5 mb-3 border ${cores.border} relative overflow-hidden`}
+      style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
+      <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl opacity-10"
+        style={{ background: cores.glow }} />
+      <div className="relative">
+        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em] mb-3">✦ Decisão do dia</p>
+
+        <p className="text-white font-black text-xl leading-tight mb-1">{decisao.decisao}</p>
+        <p className="text-zinc-500 text-xs mb-4 leading-relaxed">{decisao.motivo}</p>
+
+        <div className="space-y-2.5">
+          {[
+            { icon: '🏋️', label: 'Treino', val: decisao.treino },
+            { icon: '🍽️', label: 'Nutrição', val: decisao.nutricao },
+            { icon: '💤', label: 'Sono', val: decisao.sono },
+          ].map((item, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
+              <div>
+                <span className="text-zinc-500 text-[10px] uppercase tracking-wider">{item.label}: </span>
+                <span className="text-zinc-300 text-xs">{item.val}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function DashboardCliente({
-  perfil, bemEstar, scoreRecuperacao, streak, vinculos, treinoHoje, nutricaoHoje, onLogout: _onLogout,
+  perfil, bemEstar, scoreRecuperacao, streak, vinculos, treinoHoje, nutricaoHoje,
+  decisaoDia, gerandoDecisao, temSonoHoje, onLogout: _onLogout,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   vinculos: Vinculo[]; treinoHoje: { nome: string; plano: string; concluido: boolean } | null
-  nutricaoHoje: NutricaoHoje; activeTab: string; onLogout: () => void
+  nutricaoHoje: NutricaoHoje; decisaoDia: DecisaoDia; gerandoDecisao: boolean; temSonoHoje: boolean
+  activeTab: string; onLogout: () => void
 }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
@@ -362,7 +557,8 @@ function DashboardCliente({
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
           <h1 className="text-[1.85rem] font-black tracking-tight leading-none text-white">{firstName}</h1>
@@ -376,6 +572,15 @@ function DashboardCliente({
         </div>
       </div>
 
+      {/* ✦ CARD DE DECISÃO DO DIA — primeiro card, acima de tudo */}
+      <CardDecisaoDia
+        decisao={decisaoDia}
+        gerandoDecisao={gerandoDecisao}
+        temSonoHoje={temSonoHoje}
+        router={router}
+      />
+
+      {/* Score de recuperação */}
       {scoreRecuperacao ? (
         <button onClick={() => router.push('/sono')}
           className={`w-full text-left rounded-3xl p-6 mb-3 border ${cores?.border} relative overflow-hidden active:scale-[0.98] transition-all duration-200`}
@@ -413,13 +618,13 @@ function DashboardCliente({
         <button onClick={() => router.push('/sono')}
           className="w-full text-left rounded-3xl p-6 mb-3 border border-white/[0.06] relative overflow-hidden active:scale-[0.98] transition-all group"
           style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
-          <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full blur-3xl opacity-[0.04] bg-white" />
           <p className="text-zinc-600 text-[10px] uppercase tracking-[0.22em] mb-3">Recuperação hoje</p>
           <p className="text-white text-2xl font-black mb-1 group-hover:text-emerald-400 transition-colors">Registrar sono</p>
           <p className="text-zinc-600 text-xs">Saiba como seu corpo está respondendo →</p>
         </button>
       )}
 
+      {/* Bem-estar */}
       <button onClick={() => router.push('/bem-estar')}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
         style={{ background: '#0f0f0f' }}>
@@ -449,6 +654,7 @@ function DashboardCliente({
         )}
       </button>
 
+      {/* Streak */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <div className="flex items-center justify-between">
           <div>
@@ -465,6 +671,7 @@ function DashboardCliente({
         </div>
       </div>
 
+      {/* Treino de hoje */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -498,6 +705,7 @@ function DashboardCliente({
         </button>
       </div>
 
+      {/* Nutrição */}
       <button onClick={() => router.push('/nutricao')}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
         style={{ background: '#0f0f0f' }}>
@@ -559,6 +767,7 @@ function DashboardCliente({
         )}
       </button>
 
+      {/* Meu time */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meu time</p>
         <div className="space-y-3">
@@ -736,18 +945,6 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
             <p className="text-zinc-700 text-[9px]">{m.sub}</p>
           </div>
         ))}
-      </div>
-      <div className="rounded-2xl p-5 border border-white/[0.06] mb-3" style={{ background: '#0f0f0f' }}>
-        <p className="text-zinc-400 text-[10px] uppercase tracking-[0.15em] mb-4">Agenda de hoje</p>
-        <div className="flex flex-col items-center py-8 gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-2xl opacity-40">📋</div>
-          <p className="text-zinc-600 text-sm">Nenhum paciente agendado</p>
-          <button className="text-[11px] border border-white/[0.08] rounded-xl px-4 py-2 text-zinc-400 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">+ Agendar consulta</button>
-        </div>
-      </div>
-      <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
-        <p className="text-zinc-400 text-[10px] uppercase tracking-[0.15em] mb-3">Alertas</p>
-        <p className="text-zinc-600 text-sm">Nenhum alerta no momento.</p>
       </div>
       <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">
         + Convidar paciente
