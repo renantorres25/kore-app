@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
 
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -41,7 +42,6 @@ function formatarDuracao(minutos: number | null) {
 function getScoreRecuperacao(sono: DadosSono, bemEstar: DadosBemEstar | null) {
   let score = 0
   let total = 0
-
   if (sono.qualidade) { score += (sono.qualidade / 5) * 20; total += 20 }
   if (sono.duracao_minutos) {
     const ideal = 480
@@ -50,26 +50,18 @@ function getScoreRecuperacao(sono: DadosSono, bemEstar: DadosBemEstar | null) {
     score += pontos; total += 20
   }
   if (sono.hrv) { score += Math.min(20, (sono.hrv / 100) * 20); total += 20 }
-
-  // Estágios do sono — mais dados = score mais preciso
   if (sono.sono_profundo && sono.duracao_minutos) {
-    const pctProfundo = (sono.sono_profundo / sono.duracao_minutos) * 100
-    const idealProfundo = 20 // ~20% é ideal
-    const pontosP = Math.max(0, 20 - Math.abs(pctProfundo - idealProfundo))
-    score += pontosP; total += 20
+    const pct = (sono.sono_profundo / sono.duracao_minutos) * 100
+    score += Math.max(0, 20 - Math.abs(pct - 20)); total += 20
   }
   if (sono.sono_rem && sono.duracao_minutos) {
-    const pctRem = (sono.sono_rem / sono.duracao_minutos) * 100
-    const idealRem = 22 // ~22% é ideal
-    const pontosR = Math.max(0, 20 - Math.abs(pctRem - idealRem))
-    score += pontosR; total += 20
+    const pct = (sono.sono_rem / sono.duracao_minutos) * 100
+    score += Math.max(0, 20 - Math.abs(pct - 22)); total += 20
   }
-
   if (bemEstar) {
     const media = (bemEstar.energia + bemEstar.humor + (6 - bemEstar.dor_muscular)) / 3
     score += (media / 5) * 20; total += 20
   }
-
   if (total === 0) return null
   return Math.round((score / total) * 100)
 }
@@ -88,15 +80,12 @@ export default function Sono() {
   const [userId, setUserId] = useState('')
   const [nomePerfil, setNomePerfil] = useState('')
   const [peso, setPeso] = useState<number | null>(null)
-  const [altura, setAltura] = useState<number | null>(null)
   const [objetivo, setObjetivo] = useState<string | null>(null)
   const [sono, setSono] = useState<DadosSono>({ duracao_minutos: null, qualidade: null, fc_repouso: null, hrv: null, spo2: null, sono_leve: null, sono_profundo: null, sono_rem: null, fonte: 'manual', analise_ia: null, score_recuperacao: null })
   const [bemEstar, setBemEstar] = useState<DadosBemEstar | null>(null)
   const [historico, setHistorico] = useState<any[]>([])
   const [analiseIA, setAnaliseIA] = useState<string | null>(null)
   const [editando, setEditando] = useState(false)
-
-  // Campos do formulário
   const [horasSono, setHorasSono] = useState('')
   const [minutosSono, setMinutosSono] = useState('')
   const [qualidade, setQualidade] = useState(0)
@@ -113,10 +102,8 @@ export default function Sono() {
       if (!session) { router.push('/'); return }
       setUserId(session.user.id)
       const hoje = getTodayBR()
-
       const { data: perfil } = await supabase.from('perfis').select('nome, peso, altura, objetivo').eq('id', session.user.id).single()
-      if (perfil) { setNomePerfil(perfil.nome ?? ''); setPeso(perfil.peso); setAltura(perfil.altura); setObjetivo(perfil.objetivo) }
-
+      if (perfil) { setNomePerfil(perfil.nome ?? ''); setPeso(perfil.peso); setObjetivo(perfil.objetivo) }
       const { data: sonoHoje } = await supabase.from('sono').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single()
       if (sonoHoje) {
         setSono(sonoHoje)
@@ -130,10 +117,8 @@ export default function Sono() {
         if (sonoHoje.sono_profundo) setSonoProfundo(String(sonoHoje.sono_profundo))
         if (sonoHoje.sono_rem) setSonoRem(String(sonoHoje.sono_rem))
       } else { setEditando(true) }
-
       const { data: be } = await supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono, notas').eq('usuario_id', session.user.id).eq('data', hoje).single()
       if (be) setBemEstar(be)
-
       const { data: hist } = await supabase.from('sono').select('data, duracao_minutos, qualidade, hrv, score_recuperacao, sono_profundo, sono_rem').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(7)
       if (hist) setHistorico(hist)
       setCarregando(false)
@@ -157,26 +142,22 @@ export default function Sono() {
       fonte: 'manual',
     }
     payload.score_recuperacao = getScoreRecuperacao({ ...payload }, bemEstar)
-
     if (sono.id) { await supabase.from('sono').update(payload).eq('id', sono.id) }
     else { await supabase.from('sono').insert(payload) }
-
     setAnaliseIA(null)
     setEditando(false)
     const { data: sonoAtualizado } = await supabase.from('sono').select('*').eq('usuario_id', userId).eq('data', getTodayBR()).single()
     if (sonoAtualizado) setSono(sonoAtualizado)
+    atualizarDecisaoDia(userId) // ← atualiza decisão do dia em background
   }
 
   async function gerarAnaliseIA() {
     setAnalisando(true)
     const score = getScoreRecuperacao(sono, bemEstar)
-
-    // Calcula distribuição dos estágios
     const totalEstagio = (sono.sono_leve ?? 0) + (sono.sono_profundo ?? 0) + (sono.sono_rem ?? 0)
     const estagiosInfo = totalEstagio > 0
       ? `Leve: ${formatarDuracao(sono.sono_leve)} (${Math.round(((sono.sono_leve ?? 0) / (sono.duracao_minutos ?? 1)) * 100)}%) | Profundo: ${formatarDuracao(sono.sono_profundo)} (${Math.round(((sono.sono_profundo ?? 0) / (sono.duracao_minutos ?? 1)) * 100)}%) | REM: ${formatarDuracao(sono.sono_rem)} (${Math.round(((sono.sono_rem ?? 0) / (sono.duracao_minutos ?? 1)) * 100)}%)`
       : 'não informado'
-
     const prompt = `Você é um especialista em medicina do sono e performance humana. Analise os dados abaixo e gere uma análise personalizada, direta e útil. Seja específico com os números. Termine com 1-2 recomendações práticas para hoje.
 
 ATLETA: ${nomePerfil} | ${peso ? `${peso}kg` : '?'} | ${objetivo ?? '?'}
@@ -195,7 +176,6 @@ BEM-ESTAR:
 SCORE DE RECUPERAÇÃO: ${score ? `${score}/100` : 'insuficiente'}
 
 Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets, sem títulos.`
-
     try {
       const response = await fetch('/api/analise-sono', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
       const data = await response.json()
@@ -208,8 +188,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
   const score = sono.score_recuperacao ?? getScoreRecuperacao(sono, bemEstar)
   const corScore = score ? getCorScore(score) : null
   const temDadosSono = sono.duracao_minutos || sono.qualidade || sono.fc_repouso
-
-  // Calcula total dos estágios em minutos
   const totalEstagio = (sono.sono_leve ?? 0) + (sono.sono_profundo ?? 0) + (sono.sono_rem ?? 0)
   const duracaoRef = sono.duracao_minutos ?? totalEstagio
 
@@ -223,7 +201,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
     <main className="min-h-[100dvh] bg-[#080808] text-white">
       <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button onClick={() => router.push('/dashboard')} className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95">←</button>
@@ -239,10 +216,8 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
           )}
         </div>
 
-        {/* Score de recuperação */}
         {temDadosSono && score && !editando && (
-          <div className={`rounded-3xl p-6 mb-4 border ${corScore?.border} relative overflow-hidden`}
-            style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
+          <div className={`rounded-3xl p-6 mb-4 border ${corScore?.border} relative overflow-hidden`} style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
             <div className={`absolute -top-12 -right-12 w-56 h-56 rounded-full blur-3xl opacity-10 ${corScore?.bg}`} />
             <div className="relative">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.22em] mb-3">Score de recuperação</p>
@@ -258,7 +233,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
           </div>
         )}
 
-        {/* Dados da noite */}
         {temDadosSono && !editando && (
           <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
             <div className="px-5 py-4 border-b border-white/[0.04]">
@@ -274,14 +248,12 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
           </div>
         )}
 
-        {/* Estágios do sono */}
         {temDadosSono && !editando && (sono.sono_leve || sono.sono_profundo || sono.sono_rem) && (
           <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
             <div className="px-5 py-4 border-b border-white/[0.04]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Estágios do sono</p>
             </div>
             <div className="p-5 space-y-3">
-              {/* Barra visual dos estágios */}
               {duracaoRef > 0 && (
                 <div className="h-6 rounded-xl overflow-hidden flex gap-0.5 mb-4">
                   {sono.sono_leve && <div className="rounded-l-xl" style={{ width: `${(sono.sono_leve / duracaoRef) * 100}%`, background: '#6366f1', opacity: 0.7 }} />}
@@ -289,7 +261,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
                   {sono.sono_rem && <div className="rounded-r-xl" style={{ width: `${(sono.sono_rem / duracaoRef) * 100}%`, background: '#7c3aed', opacity: 0.8 }} />}
                 </div>
               )}
-
               {[
                 { label: 'Sono leve', val: sono.sono_leve, cor: '#6366f1', ideal: '50–60%', desc: 'Transição e processamento' },
                 { label: 'Sono profundo', val: sono.sono_profundo, cor: '#1d4ed8', ideal: '15–25%', desc: 'Recuperação muscular e imunidade' },
@@ -303,9 +274,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-white text-sm font-bold">{formatarDuracao(estagio.val)}</p>
-                    {estagio.val && duracaoRef > 0 && (
-                      <p className="text-zinc-600 text-[10px]">{Math.round((estagio.val / duracaoRef) * 100)}%</p>
-                    )}
+                    {estagio.val && duracaoRef > 0 && <p className="text-zinc-600 text-[10px]">{Math.round((estagio.val / duracaoRef) * 100)}%</p>}
                   </div>
                 </div>
               ))}
@@ -313,7 +282,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
           </div>
         )}
 
-        {/* Cruzamento bem-estar */}
         {bemEstar && !editando && (
           <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
             <div className="px-5 py-4 border-b border-white/[0.04]">
@@ -337,7 +305,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
           </div>
         )}
 
-        {/* Análise IA */}
         {temDadosSono && !editando && (
           <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
@@ -368,7 +335,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
           </div>
         )}
 
-        {/* Histórico 7 dias */}
         {historico.length > 0 && !editando && (
           <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
             <div className="px-5 py-4 border-b border-white/[0.04]">
@@ -391,11 +357,8 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
           </div>
         )}
 
-        {/* FORMULÁRIO DE EDIÇÃO */}
         {editando && (
           <div className="space-y-4">
-
-            {/* Duração */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Duração do sono</p>
               <div className="grid grid-cols-2 gap-3">
@@ -410,7 +373,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            {/* Qualidade */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Qualidade do sono</p>
               <div className="flex gap-2">
@@ -424,14 +386,12 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            {/* Estágios do sono */}
             <div className="rounded-2xl border border-indigo-500/20 p-5" style={{ background: '#0f0f0f' }}>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-indigo-400 text-[10px] uppercase tracking-[0.15em]">🌙 Estágios do sono</p>
                 <span className="text-[9px] text-indigo-400/60 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider">Opcional</span>
               </div>
               <p className="text-zinc-600 text-xs mb-4 leading-relaxed">Dados do seu wearable (Garmin, Apple Watch, Whoop...). Quanto mais info, mais precisa a análise da IA.</p>
-
               <div className="space-y-3">
                 {[
                   { label: 'Sono leve', placeholder: 'Ex: 240', val: sonoLeve, set: setSonoLeve, cor: '#6366f1', desc: 'Fase 1 e 2 — transição e processamento leve' },
@@ -453,8 +413,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
                     </div>
                   </div>
                 ))}
-
-                {/* Preview da distribuição */}
                 {(sonoLeve || sonoProfundo || sonoRem) && (() => {
                   const l = parseInt(sonoLeve || '0')
                   const p = parseInt(sonoProfundo || '0')
@@ -480,7 +438,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            {/* Wearable */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">⌚ Dados do wearable</p>
@@ -503,14 +460,12 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            <button onClick={handleSalvar}
-              className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase">
+            <button onClick={handleSalvar} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase">
               Salvar dados de sono
             </button>
           </div>
         )}
 
-        {/* Conectar wearable */}
         {!editando && (
           <div className="rounded-2xl border border-white/[0.06] p-5 mt-4" style={{ background: '#0f0f0f' }}>
             <div className="flex items-center gap-3 mb-3">
@@ -523,7 +478,6 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
             <button className="w-full border border-white/[0.08] text-zinc-500 font-semibold py-3 rounded-xl text-sm hover:border-white/20 hover:text-zinc-300 active:scale-95 transition-all uppercase tracking-wider">Em breve</button>
           </div>
         )}
-
       </div>
     </main>
   )

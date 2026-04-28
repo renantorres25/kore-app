@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
 
 type Exercicio = { id: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
@@ -10,15 +11,12 @@ type Treino = { id: string; nome: string; descricao: string | null; plano: strin
 type SerieRegistrada = { exercicio_id: string; numero_serie: number; carga: number | null; repeticoes: number; concluida: boolean }
 type Modalidade = 'musculacao' | 'corrida' | 'bike' | 'natacao' | 'crossfit' | 'outro'
 
-const MET: Record<Modalidade, number> = {
-  musculacao: 4.5, corrida: 8.0, bike: 6.0, natacao: 7.0, crossfit: 8.5, outro: 5.0,
-}
+const MET: Record<Modalidade, number> = { musculacao: 4.5, corrida: 8.0, bike: 6.0, natacao: 7.0, crossfit: 8.5, outro: 5.0 }
 
 function estimarCalorias(modalidade: Modalidade, duracaoMin: number, pesoKg: number): number {
   return Math.round(MET[modalidade] * pesoKg * (duracaoMin / 60))
 }
 
-// Pace corrida: min/km
 function calcularPace(duracaoMin: number, distanciaKm: number): string {
   if (!duracaoMin || !distanciaKm || distanciaKm === 0) return ''
   const paceTotal = duracaoMin / distanciaKm
@@ -27,7 +25,6 @@ function calcularPace(duracaoMin: number, distanciaKm: number): string {
   return `${min}:${seg.toString().padStart(2, '0')}`
 }
 
-// Pace natação: min/100m
 function calcularPaceNatacao(duracaoMin: number, distanciaM: number): string {
   if (!duracaoMin || !distanciaM || distanciaM === 0) return ''
   const pacePor100 = (duracaoMin / distanciaM) * 100
@@ -59,19 +56,13 @@ const CORES_PLANO: Record<string, { text: string; bg: string; border: string; gl
   C: { text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20',  glow: 'bg-orange-400',  hex: '#F97316' },
 }
 
-// ─── ZONAS FC ─────────────────────────────────────────────────────────────────
-// Zona 1: recuperação ativa <65% FCmax
-// Zona 2: base aeróbica 65-75%
-// Zona 3: tempo 75-85%
-// Zona 4: limiar anaeróbico 85-92%
-// Zona 5: VO2max >92%
 const ZONAS_FC = [
   { valor: 'Z1', label: 'Z1 — Recuperação ativa', desc: '< 65% FCmax', cor: 'bg-blue-500/15 border-blue-500/30 text-blue-400' },
   { valor: 'Z2', label: 'Z2 — Base aeróbica',     desc: '65–75% FCmax', cor: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
   { valor: 'Z3', label: 'Z3 — Tempo',              desc: '75–85% FCmax', cor: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400' },
   { valor: 'Z4', label: 'Z4 — Limiar',             desc: '85–92% FCmax', cor: 'bg-orange-500/15 border-orange-500/30 text-orange-400' },
   { valor: 'Z5', label: 'Z5 — VO2max',             desc: '> 92% FCmax',  cor: 'bg-red-500/15 border-red-500/30 text-red-400' },
-  { valor: 'misto', label: 'Misto',                desc: 'Varias zonas', cor: 'bg-purple-500/15 border-purple-500/30 text-purple-400' },
+  { valor: 'misto', label: 'Misto',                desc: 'Várias zonas', cor: 'bg-purple-500/15 border-purple-500/30 text-purple-400' },
 ]
 
 function IconHome({ active }: { active: boolean }) {
@@ -98,41 +89,20 @@ const NAV_ITEMS = [
   { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil,   path: '/perfil'    },
 ]
 
-// ─── FORMULÁRIOS POR MODALIDADE ───────────────────────────────────────────────
-
-function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual, pesoKg }: any) {
+function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
   const pace = calcularPace(duracaoAtual, parseFloat(form.distancia_km ?? '0'))
   return (
     <>
-      {/* Dados principais */}
       <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📍 Percurso</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (km)</label>
-              <input type="number" step="0.1" placeholder="Ex: 10.5" value={form.distancia_km ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
-            </div>
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Elevação (m)</label>
-              <input type="number" placeholder="Ex: 150" value={form.elevacao ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, elevacao: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
-            </div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (km)</label><input type="number" step="0.1" placeholder="Ex: 10.5" value={form.distancia_km ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Elevação (m)</label><input type="number" placeholder="Ex: 150" value={form.elevacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, elevacao: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
           </div>
-          {pace && (
-            <div className="flex items-center gap-2 bg-blue-500/5 border border-blue-500/20 rounded-xl px-4 py-3">
-              <span className="text-blue-400 text-sm">⚡</span>
-              <p className="text-blue-400 text-sm font-bold">Pace: {pace} min/km</p>
-              <p className="text-zinc-600 text-xs ml-auto">calculado automaticamente</p>
-            </div>
-          )}
+          {pace && <div className="flex items-center gap-2 bg-blue-500/5 border border-blue-500/20 rounded-xl px-4 py-3"><span className="text-blue-400 text-sm">⚡</span><p className="text-blue-400 text-sm font-bold">Pace: {pace} min/km</p><p className="text-zinc-600 text-xs ml-auto">calculado automaticamente</p></div>}
         </div>
       </div>
-
-      {/* Zona de FC */}
       <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-1 ${mod.corText}`}>❤️ Zona de frequência cardíaca</p>
         <p className="text-zinc-600 text-xs mb-4">Zona predominante do treino — fundamental para análise da carga</p>
@@ -146,82 +116,38 @@ function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual, pesoKg }: 
           ))}
         </div>
       </div>
-
-      {/* FC e Cadência */}
       <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label>
-              <input type="number" placeholder="Ex: 155" value={form.fc_media ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
-            </div>
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">FC máxima (bpm)</label>
-              <input type="number" placeholder="Ex: 178" value={form.fc_max ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, fc_max: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
-            </div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label><input type="number" placeholder="Ex: 155" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC máxima (bpm)</label><input type="number" placeholder="Ex: 178" value={form.fc_max ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_max: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Cadência (ppm)</label>
-              <input type="number" placeholder="Ex: 172" value={form.cadencia ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, cadencia: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
-            </div>
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
-              <input type="number" placeholder="Ex: 850" value={form.calorias_wearable ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" />
-            </div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Cadência (ppm)</label><input type="number" placeholder="Ex: 172" value={form.cadencia ?? ''} onChange={e => setForm((p: any) => ({ ...p, cadencia: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 850" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
           </div>
         </div>
-        {!form.calorias_wearable && calsPreview && (
-          <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>
-        )}
+        {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>}
       </div>
     </>
   )
 }
 
-function FormBike({ form, setForm, mod, calsPreview, duracaoAtual, pesoKg }: any) {
-  const pace = calcularPace(duracaoAtual, parseFloat(form.distancia_km ?? '0'))
-  const velMedia = form.distancia_km && duracaoAtual
-    ? Math.round((parseFloat(form.distancia_km) / (duracaoAtual / 60)) * 10) / 10
-    : null
+function FormBike({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
+  const velMedia = form.distancia_km && duracaoAtual ? Math.round((parseFloat(form.distancia_km) / (duracaoAtual / 60)) * 10) / 10 : null
   return (
     <>
       <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📍 Percurso</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (km)</label>
-              <input type="number" step="0.1" placeholder="Ex: 40" value={form.distancia_km ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
-            </div>
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Elevação (m)</label>
-              <input type="number" placeholder="Ex: 650" value={form.elevacao ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, elevacao: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
-            </div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (km)</label><input type="number" step="0.1" placeholder="Ex: 40" value={form.distancia_km ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Elevação (m)</label><input type="number" placeholder="Ex: 650" value={form.elevacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, elevacao: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
           </div>
-          {velMedia && (
-            <div className="flex items-center gap-2 bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3">
-              <span className="text-orange-400 text-sm">⚡</span>
-              <p className="text-orange-400 text-sm font-bold">Velocidade média: {velMedia} km/h</p>
-            </div>
-          )}
+          {velMedia && <div className="flex items-center gap-2 bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3"><span className="text-orange-400 text-sm">⚡</span><p className="text-orange-400 text-sm font-bold">Velocidade média: {velMedia} km/h</p></div>}
         </div>
       </div>
-
-      {/* Zona de FC */}
       <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-1 ${mod.corText}`}>❤️ Zona de frequência cardíaca</p>
         <p className="text-zinc-600 text-xs mb-4">Zona predominante — define se foi treino base ou intenso</p>
@@ -235,116 +161,55 @@ function FormBike({ form, setForm, mod, calsPreview, duracaoAtual, pesoKg }: any
           ))}
         </div>
       </div>
-
       <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Potência média (W)</label>
-              <input type="number" placeholder="Ex: 180" value={form.potencia_media ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, potencia_media: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
-            </div>
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Potência máx (W)</label>
-              <input type="number" placeholder="Ex: 320" value={form.potencia_max ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, potencia_max: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
-            </div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Potência média (W)</label><input type="number" placeholder="Ex: 180" value={form.potencia_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, potencia_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Potência máx (W)</label><input type="number" placeholder="Ex: 320" value={form.potencia_max ?? ''} onChange={e => setForm((p: any) => ({ ...p, potencia_max: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label>
-              <input type="number" placeholder="Ex: 148" value={form.fc_media ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
-            </div>
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Cadência média (rpm)</label>
-              <input type="number" placeholder="Ex: 88" value={form.cadencia ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, cadencia: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
-            </div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label><input type="number" placeholder="Ex: 148" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Cadência (rpm)</label><input type="number" placeholder="Ex: 88" value={form.cadencia ?? ''} onChange={e => setForm((p: any) => ({ ...p, cadencia: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
           </div>
-          <div>
-            <label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
-            <input type="number" placeholder="Ex: 1200" value={form.calorias_wearable ?? ''}
-              onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" />
-          </div>
+          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 1200" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
         </div>
-        {!form.calorias_wearable && calsPreview && (
-          <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>
-        )}
+        {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>}
       </div>
     </>
   )
 }
 
 function FormNatacao({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
-  const distM = parseInt(form.distancia_m ?? '0')
-  const paceNat = calcularPaceNatacao(duracaoAtual, distM)
+  const paceNat = calcularPaceNatacao(duracaoAtual, parseInt(form.distancia_m ?? '0'))
   return (
     <>
       <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>🏊 Volume</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (m)</label>
-              <input type="number" placeholder="Ex: 2000" value={form.distancia_m ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, distancia_m: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" />
-            </div>
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Voltas (25m)</label>
-              <input type="number" placeholder="Ex: 80" value={form.voltas ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, voltas: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" />
-            </div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (m)</label><input type="number" placeholder="Ex: 2000" value={form.distancia_m ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_m: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
+            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Voltas (25m)</label><input type="number" placeholder="Ex: 80" value={form.voltas ?? ''} onChange={e => setForm((p: any) => ({ ...p, voltas: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
           </div>
-          {paceNat && (
-            <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/20 rounded-xl px-4 py-3">
-              <span className="text-cyan-400 text-sm">⚡</span>
-              <p className="text-cyan-400 text-sm font-bold">Pace: {paceNat} /100m</p>
-            </div>
-          )}
+          {paceNat && <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/20 rounded-xl px-4 py-3"><span className="text-cyan-400 text-sm">⚡</span><p className="text-cyan-400 text-sm font-bold">Pace: {paceNat} /100m</p></div>}
           <div>
             <label className="text-zinc-600 text-[10px] mb-3 block">Estilo predominante</label>
             <div className="grid grid-cols-2 gap-2">
               {['Livre', 'Costas', 'Peito', 'Borboleta', 'Medley', 'Misto'].map(e => (
                 <button key={e} onClick={() => setForm((p: any) => ({ ...p, estilo: e }))}
-                  className={`py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${form.estilo === e ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
-                  {e}
-                </button>
+                  className={`py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${form.estilo === e ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>{e}</button>
               ))}
             </div>
           </div>
         </div>
       </div>
-
       <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">FC pós-treino (bpm)</label>
-              <input type="number" placeholder="Ex: 145" value={form.fc_media ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" />
-            </div>
-            <div>
-              <label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
-              <input type="number" placeholder="Ex: 600" value={form.calorias_wearable ?? ''}
-                onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" />
-            </div>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC pós-treino (bpm)</label><input type="number" placeholder="Ex: 145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
+          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 600" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
         </div>
-        {!form.calorias_wearable && calsPreview && (
-          <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>
-        )}
+        {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>}
       </div>
     </>
   )
@@ -360,57 +225,33 @@ function FormCrossfit({ form, setForm, mod, calsPreview }: any) {
           <div className="flex gap-2 flex-wrap">
             {['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Chipper', 'Strength'].map(t => (
               <button key={t} onClick={() => setForm((p: any) => ({ ...p, tipo_wod: t }))}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${form.tipo_wod === t ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
-                {t}
-              </button>
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${form.tipo_wod === t ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>{t}</button>
             ))}
           </div>
         </div>
-        <div>
-          <label className="text-zinc-600 text-[10px] mb-1.5 block">Movimentos e cargas</label>
-          <textarea placeholder="Ex: 21-15-9 Thrusters 42kg + Pull-ups" value={form.movimentos ?? ''}
-            onChange={e => setForm((p: any) => ({ ...p, movimentos: e.target.value }))} rows={2}
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700 resize-none" />
-        </div>
+        <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Movimentos e cargas</label><textarea placeholder="Ex: 21-15-9 Thrusters 42kg + Pull-ups" value={form.movimentos ?? ''} onChange={e => setForm((p: any) => ({ ...p, movimentos: e.target.value }))} rows={2} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700 resize-none" /></div>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-zinc-600 text-[10px] mb-1.5 block">Resultado / Score</label>
-            <input type="text" placeholder="Ex: 8rds+5 / 12:34" value={form.resultado ?? ''}
-              onChange={e => setForm((p: any) => ({ ...p, resultado: e.target.value }))}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700" />
-          </div>
-          <div>
-            <label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
-            <input type="number" placeholder="Ex: 500" value={form.calorias_wearable ?? ''}
-              onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700" />
-          </div>
+          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Resultado / Score</label><input type="text" placeholder="Ex: 8rds+5 / 12:34" value={form.resultado ?? ''} onChange={e => setForm((p: any) => ({ ...p, resultado: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700" /></div>
+          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 500" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700" /></div>
         </div>
-        {!form.calorias_wearable && calsPreview && (
-          <p className="text-zinc-600 text-[10px]">Estimativa sem wearable: ~{calsPreview} kcal</p>
-        )}
+        {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px]">Estimativa sem wearable: ~{calsPreview} kcal</p>}
       </div>
     </div>
   )
 }
 
-// ─── PAGE PRINCIPAL ───────────────────────────────────────────────────────────
-
 export default function TreinoCliente() {
   const router = useRouter()
-
   const [treinos, setTreinos] = useState<Treino[]>([])
   const [planoAtivo, setPlanoAtivo] = useState<string | null>(null)
   const [treinosConcluidosHoje, setTreinosConcluidosHoje] = useState<Set<string>>(new Set())
   const [temPersonal, setTemPersonal] = useState(false)
   const [mostrarQuiz, setMostrarQuiz] = useState(false)
-
   const [em, setEm] = useState<Treino | null>(null)
   const [series, setSeries] = useState<Record<string, SerieRegistrada[]>>({})
   const [concluido, setConcluido] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [analise, setAnalise] = useState({ texto: '', carregando: false })
-
   const [tela, setTela] = useState<'principal' | 'formulario' | 'conclusao_livre' | 'executando_musculacao' | 'conclusao_musculacao' | 'gerando_plano_ia'>('principal')
   const [modalidade, setModalidade] = useState<Modalidade | null>(null)
   const [form, setForm] = useState<Record<string, any>>({ intensidade: 3 })
@@ -418,7 +259,6 @@ export default function TreinoCliente() {
   const [salvandoLivre, setSalvandoLivre] = useState(false)
   const [caloriasEstimadas, setCaloriasEstimadas] = useState<number | null>(null)
   const [gerandoMensagem, setGerandoMensagem] = useState(0)
-
   const [perfilUsuario, setPerfilUsuario] = useState<{ peso: number | null; objetivo: string | null; nivel: string | null; nome: string | null }>({ peso: null, objetivo: null, nivel: null, nome: null })
   const [userId, setUserId] = useState('')
   const [carregando, setCarregando] = useState(true)
@@ -434,7 +274,6 @@ export default function TreinoCliente() {
   ]
 
   useEffect(() => { carregar() }, [])
-
   useEffect(() => {
     async function verificarHoje() {
       const { data: { session } } = await supabase.auth.getSession()
@@ -449,7 +288,6 @@ export default function TreinoCliente() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/'); return }
     setUserId(session.user.id)
-
     const hoje = getTodayBR()
     const [{ data: sono }, { data: perfil }, { data: td }, { data: vinculo }] = await Promise.all([
       supabase.from('sono').select('score_recuperacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -457,12 +295,10 @@ export default function TreinoCliente() {
       supabase.from('treinos').select('id, nome, descricao, plano, personal_id').eq('cliente_id', session.user.id).eq('status', 'pendente').eq('concluido', false).order('plano'),
       supabase.from('vinculos').select('id').eq('cliente_id', session.user.id).eq('tipo', 'personal').eq('ativo', true).single(),
     ])
-
     if (sono?.score_recuperacao) setScore(sono.score_recuperacao)
     if (perfil?.peso) setPesoKg(perfil.peso)
     if (perfil) setPerfilUsuario(perfil)
     if (vinculo) setTemPersonal(true)
-
     if (td?.length) {
       const ids = td.map((t: any) => t.id)
       const { data: ex } = await supabase.from('exercicios_treino').select('*').in('treino_id', ids).order('ordem')
@@ -470,28 +306,16 @@ export default function TreinoCliente() {
       setTreinos(completos)
       if (completos.length) setPlanoAtivo(completos[0].plano)
     }
-
     setCarregando(false)
   }
 
   async function gerarPlanoComIA(respostas: RespostasQuiz) {
-    setMostrarQuiz(false)
-    setTela('gerando_plano_ia')
-
+    setMostrarQuiz(false); setTela('gerando_plano_ia')
     let idx = 0
-    const intervalo = setInterval(() => {
-      idx++
-      if (idx < MENSAGENS_GERANDO.length) setGerandoMensagem(idx)
-    }, 2500)
-
-    const OBJETIVO_LABEL: Record<string, string> = {
-      perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa',
-      melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
-    }
-
+    const intervalo = setInterval(() => { idx++; if (idx < MENSAGENS_GERANDO.length) setGerandoMensagem(idx) }, 2500)
+    const OBJETIVO_LABEL: Record<string, string> = { perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa', melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral' }
     const focoArr = Array.isArray(respostas.foco) ? respostas.foco.join(', ') : respostas.foco
     const limitacaoArr = Array.isArray(respostas.limitacao) ? respostas.limitacao.join(', ') : respostas.limitacao
-
     const prompt = `Você é um personal trainer especialista com 15 anos de experiência. Crie um plano de musculação completo, detalhado e personalizado.
 
 PERFIL: ${perfilUsuario.nome ?? 'Atleta'} | ${OBJETIVO_LABEL[perfilUsuario.objetivo ?? ''] ?? 'Saúde geral'} | ${perfilUsuario.peso ? `${perfilUsuario.peso}kg` : '?'}
@@ -502,38 +326,20 @@ CONSULTA:
 - Limitações: ${limitacaoArr} | Objetivo: ${respostas.objetivo_treino}
 - Observações: ${respostas.observacoes_treino ?? 'nenhuma'}
 
-REGRAS: 2 planos (A e B), 5-7 exercícios cada, cargas realistas, respeitar limitações, observações técnicas úteis por exercício.
+REGRAS: 2 planos (A e B), 5-7 exercícios cada, cargas realistas, respeitar limitações, observações técnicas por exercício.
 
 Responda APENAS JSON válido:
 {"planos":[{"plano":"A","nome":"...","descricao":"...","exercicios":[{"nome":"...","series":4,"repeticoes":10,"carga_sugerida":20,"observacoes":"...","ordem":1}]},{"plano":"B","nome":"...","descricao":"...","exercicios":[...]}]}`
-
     try {
-      const res = await fetch('/api/analise-treino', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, modo: 'plano' }),
-      })
+      const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, modo: 'plano' }) })
       const data = await res.json()
-      const texto = data.analise ?? ''
-      const jsonMatch = texto.match(/\{[\s\S]*\}/)
+      const jsonMatch = (data.analise ?? '').match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('JSON não encontrado')
       const planoGerado = JSON.parse(jsonMatch[0])
-
       for (const p of planoGerado.planos) {
-        const { data: treinoSalvo } = await supabase.from('treinos').insert({
-          personal_id: null, cliente_id: userId,
-          nome: p.nome, descricao: p.descricao, plano: p.plano,
-          status: 'pendente', concluido: false, data: null,
-        }).select('id').single()
-
+        const { data: treinoSalvo } = await supabase.from('treinos').insert({ personal_id: null, cliente_id: userId, nome: p.nome, descricao: p.descricao, plano: p.plano, status: 'pendente', concluido: false, data: null }).select('id').single()
         if (treinoSalvo && p.exercicios?.length) {
-          await supabase.from('exercicios_treino').insert(
-            p.exercicios.map((ex: any) => ({
-              treino_id: treinoSalvo.id, nome: ex.nome,
-              series: ex.series, repeticoes: ex.repeticoes,
-              carga_sugerida: ex.carga_sugerida ?? null,
-              observacoes: ex.observacoes ?? '', ordem: ex.ordem,
-            }))
-          )
+          await supabase.from('exercicios_treino').insert(p.exercicios.map((ex: any) => ({ treino_id: treinoSalvo.id, nome: ex.nome, series: ex.series, repeticoes: ex.repeticoes, carga_sugerida: ex.carga_sugerida ?? null, observacoes: ex.observacoes ?? '', ordem: ex.ordem })))
         }
       }
       await carregar()
@@ -543,25 +349,13 @@ Responda APENAS JSON válido:
 
   function iniciarMusculacao(treino: Treino) {
     const init: Record<string, SerieRegistrada[]> = {}
-    treino.exercicios.forEach(ex => {
-      init[ex.id] = Array.from({ length: ex.series }, (_, i) => ({
-        exercicio_id: ex.id, numero_serie: i + 1,
-        carga: ex.carga_sugerida, repeticoes: ex.repeticoes, concluida: false,
-      }))
-    })
-    setSeries(init); setEm(treino); setConcluido(false)
-    setAnalise({ texto: '', carregando: false }); setTela('executando_musculacao')
+    treino.exercicios.forEach(ex => { init[ex.id] = Array.from({ length: ex.series }, (_, i) => ({ exercicio_id: ex.id, numero_serie: i + 1, carga: ex.carga_sugerida, repeticoes: ex.repeticoes, concluida: false })) })
+    setSeries(init); setEm(treino); setConcluido(false); setAnalise({ texto: '', carregando: false }); setTela('executando_musculacao')
   }
 
-  function toggle(exId: string, idx: number) {
-    setSeries(p => { const n = [...(p[exId] ?? [])]; n[idx] = { ...n[idx], concluida: !n[idx].concluida }; return { ...p, [exId]: n } })
-  }
-  function setCarga(exId: string, idx: number, v: number | null) {
-    setSeries(p => { const n = [...(p[exId] ?? [])]; n[idx] = { ...n[idx], carga: v }; return { ...p, [exId]: n } })
-  }
-  function setReps(exId: string, idx: number, v: number) {
-    setSeries(p => { const n = [...(p[exId] ?? [])]; n[idx] = { ...n[idx], repeticoes: v }; return { ...p, [exId]: n } })
-  }
+  function toggle(exId: string, idx: number) { setSeries(p => { const n = [...(p[exId] ?? [])]; n[idx] = { ...n[idx], concluida: !n[idx].concluida }; return { ...p, [exId]: n } }) }
+  function setCarga(exId: string, idx: number, v: number | null) { setSeries(p => { const n = [...(p[exId] ?? [])]; n[idx] = { ...n[idx], carga: v }; return { ...p, [exId]: n } }) }
+  function setReps(exId: string, idx: number, v: number) { setSeries(p => { const n = [...(p[exId] ?? [])]; n[idx] = { ...n[idx], repeticoes: v }; return { ...p, [exId]: n } }) }
   const totalConcluidas = () => Object.values(series).flat().filter(s => s.concluida).length
   const totalSeries = () => Object.values(series).flat().length
 
@@ -570,24 +364,17 @@ Responda APENAS JSON válido:
     setSalvando(true)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-
     const duracaoMin = form.duracao_musculacao ? parseInt(form.duracao_musculacao) : 60
     const cals = estimarCalorias('musculacao', duracaoMin, pesoKg)
     setCaloriasEstimadas(cals)
-
-    const { data: reg } = await supabase.from('treinos').insert({
-      personal_id: em.personal_id ?? null, cliente_id: session.user.id,
-      nome: em.nome, descricao: em.descricao, plano: em.plano,
-      status: 'concluido', data: getTodayBR(), concluido: true, calorias_estimadas: cals,
-    }).select('id').single()
-
+    const { data: reg } = await supabase.from('treinos').insert({ personal_id: em.personal_id ?? null, cliente_id: session.user.id, nome: em.nome, descricao: em.descricao, plano: em.plano, status: 'concluido', data: getTodayBR(), concluido: true, calorias_estimadas: cals }).select('id').single()
     if (reg) {
       const done = Object.values(series).flat().filter(s => s.concluida)
       if (done.length) await supabase.from('series_registradas').insert(done.map(s => ({ treino_id: reg.id, exercicio_id: s.exercicio_id, numero_serie: s.numero_serie, carga: s.carga, repeticoes: s.repeticoes })))
     }
-
     setSalvando(false); setConcluido(true); setTela('conclusao_musculacao')
     gerarIAMusculacao(em, series, duracaoMin, cals)
+    atualizarDecisaoDia(userId) // ← atualiza decisão do dia em background
   }
 
   async function gerarIAMusculacao(treino: Treino, s: Record<string, SerieRegistrada[]>, duracaoMin: number, cals: number) {
@@ -595,17 +382,8 @@ Responda APENAS JSON válido:
     const vol = calcVolume(s)
     const tc = Object.values(s).flat().filter(x => x.concluida).length
     const tt = Object.values(s).flat().length
-    const resumo = treino.exercicios.map(ex => {
-      const done = s[ex.id]?.filter(x => x.concluida) ?? []
-      if (!done.length) return null
-      return `${ex.nome}: ${done.length} séries (${done.map(x => x.carga ? `${x.carga}kg` : 'sem carga').join(', ')})`
-    }).filter(Boolean).join(', ')
-
-    const prompt = `Coach KORE. Analise este treino de musculação.
-${treino.nome} | ${tc}/${tt} séries | Volume: ${vol > 0 ? `${vol}kg` : '?'} | ${duracaoMin}min | ~${cals}kcal | Recuperação: ${score ? `${score}/100` : '?'}
-Exercícios: ${resumo || '?'}
-3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaque, Próximo passo`
-
+    const resumo = treino.exercicios.map(ex => { const done = s[ex.id]?.filter(x => x.concluida) ?? []; if (!done.length) return null; return `${ex.nome}: ${done.length} séries (${done.map(x => x.carga ? `${x.carga}kg` : 'sem carga').join(', ')})` }).filter(Boolean).join(', ')
+    const prompt = `Coach KORE. Analise este treino de musculação.\n${treino.nome} | ${tc}/${tt} séries | Volume: ${vol > 0 ? `${vol}kg` : '?'} | ${duracaoMin}min | ~${cals}kcal | Recuperação: ${score ? `${score}/100` : '?'}\nExercícios: ${resumo || '?'}\n3 partes curtas (máx 80 palavras, sem markdown): Desempenho, Destaque, Próximo passo`
     try {
       const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
       const data = await res.json()
@@ -614,27 +392,21 @@ Exercícios: ${resumo || '?'}
   }
 
   function abrirFormulario(mod: Modalidade) {
-    setModalidade(mod); setForm({ intensidade: 3 })
-    setAnaliseLivre({ texto: '', carregando: false }); setCaloriasEstimadas(null); setTela('formulario')
+    setModalidade(mod); setForm({ intensidade: 3 }); setAnaliseLivre({ texto: '', carregando: false }); setCaloriasEstimadas(null); setTela('formulario')
   }
 
   async function salvarAtividadeLivre() {
     setSalvandoLivre(true)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-
     const duracaoMin = parseInt(form.duracao_min ?? '30') || 30
-    const cals = form.calorias_wearable
-      ? parseInt(form.calorias_wearable)
-      : estimarCalorias(modalidade!, duracaoMin, pesoKg)
+    const cals = form.calorias_wearable ? parseInt(form.calorias_wearable) : estimarCalorias(modalidade!, duracaoMin, pesoKg)
     const paceCalculado = calcularPace(duracaoMin, parseFloat(form.distancia_km ?? '0'))
     const paceNatCalculado = calcularPaceNatacao(duracaoMin, parseInt(form.distancia_m ?? '0'))
     setCaloriasEstimadas(cals)
-
     await supabase.from('atividades_livres').insert({
       usuario_id: session.user.id, data: getTodayBR(), modalidade,
       duracao_min: duracaoMin, intensidade: form.intensidade ?? 3,
-      // Corrida e bike
       distancia_km: form.distancia_km ? parseFloat(form.distancia_km) : null,
       elevacao: form.elevacao ? parseInt(form.elevacao) : null,
       ritmo_medio: paceCalculado || null,
@@ -642,32 +414,27 @@ Exercícios: ${resumo || '?'}
       fc_media: form.fc_media ? parseInt(form.fc_media) : null,
       fc_max: form.fc_max ? parseInt(form.fc_max) : null,
       cadencia: form.cadencia ? parseInt(form.cadencia) : null,
-      // Bike específico
       potencia_media: form.potencia_media ? parseInt(form.potencia_media) : null,
       potencia_max: form.potencia_max ? parseInt(form.potencia_max) : null,
-      // Natação
       distancia_m: form.distancia_m ? parseInt(form.distancia_m) : null,
       voltas: form.voltas ? parseInt(form.voltas) : null,
       estilo_natacao: form.estilo ?? null,
       ritmo_natacao: paceNatCalculado || null,
-      // Crossfit
       tipo_wod: form.tipo_wod ?? null,
       movimentos: form.movimentos ?? null,
       resultado_wod: form.resultado ?? null,
-      // Geral
       observacoes: form.observacoes ?? null,
       calorias_estimadas: form.calorias_wearable ? null : cals,
       calorias_wearable: form.calorias_wearable ? parseInt(form.calorias_wearable) : null,
     })
-
     setSalvandoLivre(false); setTela('conclusao_livre')
     gerarIAAtividadeLivre(duracaoMin, cals)
+    atualizarDecisaoDia(userId) // ← atualiza decisão do dia em background
   }
 
   async function gerarIAAtividadeLivre(duracaoMin: number, cals: number) {
     setAnaliseLivre({ texto: '', carregando: true })
     const mod = MODALIDADES.find(m => m.id === modalidade)!
-
     let dadosEspecificos = ''
     if (modalidade === 'corrida') {
       const pace = calcularPace(duracaoMin, parseFloat(form.distancia_km ?? '0'))
@@ -681,13 +448,7 @@ Exercícios: ${resumo || '?'}
     } else if (modalidade === 'crossfit') {
       dadosEspecificos = `WOD: ${form.tipo_wod ?? '?'} | Movimentos: ${form.movimentos ?? '?'} | Resultado: ${form.resultado ?? '?'}`
     }
-
-    const prompt = `Coach KORE. Analise esta atividade de ${mod.label} de forma direta e específica com os dados abaixo.
-${duracaoMin}min | Intensidade: ${form.intensidade}/5 | ~${cals}kcal | Recuperação: ${score ? `${score}/100` : '?'}
-${dadosEspecificos}
-${form.observacoes ? `Observações: ${form.observacoes}` : ''}
-3 partes curtas (máx 80 palavras, sem markdown): Desempenho com dados reais, Ponto de atenção, Próximo treino`
-
+    const prompt = `Coach KORE. Analise esta atividade de ${mod.label} de forma direta e específica.\n${duracaoMin}min | Intensidade: ${form.intensidade}/5 | ~${cals}kcal | Recuperação: ${score ? `${score}/100` : '?'}\n${dadosEspecificos}\n${form.observacoes ? `Observações: ${form.observacoes}` : ''}\n3 partes curtas (máx 80 palavras, sem markdown): Desempenho com dados reais, Ponto de atenção, Próximo treino`
     try {
       const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
       const data = await res.json()
@@ -789,8 +550,6 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
             <p className={`text-[10px] uppercase tracking-[0.3em] mb-2 ${mod.corText}`}>Atividade registrada</p>
             <h1 className="text-3xl font-black text-white mb-1">{mod.label}</h1>
           </div>
-
-          {/* Stats principais */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Duração</p>
@@ -800,20 +559,10 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Calorias</p>
               <p className={`text-3xl font-black ${mod.corText}`}>~{caloriasEstimadas ?? '—'}<span className="text-zinc-600 text-lg font-light">kcal</span></p>
             </div>
-            {form.distancia_km && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p>
-              <p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_km}<span className="text-zinc-600 text-lg font-light">km</span></p>
-            </div>}
-            {form.distancia_m && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p>
-              <p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_m}<span className="text-zinc-600 text-lg font-light">m</span></p>
-            </div>}
-            {form.potencia_media && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Potência média</p>
-              <p className={`text-3xl font-black ${mod.corText}`}>{form.potencia_media}<span className="text-zinc-600 text-lg font-light">W</span></p>
-            </div>}
+            {form.distancia_km && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p><p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_km}<span className="text-zinc-600 text-lg font-light">km</span></p></div>}
+            {form.distancia_m && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p><p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_m}<span className="text-zinc-600 text-lg font-light">m</span></p></div>}
+            {form.potencia_media && <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Potência média</p><p className={`text-3xl font-black ${mod.corText}`}>{form.potencia_media}<span className="text-zinc-600 text-lg font-light">W</span></p></div>}
           </div>
-
           <div className={`rounded-2xl border mb-4 overflow-hidden ${mod.corBorder}`} style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
               <div className={`w-7 h-7 rounded-xl ${mod.cor} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${mod.corText}`}>✦</span></div>
@@ -869,14 +618,8 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
                     {exs.map((s, si) => (
                       <div key={si} className={`flex items-center gap-2 rounded-xl p-2 ${s.concluida ? 'bg-emerald-500/5' : 'bg-white/[0.02]'}`}>
                         <p className={`text-sm font-bold w-6 text-center shrink-0 ${s.concluida ? 'text-emerald-400' : 'text-zinc-500'}`}>{si + 1}</p>
-                        <div className="flex-1">
-                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Carga (kg)</p>
-                          <input type="number" value={s.carga ?? ''} onChange={e => setCarga(ex.id, si, e.target.value ? parseFloat(e.target.value) : null)} placeholder="—" disabled={s.concluida} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 placeholder:text-zinc-700 disabled:opacity-50" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Reps</p>
-                          <input type="number" value={s.repeticoes} onChange={e => setReps(ex.id, si, parseInt(e.target.value) || 0)} disabled={s.concluida} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 disabled:opacity-50" />
-                        </div>
+                        <div className="flex-1"><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Carga (kg)</p><input type="number" value={s.carga ?? ''} onChange={e => setCarga(ex.id, si, e.target.value ? parseFloat(e.target.value) : null)} placeholder="—" disabled={s.concluida} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 placeholder:text-zinc-700 disabled:opacity-50" /></div>
+                        <div className="flex-1"><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Reps</p><input type="number" value={s.repeticoes} onChange={e => setReps(ex.id, si, parseInt(e.target.value) || 0)} disabled={s.concluida} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 disabled:opacity-50" /></div>
                         <button onClick={() => toggle(ex.id, si)} className={`w-11 h-11 rounded-xl border flex items-center justify-center text-sm font-bold transition-all active:scale-90 shrink-0 ${s.concluida ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.06] border-white/[0.12] text-zinc-400'}`}>{s.concluida ? '✓' : '○'}</button>
                       </div>
                     ))}
@@ -905,40 +648,28 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
     )
   }
 
-  // ── FORMULÁRIO DE ATIVIDADE LIVRE ─────────────────────────────────────────────
   if (tela === 'formulario' && modalidade) {
     const mod = MODALIDADES.find(m => m.id === modalidade)!
     const duracaoAtual = parseInt(form.duracao_min ?? '0') || 0
     const calsPreview = duracaoAtual > 0 ? estimarCalorias(modalidade, duracaoAtual, pesoKg) : null
-
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
         <div className="shrink-0 border-b border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)' }}>
           <div className="max-w-md mx-auto px-4 pt-12 pb-4 flex items-center gap-3">
             <span className="text-3xl">{mod.icon}</span>
-            <div>
-              <p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>{mod.label}</p>
-              <h1 className="text-xl font-black text-white">Registrar atividade</h1>
-            </div>
+            <div><p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>{mod.label}</p><h1 className="text-xl font-black text-white">Registrar atividade</h1></div>
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto pb-32">
           <div className="max-w-md mx-auto px-4 py-5 space-y-4">
-
-            {/* Aviso dados opcionais */}
             <div className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.06] rounded-2xl px-4 py-3">
               <span className="text-lg shrink-0">💡</span>
-              <p className="text-zinc-500 text-xs leading-relaxed">Quanto mais dados você preencher, mais precisa e personalizada será a análise da IA. Todos os campos são opcionais exceto a duração.</p>
+              <p className="text-zinc-500 text-xs leading-relaxed">Quanto mais dados você preencher, mais precisa será a análise da IA. Todos os campos são opcionais exceto a duração.</p>
             </div>
-
-            {/* Duração — único obrigatório */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">⏱ Duração <span className={`${mod.corText}`}>*</span></p>
+              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">⏱ Duração <span className={mod.corText}>*</span></p>
               <div className="flex items-center gap-3">
-                <input type="number" placeholder="45" value={form.duracao_min ?? ''}
-                  onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))}
-                  className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-lg text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                <input type="number" placeholder="45" value={form.duracao_min ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))} className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-lg text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                 <p className="text-zinc-500 text-sm">minutos</p>
               </div>
               {calsPreview && !form.calorias_wearable && (
@@ -948,58 +679,40 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
                 </div>
               )}
             </div>
-
-            {/* Formulários específicos por modalidade */}
             {modalidade === 'corrida' && <FormCorrida form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} duracaoAtual={duracaoAtual} pesoKg={pesoKg} />}
             {modalidade === 'bike' && <FormBike form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} duracaoAtual={duracaoAtual} pesoKg={pesoKg} />}
             {modalidade === 'natacao' && <FormNatacao form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} duracaoAtual={duracaoAtual} />}
             {modalidade === 'crossfit' && <FormCrossfit form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} />}
-
-            {/* Outro esporte — formulário genérico */}
             {modalidade === 'outro' && (
               <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
                 <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Dados gerais</p>
                 <div className="space-y-3">
-                  <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label>
-                    <input type="number" placeholder="Ex: 140" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" />
-                  </div>
-                  <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label>
-                    <input type="number" placeholder="Ex: 400" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" />
-                  </div>
+                  <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label><input type="number" placeholder="Ex: 140" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" /></div>
+                  <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 400" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" /></div>
                   {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px]">Estimativa sem wearable: ~{calsPreview} kcal</p>}
                 </div>
               </div>
             )}
-
-            {/* Intensidade percebida — todas as modalidades */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">😤 Intensidade percebida (PSE)</p>
               <div className="flex gap-2">
                 {[{ v: 1, l: 'Leve', e: '😌' }, { v: 2, l: 'Moderado', e: '🙂' }, { v: 3, l: 'Forte', e: '😤' }, { v: 4, l: 'Muito forte', e: '😰' }, { v: 5, l: 'Máximo', e: '🔥' }].map(i => (
-                  <button key={i.v} onClick={() => setForm((p: any) => ({ ...p, intensidade: i.v }))}
-                    className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${form.intensidade === i.v ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
+                  <button key={i.v} onClick={() => setForm((p: any) => ({ ...p, intensidade: i.v }))} className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${form.intensidade === i.v ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
                     <span className="text-xl">{i.e}</span><span className="text-[9px] mt-1 font-semibold leading-tight text-center">{i.l}</span>
                   </button>
                 ))}
               </div>
             </div>
-
-            {/* Observações */}
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">📝 Observações <span className="text-zinc-700 normal-case">(opcional)</span></p>
-              <textarea
-                placeholder="Como você se sentiu? Alguma dor, sensação especial, condição climática, estratégia de pace... Quanto mais contexto, melhor a análise."
-                value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))}
-                rows={3} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
+              <textarea placeholder="Como você se sentiu? Alguma dor, sensação especial, estratégia de pace..." value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
             </div>
           </div>
         </div>
-
         <div className="fixed bottom-0 left-0 right-0 border-t border-white/[0.04]" style={{ background: 'rgba(8,8,8,0.97)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="max-w-md mx-auto px-4 py-4 flex gap-3">
             <button onClick={() => setTela('principal')} className="w-12 h-12 rounded-2xl border border-white/[0.08] text-zinc-500 flex items-center justify-center active:scale-90 transition-all">✕</button>
-            <button onClick={salvarAtividadeLivre} disabled={salvandoLivre || !form.duracao_min}
-              className={`flex-1 font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${mod.cor} ${mod.corBorder} ${mod.corText} border`}>
+            <button onClick={salvarAtividadeLivre} disabled={salvandoLivre || !form.duracao_min} className={`flex-1 font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${mod.cor} ${mod.corBorder} ${mod.corText} border`}>
               {salvandoLivre ? 'Salvando...' : `Salvar ${mod.label}`}
             </button>
           </div>
@@ -1008,9 +721,7 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
     )
   }
 
-  // ── TELA PRINCIPAL ────────────────────────────────────────────────────────────
   const sel = treinos.find(t => t.plano === planoAtivo)
-
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white">
       <div className="max-w-md mx-auto px-4 pb-24" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -1019,7 +730,6 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
           <h1 className="text-2xl font-black text-white tracking-tight">Treinos</h1>
           <p className="text-zinc-600 text-xs mt-1">Planos do personal ou registre qualquer atividade</p>
         </div>
-
         {treinos.length > 0 && (
           <div className="mb-6">
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meus planos</p>
@@ -1066,25 +776,19 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
                       </div>
                     </div>
                   )}
-                  <button onClick={() => iniciarMusculacao(sel)} className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 hover:bg-zinc-100 transition-all mb-4">
-                    Iniciar Plano {sel.plano} →
-                  </button>
+                  <button onClick={() => iniciarMusculacao(sel)} className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 hover:bg-zinc-100 transition-all mb-4">Iniciar Plano {sel.plano} →</button>
                 </div>
               )
             })()}
           </div>
         )}
-
         {!temPersonal && (
           <div className="mb-6">
             {treinos.length === 0 ? (
               <div className="rounded-2xl p-5 border border-emerald-500/20 mb-4" style={{ background: 'linear-gradient(145deg, #0a1410 0%, #080d0a 100%)' }}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><span className="text-emerald-400 font-black text-lg">✦</span></div>
-                  <div>
-                    <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">KORE IA · Personal virtual</p>
-                    <p className="text-white font-black text-base">Sem personal? A IA monta seu plano</p>
-                  </div>
+                  <div><p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">KORE IA · Personal virtual</p><p className="text-white font-black text-base">Sem personal? A IA monta seu plano</p></div>
                 </div>
                 <p className="text-zinc-400 text-sm leading-relaxed mb-4">Responda uma consulta rápida e a IA cria um plano personalizado com exercícios, séries e cargas.</p>
                 <button onClick={() => setMostrarQuiz(true)} className="w-full bg-emerald-500 text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">✦ Iniciar consulta com IA →</button>
@@ -1094,13 +798,11 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
             )}
           </div>
         )}
-
         <div className="flex items-center gap-3 mb-5">
           <div className="flex-1 h-px bg-white/[0.06]" />
           <p className="text-zinc-600 text-[10px] uppercase tracking-widest">ou</p>
           <div className="flex-1 h-px bg-white/[0.06]" />
         </div>
-
         <div>
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Registrar atividade</p>
           <div className="grid grid-cols-3 gap-2">
@@ -1113,7 +815,6 @@ ${form.observacoes ? `Observações: ${form.observacoes}` : ''}
           </div>
         </div>
       </div>
-
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]" style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
           {NAV_ITEMS.map((item) => {
