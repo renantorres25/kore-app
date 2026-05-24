@@ -4,13 +4,36 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
-type Aluno = { id: string; nome: string | null; email: string }
+type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; status: string; data: string | null; exercicios: Exercicio[] }
+type Monitor = {
+  scoreRecuperacao: number | null
+  sonoHoras: number | null
+  bemEstarMedia: number | null
+  totalTreinos: number
+  treinosSemana: number
+  ultimoTreino: string | null
+}
 
 function getInitials(nome: string | null, email: string): string {
   if (nome) { const p = nome.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0][0].toUpperCase() }
   return email[0].toUpperCase()
+}
+
+function getTodayBR(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function diasSemTreinar(ultimoTreino: string | null): number {
+  if (!ultimoTreino) return 999
+  const d = new Date(ultimoTreino + 'T12:00:00-03:00')
+  return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+const OBJETIVO_LABEL: Record<string, string> = {
+  perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa',
+  melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
 }
 
 const PLANOS = ['A', 'B', 'C']
@@ -26,6 +49,7 @@ export default function PersonalAluno() {
   const clienteId = params.id as string
 
   const [aluno, setAluno] = useState<Aluno | null>(null)
+  const [monitor, setMonitor] = useState<Monitor | null>(null)
   const [treinos, setTreinos] = useState<Treino[]>([])
   const [planoAtivo, setPlanoAtivo] = useState('A')
   const [carregando, setCarregando] = useState(true)
@@ -40,12 +64,33 @@ export default function PersonalAluno() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/'); return }
 
-    const [{ data: perfil }, { data: treinosData }] = await Promise.all([
-      supabase.from('perfis').select('id, nome, email').eq('id', clienteId).single(),
+    const hoje = getTodayBR()
+    const semanaAtras = new Date()
+    semanaAtras.setDate(semanaAtras.getDate() - 7)
+    const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+    const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }] = await Promise.all([
+      supabase.from('perfis').select('id, nome, email, peso, objetivo').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
+      supabase.from('sono').select('score_recuperacao, duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
+      supabase.from('bem_estar').select('humor, energia, motivacao, dor_muscular').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
+      supabase.from('treinos').select('data, concluido').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }),
     ])
 
     if (perfil) setAluno(perfil)
+
+    const bemMedia = bemEstarData?.length
+      ? Math.round(bemEstarData.slice(0, 7).reduce((acc, b) => acc + ((b.humor + b.energia + b.motivacao) / 3), 0) / Math.min(bemEstarData.length, 7))
+      : null
+
+    setMonitor({
+      scoreRecuperacao: sonoHoje?.score_recuperacao ?? null,
+      sonoHoras: sonoHoje?.duracao ?? null,
+      bemEstarMedia: bemMedia,
+      totalTreinos: treinosHist?.length ?? 0,
+      treinosSemana: treinosHist?.filter(t => t.data >= semanaStr).length ?? 0,
+      ultimoTreino: treinosHist?.[0]?.data ?? null,
+    })
 
     if (treinosData?.length) {
       const ids = treinosData.map(t => t.id)
@@ -143,18 +188,71 @@ export default function PersonalAluno() {
     <main className="min-h-[100dvh] bg-[#080808] text-white">
       <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
-        <div className="mb-8">
+        <div className="mb-6">
           <button onClick={() => router.push('/personal')} className="text-zinc-600 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-1 hover:text-zinc-400 transition-colors">← Alunos</button>
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
               <span className="text-emerald-400 font-black text-base">{aluno ? getInitials(aluno.nome, aluno.email) : '?'}</span>
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-white tracking-tight">{aluno?.nome ?? aluno?.email ?? 'Aluno'}</h1>
-              <p className="text-zinc-600 text-xs mt-0.5">{aluno?.email}</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-black text-white tracking-tight truncate">{aluno?.nome ?? aluno?.email ?? 'Aluno'}</h1>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {aluno?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
+                {aluno?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Monitoramento de hoje */}
+        {monitor && (
+          <div className="rounded-2xl p-4 border border-white/[0.06] mb-5" style={{ background: '#0f0f0f' }}>
+            <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Monitoramento hoje</p>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {/* Score de recuperação */}
+              <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Recuperação</p>
+                {monitor.scoreRecuperacao ? (
+                  <p className={`text-xl font-black ${monitor.scoreRecuperacao >= 70 ? 'text-emerald-400' : monitor.scoreRecuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {monitor.scoreRecuperacao}<span className="text-xs font-normal text-zinc-600">/100</span>
+                  </p>
+                ) : <p className="text-zinc-600 text-lg font-black">—</p>}
+              </div>
+              {/* Sono */}
+              <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sono</p>
+                {monitor.sonoHoras ? (
+                  <p className="text-xl font-black text-white">{monitor.sonoHoras}<span className="text-xs font-normal text-zinc-600">h</span></p>
+                ) : <p className="text-zinc-600 text-lg font-black">—</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Bem-estar</p>
+                {monitor.bemEstarMedia ? (
+                  <p className={`text-base font-black ${monitor.bemEstarMedia >= 4 ? 'text-emerald-400' : monitor.bemEstarMedia >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {monitor.bemEstarMedia}<span className="text-[9px] font-normal text-zinc-600">/5</span>
+                  </p>
+                ) : <p className="text-zinc-600 text-base font-black">—</p>}
+                <p className="text-zinc-700 text-[9px] mt-0.5">média 7d</p>
+              </div>
+              <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Treinos</p>
+                <p className="text-white text-base font-black">{monitor.treinosSemana}<span className="text-[9px] font-normal text-zinc-600">x</span></p>
+                <p className="text-zinc-700 text-[9px] mt-0.5">na semana</p>
+              </div>
+              <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Inatividade</p>
+                {monitor.ultimoTreino ? (
+                  <p className={`text-base font-black ${diasSemTreinar(monitor.ultimoTreino) <= 2 ? 'text-emerald-400' : diasSemTreinar(monitor.ultimoTreino) <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {diasSemTreinar(monitor.ultimoTreino)}<span className="text-[9px] font-normal text-zinc-600">d</span>
+                  </p>
+                ) : <p className="text-zinc-600 text-base font-black">—</p>}
+                <p className="text-zinc-700 text-[9px] mt-0.5">sem treinar</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2 mb-6">
           {PLANOS.map(p => {
