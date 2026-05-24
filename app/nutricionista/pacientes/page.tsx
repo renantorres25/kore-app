@@ -295,10 +295,11 @@ export default function NutricionistaPacientes() {
           {[
             { id: 'home',      label: 'Início',    path: '/dashboard',                  active: false },
             { id: 'pacientes', label: 'Pacientes', path: '/nutricionista/pacientes',     active: true  },
+            { id: 'agenda',    label: 'Agenda',    path: '/agenda',                      active: false },
             { id: 'perfil',    label: 'Perfil',    path: '/perfil',                      active: false },
           ].map(item => (
             <button key={item.id} onClick={() => router.push(item.path)}
-              className="flex flex-col items-center gap-1 px-6 py-1 rounded-xl transition-all active:scale-90">
+              className="flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all active:scale-90">
               <span className={`text-[10px] uppercase tracking-[0.12em] font-semibold transition-all ${item.active ? 'text-white' : 'text-zinc-600'}`}>{item.label}</span>
               {item.active && <div className="w-1 h-1 rounded-full bg-green-400" />}
             </button>

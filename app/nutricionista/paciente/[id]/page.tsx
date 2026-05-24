@@ -45,6 +45,8 @@ type PlanoNutricional = {
   created_at: string
 }
 
+type RefeicaoEd = { nome: string; horario: string; calorias: string; proteina: string }
+
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
@@ -100,6 +102,13 @@ function getDias7d(hoje: string): string[] {
   return dias
 }
 
+const NAV = [
+  { id: 'home',      label: 'Início',    path: '/dashboard' },
+  { id: 'pacientes', label: 'Pacientes', path: '/nutricionista/pacientes' },
+  { id: 'agenda',    label: 'Agenda',    path: '/agenda' },
+  { id: 'perfil',    label: 'Perfil',    path: '/perfil' },
+]
+
 export default function NutricionistaPaciente() {
   const router = useRouter()
   const params = useParams()
@@ -115,6 +124,12 @@ export default function NutricionistaPaciente() {
   const [gerandoPlano, setGerandoPlano] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState<'hoje' | 'plano'>('hoje')
   const [carregando, setCarregando] = useState(true)
+
+  // editor manual
+  const [editandoPlano, setEditandoPlano] = useState(false)
+  const [salvandoEd, setSalvandoEd] = useState(false)
+  const [refeicoesEd, setRefeicoesEd] = useState<RefeicaoEd[]>([])
+  const [notaEd, setNotaEd] = useState('')
 
   useEffect(() => {
     async function carregar() {
@@ -156,12 +171,71 @@ export default function NutricionistaPaciente() {
     carregar()
   }, [clienteId, router])
 
+  function iniciarEdicao(doZero = false) {
+    if (!doZero && planoEstruturado) {
+      setRefeicoesEd(planoEstruturado.refeicoes.map((r: any) => ({
+        nome: r.nome ?? '',
+        horario: r.horario ?? '',
+        calorias: String(r.calorias ?? ''),
+        proteina: String(r.proteina ?? ''),
+      })))
+      setNotaEd(planoEstruturado.nota_nutri ?? '')
+    } else {
+      setRefeicoesEd([{ nome: '', horario: '07:00', calorias: '', proteina: '' }])
+      setNotaEd('')
+    }
+    setEditandoPlano(true)
+    setAbaAtiva('plano')
+  }
+
+  function updateRefeicao(i: number, field: keyof RefeicaoEd, val: string) {
+    setRefeicoesEd(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
+  }
+
+  function addRefeicao() {
+    setRefeicoesEd(prev => [...prev, { nome: '', horario: '', calorias: '', proteina: '' }])
+  }
+
+  function removeRefeicao(i: number) {
+    setRefeicoesEd(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  async function salvarEdicao() {
+    setSalvandoEd(true)
+    const totalCal = Math.round(refeicoesEd.reduce((s, r) => s + (parseFloat(r.calorias) || 0), 0))
+    const totalProt = Math.round(refeicoesEd.reduce((s, r) => s + (parseFloat(r.proteina) || 0), 0))
+    const planoJSON = {
+      nota_nutri: notaEd,
+      refeicoes: refeicoesEd.map(r => ({
+        nome: r.nome,
+        horario: r.horario,
+        calorias: parseFloat(r.calorias) || 0,
+        proteina: parseFloat(r.proteina) || 0,
+        alimentos: [],
+      })),
+    }
+    await supabase.from('planos_nutricionais').update({ ativo: false }).eq('usuario_id', clienteId).eq('ativo', true)
+    const { data: novoPlano } = await supabase.from('planos_nutricionais').insert({
+      usuario_id: clienteId,
+      criado_por: 'nutricionista',
+      conteudo: JSON.stringify(planoJSON),
+      calorias_meta: totalCal || metaCal,
+      proteina_meta: totalProt || metaProt,
+      refeicoes_por_dia: refeicoesEd.length,
+      ativo: true,
+    }).select('id, conteudo, calorias_meta, proteina_meta, created_at').single()
+    if (novoPlano) setPlanoAtivo(novoPlano)
+    setEditandoPlano(false)
+    setSalvandoEd(false)
+  }
+
   async function gerarPlanoIA() {
     if (!paciente) return
     setGerandoPlano(true)
+    setEditandoPlano(false)
     setAbaAtiva('plano')
-    const metaCal = getMetaCalorias(paciente.peso, paciente.objetivo)
-    const metaProt = getMetaProteina(paciente.peso, paciente.objetivo)
+    const metaCalLocal = getMetaCalorias(paciente.peso, paciente.objetivo)
+    const metaProtLocal = getMetaProteina(paciente.peso, paciente.objetivo)
     const obj = OBJETIVO_LABEL[paciente.objetivo ?? ''] ?? 'Saúde geral'
     const numRef = paciente.objetivo === 'ganhar_massa' ? 6 : 5
 
@@ -171,15 +245,14 @@ PERFIL DO PACIENTE:
 - Nome: ${paciente.nome ?? 'Paciente'}
 - Objetivo: ${obj}
 - Peso: ${paciente.peso ? `${paciente.peso}kg` : 'não informado'}
-- Meta calórica: ${metaCal ? `${metaCal}kcal/dia` : 'calcule pelo perfil'}
-- Meta proteína: ${metaProt ? `${metaProt}g/dia` : 'calcule pelo perfil'}
+- Meta calórica: ${metaCalLocal ? `${metaCalLocal}kcal/dia` : 'calcule pelo perfil'}
+- Meta proteína: ${metaProtLocal ? `${metaProtLocal}g/dia` : 'calcule pelo perfil'}
 
 INSTRUÇÕES:
 1. Exatamente ${numRef} refeições
 2. Quantidade precisa em gramas por alimento
 3. Calorias e proteína individuais
-4. Total ~${metaCal ?? 2000}kcal e ~${metaProt ?? 120}g proteína
-5. Suplementos apenas se justificado
+4. Total ~${metaCalLocal ?? 2000}kcal e ~${metaProtLocal ?? 120}g proteína
 
 Responda APENAS JSON válido:
 {
@@ -196,10 +269,8 @@ Responda APENAS JSON válido:
       "dica": "Dica prática."
     }
   ],
-  "hidratacao": { "litros_dia": 3.0, "orientacao": "Orientação de hidratação." },
-  "orientacao_treino": "Orientação pré e pós-treino.",
-  "estrategia_desafio": "Estratégia principal.",
-  "dica_fome": "Estratégia anti-fome."
+  "hidratacao": { "litros_dia": 3.0, "orientacao": "Orientação." },
+  "orientacao_treino": "Orientação pré e pós-treino."
 }`
 
     try {
@@ -218,8 +289,8 @@ Responda APENAS JSON válido:
         usuario_id: clienteId,
         criado_por: 'nutricionista',
         conteudo: JSON.stringify(planoJSON),
-        calorias_meta: metaCal,
-        proteina_meta: metaProt,
+        calorias_meta: metaCalLocal,
+        proteina_meta: metaProtLocal,
         refeicoes_por_dia: planoJSON.refeicoes?.length ?? numRef,
         ativo: true,
       }).select('id, conteudo, calorias_meta, proteina_meta, created_at').single()
@@ -278,8 +349,8 @@ Responda APENAS JSON válido:
 
         {/* Abas */}
         <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          {([['hoje', '📊 Hoje'], ['plano', '🥗 Plano Alimentar']] as const).map(([id, label]) => (
-            <button key={id} onClick={() => setAbaAtiva(id)}
+          {([['hoje', '📊 Hoje'], ['plano', '🥗 Plano']] as const).map(([id, label]) => (
+            <button key={id} onClick={() => { setAbaAtiva(id); setEditandoPlano(false) }}
               className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
               {label}
             </button>
@@ -289,7 +360,6 @@ Responda APENAS JSON válido:
         {/* ABA HOJE */}
         {abaAtiva === 'hoje' && (
           <div className="space-y-4">
-            {/* Nutrição hoje */}
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Nutrição de hoje</p>
               {nutricaoHoje ? (
@@ -321,7 +391,6 @@ Responda APENAS JSON válido:
               )}
             </div>
 
-            {/* Balanço calórico */}
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Balanço calórico real</p>
               <div className="grid grid-cols-3 gap-2 mb-4">
@@ -354,7 +423,6 @@ Responda APENAS JSON válido:
               )}
             </div>
 
-            {/* Contexto */}
             {(sonoHoje || bemEstar) && (
               <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Contexto de hoje</p>
@@ -385,7 +453,6 @@ Responda APENAS JSON válido:
               </div>
             )}
 
-            {/* Tendência 7 dias */}
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Tendência — 7 dias</p>
               <div className="flex items-end gap-1.5 h-24">
@@ -418,7 +485,102 @@ Responda APENAS JSON válido:
         {/* ABA PLANO ALIMENTAR */}
         {abaAtiva === 'plano' && (
           <div className="space-y-4">
-            {gerandoPlano ? (
+
+            {/* MODO EDIÇÃO MANUAL */}
+            {editandoPlano ? (
+              <>
+                <div className="rounded-2xl border border-green-500/20 px-4 py-3.5" style={{ background: '#0a0d14' }}>
+                  <p className="text-green-400 text-[9px] uppercase tracking-wider mb-2">Nota clínica</p>
+                  <textarea
+                    value={notaEd}
+                    onChange={e => setNotaEd(e.target.value)}
+                    placeholder="Ex: 5 refeições estratégicas para controle de fome e preservação de massa..."
+                    rows={3}
+                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.06] resize-none"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  {refeicoesEd.map((ref, i) => (
+                    <div key={i} className="rounded-2xl border border-white/[0.06] p-4" style={{ background: '#0f0f0f' }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-zinc-500 text-[10px] uppercase tracking-wider">Refeição {i + 1}</span>
+                        {refeicoesEd.length > 1 && (
+                          <button onClick={() => removeRefeicao(i)} className="text-red-400/60 text-[10px] hover:text-red-400 transition-colors">✕ Remover</button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <input
+                          value={ref.nome}
+                          onChange={e => updateRefeicao(i, 'nome', e.target.value)}
+                          placeholder="Nome (ex: Café da Manhã)"
+                          className="col-span-2 bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]"
+                        />
+                        <input
+                          value={ref.horario}
+                          onChange={e => updateRefeicao(i, 'horario', e.target.value)}
+                          placeholder="Horário (07:00)"
+                          className="bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]"
+                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={ref.calorias}
+                            onChange={e => updateRefeicao(i, 'calorias', e.target.value)}
+                            placeholder="kcal"
+                            className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-orange-500/30 border border-white/[0.06]"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">kcal</span>
+                        </div>
+                        <div className="relative col-span-2">
+                          <input
+                            type="number"
+                            value={ref.proteina}
+                            onChange={e => updateRefeicao(i, 'proteina', e.target.value)}
+                            placeholder="Proteína"
+                            className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-blue-500/30 border border-white/[0.06]"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">g prot</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button onClick={addRefeicao}
+                  className="w-full py-3 rounded-2xl border border-dashed border-white/[0.1] text-zinc-500 text-sm hover:border-white/20 hover:text-zinc-300 transition-all active:scale-95">
+                  + Adicionar refeição
+                </button>
+
+                {refeicoesEd.length > 0 && (
+                  <div className="rounded-2xl border border-white/[0.04] px-4 py-3 flex items-center justify-between" style={{ background: '#0a0a0a' }}>
+                    <div>
+                      <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-0.5">Total calculado</p>
+                      <div className="flex gap-3">
+                        <span className="text-orange-400 text-sm font-bold">
+                          {Math.round(refeicoesEd.reduce((s, r) => s + (parseFloat(r.calorias) || 0), 0))} kcal
+                        </span>
+                        <span className="text-blue-400 text-sm font-bold">
+                          {Math.round(refeicoesEd.reduce((s, r) => s + (parseFloat(r.proteina) || 0), 0))}g prot
+                        </span>
+                      </div>
+                    </div>
+                    {metaCal && <p className="text-zinc-700 text-[10px]">Meta: {metaCal}kcal</p>}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button onClick={() => setEditandoPlano(false)}
+                    className="flex-1 py-3.5 rounded-2xl border border-white/[0.08] text-zinc-400 text-sm font-semibold active:scale-95 transition-all">
+                    Cancelar
+                  </button>
+                  <button onClick={salvarEdicao} disabled={salvandoEd || refeicoesEd.length === 0}
+                    className="flex-1 py-3.5 rounded-2xl bg-green-500 text-white text-sm font-bold active:scale-95 transition-all disabled:opacity-40">
+                    {salvandoEd ? 'Salvando...' : 'Salvar plano'}
+                  </button>
+                </div>
+              </>
+            ) : gerandoPlano ? (
               <div className="rounded-2xl border border-green-500/20 p-6" style={{ background: '#0a0d14' }}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
@@ -447,7 +609,10 @@ Responda APENAS JSON válido:
                       </div>
                       <p className="text-zinc-600 text-[10px]">Criado em {new Date(planoAtivo.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
                     </div>
-                    <button onClick={gerarPlanoIA} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95 shrink-0">↻ Refazer</button>
+                    <div className="flex gap-2 shrink-0">
+                      <button onClick={() => iniciarEdicao(false)} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✏️ Editar</button>
+                      <button onClick={gerarPlanoIA} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">↻ IA</button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 divide-x divide-white/[0.05]">
                     {[
@@ -478,7 +643,7 @@ Responda APENAS JSON válido:
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-white font-bold text-sm">{ref.nome}</p>
-                            <span className="text-zinc-600 text-[10px] bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>
+                            {ref.horario && <span className="text-zinc-600 text-[10px] bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>}
                           </div>
                           <div className="flex gap-3 mt-0.5">
                             <span className="text-orange-400 text-[11px] font-semibold">{ref.calorias} kcal</span>
@@ -495,8 +660,17 @@ Responda APENAS JSON válido:
                 <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4 text-3xl">🥗</div>
                 <p className="text-green-400 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">Plano alimentar</p>
                 <p className="text-white font-black text-xl mb-2">Criar dieta personalizada</p>
-                <p className="text-zinc-500 text-sm leading-relaxed mb-6">Gere um plano completo com refeições, gramas, macros e hidratação baseado no perfil de {paciente?.nome?.split(' ')[0] ?? 'seu paciente'}.</p>
-                <button onClick={gerarPlanoIA} className="w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">✦ Gerar plano com IA →</button>
+                <p className="text-zinc-500 text-sm leading-relaxed mb-6">Gere via IA ou monte manualmente com as refeições e macros do seu paciente.</p>
+                <div className="flex gap-2">
+                  <button onClick={gerarPlanoIA}
+                    className="flex-1 bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+                    ✦ Gerar com IA
+                  </button>
+                  <button onClick={() => iniciarEdicao(true)}
+                    className="flex-1 border border-white/[0.1] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all hover:border-white/20">
+                    ✏️ Manual
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -507,13 +681,9 @@ Responda APENAS JSON válido:
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-          {[
-            { id: 'home',      label: 'Início',    path: '/dashboard' },
-            { id: 'pacientes', label: 'Pacientes', path: '/nutricionista/pacientes' },
-            { id: 'perfil',    label: 'Perfil',    path: '/perfil' },
-          ].map(item => (
+          {NAV.map(item => (
             <button key={item.id} onClick={() => router.push(item.path)}
-              className="flex flex-col items-center gap-1 px-6 py-1 rounded-xl transition-all active:scale-90">
+              className="flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all active:scale-90">
               <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-zinc-600">{item.label}</span>
             </button>
           ))}

@@ -409,6 +409,7 @@ Responda APENAS em JSON válido, sem markdown:
                   if (item.id === 'perfil') router.push('/perfil')
                   else if (item.id === 'alunos') router.push('/personal')
                   else if (item.id === 'pacientes') router.push('/nutricionista/pacientes')
+                  else if (item.id === 'agenda') router.push('/agenda')
                   else if (item.id === 'treino') router.push('/treino')
                   else if (item.id === 'evolucao') router.push('/evolucao')
                   else if (item.id === 'nutri') router.push('/nutricao')

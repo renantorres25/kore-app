@@ -176,12 +176,14 @@ function PerfilConteudo() {
     ? [
         { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
         { id: 'pacientes', icon: '◈', label: 'Pacientes', path: '/nutricionista/pacientes' },
+        { id: 'agenda', icon: '◇', label: 'Agenda', path: '/agenda' },
         { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
       ]
     : tipo === 'personal'
     ? [
         { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
         { id: 'alunos', icon: '◈', label: 'Alunos', path: '/personal' },
+        { id: 'agenda', icon: '◇', label: 'Agenda', path: '/agenda' },
         { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
       ]
     : [
