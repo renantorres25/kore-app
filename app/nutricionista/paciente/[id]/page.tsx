@@ -8,10 +8,6 @@ type Paciente = {
   id: string; nome: string | null; email: string
   peso: number | null; objetivo: string | null
 }
-type NutricaoDia = {
-  data: string; calorias: number | null; proteina: number | null
-  carboidrato: number | null; gordura: number | null
-}
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao: number | null }
 type BemEstar = { humor: number; energia: number; motivacao: number }
@@ -66,18 +62,6 @@ function sumAl(als: AlimentoEd[], field: 'calorias' | 'proteina') {
   return Math.round(als.reduce((s, a) => s + (parseFloat(a[field]) || 0), 0))
 }
 
-function BarraProgresso({ valor, meta, cor }: { valor: number; meta: number; cor: string }) {
-  const pct = Math.min(Math.round((valor / meta) * 100), 130)
-  return (
-    <div className="mt-2">
-      <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${cor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-      </div>
-      <p className="text-zinc-700 text-[9px] mt-1">{pct}% da meta</p>
-    </div>
-  )
-}
-
 const NAV = [
   { id: 'home', label: 'Início', path: '/dashboard' },
   { id: 'pacientes', label: 'Pacientes', path: '/nutricionista/pacientes' },
@@ -92,8 +76,7 @@ export default function NutricionistaPaciente() {
   const clienteId = params.id as string
 
   const [paciente, setPaciente] = useState<Paciente | null>(null)
-  const [nutricaoHoje, setNutricaoHoje] = useState<NutricaoDia | null>(null)
-  const [nutricao7d, setNutricao7d] = useState<NutricaoDia[]>([])
+  const [treinos7dDatas, setTreinos7dDatas] = useState<string[]>([])
   const [treinoHoje, setTreinoHoje] = useState<TreinoDia | null>(null)
   const [sonoHoje, setSonoHoje] = useState<Sono | null>(null)
   const [bemEstar, setBemEstar] = useState<BemEstar | null>(null)
@@ -117,20 +100,18 @@ export default function NutricionistaPaciente() {
       const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 6)
       const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
       const [
-        { data: perfil }, { data: nutHoje }, { data: nut7d },
+        { data: perfil }, { data: treinos7d },
         { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
       ] = await Promise.all([
         supabase.from('perfis').select('id,nome,email,peso,objetivo').eq('id', clienteId).single(),
-        supabase.from('nutricao').select('data,calorias,proteina,carboidrato,gordura').eq('usuario_id', clienteId).eq('data', hoje).single(),
-        supabase.from('nutricao').select('data,calorias,proteina,carboidrato,gordura').eq('usuario_id', clienteId).gte('data', semStr).order('data'),
+        supabase.from('treinos').select('data').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
         supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
         supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
       ])
       if (perfil) setPaciente(perfil)
-      setNutricaoHoje(nutHoje ?? null)
-      setNutricao7d(nut7d ?? [])
+      setTreinos7dDatas((treinos7d ?? []).map((t: { data: string }) => t.data))
       setTreinoHoje(trHoje ?? null)
       setSonoHoje(sono ?? null)
       setBemEstar(bem ?? null)
@@ -283,13 +264,8 @@ Responda APENAS JSON válido:
 
   const metaCal = getMetaCalorias(paciente?.peso ?? null, paciente?.objetivo ?? null)
   const metaProt = getMetaProteina(paciente?.peso ?? null, paciente?.objetivo ?? null)
-  const calHoje = nutricaoHoje?.calorias ?? 0
-  const protHoje = nutricaoHoje?.proteina ?? 0
-  const gastoTreino = treinoHoje?.calorias_estimadas ?? 0
-  const balanco = metaCal ? calHoje - gastoTreino - metaCal : null
   const hoje = getTodayBR()
   const dias7d = getDias7d(hoje)
-  const maxCal = Math.max(...nutricao7d.map(n => n.calorias ?? 0), metaCal ?? 1, 1)
 
   let planoEstruturado: any = null
   if (planoAtivo) { try { const p = JSON.parse(planoAtivo.conteudo); if (p.refeicoes) planoEstruturado = p } catch {} }
@@ -334,112 +310,121 @@ Responda APENAS JSON válido:
         {/* ── ABA HOJE ─────────────────────────────────────────────────── */}
         {abaAtiva === 'hoje' && (
           <div className="space-y-4">
+
+            {/* Recuperação */}
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Nutrição de hoje</p>
-              {nutricaoHoje ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-white/[0.03] rounded-xl p-3.5 border border-white/[0.04]">
-                      <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Calorias</p>
-                      <p className="text-white text-xl font-black">{calHoje}<span className="text-xs font-normal text-zinc-500"> kcal</span></p>
-                      {metaCal && <BarraProgresso valor={calHoje} meta={metaCal} cor={calHoje >= metaCal*0.9 && calHoje <= metaCal*1.15 ? 'bg-green-500' : calHoje < metaCal*0.7 ? 'bg-red-500' : 'bg-yellow-500'} />}
-                    </div>
-                    <div className="bg-white/[0.03] rounded-xl p-3.5 border border-white/[0.04]">
-                      <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Proteína</p>
-                      <p className="text-white text-xl font-black">{protHoje}<span className="text-xs font-normal text-zinc-500"> g</span></p>
-                      {metaProt && <BarraProgresso valor={protHoje} meta={metaProt} cor={protHoje >= metaProt*0.9 ? 'bg-green-500' : protHoje >= metaProt*0.6 ? 'bg-yellow-500' : 'bg-red-500'} />}
-                    </div>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">😴 Recuperação hoje</p>
+              {sonoHoje?.score_recuperacao != null ? (
+                <div>
+                  <div className="flex items-end gap-3 mb-3">
+                    <span className={`text-5xl font-black leading-none ${sonoHoje.score_recuperacao >= 70 ? 'text-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      {sonoHoje.score_recuperacao}
+                    </span>
+                    <span className="text-zinc-600 text-xl mb-1">/100</span>
                   </div>
-                  {(nutricaoHoje.carboidrato || nutricaoHoje.gordura) && (
-                    <div className="flex gap-4 pt-3 border-t border-white/[0.04]">
-                      {nutricaoHoje.carboidrato != null && <div><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-0.5">Carb</p><p className="text-zinc-300 text-sm font-bold">{nutricaoHoje.carboidrato}g</p></div>}
-                      {nutricaoHoje.gordura != null && <><div className="w-px bg-white/[0.06]" /><div><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-0.5">Gordura</p><p className="text-zinc-300 text-sm font-bold">{nutricaoHoje.gordura}g</p></div></>}
-                    </div>
-                  )}
-                </>
+                  <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden mb-3">
+                    <div className={`h-full rounded-full transition-all ${sonoHoje.score_recuperacao >= 70 ? 'bg-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                      style={{ width: `${sonoHoje.score_recuperacao}%` }} />
+                  </div>
+                  <p className={`text-sm font-semibold mb-1 ${sonoHoje.score_recuperacao >= 70 ? 'text-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {sonoHoje.score_recuperacao >= 85 ? 'Excelente recuperação' : sonoHoje.score_recuperacao >= 70 ? 'Boa recuperação' : sonoHoje.score_recuperacao >= 55 ? 'Recuperação moderada' : 'Recuperação baixa'}
+                  </p>
+                  {sonoHoje.duracao && <p className="text-zinc-600 text-xs">Dormiu {sonoHoje.duracao}h esta noite</p>}
+                </div>
               ) : (
-                <div className="py-6 text-center"><p className="text-2xl mb-2">🥗</p><p className="text-zinc-500 text-sm">Nenhum registro alimentar hoje</p></div>
-              )}
-            </div>
-
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Balanço calórico</p>
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {[
-                  { label: 'Ingerido', val: calHoje || '—', unit: 'kcal', cor: 'text-white' },
-                  { label: 'Treino', val: gastoTreino > 0 ? `-${gastoTreino}` : '—', unit: 'kcal', cor: gastoTreino > 0 ? 'text-orange-400' : 'text-zinc-600' },
-                  { label: 'Meta', val: metaCal ?? '—', unit: 'kcal', cor: 'text-zinc-400' },
-                ].map(m => (
-                  <div key={m.label} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] text-center">
-                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">{m.label}</p>
-                    <p className={`text-base font-black ${m.cor}`}>{m.val}</p>
-                    <p className="text-zinc-700 text-[9px]">{m.unit}</p>
-                  </div>
-                ))}
-              </div>
-              {balanco !== null && metaCal && (
-                <div className={`rounded-xl p-3.5 border ${Math.abs(balanco) <= metaCal*0.1 ? 'bg-green-500/5 border-green-500/20' : balanco < 0 ? 'bg-red-500/5 border-red-500/20' : 'bg-yellow-500/5 border-yellow-500/20'}`}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] uppercase tracking-wider text-zinc-500">Balanço líquido</p>
-                    <p className={`text-sm font-black ${Math.abs(balanco) <= metaCal*0.1 ? 'text-green-400' : balanco < 0 ? 'text-red-400' : 'text-yellow-400'}`}>{balanco > 0 ? '+' : ''}{balanco} kcal</p>
-                  </div>
-                  <p className="text-zinc-600 text-[11px] mt-1">{Math.abs(balanco) <= metaCal*0.1 ? 'Na meta — bom equilíbrio' : balanco < -metaCal*0.15 ? 'Déficit além do planejado' : 'Superávit em relação à meta'}</p>
+                <div className="py-4 text-center">
+                  <p className="text-2xl mb-2">🌙</p>
+                  <p className="text-zinc-500 text-sm">Sem registro de sono hoje</p>
                 </div>
               )}
             </div>
 
-            {(sonoHoje || bemEstar) && (
-              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Contexto de hoje</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {sonoHoje?.score_recuperacao ? (
-                    <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
-                      <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Recuperação</p>
-                      <p className={`text-xl font-black ${sonoHoje.score_recuperacao >= 70 ? 'text-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                        {sonoHoje.score_recuperacao}<span className="text-xs font-normal text-zinc-600">/100</span>
-                      </p>
-                      {sonoHoje.duracao && <p className="text-zinc-700 text-[9px] mt-0.5">{sonoHoje.duracao}h de sono</p>}
+            {/* Treino hoje */}
+            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">🏋️ Treino hoje</p>
+              {treinoHoje ? (
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                      <span className="text-emerald-400 text-base">✓</span>
                     </div>
-                  ) : null}
-                  {bemEstar && (
-                    <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
-                      <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-2">Bem-estar</p>
-                      {[{ label: 'Humor', val: bemEstar.humor }, { label: 'Energia', val: bemEstar.energia }].map(({ label, val }) => (
-                        <div key={label} className="flex items-center gap-2 mb-1">
-                          <p className="text-zinc-600 text-[9px] w-12">{label}</p>
-                          <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(i => <div key={i} className={`w-3 h-1.5 rounded-full ${i <= val ? (val >= 4 ? 'bg-green-400' : val >= 3 ? 'bg-yellow-400' : 'bg-red-400') : 'bg-white/[0.06]'}`} />)}
-                          </div>
-                        </div>
-                      ))}
+                    <div>
+                      <p className="text-white font-bold text-sm">{treinoHoje.plano ?? 'Treino concluído'}</p>
+                      <p className="text-emerald-400 text-xs">Completou treino hoje</p>
+                    </div>
+                  </div>
+                  {treinoHoje.calorias_estimadas != null && treinoHoje.calorias_estimadas > 0 && (
+                    <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] mt-3">
+                      <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-0.5">Gasto estimado</p>
+                      <p className="text-orange-400 font-black text-base">{treinoHoje.calorias_estimadas} <span className="text-xs font-normal text-zinc-500">kcal</span></p>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0">
+                    <span className="text-zinc-600 text-lg">—</span>
+                  </div>
+                  <p className="text-zinc-500 text-sm">Sem treino registrado hoje</p>
+                </div>
+              )}
+            </div>
 
+            {/* Bem-estar */}
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Tendência — 7 dias</p>
-              <div className="flex items-end gap-1.5 h-24">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">⚡ Bem-estar hoje</p>
+              {bemEstar ? (
+                <div className="space-y-3">
+                  {([
+                    { label: 'Humor', val: bemEstar.humor },
+                    { label: 'Energia', val: bemEstar.energia },
+                    { label: 'Motivação', val: bemEstar.motivacao },
+                  ] as { label: string; val: number }[]).map(({ label, val }) => (
+                    <div key={label} className="flex items-center gap-3">
+                      <p className="text-zinc-500 text-xs w-16 shrink-0">{label}</p>
+                      <div className="flex gap-1.5 flex-1">
+                        {[1,2,3,4,5].map(i => (
+                          <div key={i} className={`flex-1 h-2.5 rounded-full ${i <= val ? (val >= 4 ? 'bg-green-400' : val >= 3 ? 'bg-yellow-400' : 'bg-red-400') : 'bg-white/[0.08]'}`} />
+                        ))}
+                      </div>
+                      <span className={`text-xs font-bold w-7 text-right shrink-0 ${val >= 4 ? 'text-green-400' : val >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>{val}/5</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-4 text-center">
+                  <p className="text-zinc-600 text-sm">Sem registro de bem-estar hoje</p>
+                </div>
+              )}
+            </div>
+
+            {/* Treinos — 7 dias */}
+            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Treinos — últimos 7 dias</p>
+              <div className="flex gap-1.5">
                 {dias7d.map((dia) => {
-                  const reg = nutricao7d.find(n => n.data === dia)
-                  const cal = reg?.calorias ?? 0
-                  const h = cal > 0 ? Math.max(Math.round((cal / maxCal) * 80), 6) : 4
+                  const treinoNoDia = treinos7dDatas.includes(dia)
                   const isHoje = dia === hoje
-                  let bar = 'bg-white/[0.12]'
-                  if (cal > 0 && metaCal) { const p = cal/metaCal; bar = p >= 0.9 && p <= 1.15 ? 'bg-green-500' : p < 0.7 ? 'bg-red-400/60' : 'bg-yellow-400/60' }
                   const [,mm,dd] = dia.split('-')
                   return (
-                    <div key={dia} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full flex items-end justify-center" style={{ height: 80 }}>
-                        <div className={`w-full rounded-t-lg ${bar} ${isHoje ? 'ring-1 ring-white/20' : ''}`} style={{ height: h }} />
+                    <div key={dia} className="flex-1 flex flex-col items-center gap-1.5">
+                      <div className={`w-full aspect-square rounded-xl flex items-center justify-center text-sm ${treinoNoDia ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' : 'bg-white/[0.04] border border-white/[0.06] text-zinc-700'}`}>
+                        {treinoNoDia ? '✓' : '·'}
                       </div>
                       <p className={`text-[8px] uppercase tracking-wider ${isHoje ? 'text-white' : 'text-zinc-700'}`}>{dd}/{mm}</p>
                     </div>
                   )
                 })}
               </div>
-              {metaCal && <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.04]"><div className="w-3 h-0.5 bg-green-500/50 rounded" /><p className="text-zinc-700 text-[9px]">Meta: {metaCal} kcal</p></div>}
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.04]">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-md bg-blue-500/30 border border-blue-500/40" />
+                  <span className="text-zinc-600 text-[9px]">Treinou</span>
+                </div>
+                <span className={`text-xs font-bold ml-auto ${treinos7dDatas.length >= 4 ? 'text-blue-400' : treinos7dDatas.length >= 2 ? 'text-yellow-400' : 'text-zinc-500'}`}>
+                  {treinos7dDatas.length}/7 dias
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -571,8 +556,7 @@ Responda APENAS JSON válido:
                   </div>
                 )}
 
-                <div className="flex gap-2">
-                  {/* Seções extras opcionais */}
+                {/* Seções extras opcionais */}
                 <div className="rounded-2xl border border-white/[0.06] p-4 space-y-3" style={{ background: '#0f0f0f' }}>
                   <p className="text-zinc-500 text-[9px] uppercase tracking-wider">Orientações complementares (opcional)</p>
                   <div className="grid grid-cols-2 gap-2">
@@ -596,7 +580,8 @@ Responda APENAS JSON válido:
                     className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
                 </div>
 
-                <button onClick={() => setEditandoPlano(false)}
+                <div className="flex gap-2">
+                  <button onClick={() => setEditandoPlano(false)}
                     className="flex-1 py-3.5 rounded-2xl border border-white/[0.08] text-zinc-400 text-sm font-semibold active:scale-95 transition-all">
                     Cancelar
                   </button>

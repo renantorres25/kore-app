@@ -177,14 +177,14 @@ type NavItem = { id: string; label: string; Icon: React.FC<{ active: boolean }> 
 function getNavItems(tipo?: string): NavItem[] {
   if (tipo === 'personal') return [
     { id: 'home',   label: 'Início', Icon: IconHome   },
-    { id: 'agenda', label: 'Agenda', Icon: IconAgenda },
     { id: 'alunos', label: 'Alunos', Icon: IconAlunos },
+    { id: 'agenda', label: 'Agenda', Icon: IconAgenda },
     { id: 'perfil', label: 'Perfil', Icon: IconPerfil },
   ]
   if (tipo === 'nutricionista') return [
     { id: 'home',      label: 'Início',    Icon: IconHome   },
-    { id: 'agenda',    label: 'Agenda',    Icon: IconAgenda },
     { id: 'pacientes', label: 'Pacientes', Icon: IconAlunos },
+    { id: 'agenda',    label: 'Agenda',    Icon: IconAgenda },
     { id: 'perfil',    label: 'Perfil',    Icon: IconPerfil },
   ]
   return [
@@ -917,17 +917,21 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
 
   const [loadingStats, setLoadingStats] = useState(true)
   const [totalPacientes, setTotalPacientes] = useState(0)
-  const [registraramHoje, setRegistraramHoje] = useState(0)
-  const [alertas, setAlertas] = useState(0)
-  const [pacientesRecentes, setPacientesRecentes] = useState<{ nome: string | null; email: string; registrouHoje: boolean; calorias: number | null; metaCal: number | null }[]>([])
+  const [boaRecuperacao, setBoaRecuperacao] = useState(0)
+  const [treinaram7d, setTreinaram7d] = useState(0)
+  const [semPlano, setSemPlano] = useState(0)
+  const [pacientesRecentes, setPacientesRecentes] = useState<{
+    id: string; nome: string | null; email: string
+    sonoScore: number | null; treinos7d: number; energia: number | null
+  }[]>([])
 
   useEffect(() => {
     async function carregarStats() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
       const hoje = getTodayBR()
-      const doisDiasAtras = new Date(); doisDiasAtras.setDate(doisDiasAtras.getDate() - 2)
-      const doisDiasStr = doisDiasAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+      const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 7)
+      const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
       const { data: vinculos } = await supabase.from('vinculos').select('cliente_id').eq('profissional_id', session.user.id).eq('tipo', 'nutricionista').eq('ativo', true)
       if (!vinculos?.length) { setLoadingStats(false); return }
@@ -935,25 +939,33 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
       const ids = vinculos.map(v => v.cliente_id)
       setTotalPacientes(ids.length)
 
-      const [{ data: perfis }, { data: nutHoje }, { data: nut2d }] = await Promise.all([
-        supabase.from('perfis').select('id, nome, email, peso, objetivo').in('id', ids),
-        supabase.from('nutricao').select('usuario_id, calorias').in('usuario_id', ids).eq('data', hoje),
-        supabase.from('nutricao').select('usuario_id').in('usuario_id', ids).gte('data', doisDiasStr),
+      const [{ data: perfis }, { data: sonos }, { data: treinos }, { data: bems }, { data: planos }] = await Promise.all([
+        supabase.from('perfis').select('id, nome, email').in('id', ids),
+        supabase.from('sono').select('usuario_id, score_recuperacao').in('usuario_id', ids).eq('data', hoje),
+        supabase.from('treinos').select('cliente_id').in('cliente_id', ids).gte('data', semStr).eq('concluido', true),
+        supabase.from('bem_estar').select('usuario_id, energia').in('usuario_id', ids).eq('data', hoje),
+        supabase.from('planos_nutricionais').select('usuario_id').in('usuario_id', ids).eq('ativo', true),
       ])
 
-      const registraramSet = new Set(nutHoje?.map(n => n.usuario_id))
-      const registraram2dSet = new Set(nut2d?.map(n => n.usuario_id))
-      setRegistraramHoje(registraramSet.size)
-      setAlertas(ids.filter(id => !registraram2dSet.has(id)).length)
+      const sonoMap = new Map(sonos?.map(s => [s.usuario_id, s.score_recuperacao]) ?? [])
+      const treinos7dSet = new Map<string, number>()
+      treinos?.forEach(t => treinos7dSet.set(t.cliente_id, (treinos7dSet.get(t.cliente_id) ?? 0) + 1))
+      const bемMap = new Map(bems?.map(b => [b.usuario_id, b.energia]) ?? [])
+      const planosSet = new Set(planos?.map(p => p.usuario_id) ?? [])
 
-      const recentes = (perfis ?? []).map(p => ({
+      setBoaRecuperacao(ids.filter(id => (sonoMap.get(id) ?? 0) >= 60).length)
+      setTreinaram7d(ids.filter(id => (treinos7dSet.get(id) ?? 0) > 0).length)
+      setSemPlano(ids.filter(id => !planosSet.has(id)).length)
+
+      const recentes = (perfis ?? []).slice(0, 3).map(p => ({
+        id: p.id,
         nome: p.nome,
         email: p.email,
-        registrouHoje: registraramSet.has(p.id),
-        calorias: nutHoje?.find(n => n.usuario_id === p.id)?.calorias ?? null,
-        metaCal: getMetaCalorias(p.peso, p.objetivo),
+        sonoScore: sonoMap.get(p.id) ?? null,
+        treinos7d: treinos7dSet.get(p.id) ?? 0,
+        energia: bемMap.get(p.id) ?? null,
       }))
-      setPacientesRecentes(recentes.slice(0, 3))
+      setPacientesRecentes(recentes)
       setLoadingStats(false)
     }
     carregarStats()
@@ -981,9 +993,9 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
-          { valor: loadingStats ? '—' : String(totalPacientes),   label: 'Pacientes',   sub: 'ativos',         cor: 'text-white' },
-          { valor: loadingStats ? '—' : String(registraramHoje),  label: 'Registraram', sub: 'hoje',           cor: registraramHoje > 0 ? 'text-green-400' : 'text-white' },
-          { valor: loadingStats ? '—' : String(alertas),          label: 'Alertas',     sub: 'sem registrar',  cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
+          { valor: loadingStats ? '—' : String(totalPacientes),  label: 'Pacientes',     sub: 'ativos',          cor: 'text-white' },
+          { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Recuperados',   sub: 'hoje',            cor: boaRecuperacao > 0 ? 'text-green-400' : 'text-white' },
+          { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',     sub: 'essa semana',     cor: treinaram7d > 0 ? 'text-blue-400' : 'text-white' },
         ].map((m) => (
           <div key={m.label} className="rounded-2xl p-4 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
             <p className={`text-2xl font-black ${m.cor}`}>{m.valor}</p>
@@ -993,6 +1005,14 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
         ))}
       </div>
 
+      {semPlano > 0 && (
+        <div className="rounded-2xl p-4 border border-yellow-500/20 bg-yellow-500/[0.05] mb-4">
+          <p className="text-yellow-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚡ {semPlano} paciente{semPlano > 1 ? 's' : ''} sem plano alimentar</p>
+          <p className="text-zinc-500 text-xs">Crie um plano personalizado para completar o acompanhamento.</p>
+          <button onClick={() => router.push('/nutricionista/pacientes')} className="mt-3 text-[11px] border border-yellow-500/30 text-yellow-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver pacientes →</button>
+        </div>
+      )}
+
       {pacientesRecentes.length > 0 && (
         <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
@@ -1000,33 +1020,34 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
             <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
           </div>
           <div className="divide-y divide-white/[0.04]">
-            {pacientesRecentes.map((p, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${p.registrouHoje ? 'bg-green-500/10 text-green-400' : 'bg-white/[0.04] text-zinc-500'}`}>
-                  {(p.nome ?? p.email)[0].toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
-                  <p className={`text-[11px] ${p.registrouHoje ? 'text-green-400' : 'text-zinc-600'}`}>
-                    {p.registrouHoje ? `✓ ${p.calorias ?? '?'} kcal registradas` : 'Sem registro hoje'}
-                  </p>
-                </div>
-                {p.metaCal && p.calorias && (
-                  <div className={`text-xs font-bold shrink-0 ${Math.abs(p.calorias - p.metaCal) <= p.metaCal * 0.12 ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {Math.round((p.calorias / p.metaCal) * 100)}%
+            {pacientesRecentes.map((p, i) => {
+              const sonoOk = p.sonoScore != null && p.sonoScore >= 60
+              const sonoBaixo = p.sonoScore != null && p.sonoScore < 50
+              return (
+                <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 active:bg-white/[0.03] transition-colors">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${sonoOk ? 'bg-green-500/10 text-green-400' : sonoBaixo ? 'bg-red-500/10 text-red-400' : 'bg-white/[0.04] text-zinc-500'}`}>
+                    {(p.nome ?? p.email)[0].toUpperCase()}
                   </div>
-                )}
-              </div>
-            ))}
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {p.sonoScore != null
+                        ? <span className={`text-[10px] font-bold ${sonoOk ? 'text-green-400' : sonoBaixo ? 'text-red-400' : 'text-yellow-400'}`}>😴 {p.sonoScore}/100</span>
+                        : <span className="text-zinc-600 text-[10px]">😴 —</span>}
+                      <span className="text-zinc-700 text-[10px]">·</span>
+                      <span className={`text-[10px] ${p.treinos7d > 0 ? 'text-blue-400' : 'text-zinc-600'}`}>🏋️ {p.treinos7d}x</span>
+                      {p.energia != null && <>
+                        <span className="text-zinc-700 text-[10px]">·</span>
+                        <span className={`text-[10px] ${p.energia >= 4 ? 'text-green-400' : p.energia >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>⚡ {p.energia}/5</span>
+                      </>}
+                    </div>
+                  </div>
+                  <span className="text-zinc-700 text-sm shrink-0">→</span>
+                </button>
+              )
+            })}
           </div>
-        </div>
-      )}
-
-      {alertas > 0 && (
-        <div className="rounded-2xl p-4 border border-orange-500/20 bg-orange-500/5 mb-4">
-          <p className="text-orange-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚠ {alertas} paciente{alertas > 1 ? 's' : ''} sem registrar há 2+ dias</p>
-          <p className="text-zinc-500 text-xs">Acesse a lista para ver quem precisa de atenção.</p>
-          <button onClick={() => router.push('/nutricionista/pacientes')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver pacientes →</button>
         </div>
       )}
 
