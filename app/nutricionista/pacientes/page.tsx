@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import NavBar from '../../components/NavBar'
 
 type Paciente = {
   id: string; cliente_id: string; nome: string | null; email: string
@@ -211,24 +212,7 @@ export default function NutricionistaPacientes() {
         )}
       </div>
 
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)' }}>
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-          {[
-            { id: 'home',      label: 'Início',    path: '/dashboard',              active: false },
-            { id: 'pacientes', label: 'Pacientes', path: '/nutricionista/pacientes', active: true  },
-            { id: 'agenda',    label: 'Agenda',    path: '/agenda',                  active: false },
-            { id: 'perfil',    label: 'Perfil',    path: '/perfil',                  active: false },
-          ].map(item => (
-            <button key={item.id} onClick={() => router.push(item.path)}
-              className="flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all active:scale-90">
-              <span className={`text-[10px] uppercase tracking-[0.12em] font-semibold ${item.active ? 'text-white' : 'text-zinc-600'}`}>{item.label}</span>
-              {item.active && <div className="w-1 h-1 rounded-full bg-green-400" />}
-            </button>
-          ))}
-        </div>
-      </nav>
+      <NavBar tipo="nutricionista" ativa="pacientes" />
     </main>
   )
 }

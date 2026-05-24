@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import NavBar from '../components/NavBar'
 
 const objetivos = [
   { valor: 'perder_peso',              emoji: '🔥', label: 'Perder peso' },
@@ -172,27 +173,6 @@ function PerfilConteudo() {
   const isProf = tipo === 'personal' || tipo === 'nutricionista'
   const camposPreenchidos = isProf ? true : !!(dataNascimento && sexo && peso && altura && objetivo && nivel)
   const progresso = [dataNascimento, sexo, peso, altura, objetivo, nivel].filter(Boolean).length
-  const navItems = tipo === 'nutricionista'
-    ? [
-        { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
-        { id: 'pacientes', icon: '◈', label: 'Pacientes', path: '/nutricionista/pacientes' },
-        { id: 'agenda', icon: '◇', label: 'Agenda', path: '/agenda' },
-        { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
-      ]
-    : tipo === 'personal'
-    ? [
-        { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
-        { id: 'alunos', icon: '◈', label: 'Alunos', path: '/personal' },
-        { id: 'agenda', icon: '◇', label: 'Agenda', path: '/agenda' },
-        { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
-      ]
-    : [
-        { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
-        { id: 'treino', icon: '◈', label: 'Treino', path: '/treino' },
-        { id: 'nutri', icon: '◇', label: 'Nutrição', path: '/nutricao' },
-        { id: 'evolucao', icon: '△', label: 'Evolução', path: '/evolucao' },
-        { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
-      ]
 
   if (carregando) return (
     <main className="min-h-screen bg-[#080808] flex items-center justify-center">
@@ -480,21 +460,7 @@ function PerfilConteudo() {
         )}
       </div>
 
-      {!isNovo && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
-          <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-            {navItems.map(item => (
-              <button key={item.id} onClick={() => router.push(item.path)}
-                className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90">
-                <span className={`text-lg transition-all duration-200 ${item.id === 'perfil' ? 'opacity-100' : 'opacity-20'}`}>{item.icon}</span>
-                <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold transition-all ${item.id === 'perfil' ? 'text-white' : 'text-zinc-700'}`}>{item.label}</span>
-                {item.id === 'perfil' && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
-              </button>
-            ))}
-          </div>
-        </nav>
-      )}
+      {!isNovo && <NavBar tipo={tipo || 'cliente'} ativa="perfil" />}
     </main>
   )
 }

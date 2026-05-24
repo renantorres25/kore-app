@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import NavBar from '../components/NavBar'
 
 type Agendamento = {
   id: string; cliente_id: string; data: string; hora: string
@@ -119,10 +120,6 @@ export default function Agenda() {
     if (!acc[a.data]) acc[a.data] = []; acc[a.data].push(a); return acc
   }, {})
 
-  const navItems = tipo === 'nutricionista'
-    ? [{ id: 'home', label: 'Início', path: '/dashboard' }, { id: 'pacientes', label: 'Pacientes', path: '/nutricionista/pacientes' }, { id: 'agenda', label: 'Agenda', path: '/agenda' }, { id: 'perfil', label: 'Perfil', path: '/perfil' }]
-    : [{ id: 'home', label: 'Início', path: '/dashboard' }, { id: 'alunos', label: 'Alunos', path: '/personal' }, { id: 'agenda', label: 'Agenda', path: '/agenda' }, { id: 'perfil', label: 'Perfil', path: '/perfil' }]
-
   const STATUS_COR: Record<string, string> = {
     agendado: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     realizado: 'text-green-400 bg-green-500/10 border-green-500/20',
@@ -205,19 +202,7 @@ export default function Agenda() {
         )}
       </div>
 
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-          {navItems.map(item => (
-            <button key={item.id} onClick={() => router.push(item.path)}
-              className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all active:scale-90">
-              <span className={`text-[9px] tracking-[0.12em] uppercase font-semibold ${item.id === 'agenda' ? 'text-white' : 'text-zinc-700'}`}>{item.label}</span>
-              {item.id === 'agenda' && <div className="w-1 h-1 rounded-full bg-white" />}
-            </button>
-          ))}
-        </div>
-      </nav>
+      <NavBar tipo={tipo || 'nutricionista'} ativa="agenda" />
 
       {/* Modal */}
       {showModal && (
