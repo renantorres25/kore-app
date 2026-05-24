@@ -21,11 +21,16 @@ type PlanoNutricional = {
 }
 type AlimentoEd = { nome: string; quantidade: string; calorias: string; proteina: string }
 type RefeicaoEd = { nome: string; horario: string; dica: string; alimentos: AlimentoEd[] }
+type ExtrasEd = {
+  hidratacaoLitros: string; hidratacaoOri: string
+  oriTreino: string; estrategia: string; dicaFome: string
+}
 
 const REFEICAO_VAZIA: RefeicaoEd = {
   nome: '', horario: '', dica: '',
   alimentos: [{ nome: '', quantidade: '', calorias: '', proteina: '' }],
 }
+const EXTRAS_VAZIO: ExtrasEd = { hidratacaoLitros: '', hidratacaoOri: '', oriTreino: '', estrategia: '', dicaFome: '' }
 
 function getTodayBR() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -102,6 +107,7 @@ export default function NutricionistaPaciente() {
   const [salvandoEd, setSalvandoEd] = useState(false)
   const [refeicoesEd, setRefeicoesEd] = useState<RefeicaoEd[]>([])
   const [notaEd, setNotaEd] = useState('')
+  const [extrasEd, setExtrasEd] = useState<ExtrasEd>(EXTRAS_VAZIO)
 
   useEffect(() => {
     async function carregar() {
@@ -147,9 +153,17 @@ export default function NutricionistaPaciente() {
           : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? '') }],
       })))
       setNotaEd(planoEstruturado.nota_nutri ?? '')
+      setExtrasEd({
+        hidratacaoLitros: String(planoEstruturado.hidratacao?.litros_dia ?? ''),
+        hidratacaoOri: planoEstruturado.hidratacao?.orientacao ?? '',
+        oriTreino: planoEstruturado.orientacao_treino ?? '',
+        estrategia: planoEstruturado.estrategia_desafio ?? '',
+        dicaFome: planoEstruturado.dica_fome ?? '',
+      })
     } else {
       setRefeicoesEd([{ ...REFEICAO_VAZIA }])
       setNotaEd('')
+      setExtrasEd(EXTRAS_VAZIO)
     }
     setEditandoPlano(true)
     setAbaAtiva('plano')
@@ -182,7 +196,7 @@ export default function NutricionistaPaciente() {
 
   async function salvarEdicao() {
     setSalvandoEd(true)
-    const planoJSON = {
+    const planoJSON: any = {
       nota_nutri: notaEd,
       refeicoes: refeicoesEd.map(r => ({
         nome: r.nome, horario: r.horario,
@@ -196,6 +210,11 @@ export default function NutricionistaPaciente() {
         })),
       })),
     }
+    if (extrasEd.hidratacaoLitros || extrasEd.hidratacaoOri)
+      planoJSON.hidratacao = { litros_dia: parseFloat(extrasEd.hidratacaoLitros) || 0, orientacao: extrasEd.hidratacaoOri }
+    if (extrasEd.oriTreino) planoJSON.orientacao_treino = extrasEd.oriTreino
+    if (extrasEd.estrategia) planoJSON.estrategia_desafio = extrasEd.estrategia
+    if (extrasEd.dicaFome) planoJSON.dica_fome = extrasEd.dicaFome
     const totalCal = planoJSON.refeicoes.reduce((s, r) => s + r.calorias, 0)
     const totalProt = planoJSON.refeicoes.reduce((s, r) => s + r.proteina, 0)
     await supabase.from('planos_nutricionais').update({ ativo: false }).eq('usuario_id', clienteId).eq('ativo', true)
@@ -553,7 +572,31 @@ Responda APENAS JSON válido:
                 )}
 
                 <div className="flex gap-2">
-                  <button onClick={() => setEditandoPlano(false)}
+                  {/* Seções extras opcionais */}
+                <div className="rounded-2xl border border-white/[0.06] p-4 space-y-3" style={{ background: '#0f0f0f' }}>
+                  <p className="text-zinc-500 text-[9px] uppercase tracking-wider">Orientações complementares (opcional)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="relative">
+                      <input type="number" value={extrasEd.hidratacaoLitros} onChange={e => setExtrasEd(p => ({ ...p, hidratacaoLitros: e.target.value }))}
+                        placeholder="2.5" className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">L/dia</span>
+                    </div>
+                    <input value={extrasEd.hidratacaoOri} onChange={e => setExtrasEd(p => ({ ...p, hidratacaoOri: e.target.value }))}
+                      placeholder="💧 Orientação de hidratação"
+                      className="bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                  </div>
+                  <input value={extrasEd.oriTreino} onChange={e => setExtrasEd(p => ({ ...p, oriTreino: e.target.value }))}
+                    placeholder="⚡ Orientação pré/pós-treino"
+                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                  <input value={extrasEd.estrategia} onChange={e => setExtrasEd(p => ({ ...p, estrategia: e.target.value }))}
+                    placeholder="🎯 Estratégia para o desafio principal"
+                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                  <input value={extrasEd.dicaFome} onChange={e => setExtrasEd(p => ({ ...p, dicaFome: e.target.value }))}
+                    placeholder="💡 Dica de controle de fome"
+                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                </div>
+
+                <button onClick={() => setEditandoPlano(false)}
                     className="flex-1 py-3.5 rounded-2xl border border-white/[0.08] text-zinc-400 text-sm font-semibold active:scale-95 transition-all">
                     Cancelar
                   </button>
@@ -627,6 +670,40 @@ Responda APENAS JSON válido:
                     <RefeicaoCard key={i} ref={ref} idx={i} />
                   ))}
                 </div>
+
+                {/* Seções extras do plano */}
+                {planoEstruturado.hidratacao && (
+                  <PlanoExtra
+                    icon="💧" titulo="Hidratação personalizada"
+                    subtitulo={`${planoEstruturado.hidratacao.litros_dia}L por dia · baseado no seu peso e treino`}
+                    conteudo={planoEstruturado.hidratacao.orientacao}
+                    cor="blue"
+                  />
+                )}
+                {planoEstruturado.orientacao_treino && (
+                  <PlanoExtra
+                    icon="⚡" titulo="Orientação de treino"
+                    subtitulo="Pré e pós-treino com alimentos"
+                    conteudo={planoEstruturado.orientacao_treino}
+                    cor="yellow"
+                  />
+                )}
+                {planoEstruturado.estrategia_desafio && (
+                  <PlanoExtra
+                    icon="🎯" titulo="Estratégia para o desafio"
+                    subtitulo="Como superar o maior obstáculo"
+                    conteudo={planoEstruturado.estrategia_desafio}
+                    cor="orange"
+                  />
+                )}
+                {planoEstruturado.dica_fome && (
+                  <PlanoExtra
+                    icon="💡" titulo="Controle de fome"
+                    subtitulo="Estratégia para o período crítico"
+                    conteudo={planoEstruturado.dica_fome}
+                    cor="green"
+                  />
+                )}
               </>
 
             ) : (
@@ -658,6 +735,36 @@ Responda APENAS JSON válido:
         </div>
       </nav>
     </main>
+  )
+}
+
+function PlanoExtra({ icon, titulo, subtitulo, conteudo, cor }: {
+  icon: string; titulo: string; subtitulo: string; conteudo: string; cor: 'blue' | 'yellow' | 'orange' | 'green'
+}) {
+  const [aberto, setAberto] = useState(false)
+  const cores: Record<string, { borda: string; titulo: string; bg: string }> = {
+    blue:   { borda: 'border-blue-500/20',   titulo: 'text-blue-400',   bg: 'bg-blue-500/5' },
+    yellow: { borda: 'border-yellow-500/20', titulo: 'text-yellow-400', bg: 'bg-yellow-500/5' },
+    orange: { borda: 'border-orange-500/20', titulo: 'text-orange-400', bg: 'bg-orange-500/5' },
+    green:  { borda: 'border-green-500/20',  titulo: 'text-green-400',  bg: 'bg-green-500/5' },
+  }
+  const c = cores[cor]
+  return (
+    <div className={`rounded-2xl border ${c.borda} ${c.bg} overflow-hidden`}>
+      <button onClick={() => setAberto(p => !p)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:opacity-80">
+        <span className="text-xl shrink-0">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-bold ${c.titulo}`}>{titulo}</p>
+          <p className="text-zinc-500 text-xs">{subtitulo}</p>
+        </div>
+        <span className={`text-zinc-600 text-xs transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+      {aberto && (
+        <div className="px-4 pb-4 border-t border-white/[0.04]">
+          <p className="text-zinc-300 text-sm leading-relaxed pt-3">{conteudo}</p>
+        </div>
+      )}
+    </div>
   )
 }
 
