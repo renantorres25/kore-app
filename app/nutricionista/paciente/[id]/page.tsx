@@ -5,79 +5,60 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
 type Paciente = {
-  id: string
-  nome: string | null
-  email: string
-  peso: number | null
-  objetivo: string | null
+  id: string; nome: string | null; email: string
+  peso: number | null; objetivo: string | null
 }
-
 type NutricaoDia = {
-  data: string
-  calorias: number | null
-  proteina: number | null
-  carboidrato: number | null
-  gordura: number | null
+  data: string; calorias: number | null; proteina: number | null
+  carboidrato: number | null; gordura: number | null
 }
-
-type TreinoDia = {
-  data: string
-  calorias_estimadas: number | null
-  plano: string | null
-}
-
-type Sono = {
-  score_recuperacao: number | null
-  duracao: number | null
-}
-
-type BemEstar = {
-  humor: number
-  energia: number
-  motivacao: number
-}
-
+type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
+type Sono = { score_recuperacao: number | null; duracao: number | null }
+type BemEstar = { humor: number; energia: number; motivacao: number }
 type PlanoNutricional = {
-  id: string
-  conteudo: string
-  calorias_meta: number | null
-  proteina_meta: number | null
-  created_at: string
+  id: string; conteudo: string; calorias_meta: number | null
+  proteina_meta: number | null; created_at: string
+}
+type AlimentoEd = { nome: string; quantidade: string; calorias: string; proteina: string }
+type RefeicaoEd = { nome: string; horario: string; dica: string; alimentos: AlimentoEd[] }
+
+const REFEICAO_VAZIA: RefeicaoEd = {
+  nome: '', horario: '', dica: '',
+  alimentos: [{ nome: '', quantidade: '', calorias: '', proteina: '' }],
 }
 
-type RefeicaoEd = { nome: string; horario: string; calorias: string; proteina: string }
-
-function getTodayBR(): string {
+function getTodayBR() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
-
-function getMetaCalorias(peso: number | null, objetivo: string | null): number | null {
+function getMetaCalorias(peso: number | null, objetivo: string | null) {
   if (!peso) return null
-  const tmb = 10 * peso + 6.25 * 170 - 5 * 25 + 5
-  const tdee = Math.round(tmb * 1.55)
+  const tdee = Math.round((10 * peso + 6.25 * 170 - 5 * 25 + 5) * 1.55)
   if (objetivo === 'perder_peso') return Math.round(tdee * 0.85)
   if (objetivo === 'ganhar_massa') return Math.round(tdee * 1.1)
   return tdee
 }
-
-function getMetaProteina(peso: number | null, objetivo: string | null): number | null {
+function getMetaProteina(peso: number | null, objetivo: string | null) {
   if (!peso) return null
   if (objetivo === 'ganhar_massa') return Math.round(peso * 2.2)
   if (objetivo === 'perder_peso') return Math.round(peso * 2.0)
   return Math.round(peso * 1.8)
 }
-
-function getInitials(nome: string | null, email: string): string {
-  if (nome) {
-    const p = nome.trim().split(' ')
-    return p.length >= 2 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : p[0][0].toUpperCase()
-  }
+function getInitials(nome: string | null, email: string) {
+  if (nome) { const p = nome.trim().split(' '); return (p.length >= 2 ? p[0][0] + p[p.length-1][0] : p[0][0]).toUpperCase() }
   return email[0].toUpperCase()
 }
-
 const OBJETIVO_LABEL: Record<string, string> = {
   perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa',
   melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
+}
+function getDias7d(hoje: string) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(hoje + 'T12:00:00-03:00'); d.setDate(d.getDate() - (6 - i))
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  })
+}
+function sumAl(als: AlimentoEd[], field: 'calorias' | 'proteina') {
+  return Math.round(als.reduce((s, a) => s + (parseFloat(a[field]) || 0), 0))
 }
 
 function BarraProgresso({ valor, meta, cor }: { valor: number; meta: number; cor: string }) {
@@ -92,22 +73,13 @@ function BarraProgresso({ valor, meta, cor }: { valor: number; meta: number; cor
   )
 }
 
-function getDias7d(hoje: string): string[] {
-  const dias: string[] = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(hoje + 'T12:00:00-03:00')
-    d.setDate(d.getDate() - i)
-    dias.push(d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }))
-  }
-  return dias
-}
-
 const NAV = [
-  { id: 'home',      label: 'Início',    path: '/dashboard' },
+  { id: 'home', label: 'Início', path: '/dashboard' },
   { id: 'pacientes', label: 'Pacientes', path: '/nutricionista/pacientes' },
-  { id: 'agenda',    label: 'Agenda',    path: '/agenda' },
-  { id: 'perfil',    label: 'Perfil',    path: '/perfil' },
+  { id: 'agenda', label: 'Agenda', path: '/agenda' },
+  { id: 'perfil', label: 'Perfil', path: '/perfil' },
 ]
+const EMOJIS_REFEICAO = ['☀️','🍎','🍽️','⚡','💪','🌙','🥑','🫐']
 
 export default function NutricionistaPaciente() {
   const router = useRouter()
@@ -125,7 +97,7 @@ export default function NutricionistaPaciente() {
   const [abaAtiva, setAbaAtiva] = useState<'hoje' | 'plano'>('hoje')
   const [carregando, setCarregando] = useState(true)
 
-  // editor manual
+  // editor
   const [editandoPlano, setEditandoPlano] = useState(false)
   const [salvandoEd, setSalvandoEd] = useState(false)
   const [refeicoesEd, setRefeicoesEd] = useState<RefeicaoEd[]>([])
@@ -135,30 +107,21 @@ export default function NutricionistaPaciente() {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/'); return }
-
       const hoje = getTodayBR()
-      const semanaAtras = new Date()
-      semanaAtras.setDate(semanaAtras.getDate() - 6)
-      const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-
+      const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 6)
+      const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
       const [
-        { data: perfil },
-        { data: nutHoje },
-        { data: nut7d },
-        { data: trHoje },
-        { data: sono },
-        { data: bem },
-        { data: plano },
+        { data: perfil }, { data: nutHoje }, { data: nut7d },
+        { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
       ] = await Promise.all([
-        supabase.from('perfis').select('id, nome, email, peso, objetivo').eq('id', clienteId).single(),
-        supabase.from('nutricao').select('data, calorias, proteina, carboidrato, gordura').eq('usuario_id', clienteId).eq('data', hoje).single(),
-        supabase.from('nutricao').select('data, calorias, proteina, carboidrato, gordura').eq('usuario_id', clienteId).gte('data', semanaStr).order('data'),
-        supabase.from('treinos').select('data, plano, calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
-        supabase.from('sono').select('score_recuperacao, duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
-        supabase.from('bem_estar').select('humor, energia, motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
-        supabase.from('planos_nutricionais').select('id, conteudo, calorias_meta, proteina_meta, created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
+        supabase.from('perfis').select('id,nome,email,peso,objetivo').eq('id', clienteId).single(),
+        supabase.from('nutricao').select('data,calorias,proteina,carboidrato,gordura').eq('usuario_id', clienteId).eq('data', hoje).single(),
+        supabase.from('nutricao').select('data,calorias,proteina,carboidrato,gordura').eq('usuario_id', clienteId).gte('data', semStr).order('data'),
+        supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
+        supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
+        supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
+        supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
       ])
-
       if (perfil) setPaciente(perfil)
       setNutricaoHoje(nutHoje ?? null)
       setNutricao7d(nut7d ?? [])
@@ -171,59 +134,78 @@ export default function NutricionistaPaciente() {
     carregar()
   }, [clienteId, router])
 
+  // ── editor helpers ──────────────────────────────────────────────────────
   function iniciarEdicao(doZero = false) {
     if (!doZero && planoEstruturado) {
       setRefeicoesEd(planoEstruturado.refeicoes.map((r: any) => ({
-        nome: r.nome ?? '',
-        horario: r.horario ?? '',
-        calorias: String(r.calorias ?? ''),
-        proteina: String(r.proteina ?? ''),
+        nome: r.nome ?? '', horario: r.horario ?? '', dica: r.dica ?? '',
+        alimentos: (r.alimentos && r.alimentos.length > 0)
+          ? r.alimentos.map((a: any) => ({
+              nome: a.nome ?? '', quantidade: a.quantidade ?? '',
+              calorias: String(a.calorias ?? ''), proteina: String(a.proteina ?? ''),
+            }))
+          : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? '') }],
       })))
       setNotaEd(planoEstruturado.nota_nutri ?? '')
     } else {
-      setRefeicoesEd([{ nome: '', horario: '07:00', calorias: '', proteina: '' }])
+      setRefeicoesEd([{ ...REFEICAO_VAZIA }])
       setNotaEd('')
     }
     setEditandoPlano(true)
     setAbaAtiva('plano')
   }
 
-  function updateRefeicao(i: number, field: keyof RefeicaoEd, val: string) {
-    setRefeicoesEd(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
-  }
-
   function addRefeicao() {
-    setRefeicoesEd(prev => [...prev, { nome: '', horario: '', calorias: '', proteina: '' }])
+    setRefeicoesEd(p => [...p, { nome: '', horario: '', dica: '', alimentos: [{ nome: '', quantidade: '', calorias: '', proteina: '' }] }])
   }
-
   function removeRefeicao(i: number) {
-    setRefeicoesEd(prev => prev.filter((_, idx) => idx !== i))
+    setRefeicoesEd(p => p.filter((_, idx) => idx !== i))
+  }
+  function updateRefeicao(i: number, field: 'nome' | 'horario' | 'dica', val: string) {
+    setRefeicoesEd(p => p.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
+  }
+  function addAlimento(rIdx: number) {
+    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
+      ? { ...r, alimentos: [...r.alimentos, { nome: '', quantidade: '', calorias: '', proteina: '' }] }
+      : r))
+  }
+  function removeAlimento(rIdx: number, aIdx: number) {
+    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
+      ? { ...r, alimentos: r.alimentos.filter((_, i) => i !== aIdx) }
+      : r))
+  }
+  function updateAlimento(rIdx: number, aIdx: number, field: keyof AlimentoEd, val: string) {
+    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
+      ? { ...r, alimentos: r.alimentos.map((a, i) => i === aIdx ? { ...a, [field]: val } : a) }
+      : r))
   }
 
   async function salvarEdicao() {
     setSalvandoEd(true)
-    const totalCal = Math.round(refeicoesEd.reduce((s, r) => s + (parseFloat(r.calorias) || 0), 0))
-    const totalProt = Math.round(refeicoesEd.reduce((s, r) => s + (parseFloat(r.proteina) || 0), 0))
     const planoJSON = {
       nota_nutri: notaEd,
       refeicoes: refeicoesEd.map(r => ({
-        nome: r.nome,
-        horario: r.horario,
-        calorias: parseFloat(r.calorias) || 0,
-        proteina: parseFloat(r.proteina) || 0,
-        alimentos: [],
+        nome: r.nome, horario: r.horario,
+        ...(r.dica ? { dica: r.dica } : {}),
+        calorias: sumAl(r.alimentos, 'calorias'),
+        proteina: sumAl(r.alimentos, 'proteina'),
+        alimentos: r.alimentos.filter(a => a.nome).map(a => ({
+          nome: a.nome, quantidade: a.quantidade,
+          calorias: parseFloat(a.calorias) || 0,
+          proteina: parseFloat(a.proteina) || 0,
+        })),
       })),
     }
+    const totalCal = planoJSON.refeicoes.reduce((s, r) => s + r.calorias, 0)
+    const totalProt = planoJSON.refeicoes.reduce((s, r) => s + r.proteina, 0)
     await supabase.from('planos_nutricionais').update({ ativo: false }).eq('usuario_id', clienteId).eq('ativo', true)
     const { data: novoPlano } = await supabase.from('planos_nutricionais').insert({
-      usuario_id: clienteId,
-      criado_por: 'nutricionista',
+      usuario_id: clienteId, criado_por: 'nutricionista',
       conteudo: JSON.stringify(planoJSON),
       calorias_meta: totalCal || metaCal,
       proteina_meta: totalProt || metaProt,
-      refeicoes_por_dia: refeicoesEd.length,
-      ativo: true,
-    }).select('id, conteudo, calorias_meta, proteina_meta, created_at').single()
+      refeicoes_por_dia: refeicoesEd.length, ativo: true,
+    }).select('id,conteudo,calorias_meta,proteina_meta,created_at').single()
     if (novoPlano) setPlanoAtivo(novoPlano)
     setEditandoPlano(false)
     setSalvandoEd(false)
@@ -231,75 +213,47 @@ export default function NutricionistaPaciente() {
 
   async function gerarPlanoIA() {
     if (!paciente) return
-    setGerandoPlano(true)
-    setEditandoPlano(false)
-    setAbaAtiva('plano')
+    setGerandoPlano(true); setEditandoPlano(false); setAbaAtiva('plano')
     const metaCalLocal = getMetaCalorias(paciente.peso, paciente.objetivo)
     const metaProtLocal = getMetaProteina(paciente.peso, paciente.objetivo)
     const obj = OBJETIVO_LABEL[paciente.objetivo ?? ''] ?? 'Saúde geral'
     const numRef = paciente.objetivo === 'ganhar_massa' ? 6 : 5
-
     const prompt = `Você é uma nutricionista esportiva. Crie um plano alimentar completo e personalizado.
 
-PERFIL DO PACIENTE:
-- Nome: ${paciente.nome ?? 'Paciente'}
-- Objetivo: ${obj}
-- Peso: ${paciente.peso ? `${paciente.peso}kg` : 'não informado'}
-- Meta calórica: ${metaCalLocal ? `${metaCalLocal}kcal/dia` : 'calcule pelo perfil'}
-- Meta proteína: ${metaProtLocal ? `${metaProtLocal}g/dia` : 'calcule pelo perfil'}
+PERFIL: Nome: ${paciente.nome ?? 'Paciente'}, Objetivo: ${obj}, Peso: ${paciente.peso ?? '?'}kg
+Meta calórica: ${metaCalLocal ?? 2000}kcal/dia, Meta proteína: ${metaProtLocal ?? 120}g/dia
 
-INSTRUÇÕES:
-1. Exatamente ${numRef} refeições
-2. Quantidade precisa em gramas por alimento
-3. Calorias e proteína individuais
-4. Total ~${metaCalLocal ?? 2000}kcal e ~${metaProtLocal ?? 120}g proteína
+INSTRUÇÕES: Exatamente ${numRef} refeições. Cada alimento com quantidade precisa em gramas e macros individuais.
+Total ~${metaCalLocal ?? 2000}kcal e ~${metaProtLocal ?? 120}g proteína.
 
 Responda APENAS JSON válido:
 {
   "nota_nutri": "Nota clínica curta.",
   "refeicoes": [
     {
-      "nome": "Café da Manhã",
-      "horario": "07:00",
-      "calorias": 480,
-      "proteina": 32,
+      "nome": "Café da Manhã", "horario": "07:00", "calorias": 480, "proteina": 32,
       "alimentos": [
         { "nome": "Ovos mexidos", "quantidade": "3 unidades (150g)", "calorias": 215, "proteina": 19, "carboidrato": 2, "gordura": 15 }
       ],
       "dica": "Dica prática."
     }
   ],
-  "hidratacao": { "litros_dia": 3.0, "orientacao": "Orientação." },
-  "orientacao_treino": "Orientação pré e pós-treino."
+  "hidratacao": { "litros_dia": 3.0, "orientacao": "Orientação." }
 }`
-
     try {
-      const res = await fetch('/api/analise-treino', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, modo: 'plano' }),
-      })
+      const res = await fetch('/api/analise-treino', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, modo: 'plano' }) })
       const data = await res.json()
       const jsonMatch = (data.analise ?? '').match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('JSON não encontrado')
       const planoJSON = JSON.parse(jsonMatch[0])
-
       await supabase.from('planos_nutricionais').update({ ativo: false }).eq('usuario_id', clienteId).eq('ativo', true)
       const { data: novoPlano } = await supabase.from('planos_nutricionais').insert({
-        usuario_id: clienteId,
-        criado_por: 'nutricionista',
-        conteudo: JSON.stringify(planoJSON),
-        calorias_meta: metaCalLocal,
-        proteina_meta: metaProtLocal,
-        refeicoes_por_dia: planoJSON.refeicoes?.length ?? numRef,
-        ativo: true,
-      }).select('id, conteudo, calorias_meta, proteina_meta, created_at').single()
+        usuario_id: clienteId, criado_por: 'nutricionista', conteudo: JSON.stringify(planoJSON),
+        calorias_meta: metaCalLocal, proteina_meta: metaProtLocal,
+        refeicoes_por_dia: planoJSON.refeicoes?.length ?? numRef, ativo: true,
+      }).select('id,conteudo,calorias_meta,proteina_meta,created_at').single()
       if (novoPlano) setPlanoAtivo(novoPlano)
-    } catch (e) {
-      console.error('Erro ao gerar plano:', e)
-    } finally {
-      setGerandoPlano(false)
-    }
+    } catch (e) { console.error(e) } finally { setGerandoPlano(false) }
   }
 
   if (carregando) return (
@@ -319,9 +273,10 @@ Responda APENAS JSON válido:
   const maxCal = Math.max(...nutricao7d.map(n => n.calorias ?? 0), metaCal ?? 1, 1)
 
   let planoEstruturado: any = null
-  if (planoAtivo) {
-    try { const p = JSON.parse(planoAtivo.conteudo); if (p.refeicoes) planoEstruturado = p } catch {}
-  }
+  if (planoAtivo) { try { const p = JSON.parse(planoAtivo.conteudo); if (p.refeicoes) planoEstruturado = p } catch {} }
+
+  const totalEdCal = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'calorias'), 0)
+  const totalEdProt = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'proteina'), 0)
 
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white">
@@ -357,7 +312,7 @@ Responda APENAS JSON válido:
           ))}
         </div>
 
-        {/* ABA HOJE */}
+        {/* ── ABA HOJE ─────────────────────────────────────────────────── */}
         {abaAtiva === 'hoje' && (
           <div className="space-y-4">
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
@@ -368,57 +323,48 @@ Responda APENAS JSON válido:
                     <div className="bg-white/[0.03] rounded-xl p-3.5 border border-white/[0.04]">
                       <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Calorias</p>
                       <p className="text-white text-xl font-black">{calHoje}<span className="text-xs font-normal text-zinc-500"> kcal</span></p>
-                      {metaCal && <BarraProgresso valor={calHoje} meta={metaCal} cor={calHoje >= metaCal * 0.9 && calHoje <= metaCal * 1.15 ? 'bg-green-500' : calHoje < metaCal * 0.7 ? 'bg-red-500' : 'bg-yellow-500'} />}
+                      {metaCal && <BarraProgresso valor={calHoje} meta={metaCal} cor={calHoje >= metaCal*0.9 && calHoje <= metaCal*1.15 ? 'bg-green-500' : calHoje < metaCal*0.7 ? 'bg-red-500' : 'bg-yellow-500'} />}
                     </div>
                     <div className="bg-white/[0.03] rounded-xl p-3.5 border border-white/[0.04]">
                       <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Proteína</p>
                       <p className="text-white text-xl font-black">{protHoje}<span className="text-xs font-normal text-zinc-500"> g</span></p>
-                      {metaProt && <BarraProgresso valor={protHoje} meta={metaProt} cor={protHoje >= metaProt * 0.9 ? 'bg-green-500' : protHoje >= metaProt * 0.6 ? 'bg-yellow-500' : 'bg-red-500'} />}
+                      {metaProt && <BarraProgresso valor={protHoje} meta={metaProt} cor={protHoje >= metaProt*0.9 ? 'bg-green-500' : protHoje >= metaProt*0.6 ? 'bg-yellow-500' : 'bg-red-500'} />}
                     </div>
                   </div>
-                  {(nutricaoHoje.carboidrato || nutricaoHoje.gordura) ? (
+                  {(nutricaoHoje.carboidrato || nutricaoHoje.gordura) && (
                     <div className="flex gap-4 pt-3 border-t border-white/[0.04]">
                       {nutricaoHoje.carboidrato != null && <div><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-0.5">Carb</p><p className="text-zinc-300 text-sm font-bold">{nutricaoHoje.carboidrato}g</p></div>}
                       {nutricaoHoje.gordura != null && <><div className="w-px bg-white/[0.06]" /><div><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-0.5">Gordura</p><p className="text-zinc-300 text-sm font-bold">{nutricaoHoje.gordura}g</p></div></>}
                     </div>
-                  ) : null}
+                  )}
                 </>
               ) : (
-                <div className="py-6 text-center">
-                  <p className="text-2xl mb-2">🥗</p>
-                  <p className="text-zinc-500 text-sm">Nenhum registro alimentar hoje</p>
-                </div>
+                <div className="py-6 text-center"><p className="text-2xl mb-2">🥗</p><p className="text-zinc-500 text-sm">Nenhum registro alimentar hoje</p></div>
               )}
             </div>
 
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Balanço calórico real</p>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Balanço calórico</p>
               <div className="grid grid-cols-3 gap-2 mb-4">
-                <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] text-center">
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Ingerido</p>
-                  <p className="text-white text-base font-black">{calHoje || '—'}</p>
-                  <p className="text-zinc-700 text-[9px]">kcal</p>
-                </div>
-                <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] text-center">
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Treino</p>
-                  <p className={`text-base font-black ${gastoTreino > 0 ? 'text-orange-400' : 'text-zinc-600'}`}>{gastoTreino > 0 ? `-${gastoTreino}` : '—'}</p>
-                  <p className="text-zinc-700 text-[9px]">kcal</p>
-                </div>
-                <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] text-center">
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Meta</p>
-                  <p className="text-zinc-400 text-base font-black">{metaCal ?? '—'}</p>
-                  <p className="text-zinc-700 text-[9px]">kcal</p>
-                </div>
+                {[
+                  { label: 'Ingerido', val: calHoje || '—', unit: 'kcal', cor: 'text-white' },
+                  { label: 'Treino', val: gastoTreino > 0 ? `-${gastoTreino}` : '—', unit: 'kcal', cor: gastoTreino > 0 ? 'text-orange-400' : 'text-zinc-600' },
+                  { label: 'Meta', val: metaCal ?? '—', unit: 'kcal', cor: 'text-zinc-400' },
+                ].map(m => (
+                  <div key={m.label} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] text-center">
+                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">{m.label}</p>
+                    <p className={`text-base font-black ${m.cor}`}>{m.val}</p>
+                    <p className="text-zinc-700 text-[9px]">{m.unit}</p>
+                  </div>
+                ))}
               </div>
               {balanco !== null && metaCal && (
-                <div className={`rounded-xl p-3.5 border ${Math.abs(balanco) <= metaCal * 0.1 ? 'bg-green-500/5 border-green-500/20' : balanco < 0 ? 'bg-red-500/5 border-red-500/20' : 'bg-yellow-500/5 border-yellow-500/20'}`}>
+                <div className={`rounded-xl p-3.5 border ${Math.abs(balanco) <= metaCal*0.1 ? 'bg-green-500/5 border-green-500/20' : balanco < 0 ? 'bg-red-500/5 border-red-500/20' : 'bg-yellow-500/5 border-yellow-500/20'}`}>
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] uppercase tracking-wider text-zinc-500">Balanço líquido</p>
-                    <p className={`text-sm font-black ${Math.abs(balanco) <= metaCal * 0.1 ? 'text-green-400' : balanco < 0 ? 'text-red-400' : 'text-yellow-400'}`}>{balanco > 0 ? '+' : ''}{balanco} kcal</p>
+                    <p className={`text-sm font-black ${Math.abs(balanco) <= metaCal*0.1 ? 'text-green-400' : balanco < 0 ? 'text-red-400' : 'text-yellow-400'}`}>{balanco > 0 ? '+' : ''}{balanco} kcal</p>
                   </div>
-                  <p className="text-zinc-600 text-[11px] mt-1">
-                    {Math.abs(balanco) <= metaCal * 0.1 ? 'Na meta — bom equilíbrio' : balanco < -metaCal * 0.15 ? 'Déficit além do planejado' : 'Superávit em relação à meta'}
-                  </p>
+                  <p className="text-zinc-600 text-[11px] mt-1">{Math.abs(balanco) <= metaCal*0.1 ? 'Na meta — bom equilíbrio' : balanco < -metaCal*0.15 ? 'Déficit além do planejado' : 'Superávit em relação à meta'}</p>
                 </div>
               )}
             </div>
@@ -436,7 +382,7 @@ Responda APENAS JSON válido:
                       {sonoHoje.duracao && <p className="text-zinc-700 text-[9px] mt-0.5">{sonoHoje.duracao}h de sono</p>}
                     </div>
                   ) : null}
-                  {bemEstar ? (
+                  {bemEstar && (
                     <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
                       <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-2">Bem-estar</p>
                       {[{ label: 'Humor', val: bemEstar.humor }, { label: 'Energia', val: bemEstar.energia }].map(({ label, val }) => (
@@ -448,7 +394,7 @@ Responda APENAS JSON válido:
                         </div>
                       ))}
                     </div>
-                  ) : null}
+                  )}
                 </div>
               </div>
             )}
@@ -461,16 +407,13 @@ Responda APENAS JSON válido:
                   const cal = reg?.calorias ?? 0
                   const h = cal > 0 ? Math.max(Math.round((cal / maxCal) * 80), 6) : 4
                   const isHoje = dia === hoje
-                  let barColor = 'bg-white/[0.12]'
-                  if (cal > 0 && metaCal) {
-                    const pct = cal / metaCal
-                    barColor = pct >= 0.9 && pct <= 1.15 ? 'bg-green-500' : pct < 0.7 ? 'bg-red-400/60' : 'bg-yellow-400/60'
-                  }
-                  const [, mm, dd] = dia.split('-')
+                  let bar = 'bg-white/[0.12]'
+                  if (cal > 0 && metaCal) { const p = cal/metaCal; bar = p >= 0.9 && p <= 1.15 ? 'bg-green-500' : p < 0.7 ? 'bg-red-400/60' : 'bg-yellow-400/60' }
+                  const [,mm,dd] = dia.split('-')
                   return (
                     <div key={dia} className="flex-1 flex flex-col items-center gap-1">
                       <div className="w-full flex items-end justify-center" style={{ height: 80 }}>
-                        <div className={`w-full rounded-t-lg ${barColor} ${isHoje ? 'ring-1 ring-white/20' : ''}`} style={{ height: h }} />
+                        <div className={`w-full rounded-t-lg ${bar} ${isHoje ? 'ring-1 ring-white/20' : ''}`} style={{ height: h }} />
                       </div>
                       <p className={`text-[8px] uppercase tracking-wider ${isHoje ? 'text-white' : 'text-zinc-700'}`}>{dd}/{mm}</p>
                     </div>
@@ -482,90 +425,130 @@ Responda APENAS JSON válido:
           </div>
         )}
 
-        {/* ABA PLANO ALIMENTAR */}
+        {/* ── ABA PLANO ────────────────────────────────────────────────── */}
         {abaAtiva === 'plano' && (
           <div className="space-y-4">
 
-            {/* MODO EDIÇÃO MANUAL */}
+            {/* ── EDITOR MANUAL ───────────────────────────────────────── */}
             {editandoPlano ? (
               <>
+                {/* Nota clínica */}
                 <div className="rounded-2xl border border-green-500/20 px-4 py-3.5" style={{ background: '#0a0d14' }}>
                   <p className="text-green-400 text-[9px] uppercase tracking-wider mb-2">Nota clínica</p>
-                  <textarea
-                    value={notaEd}
-                    onChange={e => setNotaEd(e.target.value)}
-                    placeholder="Ex: 5 refeições estratégicas para controle de fome e preservação de massa..."
-                    rows={3}
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.06] resize-none"
-                  />
+                  <textarea value={notaEd} onChange={e => setNotaEd(e.target.value)}
+                    placeholder="Orientação geral sobre o plano para o paciente..."
+                    rows={2} className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.06] resize-none" />
                 </div>
 
-                <div className="space-y-3">
-                  {refeicoesEd.map((ref, i) => (
-                    <div key={i} className="rounded-2xl border border-white/[0.06] p-4" style={{ background: '#0f0f0f' }}>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-zinc-500 text-[10px] uppercase tracking-wider">Refeição {i + 1}</span>
+                {/* Refeições */}
+                {refeicoesEd.map((ref, rIdx) => {
+                  const refCal = sumAl(ref.alimentos, 'calorias')
+                  const refProt = sumAl(ref.alimentos, 'proteina')
+                  return (
+                    <div key={rIdx} className="rounded-2xl border border-white/[0.08] overflow-hidden" style={{ background: '#0f0f0f' }}>
+                      {/* header refeição */}
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04]" style={{ background: '#111' }}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{EMOJIS_REFEICAO[rIdx] ?? '🥗'}</span>
+                          <span className="text-zinc-400 text-[10px] uppercase tracking-wider font-semibold">Refeição {rIdx + 1}</span>
+                          {refCal > 0 && <span className="text-orange-400 text-[10px] font-bold">{refCal} kcal</span>}
+                          {refProt > 0 && <span className="text-blue-400 text-[10px]">{refProt}g</span>}
+                        </div>
                         {refeicoesEd.length > 1 && (
-                          <button onClick={() => removeRefeicao(i)} className="text-red-400/60 text-[10px] hover:text-red-400 transition-colors">✕ Remover</button>
+                          <button onClick={() => removeRefeicao(rIdx)} className="text-red-400/50 text-[10px] hover:text-red-400 transition-colors">✕ remover</button>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <input
-                          value={ref.nome}
-                          onChange={e => updateRefeicao(i, 'nome', e.target.value)}
-                          placeholder="Nome (ex: Café da Manhã)"
-                          className="col-span-2 bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]"
-                        />
-                        <input
-                          value={ref.horario}
-                          onChange={e => updateRefeicao(i, 'horario', e.target.value)}
-                          placeholder="Horário (07:00)"
-                          className="bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]"
-                        />
-                        <div className="relative">
-                          <input
-                            type="number"
-                            value={ref.calorias}
-                            onChange={e => updateRefeicao(i, 'calorias', e.target.value)}
-                            placeholder="kcal"
-                            className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-orange-500/30 border border-white/[0.06]"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">kcal</span>
+
+                      <div className="p-4 space-y-3">
+                        {/* nome + horário */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <input value={ref.nome} onChange={e => updateRefeicao(rIdx, 'nome', e.target.value)}
+                            placeholder="Ex: Café da Manhã"
+                            className="col-span-2 bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                          <input value={ref.horario} onChange={e => updateRefeicao(rIdx, 'horario', e.target.value)}
+                            placeholder="07:00"
+                            className="bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06] text-center" />
                         </div>
-                        <div className="relative col-span-2">
-                          <input
-                            type="number"
-                            value={ref.proteina}
-                            onChange={e => updateRefeicao(i, 'proteina', e.target.value)}
-                            placeholder="Proteína"
-                            className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-blue-500/30 border border-white/[0.06]"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">g prot</span>
+
+                        {/* alimentos */}
+                        <div className="space-y-2">
+                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimentos</p>
+                          {ref.alimentos.map((al, aIdx) => (
+                            <div key={aIdx} className="rounded-xl border border-white/[0.05] p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                              <div className="flex items-center gap-2">
+                                <input value={al.nome} onChange={e => updateAlimento(rIdx, aIdx, 'nome', e.target.value)}
+                                  placeholder="Nome do alimento"
+                                  className="flex-1 bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]" />
+                                {ref.alimentos.length > 1 && (
+                                  <button onClick={() => removeAlimento(rIdx, aIdx)} className="text-zinc-700 hover:text-red-400 transition-colors text-sm shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.04]">✕</button>
+                                )}
+                              </div>
+                              <input value={al.quantidade} onChange={e => updateAlimento(rIdx, aIdx, 'quantidade', e.target.value)}
+                                placeholder="Quantidade (ex: 100g, 2 colheres, 1 unidade)"
+                                className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]" />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="relative">
+                                  <input type="number" value={al.calorias} onChange={e => updateAlimento(rIdx, aIdx, 'calorias', e.target.value)}
+                                    placeholder="0"
+                                    className="w-full bg-transparent text-orange-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500/20 border border-white/[0.06] pr-12" />
+                                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">kcal</span>
+                                </div>
+                                <div className="relative">
+                                  <input type="number" value={al.proteina} onChange={e => updateAlimento(rIdx, aIdx, 'proteina', e.target.value)}
+                                    placeholder="0"
+                                    className="w-full bg-transparent text-blue-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500/20 border border-white/[0.06] pr-10" />
+                                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">g prot</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <button onClick={() => addAlimento(rIdx)}
+                            className="w-full py-2 rounded-xl border border-dashed border-white/[0.08] text-zinc-600 text-xs hover:border-white/20 hover:text-zinc-400 transition-all active:scale-95">
+                            + adicionar alimento
+                          </button>
                         </div>
+
+                        {/* dica opcional */}
+                        <input value={ref.dica} onChange={e => updateRefeicao(rIdx, 'dica', e.target.value)}
+                          placeholder="💡 Dica para o paciente (opcional)"
+                          className="w-full bg-white/[0.02] text-zinc-400 placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/10 border border-white/[0.04]" />
+
+                        {/* total refeição */}
+                        {refCal > 0 && (
+                          <div className="flex items-center gap-3 pt-1 border-t border-white/[0.04]">
+                            <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Total</span>
+                            <span className="text-orange-400 text-xs font-bold">{refCal} kcal</span>
+                            <span className="text-blue-400 text-xs font-bold">{refProt}g prot</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )
+                })}
 
                 <button onClick={addRefeicao}
                   className="w-full py-3 rounded-2xl border border-dashed border-white/[0.1] text-zinc-500 text-sm hover:border-white/20 hover:text-zinc-300 transition-all active:scale-95">
                   + Adicionar refeição
                 </button>
 
-                {refeicoesEd.length > 0 && (
-                  <div className="rounded-2xl border border-white/[0.04] px-4 py-3 flex items-center justify-between" style={{ background: '#0a0a0a' }}>
+                {/* total do dia */}
+                {totalEdCal > 0 && (
+                  <div className="rounded-2xl border border-white/[0.06] px-4 py-3 flex items-center justify-between" style={{ background: '#0a0a0a' }}>
                     <div>
-                      <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-0.5">Total calculado</p>
-                      <div className="flex gap-3">
-                        <span className="text-orange-400 text-sm font-bold">
-                          {Math.round(refeicoesEd.reduce((s, r) => s + (parseFloat(r.calorias) || 0), 0))} kcal
-                        </span>
-                        <span className="text-blue-400 text-sm font-bold">
-                          {Math.round(refeicoesEd.reduce((s, r) => s + (parseFloat(r.proteina) || 0), 0))}g prot
-                        </span>
+                      <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Total do dia</p>
+                      <div className="flex items-center gap-4">
+                        <span className="text-orange-400 font-black text-base">{totalEdCal} <span className="text-xs font-normal">kcal</span></span>
+                        <span className="text-blue-400 font-black text-base">{totalEdProt}<span className="text-xs font-normal">g prot</span></span>
                       </div>
                     </div>
-                    {metaCal && <p className="text-zinc-700 text-[10px]">Meta: {metaCal}kcal</p>}
+                    {metaCal && (
+                      <div className="text-right">
+                        <p className="text-zinc-700 text-[9px]">Meta: {metaCal}kcal</p>
+                        <p className={`text-[10px] font-semibold ${Math.abs(totalEdCal - metaCal) <= metaCal*0.1 ? 'text-green-400' : totalEdCal < metaCal ? 'text-yellow-400' : 'text-orange-400'}`}>
+                          {totalEdCal < metaCal ? `−${metaCal - totalEdCal}` : `+${totalEdCal - metaCal}`} kcal
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -580,6 +563,7 @@ Responda APENAS JSON válido:
                   </button>
                 </div>
               </>
+
             ) : gerandoPlano ? (
               <div className="rounded-2xl border border-green-500/20 p-6" style={{ background: '#0a0d14' }}>
                 <div className="flex items-center gap-3 mb-4">
@@ -591,15 +575,17 @@ Responda APENAS JSON válido:
                     <p className="text-white font-bold">Montando dieta personalizada...</p>
                   </div>
                 </div>
-                {['Analisando perfil e objetivos', 'Calculando distribuição calórica', 'Selecionando alimentos', 'Montando refeições e macros'].map((msg, i) => (
+                {['Analisando perfil e objetivos','Calculando distribuição calórica','Selecionando alimentos e quantidades','Montando refeições e macros'].map((msg, i) => (
                   <div key={i} className="flex items-center gap-3 mb-2">
                     <div className="w-4 h-4 rounded-full border-2 border-green-400/30 border-t-green-400 animate-spin shrink-0" style={{ animationDelay: `${i * 0.15}s` }} />
                     <p className="text-zinc-500 text-sm">{msg}</p>
                   </div>
                 ))}
               </div>
+
             ) : planoAtivo && planoEstruturado ? (
               <>
+                {/* header plano ativo */}
                 <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
                   <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
                     <div>
@@ -610,8 +596,8 @@ Responda APENAS JSON válido:
                       <p className="text-zinc-600 text-[10px]">Criado em {new Date(planoAtivo.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={() => iniciarEdicao(false)} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✏️ Editar</button>
-                      <button onClick={gerarPlanoIA} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">↻ IA</button>
+                      <button onClick={() => iniciarEdicao(false)} className="text-[10px] text-zinc-400 border border-white/[0.1] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✏️ Editar</button>
+                      <button onClick={gerarPlanoIA} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✦ IA</button>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 divide-x divide-white/[0.05]">
@@ -627,49 +613,31 @@ Responda APENAS JSON válido:
                     ))}
                   </div>
                 </div>
+
                 {planoEstruturado.nota_nutri && (
                   <div className="rounded-2xl border border-green-500/15 px-4 py-3.5" style={{ background: 'linear-gradient(135deg,#0a0d14,#080a10)' }}>
                     <p className="text-green-400 text-[9px] uppercase tracking-wider mb-1.5">📋 Nota clínica</p>
                     <p className="text-zinc-300 text-sm leading-relaxed">{planoEstruturado.nota_nutri}</p>
                   </div>
                 )}
+
+                {/* refeições com alimentos */}
                 <div className="space-y-2">
                   {planoEstruturado.refeicoes.map((ref: any, i: number) => (
-                    <div key={i} className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
-                      <div className="flex items-center gap-3 px-4 py-3.5">
-                        <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-base shrink-0">
-                          {['☀️','🍎','🍽️','⚡','💪','🌙'][i] ?? '🥗'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-white font-bold text-sm">{ref.nome}</p>
-                            {ref.horario && <span className="text-zinc-600 text-[10px] bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>}
-                          </div>
-                          <div className="flex gap-3 mt-0.5">
-                            <span className="text-orange-400 text-[11px] font-semibold">{ref.calorias} kcal</span>
-                            <span className="text-blue-400 text-[11px]">{ref.proteina}g prot</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <RefeicaoCard key={i} ref={ref} idx={i} />
                   ))}
                 </div>
               </>
+
             ) : (
               <div className="rounded-2xl border border-green-500/20 p-6 text-center" style={{ background: 'linear-gradient(145deg,#0a0d14,#080a10)' }}>
                 <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4 text-3xl">🥗</div>
                 <p className="text-green-400 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">Plano alimentar</p>
                 <p className="text-white font-black text-xl mb-2">Criar dieta personalizada</p>
-                <p className="text-zinc-500 text-sm leading-relaxed mb-6">Gere via IA ou monte manualmente com as refeições e macros do seu paciente.</p>
+                <p className="text-zinc-500 text-sm leading-relaxed mb-6">Monte manualmente com alimentos e gramas, ou deixe a IA gerar um plano completo.</p>
                 <div className="flex gap-2">
-                  <button onClick={gerarPlanoIA}
-                    className="flex-1 bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
-                    ✦ Gerar com IA
-                  </button>
-                  <button onClick={() => iniciarEdicao(true)}
-                    className="flex-1 border border-white/[0.1] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all hover:border-white/20">
-                    ✏️ Manual
-                  </button>
+                  <button onClick={() => iniciarEdicao(true)} className="flex-1 border border-white/[0.12] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all hover:border-white/25">✏️ Manual</button>
+                  <button onClick={gerarPlanoIA} className="flex-1 bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">✦ Gerar IA</button>
                 </div>
               </div>
             )}
@@ -690,5 +658,71 @@ Responda APENAS JSON válido:
         </div>
       </nav>
     </main>
+  )
+}
+
+function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
+  const [aberta, setAberta] = useState(false)
+  const emojis = ['☀️','🍎','🍽️','⚡','💪','🌙','🥑','🫐']
+  const alimentos: any[] = ref.alimentos ?? []
+  return (
+    <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
+      <button onClick={() => setAberta(p => !p)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.02] transition-colors">
+        <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-base shrink-0">
+          {emojis[idx] ?? '🥗'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-white font-bold text-sm">{ref.nome}</p>
+            {ref.horario && <span className="text-zinc-600 text-[10px] bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>}
+          </div>
+          <div className="flex gap-3 mt-0.5">
+            <span className="text-orange-400 text-[11px] font-semibold">{ref.calorias} kcal</span>
+            <span className="text-blue-400 text-[11px]">{ref.proteina}g prot</span>
+            {alimentos.length > 0 && <span className="text-zinc-600 text-[11px]">{alimentos.length} alimento{alimentos.length > 1 ? 's' : ''}</span>}
+          </div>
+        </div>
+        <span className={`text-zinc-600 text-xs transition-transform duration-200 ${aberta ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+
+      {aberta && alimentos.length > 0 && (
+        <div className="border-t border-white/[0.04]">
+          <div className="px-4 pt-3 pb-1">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimento</p>
+              <div className="flex gap-4">
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Qtd.</p>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider w-10 text-right">Kcal</p>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider w-8 text-right">Prot</p>
+              </div>
+            </div>
+            {alimentos.map((al: any, i: number) => (
+              <div key={i} className="flex items-center justify-between py-2.5 border-b border-white/[0.03] last:border-0">
+                <p className="text-white text-xs font-medium flex-1 pr-2">{al.nome}</p>
+                <div className="flex gap-4 items-center shrink-0">
+                  <p className="text-zinc-500 text-[10px]">{al.quantidade}</p>
+                  <p className="text-orange-400 text-xs font-semibold w-10 text-right">{al.calorias}</p>
+                  <p className="text-blue-400 text-xs w-8 text-right">{al.proteina}g</p>
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center justify-between py-2.5 mt-1 border-t border-white/[0.06]">
+              <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">Total</p>
+              <div className="flex gap-4 shrink-0">
+                <span className="text-zinc-600 text-[10px]"></span>
+                <p className="text-orange-400 text-xs font-black w-10 text-right">{ref.calorias}</p>
+                <p className="text-blue-400 text-xs font-black w-8 text-right">{ref.proteina}g</p>
+              </div>
+            </div>
+          </div>
+          {ref.dica && (
+            <div className="mx-4 mb-3 rounded-xl bg-white/[0.02] border border-white/[0.04] px-3 py-2">
+              <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">💡 Dica</p>
+              <p className="text-zinc-400 text-xs leading-relaxed">{ref.dica}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
