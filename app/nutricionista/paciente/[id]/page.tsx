@@ -24,7 +24,6 @@ type NutricaoDia = {
 
 type TreinoDia = {
   data: string
-  tipo: string | null
   calorias_estimadas: number | null
   plano: string | null
 }
