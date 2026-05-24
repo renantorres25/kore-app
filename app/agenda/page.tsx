@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
-type Agendamento = {
+type AgendamentoDB = {
   id: string
   cliente_id: string
   data: string
@@ -12,6 +12,9 @@ type Agendamento = {
   tipo: string
   notas: string | null
   status: string
+}
+
+type Agendamento = AgendamentoDB & {
   cliente_nome: string | null
   cliente_email: string
 }
@@ -59,7 +62,7 @@ export default function AgendaPage() {
 
   const [profId, setProfId] = useState('')
   const [profTipo, setProfTipo] = useState('')
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
+  const [agendamentos, setAgendamentos] = useState<AgendamentoDB[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [carregando, setCarregando] = useState(true)
 
