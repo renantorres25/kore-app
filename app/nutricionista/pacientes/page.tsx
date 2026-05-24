@@ -108,20 +108,20 @@ export default function NutricionistaPacientes() {
         const metaProt = getMetaProteina(pac.peso, pac.objetivo)
 
         const [{ data: nutricaoHoje }, { data: nutricao7d }] = await Promise.all([
-          supabase.from('nutricao').select('calorias_total, proteina_total').eq('usuario_id', pac.cliente_id).eq('data', hoje).single(),
-          supabase.from('nutricao').select('data, calorias_total').eq('usuario_id', pac.cliente_id).gte('data', semanaStr).order('data', { ascending: false }),
+          supabase.from('nutricao').select('calorias, proteina').eq('usuario_id', pac.cliente_id).eq('data', hoje).single(),
+          supabase.from('nutricao').select('data, calorias').eq('usuario_id', pac.cliente_id).gte('data', semanaStr).order('data', { ascending: false }),
         ])
 
         const diasRegistro = nutricao7d?.length ?? 0
         const adesao7d = Math.round((diasRegistro / 7) * 100)
         adesoes.push(adesao7d)
 
-        if (nutricaoHoje?.calorias_total) countAderiuHoje++
+        if (nutricaoHoje?.calorias) countAderiuHoje++
 
         statsMap[pac.cliente_id] = {
-          caloriasHoje: nutricaoHoje?.calorias_total ?? null,
+          caloriasHoje: nutricaoHoje?.calorias ?? null,
           metaCalorias: meta,
-          proteínaHoje: nutricaoHoje?.proteina_total ?? null,
+          proteínaHoje: nutricaoHoje?.proteina ?? null,
           metaProteina: metaProt,
           diasRegistro7d: diasRegistro,
           ultimoRegistro: nutricao7d?.[0]?.data ?? null,
@@ -149,7 +149,7 @@ export default function NutricionistaPacientes() {
 
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white">
-      <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+      <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -287,6 +287,24 @@ export default function NutricionistaPacientes() {
           </>
         )}
       </div>
+
+      {/* Bottom nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)' }}>
+        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
+          {[
+            { id: 'home',      label: 'Início',    path: '/dashboard',                  active: false },
+            { id: 'pacientes', label: 'Pacientes', path: '/nutricionista/pacientes',     active: true  },
+            { id: 'perfil',    label: 'Perfil',    path: '/perfil',                      active: false },
+          ].map(item => (
+            <button key={item.id} onClick={() => router.push(item.path)}
+              className="flex flex-col items-center gap-1 px-6 py-1 rounded-xl transition-all active:scale-90">
+              <span className={`text-[10px] uppercase tracking-[0.12em] font-semibold transition-all ${item.active ? 'text-white' : 'text-zinc-600'}`}>{item.label}</span>
+              {item.active && <div className="w-1 h-1 rounded-full bg-green-400" />}
+            </button>
+          ))}
+        </div>
+      </nav>
     </main>
   )
 }

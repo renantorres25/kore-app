@@ -914,6 +914,50 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
 
+  const [loadingStats, setLoadingStats] = useState(true)
+  const [totalPacientes, setTotalPacientes] = useState(0)
+  const [registraramHoje, setRegistraramHoje] = useState(0)
+  const [alertas, setAlertas] = useState(0)
+  const [pacientesRecentes, setPacientesRecentes] = useState<{ nome: string | null; email: string; registrouHoje: boolean; calorias: number | null; metaCal: number | null }[]>([])
+
+  useEffect(() => {
+    async function carregarStats() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const hoje = getTodayBR()
+      const doisDiasAtras = new Date(); doisDiasAtras.setDate(doisDiasAtras.getDate() - 2)
+      const doisDiasStr = doisDiasAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+      const { data: vinculos } = await supabase.from('vinculos').select('cliente_id').eq('profissional_id', session.user.id).eq('tipo', 'nutricionista').eq('ativo', true)
+      if (!vinculos?.length) { setLoadingStats(false); return }
+
+      const ids = vinculos.map(v => v.cliente_id)
+      setTotalPacientes(ids.length)
+
+      const [{ data: perfis }, { data: nutHoje }, { data: nut2d }] = await Promise.all([
+        supabase.from('perfis').select('id, nome, email, peso, objetivo').in('id', ids),
+        supabase.from('nutricao').select('usuario_id, calorias').in('usuario_id', ids).eq('data', hoje),
+        supabase.from('nutricao').select('usuario_id').in('usuario_id', ids).gte('data', doisDiasStr),
+      ])
+
+      const registraramSet = new Set(nutHoje?.map(n => n.usuario_id))
+      const registraram2dSet = new Set(nut2d?.map(n => n.usuario_id))
+      setRegistraramHoje(registraramSet.size)
+      setAlertas(ids.filter(id => !registraram2dSet.has(id)).length)
+
+      const recentes = (perfis ?? []).map(p => ({
+        nome: p.nome,
+        email: p.email,
+        registrouHoje: registraramSet.has(p.id),
+        calorias: nutHoje?.find(n => n.usuario_id === p.id)?.calorias ?? null,
+        metaCal: getMetaCalorias(p.peso, p.objetivo),
+      }))
+      setPacientesRecentes(recentes.slice(0, 3))
+      setLoadingStats(false)
+    }
+    carregarStats()
+  }, [])
+
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
       <div className="flex items-center justify-between mb-6">
@@ -929,26 +973,64 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
           </button>
         </div>
       </div>
-      <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 border border-emerald-500/20 bg-emerald-500/[0.07]">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-        <span className="text-emerald-400 text-[10px] uppercase tracking-[0.15em] font-semibold">Nutricionista</span>
+      <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 border border-green-500/20 bg-green-500/[0.07]">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+        <span className="text-green-400 text-[10px] uppercase tracking-[0.15em] font-semibold">Nutricionista</span>
       </div>
+
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
-          { valor: '0', label: 'Pacientes', sub: 'ativos'    },
-          { valor: '0', label: 'Consultas', sub: 'hoje'      },
-          { valor: '0', label: 'Alertas',   sub: 'pendentes' },
+          { valor: loadingStats ? '—' : String(totalPacientes),   label: 'Pacientes',   sub: 'ativos',         cor: 'text-white' },
+          { valor: loadingStats ? '—' : String(registraramHoje),  label: 'Registraram', sub: 'hoje',           cor: registraramHoje > 0 ? 'text-green-400' : 'text-white' },
+          { valor: loadingStats ? '—' : String(alertas),          label: 'Alertas',     sub: 'sem registrar',  cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
         ].map((m) => (
           <div key={m.label} className="rounded-2xl p-4 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
-            <p className="text-white text-2xl font-black">{m.valor}</p>
+            <p className={`text-2xl font-black ${m.cor}`}>{m.valor}</p>
             <p className="text-zinc-500 text-[10px] mt-0.5 leading-tight">{m.label}</p>
             <p className="text-zinc-700 text-[9px]">{m.sub}</p>
           </div>
         ))}
       </div>
-      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">
-        + Convidar paciente
-      </button>
+
+      {pacientesRecentes.length > 0 && (
+        <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Seus pacientes hoje</p>
+            <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
+          </div>
+          <div className="divide-y divide-white/[0.04]">
+            {pacientesRecentes.map((p, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${p.registrouHoje ? 'bg-green-500/10 text-green-400' : 'bg-white/[0.04] text-zinc-500'}`}>
+                  {(p.nome ?? p.email)[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
+                  <p className={`text-[11px] ${p.registrouHoje ? 'text-green-400' : 'text-zinc-600'}`}>
+                    {p.registrouHoje ? `✓ ${p.calorias ?? '?'} kcal registradas` : 'Sem registro hoje'}
+                  </p>
+                </div>
+                {p.metaCal && p.calorias && (
+                  <div className={`text-xs font-bold shrink-0 ${Math.abs(p.calorias - p.metaCal) <= p.metaCal * 0.12 ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {Math.round((p.calorias / p.metaCal) * 100)}%
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {alertas > 0 && (
+        <div className="rounded-2xl p-4 border border-orange-500/20 bg-orange-500/5 mb-4">
+          <p className="text-orange-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚠ {alertas} paciente{alertas > 1 ? 's' : ''} sem registrar há 2+ dias</p>
+          <p className="text-zinc-500 text-xs">Acesse a lista para ver quem precisa de atenção.</p>
+          <button onClick={() => router.push('/nutricionista/pacientes')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver pacientes →</button>
+        </div>
+      )}
+
+      <button onClick={() => router.push('/nutricionista/pacientes')} className="w-full border border-white/[0.08] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os pacientes</button>
+      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">+ Convidar paciente</button>
     </div>
   )
 }

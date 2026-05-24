@@ -131,7 +131,7 @@ function PerfilConteudo() {
   }
 
   async function handleSalvar() {
-    if (!dataNascimento || !sexo || !peso || !altura || !objetivo || !nivel) {
+    if (!(tipo === 'personal' || tipo === 'nutricionista') && (!dataNascimento || !sexo || !peso || !altura || !objetivo || !nivel)) {
       setErro('Preencha todos os campos básicos para continuar.')
       return
     }
@@ -139,12 +139,12 @@ function PerfilConteudo() {
     setErro('')
 
     const { error } = await supabase.from('perfis').update({
-      data_nascimento: dataNascimento,
-      sexo,
-      peso: parseFloat(peso),
-      altura: parseInt(altura),
-      objetivo,
-      nivel,
+      data_nascimento: dataNascimento || null,
+      sexo: sexo || null,
+      peso: peso ? parseFloat(peso) : null,
+      altura: altura ? parseInt(altura) : null,
+      objetivo: objetivo || null,
+      nivel: nivel || null,
       perfil_completo: true,
       fcmax: fcmax ? parseInt(fcmax) : null,
       ftp: ftp ? parseInt(ftp) : null,
@@ -169,8 +169,28 @@ function PerfilConteudo() {
   const fcmaxEstimada = getFCmaxEstimada()
   const tipoLabel = tipo === 'personal' ? 'Personal Trainer' : tipo === 'nutricionista' ? 'Nutricionista' : 'Atleta'
   const tipoColor = tipo === 'personal' ? 'text-blue-400 border-blue-500/20 bg-blue-500/10' : tipo === 'nutricionista' ? 'text-green-400 border-green-500/20 bg-green-500/10' : 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
-  const camposPreenchidos = dataNascimento && sexo && peso && altura && objetivo && nivel
+  const isProf = tipo === 'personal' || tipo === 'nutricionista'
+  const camposPreenchidos = isProf ? true : !!(dataNascimento && sexo && peso && altura && objetivo && nivel)
   const progresso = [dataNascimento, sexo, peso, altura, objetivo, nivel].filter(Boolean).length
+  const navItems = tipo === 'nutricionista'
+    ? [
+        { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
+        { id: 'pacientes', icon: '◈', label: 'Pacientes', path: '/nutricionista/pacientes' },
+        { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
+      ]
+    : tipo === 'personal'
+    ? [
+        { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
+        { id: 'alunos', icon: '◈', label: 'Alunos', path: '/personal' },
+        { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
+      ]
+    : [
+        { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
+        { id: 'treino', icon: '◈', label: 'Treino', path: '/treino' },
+        { id: 'nutri', icon: '◇', label: 'Nutrição', path: '/nutricao' },
+        { id: 'evolucao', icon: '△', label: 'Evolução', path: '/evolucao' },
+        { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
+      ]
 
   if (carregando) return (
     <main className="min-h-screen bg-[#080808] flex items-center justify-center">
@@ -260,15 +280,17 @@ function PerfilConteudo() {
           </div>
         )}
 
-        {/* Abas */}
-        <div className="flex gap-1 p-1 rounded-2xl mb-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          {([['basico', '👤 Dados básicos'], ['atletico', '⚡ Dados atléticos']] as const).map(([id, label]) => (
-            <button key={id} onClick={() => setAbaAtiva(id)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Abas — só mostra aba atlética para clientes */}
+        {!isProf && (
+          <div className="flex gap-1 p-1 rounded-2xl mb-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            {([['basico', '👤 Dados básicos'], ['atletico', '⚡ Dados atléticos']] as const).map(([id, label]) => (
+              <button key={id} onClick={() => setAbaAtiva(id)}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ABA BÁSICO */}
         {abaAtiva === 'basico' && (
@@ -308,34 +330,38 @@ function PerfilConteudo() {
               </div>
             </div>
 
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Objetivo principal</p>
-              <div className="grid grid-cols-2 gap-2">
-                {objetivos.map(o => (
-                  <button key={o.valor} onClick={() => setObjetivo(o.valor)}
-                    className={`py-4 px-3 rounded-xl border text-left transition-all active:scale-95 ${objetivo === o.valor ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-white border-white/[0.08]'}`}>
-                    <div className="text-2xl mb-1">{o.emoji}</div>
-                    <div className="text-xs font-semibold leading-tight">{o.label}</div>
-                  </button>
-                ))}
+            {!isProf && (
+              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Objetivo principal</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {objetivos.map(o => (
+                    <button key={o.valor} onClick={() => setObjetivo(o.valor)}
+                      className={`py-4 px-3 rounded-xl border text-left transition-all active:scale-95 ${objetivo === o.valor ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-white border-white/[0.08]'}`}>
+                      <div className="text-2xl mb-1">{o.emoji}</div>
+                      <div className="text-xs font-semibold leading-tight">{o.label}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Nível de experiência</p>
-              <div className="space-y-2">
-                {niveis.map(n => (
-                  <button key={n.valor} onClick={() => setNivel(n.valor)}
-                    className={`w-full flex items-center gap-4 py-4 px-4 rounded-xl border text-left transition-all active:scale-95 ${nivel === n.valor ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-white border-white/[0.08]'}`}>
-                    <span className="text-2xl">{n.emoji}</span>
-                    <div>
-                      <p className="text-sm font-bold">{n.label}</p>
-                      <p className={`text-xs ${nivel === n.valor ? 'text-zinc-600' : 'text-zinc-500'}`}>{n.desc}</p>
-                    </div>
-                  </button>
-                ))}
+            {!isProf && (
+              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Nível de experiência</p>
+                <div className="space-y-2">
+                  {niveis.map(n => (
+                    <button key={n.valor} onClick={() => setNivel(n.valor)}
+                      className={`w-full flex items-center gap-4 py-4 px-4 rounded-xl border text-left transition-all active:scale-95 ${nivel === n.valor ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-white border-white/[0.08]'}`}>
+                      <span className="text-2xl">{n.emoji}</span>
+                      <div>
+                        <p className="text-sm font-bold">{n.label}</p>
+                        <p className={`text-xs ${nivel === n.valor ? 'text-zinc-600' : 'text-zinc-500'}`}>{n.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -456,13 +482,7 @@ function PerfilConteudo() {
         <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
           <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-3 pb-2">
-            {[
-              { id: 'home', icon: '⬜', label: 'Início', path: '/dashboard' },
-              { id: 'treino', icon: '◈', label: 'Treino', path: '/treino' },
-              { id: 'nutri', icon: '◇', label: 'Nutrição', path: '/nutricao' },
-              { id: 'evolucao', icon: '△', label: 'Evolução', path: '/evolucao' },
-              { id: 'perfil', icon: '◉', label: 'Perfil', path: '/perfil' },
-            ].map(item => (
+            {navItems.map(item => (
               <button key={item.id} onClick={() => router.push(item.path)}
                 className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-150 active:scale-90">
                 <span className={`text-lg transition-all duration-200 ${item.id === 'perfil' ? 'opacity-100' : 'opacity-20'}`}>{item.icon}</span>
