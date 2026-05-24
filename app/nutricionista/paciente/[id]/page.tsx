@@ -215,8 +215,8 @@ export default function NutricionistaPaciente() {
     if (extrasEd.oriTreino) planoJSON.orientacao_treino = extrasEd.oriTreino
     if (extrasEd.estrategia) planoJSON.estrategia_desafio = extrasEd.estrategia
     if (extrasEd.dicaFome) planoJSON.dica_fome = extrasEd.dicaFome
-    const totalCal = planoJSON.refeicoes.reduce((s, r) => s + r.calorias, 0)
-    const totalProt = planoJSON.refeicoes.reduce((s, r) => s + r.proteina, 0)
+    const totalCal = planoJSON.refeicoes.reduce((s: number, r: any) => s + r.calorias, 0)
+    const totalProt = planoJSON.refeicoes.reduce((s: number, r: any) => s + r.proteina, 0)
     await supabase.from('planos_nutricionais').update({ ativo: false }).eq('usuario_id', clienteId).eq('ativo', true)
     const { data: novoPlano } = await supabase.from('planos_nutricionais').insert({
       usuario_id: clienteId, criado_por: 'nutricionista',
