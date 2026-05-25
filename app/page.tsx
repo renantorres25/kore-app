@@ -321,11 +321,11 @@ export default function Landing() {
             </div>
 
             <h1 className={`font-black tracking-[-0.04em] leading-none mb-6 transition-all duration-700 delay-100 ${vis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-              <span className="block text-5xl sm:text-6xl leading-tight">Pare de usar<br />5 apps para<br />cuidar da sua<br />evolução.</span>
+              <span className="block text-5xl sm:text-6xl leading-tight">Treino. Nutrição.<br />Recuperação.<br />Tudo sincronizado.</span>
             </h1>
 
             <p className={`text-zinc-300 text-base leading-relaxed mb-8 max-w-sm transition-all duration-700 delay-[200ms] ${vis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-              Sono, treino, nutrição e recuperação — tudo em um lugar. Atleta, personal e nutricionista trabalhando com <strong className="text-white">os mesmos dados, em tempo real.</strong>
+              Atletas e profissionais trabalhando juntos <strong className="text-white">em tempo real.</strong>
             </p>
 
             <div className={`flex flex-col sm:flex-row gap-3 max-w-sm transition-all duration-700 delay-[280ms] ${vis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
