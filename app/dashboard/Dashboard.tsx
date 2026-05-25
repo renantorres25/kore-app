@@ -42,6 +42,15 @@ type DecisaoDia = {
   cor: 'verde' | 'amarelo' | 'laranja' | 'vermelho'
 } | null
 
+type Notif = {
+  id: string
+  tipo: 'agendamento' | 'lembrete' | 'alerta'
+  titulo: string
+  corpo: string
+  icon: string
+  link?: string
+}
+
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
@@ -211,6 +220,8 @@ export default function Dashboard() {
   const [carregando, setCarregando] = useState(true)
   const [activeTab, setActiveTab] = useState('home')
   const [userId, setUserId] = useState('')
+  const [showNotifs, setShowNotifs] = useState(false)
+  const [notifs, setNotifs] = useState<Notif[]>([])
 
   useEffect(() => {
     async function carregarDados() {
@@ -287,6 +298,36 @@ export default function Dashboard() {
         }
       }
 
+      // Notificações: busca agendamentos próximos (próximas 3 dias)
+      const notifsList: Notif[] = []
+      const hojeNotif = getTodayBR()
+      const em3dias = new Date(hojeNotif + 'T12:00:00-03:00'); em3dias.setDate(em3dias.getDate() + 3)
+      const em3diasStr = em3dias.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+      const agendQuery = perfilData?.tipo === 'cliente'
+        ? supabase.from('agendamentos').select('id,data,hora,tipo,status').eq('cliente_id', session.user.id).eq('status', 'agendado').gte('data', hojeNotif).lte('data', em3diasStr).order('data').order('hora').limit(5)
+        : supabase.from('agendamentos').select('id,data,hora,tipo,status').eq('profissional_id', session.user.id).eq('status', 'agendado').gte('data', hojeNotif).lte('data', em3diasStr).order('data').order('hora').limit(5)
+
+      const { data: agendamentos } = await agendQuery
+
+      if (agendamentos?.length) {
+        for (const ag of agendamentos) {
+          const amanha = new Date(hojeNotif + 'T12:00:00-03:00'); amanha.setDate(amanha.getDate() + 1)
+          const amanhaStr = amanha.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const dLabel = ag.data === hojeNotif ? 'Hoje' : ag.data === amanhaStr ? 'Amanhã' : ag.data.slice(8,10) + '/' + ag.data.slice(5,7)
+          const h = ag.hora?.substring(0, 5) ?? ''
+          notifsList.push({
+            id: ag.id,
+            tipo: 'agendamento',
+            titulo: ag.tipo,
+            corpo: `${dLabel} às ${h}`,
+            icon: '📅',
+            link: '/agenda',
+          })
+        }
+      }
+
+      setNotifs(notifsList)
       setCarregando(false)
     }
     carregarDados()
@@ -377,6 +418,44 @@ Responda APENAS em JSON válido, sem markdown:
     <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
       {perfil?.tipo === 'cliente' && <OnboardingTour />}
 
+      {/* Painel de Notificações */}
+      {showNotifs && (
+        <div className="fixed inset-0 z-[80] flex items-end" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowNotifs(false) }}>
+          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.08] px-5 pt-5 pb-10"
+            style={{ background: '#111' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-black text-lg">Notificações</h2>
+              <button onClick={() => setShowNotifs(false)} className="text-zinc-500 hover:text-white text-xl leading-none">✕</button>
+            </div>
+            {notifs.length === 0 ? (
+              <div className="py-10 text-center">
+                <p className="text-3xl mb-3">🔔</p>
+                <p className="text-white font-bold mb-1">Tudo em dia!</p>
+                <p className="text-zinc-600 text-sm">Nenhuma notificação no momento.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {notifs.map(n => (
+                  <button key={n.id} onClick={() => { setShowNotifs(false); if (n.link) router.push(n.link) }}
+                    className="w-full text-left rounded-2xl p-4 border border-white/[0.06] active:scale-[0.98] transition-all flex items-center gap-3"
+                    style={{ background: '#0f0f0f' }}>
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${n.tipo === 'agendamento' ? 'bg-blue-500/10' : n.tipo === 'alerta' ? 'bg-red-500/10' : 'bg-zinc-800'}`}>
+                      {n.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-bold text-sm">{n.titulo}</p>
+                      <p className="text-zinc-500 text-xs mt-0.5">{n.corpo}</p>
+                    </div>
+                    {n.link && <span className="text-zinc-700 text-sm shrink-0">→</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto pb-28">
         {perfil?.tipo === 'cliente' && (
           <DashboardCliente
@@ -392,10 +471,12 @@ Responda APENAS em JSON válido, sem markdown:
             temSonoHoje={temSonoHoje}
             activeTab={activeTab}
             onLogout={handleLogout}
+            onOpenNotifs={() => setShowNotifs(true)}
+            notifCount={notifs.length}
           />
         )}
-        {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />}
-        {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} />}
+        {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} />}
+        {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} />}
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
@@ -527,12 +608,12 @@ function CardDecisaoDia({
 
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, vinculos, treinoHoje, nutricaoHoje,
-  decisaoDia, gerandoDecisao, temSonoHoje, onLogout: _onLogout,
+  decisaoDia, gerandoDecisao, temSonoHoje, onLogout: _onLogout, onOpenNotifs, notifCount,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   vinculos: Vinculo[]; treinoHoje: { nome: string; plano: string; concluido: boolean } | null
   nutricaoHoje: NutricaoHoje; decisaoDia: DecisaoDia; gerandoDecisao: boolean; temSonoHoje: boolean
-  activeTab: string; onLogout: () => void
+  activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number
 }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
@@ -566,7 +647,10 @@ function DashboardCliente({
           <p className="text-zinc-600 text-[11px] mt-1.5 capitalize tracking-wide">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">🔔</button>
+          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">
+            🔔
+            {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+          </button>
           <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
@@ -803,7 +887,7 @@ function DashboardCliente({
   )
 }
 
-function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
+function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { perfil: Perfil; activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
@@ -852,7 +936,10 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
           <p className="text-zinc-600 text-[11px] mt-1 capitalize tracking-wide">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">🔔</button>
+          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">
+            🔔
+            {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+          </button>
           <button onClick={onLogout} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
@@ -910,7 +997,7 @@ function DashboardPersonal({ perfil, onLogout }: { perfil: Perfil; activeTab: st
   )
 }
 
-function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTab: string; onLogout: () => void }) {
+function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: { perfil: Perfil; activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
@@ -980,7 +1067,10 @@ function DashboardNutricionista({ perfil, onLogout }: { perfil: Perfil; activeTa
           <p className="text-zinc-600 text-[11px] mt-1 capitalize tracking-wide">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">🔔</button>
+          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">
+            🔔
+            {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+          </button>
           <button onClick={onLogout} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
