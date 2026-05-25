@@ -42,7 +42,7 @@ function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
   const c = 2 * Math.PI * r
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size/2} cy={size/2} r={r} stroke="#1c1c1c" strokeWidth={size * 0.11} fill="none"/>
+      <circle cx={size/2} cy={size/2} r={r} stroke="#1a1f2e" strokeWidth={size * 0.11} fill="none"/>
       <circle cx={size/2} cy={size/2} r={r} stroke="#10b981" strokeWidth={size * 0.11} fill="none"
         strokeDasharray={c} strokeDashoffset={c * (1 - score / 100)} strokeLinecap="round"
         transform={`rotate(-90, ${size/2}, ${size/2})`}
@@ -58,8 +58,8 @@ function FloatingBadge({ children, delay, className }: { children: React.ReactNo
   useEffect(() => { const t = setTimeout(() => setShow(true), delay); return () => clearTimeout(t) }, [delay])
   return (
     <div className={`absolute transition-all duration-700 ease-out ${show ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-3'} ${className ?? ''}`}>
-      <div className="rounded-xl border border-white/[0.12] px-3 py-2 shadow-2xl"
-        style={{ background: 'rgba(11,11,11,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+      <div className="rounded-xl border border-white/[0.14] px-3 py-2 shadow-2xl"
+        style={{ background: 'rgba(10,12,22,0.94)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
         {children}
       </div>
     </div>
@@ -72,18 +72,15 @@ function PhoneMockup({ visible }: { visible: boolean }) {
   return (
     <div className={`relative transition-all duration-900 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
       style={{ transitionDelay: '350ms' }}>
-      {/* glow central */}
-      <div className="absolute inset-[-30%] rounded-full blur-3xl opacity-[0.16]"
+      <div className="absolute inset-[-30%] rounded-full blur-3xl opacity-[0.2]"
         style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }}/>
-      <div className="relative w-[230px] rounded-[2.8rem] border border-white/[0.16] overflow-hidden"
-        style={{ background: '#0b0b0b', boxShadow: '0 60px 120px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.07)' }}>
-        {/* Dynamic island */}
+      <div className="relative w-[230px] rounded-[2.8rem] border border-white/[0.18] overflow-hidden"
+        style={{ background: '#08091a', boxShadow: '0 60px 120px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.08)' }}>
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-20 h-5 rounded-full bg-black flex items-center justify-center gap-1.5 border border-white/[0.05]">
+          <div className="w-20 h-5 rounded-full bg-black flex items-center justify-center gap-1.5 border border-white/[0.06]">
             <div className="w-2 h-2 rounded-full bg-zinc-800"/>
           </div>
         </div>
-        {/* App content */}
         <div className="px-4 pb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -95,7 +92,6 @@ function PhoneMockup({ visible }: { visible: boolean }) {
               <p className="text-zinc-600 text-[7px]">ao vivo</p>
             </div>
           </div>
-          {/* Recovery card */}
           <div className="rounded-2xl p-3.5 mb-2 border border-emerald-500/25 relative overflow-hidden"
             style={{ background: 'linear-gradient(145deg, #0c1c14, #080d0b)' }}>
             <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl opacity-25"
@@ -114,21 +110,19 @@ function PhoneMockup({ visible }: { visible: boolean }) {
                 style={{ width: `${score}%`, transitionDelay: '800ms' }}/>
             </div>
           </div>
-          {/* Stats */}
           <div className="grid grid-cols-2 gap-1.5 mb-2">
             {[
               { icon: '😴', label: 'Sono', val: '8.2h', sub: 'HRV 68ms', c: '' },
               { icon: '🏋️', label: 'Treino', val: '✓ Feito', sub: '410 kcal', c: 'text-emerald-400' },
             ].map(s => (
-              <div key={s.label} className="rounded-xl p-2.5 border border-white/[0.06]" style={{ background: '#111' }}>
+              <div key={s.label} className="rounded-xl p-2.5 border border-white/[0.07]" style={{ background: '#0d0f20' }}>
                 <p className="text-zinc-600 text-[7px] uppercase tracking-wider mb-0.5">{s.icon} {s.label}</p>
                 <p className={`text-[10px] font-black ${s.c || 'text-white'}`}>{s.val}</p>
                 <p className="text-zinc-700 text-[7px]">{s.sub}</p>
               </div>
             ))}
           </div>
-          {/* AI decision */}
-          <div className="rounded-xl p-3 border border-white/[0.06]" style={{ background: '#111' }}>
+          <div className="rounded-xl p-3 border border-white/[0.07]" style={{ background: '#0d0f20' }}>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/>
               <p className="text-emerald-400 text-[7px] uppercase tracking-wider font-semibold">✦ Decisão do dia · IA</p>
@@ -171,7 +165,6 @@ function SleepChart({ active }: { active: boolean }) {
           <stop offset="100%" stopColor="#10b981" stopOpacity="0"/>
         </linearGradient>
       </defs>
-      {/* Grid lines */}
       {[30, 50, 70, 90].map(v => {
         const y = 8 + (1 - (v - 30) / 70) * (H - 16)
         return <line key={v} x1={10} y1={y} x2={W - 10} y2={y} stroke="rgba(255,255,255,0.04)" strokeWidth={1}/>
@@ -182,12 +175,11 @@ function SleepChart({ active }: { active: boolean }) {
         style={{ transition: 'stroke-dashoffset 1.6s cubic-bezier(0.4,0,0.2,1)' }}/>
       {pts.map((p, i) => (
         <g key={i}>
-          <circle cx={p.x} cy={p.y} r="4" fill="#0b0b0b" stroke="#10b981" strokeWidth="1.5"
+          <circle cx={p.x} cy={p.y} r="4" fill="#0a0c16" stroke="#10b981" strokeWidth="1.5"
             style={{ opacity: drawn ? 1 : 0, transition: `opacity 0.3s ease ${0.9 + i * 0.08}s` }}/>
           <text x={p.x} y={H + 14} textAnchor="middle" fill="#52525b" fontSize="8" fontFamily="system-ui,sans-serif">{days[i]}</text>
         </g>
       ))}
-      {/* Score labels */}
       {[{ v: 45, label: '45', i: 5 }, { v: 85, label: '85', i: 6 }].map(({ label, i }) => (
         <text key={label} x={pts[i].x} y={pts[i].y - 8} textAnchor="middle" fill="#10b981"
           fontSize="8" fontWeight="700" fontFamily="system-ui,sans-serif"
@@ -280,7 +272,7 @@ export default function Landing() {
   useEffect(() => { const t = setTimeout(() => setVis(true), 80); return () => clearTimeout(t) }, [])
 
   return (
-    <main className="min-h-screen bg-[#080808] text-white overflow-x-hidden">
+    <main className="min-h-screen text-white overflow-x-hidden" style={{ background: '#06070f' }}>
       <style>{`
         @keyframes orb-a { 0%,100%{transform:translate(0,0)scale(1)} 33%{transform:translate(70px,-50px)scale(1.07)} 66%{transform:translate(-35px,30px)scale(0.95)} }
         @keyframes orb-b { 0%,100%{transform:translate(0,0)scale(1)} 40%{transform:translate(-80px,40px)scale(1.12)} 70%{transform:translate(45px,-20px)scale(0.92)} }
@@ -291,6 +283,7 @@ export default function Landing() {
         @keyframes marquee-run { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
         @keyframes pulse-ring { 0%{box-shadow:0 0 0 0 rgba(16,185,129,0.4)} 70%{box-shadow:0 0 0 10px rgba(16,185,129,0)} 100%{box-shadow:0 0 0 0 rgba(16,185,129,0)} }
+        @keyframes grain { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-1%,-2%)} 40%{transform:translate(2%,1%)} 60%{transform:translate(-2%,2%)} 80%{transform:translate(1%,-1%)} }
         .orb-a{animation:orb-a 16s ease-in-out infinite}
         .orb-b{animation:orb-b 20s ease-in-out infinite}
         .orb-c{animation:orb-c 12s ease-in-out infinite}
@@ -300,11 +293,21 @@ export default function Landing() {
         .marquee-run{animation:marquee-run 28s linear infinite;display:flex}
         .text-shimmer{background:linear-gradient(90deg,#fff 0%,#10b981 40%,#fff 60%,#10b981 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite}
         .pulse-ring{animation:pulse-ring 2s ease-out infinite}
+        .grain-anim{animation:grain 0.4s steps(1) infinite}
       `}</style>
+
+      {/* Grain texture global overlay */}
+      <div className="grain-anim pointer-events-none fixed inset-0 z-[200] opacity-[0.022]"
+        style={{
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 512 512\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.85\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")',
+          backgroundRepeat: 'repeat',
+          backgroundSize: '200px 200px',
+          mixBlendMode: 'overlay',
+        }}/>
 
       {/* ── NAV ───────────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 lg:px-10 py-4"
-        style={{ background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        style={{ background: 'rgba(6,7,15,0.92)', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="flex items-center gap-2">
           <span className="text-white font-black text-xl tracking-[-0.05em]">KORE</span>
           <span className="text-[8px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 rounded-full px-2 py-0.5 uppercase tracking-widest font-semibold">Beta</span>
@@ -317,17 +320,30 @@ export default function Landing() {
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center pt-20 pb-10 px-5 overflow-hidden">
+
+        {/* Background photo: gym atmosphere */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80&auto=format&fit=crop"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ opacity: 0.09, filter: 'saturate(0.2) brightness(0.6)' }}
+          />
+          {/* gradient fade to bottom */}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, #06070f 100%)' }}/>
+        </div>
+
         {/* Dot grid */}
         <div className="pointer-events-none absolute inset-0"
-          style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)', backgroundSize: '28px 28px' }}/>
+          style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px)', backgroundSize: '28px 28px' }}/>
 
         {/* Animated orbs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="orb-a absolute top-[10%] left-[-5%] w-[700px] h-[700px] rounded-full opacity-[0.05] blur-[100px]"
+          <div className="orb-a absolute top-[10%] left-[-5%] w-[700px] h-[700px] rounded-full opacity-[0.1] blur-[100px]"
             style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }}/>
-          <div className="orb-b absolute bottom-[5%] right-[-10%] w-[600px] h-[600px] rounded-full opacity-[0.04] blur-[90px]"
+          <div className="orb-b absolute bottom-[5%] right-[-10%] w-[600px] h-[600px] rounded-full opacity-[0.07] blur-[90px]"
             style={{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)' }}/>
-          <div className="orb-c absolute top-[50%] left-[40%] w-[400px] h-[400px] rounded-full opacity-[0.03] blur-[80px]"
+          <div className="orb-c absolute top-[50%] left-[40%] w-[400px] h-[400px] rounded-full opacity-[0.05] blur-[80px]"
             style={{ background: 'radial-gradient(circle, #a855f7, transparent 70%)' }}/>
         </div>
 
@@ -343,7 +359,7 @@ export default function Landing() {
             </div>
 
             <h1 className={`font-black tracking-[-0.06em] leading-none mb-5 transition-all duration-700 delay-100 ${vis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-              <span className="block text-[5.5rem] sm:text-[6.5rem]" style={{ textShadow: '0 0 80px rgba(16,185,129,0.1)' }}>KORE</span>
+              <span className="block text-[5.5rem] sm:text-[6.5rem]" style={{ textShadow: '0 0 80px rgba(16,185,129,0.15)' }}>KORE</span>
               <span className="block text-2xl sm:text-3xl text-zinc-300 font-bold tracking-normal mt-1">O sistema operacional<br />do seu corpo.</span>
             </h1>
 
@@ -366,7 +382,7 @@ export default function Landing() {
             <div className={`mt-8 flex items-center gap-4 transition-all duration-700 delay-[360ms] ${vis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
               <div className="flex -space-x-2">
                 {[{ l: 'A', bg: '#10b981' }, { l: 'M', bg: '#3b82f6' }, { l: 'P', bg: '#8b5cf6' }, { l: 'C', bg: '#f97316' }].map((x, i) => (
-                  <div key={i} className="w-7 h-7 rounded-full border-2 border-[#080808] flex items-center justify-center text-[9px] font-black text-white" style={{ background: x.bg }}>{x.l}</div>
+                  <div key={i} className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-[9px] font-black text-white" style={{ background: x.bg, borderColor: '#06070f' }}>{x.l}</div>
                 ))}
               </div>
               <div>
@@ -381,12 +397,10 @@ export default function Landing() {
           {/* Phone + floating badges */}
           <div className="flex justify-center lg:justify-end">
             <div className="relative" style={{ width: 340, height: 520 }}>
-              {/* Phone */}
               <div className="phone-float absolute left-1/2 -translate-x-1/2 top-10">
                 <PhoneMockup visible={vis}/>
               </div>
 
-              {/* Floating badge: Score */}
               <FloatingBadge delay={1000} className="badge-float-a top-6 left-0">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-emerald-400/20 flex items-center justify-center text-[10px]">💚</div>
@@ -397,7 +411,6 @@ export default function Landing() {
                 </div>
               </FloatingBadge>
 
-              {/* Floating badge: HRV */}
               <FloatingBadge delay={1200} className="badge-float-b top-32 right-0">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-blue-400/20 flex items-center justify-center text-[10px]">📈</div>
@@ -408,7 +421,6 @@ export default function Landing() {
                 </div>
               </FloatingBadge>
 
-              {/* Floating badge: Treino */}
               <FloatingBadge delay={1400} className="badge-float-a bottom-32 left-0">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-orange-400/20 flex items-center justify-center text-[10px]">🏋️</div>
@@ -419,7 +431,6 @@ export default function Landing() {
                 </div>
               </FloatingBadge>
 
-              {/* Floating badge: Sono */}
               <FloatingBadge delay={1600} className="badge-float-b bottom-20 right-0">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-violet-400/20 flex items-center justify-center text-[10px]">😴</div>
@@ -435,13 +446,13 @@ export default function Landing() {
       </section>
 
       {/* ── MARQUEE ───────────────────────────────────────────────────────── */}
-      <div className="border-y border-white/[0.05] py-4 overflow-hidden">
+      <div className="border-y border-white/[0.06] py-4 overflow-hidden" style={{ background: 'rgba(255,255,255,0.018)' }}>
         <div className="marquee-run gap-10">
           {[...Array(2)].map((_, r) => (
             <span key={r} className="flex gap-10 flex-shrink-0 pr-10">
               {MARQUEE_ITEMS.map(t => (
-                <span key={t} className="flex items-center gap-3 text-zinc-600 text-sm font-medium whitespace-nowrap">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500/50 shrink-0"/>
+                <span key={t} className="flex items-center gap-3 text-zinc-500 text-sm font-medium whitespace-nowrap">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500/60 shrink-0"/>
                   {t}
                 </span>
               ))}
@@ -452,19 +463,19 @@ export default function Landing() {
 
       {/* ── STATS ─────────────────────────────────────────────────────────── */}
       <section ref={stats.ref} className="px-5 py-20 max-w-5xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px rounded-3xl overflow-hidden border border-white/[0.06]" style={{ background: 'rgba(255,255,255,0.03)' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px rounded-3xl overflow-hidden border border-white/[0.07]" style={{ background: 'rgba(255,255,255,0.03)' }}>
           {[
             { n: n1, sfx: '%', label: 'dos usuários relatam melhora na recuperação nas primeiras semanas', sub: 'baseado em dados de sono e HRV' },
             { n: n2, sfx: ' em 1', label: 'profissões diferentes conectadas na mesma plataforma em tempo real', sub: 'atleta · personal · nutricionista' },
             { n: n3, sfx: ' dim.', label: 'dimensões monitoradas diariamente para gerar a decisão do dia', sub: 'sono · treino · nutrição · bem-estar' },
           ].map((s, i) => (
-            <div key={i} className="p-8 flex flex-col gap-3" style={{ background: '#0f0f0f' }}>
+            <div key={i} className="p-8 flex flex-col gap-3" style={{ background: '#0c0e18' }}>
               <p className="text-[3.8rem] font-black tracking-tight leading-none">
                 {s.n}<span className="text-emerald-400 text-[2.5rem]">{s.sfx}</span>
               </p>
               <div>
                 <p className="text-zinc-400 text-sm leading-relaxed">{s.label}</p>
-                <p className="text-zinc-700 text-[10px] mt-1 uppercase tracking-wider">{s.sub}</p>
+                <p className="text-zinc-600 text-[10px] mt-1 uppercase tracking-wider">{s.sub}</p>
               </div>
             </div>
           ))}
@@ -491,7 +502,7 @@ export default function Landing() {
               green:   { border: 'border-green-500/20',   badge: 'text-green-400 border-green-500/25 bg-green-500/10',     dot: 'bg-green-400' },
             }[p.cor]
             return (
-              <div key={p.role} className={`rounded-2xl p-6 border ${C.border} flex flex-col`} style={{ background: '#0f0f0f' }}>
+              <div key={p.role} className={`rounded-2xl p-6 border ${C.border} flex flex-col`} style={{ background: '#0c0e18' }}>
                 <div className="flex items-center gap-3 mb-5">
                   <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-sm font-black ${C.badge}`}>{p.sigla}</div>
                   <span className="text-white font-bold">{p.role}</span>
@@ -520,7 +531,7 @@ export default function Landing() {
         </div>
 
         {/* Feature 1: Decisão do dia */}
-        <div ref={feat1.ref} className={`rounded-3xl border border-white/[0.06] overflow-hidden transition-all duration-700 ${feat1.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ background: '#0f0f0f' }}>
+        <div ref={feat1.ref} className={`rounded-3xl border border-white/[0.07] overflow-hidden transition-all duration-700 ${feat1.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ background: '#0c0e18' }}>
           <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="p-8 flex flex-col justify-center">
               <span className="inline-flex items-center gap-2 border border-emerald-500/25 bg-emerald-500/10 rounded-full px-3 py-1 mb-4 w-fit">
@@ -529,10 +540,14 @@ export default function Landing() {
               </span>
               <h3 className="text-2xl font-black mb-3">Decisão do dia</h3>
               <p className="text-zinc-500 text-sm leading-relaxed mb-3">Toda manhã, nossa IA cruza dados de sono, HRV, bem-estar e histórico de treino para gerar <strong className="text-zinc-200">uma recomendação concreta</strong> — treinar forte, moderado ou descansar.</p>
-              <p className="text-zinc-700 text-xs border-l-2 border-emerald-500/30 pl-3">Não é um dashboard genérico. É uma decisão.</p>
+              <p className="text-zinc-600 text-xs border-l-2 border-emerald-500/30 pl-3">Não é um dashboard genérico. É uma decisão.</p>
             </div>
-            <div className="p-8 flex items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.04]" style={{ background: '#0a0a0a' }}>
-              <div className="w-full max-w-[240px] space-y-2.5">
+            <div className="p-8 flex items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.05] relative overflow-hidden" style={{ background: '#0a0c16' }}>
+              {/* subtle athlete image in panel */}
+              <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80&auto=format&fit=crop"
+                alt="" className="absolute inset-0 w-full h-full object-cover opacity-[0.06]"
+                style={{ filter: 'saturate(0.1) brightness(0.5)' }}/>
+              <div className="relative w-full max-w-[240px] space-y-2.5">
                 {[
                   { cor: 'border-emerald-500/30 bg-emerald-500/[0.08]', dot: 'bg-emerald-400', text: 'text-emerald-400', label: 'Treinar forte hoje', sub: 'Score 85 · HRV ótimo · Sono 8.2h', active: true },
                   { cor: 'border-yellow-500/20 bg-yellow-500/[0.05]', dot: 'bg-yellow-400', text: 'text-yellow-400', label: 'Treino moderado', sub: 'Score 62 · Sono 6h', active: false },
@@ -553,9 +568,9 @@ export default function Landing() {
         </div>
 
         {/* Feature 2: Evolução / Heatmap */}
-        <div ref={feat2.ref} className={`rounded-3xl border border-white/[0.06] overflow-hidden transition-all duration-700 delay-100 ${feat2.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ background: '#0f0f0f' }}>
+        <div ref={feat2.ref} className={`rounded-3xl border border-white/[0.07] overflow-hidden transition-all duration-700 delay-100 ${feat2.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ background: '#0c0e18' }}>
           <div className="grid grid-cols-1 md:grid-cols-2">
-            <div className="p-8 flex items-center justify-center order-2 md:order-1 border-t md:border-t-0 md:border-r border-white/[0.04]" style={{ background: '#0a0a0a' }}>
+            <div className="p-8 flex items-center justify-center order-2 md:order-1 border-t md:border-t-0 md:border-r border-white/[0.05]" style={{ background: '#0a0c16' }}>
               <div>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-3">Histórico de treinos · 14 semanas</p>
                 <WorkoutHeatmap active={feat2.inView}/>
@@ -567,13 +582,13 @@ export default function Landing() {
               </span>
               <h3 className="text-2xl font-black mb-3">Veja onde você estava. Veja onde está.</h3>
               <p className="text-zinc-500 text-sm leading-relaxed mb-3">O histórico de treinos, recuperação e hábitos se acumula ao longo do tempo. Cada quadrado é um dia. A cor, a intensidade. <strong className="text-zinc-200">Padrões que você não veria sozinho.</strong></p>
-              <p className="text-zinc-700 text-xs border-l-2 border-orange-500/30 pl-3">Overtraining, subrecuperação e consistência — visíveis com um olhar.</p>
+              <p className="text-zinc-600 text-xs border-l-2 border-orange-500/30 pl-3">Overtraining, subrecuperação e consistência — visíveis com um olhar.</p>
             </div>
           </div>
         </div>
 
         {/* Feature 3: Score de sono + chart */}
-        <div ref={feat3.ref} className={`rounded-3xl border border-white/[0.06] overflow-hidden transition-all duration-700 delay-200 ${feat3.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ background: '#0f0f0f' }}>
+        <div ref={feat3.ref} className={`rounded-3xl border border-white/[0.07] overflow-hidden transition-all duration-700 delay-200 ${feat3.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ background: '#0c0e18' }}>
           <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="p-8 flex flex-col justify-center">
               <span className="inline-flex items-center gap-2 border border-violet-500/25 bg-violet-500/10 rounded-full px-3 py-1 mb-4 w-fit">
@@ -581,9 +596,9 @@ export default function Landing() {
               </span>
               <h3 className="text-2xl font-black mb-3">Recuperação não é intuição.</h3>
               <p className="text-zinc-500 text-sm leading-relaxed mb-3">Score de recuperação calculado com duração, HRV, sono profundo e REM. A IA usa esses dados para calibrar <strong className="text-zinc-200">toda a prescrição do dia</strong> — do treino à dieta.</p>
-              <p className="text-zinc-700 text-xs border-l-2 border-violet-500/30 pl-3">Um dia mal dormido muda tudo. O KORE percebe antes de você.</p>
+              <p className="text-zinc-600 text-xs border-l-2 border-violet-500/30 pl-3">Um dia mal dormido muda tudo. O KORE percebe antes de você.</p>
             </div>
-            <div className="p-8 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.04]" style={{ background: '#0a0a0a' }}>
+            <div className="p-8 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.05]" style={{ background: '#0a0c16' }}>
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-4 self-start">Score de recuperação · últimos 7 dias</p>
               <SleepChart active={feat3.inView}/>
               <div className="flex items-center justify-between w-full max-w-[260px] mt-4">
@@ -608,31 +623,42 @@ export default function Landing() {
       </section>
 
       {/* ── DEPOIMENTOS ───────────────────────────────────────────────────── */}
-      <section ref={testi.ref} className="px-5 py-16 max-w-5xl mx-auto">
-        <div className="text-center mb-10">
-          <p className="text-zinc-600 text-[10px] uppercase tracking-[0.3em] mb-3">Quem usa</p>
-          <h2 className="text-4xl font-black">Resultados reais.</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {DEPOIMENTOS.map((d, i) => {
-            const C = { emerald: 'bg-emerald-500 border-emerald-500/30', green: 'bg-green-500 border-green-500/30', blue: 'bg-blue-500 border-blue-500/30' }[d.cor]
-            return (
-              <div key={i} className={`rounded-2xl p-6 border border-white/[0.06] flex flex-col gap-4 transition-all duration-700 ${testi.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
-                style={{ background: '#0f0f0f', transitionDelay: `${i * 100}ms` }}>
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, s) => <span key={s} className="text-yellow-400 text-xs">★</span>)}
-                </div>
-                <p className="text-zinc-300 text-sm leading-relaxed flex-1">"{d.quote}"</p>
-                <div className="flex items-center gap-3 pt-3 border-t border-white/[0.04]">
-                  <div className={`w-8 h-8 rounded-xl ${C} flex items-center justify-center text-[10px] font-black text-white`}>{d.avatar}</div>
-                  <div>
-                    <p className="text-white text-sm font-bold">{d.nome}</p>
-                    <p className="text-zinc-600 text-xs">{d.cargo}</p>
+      <section ref={testi.ref} className="relative px-5 py-20 overflow-hidden">
+        {/* Background photo: barbell/performance */}
+        <img
+          src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1920&q=80&auto=format&fit=crop"
+          alt=""
+          className="pointer-events-none absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.07, filter: 'saturate(0.15) brightness(0.5)' }}
+        />
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 25%, transparent 75%, #06070f 100%)' }}/>
+
+        <div className="relative max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] mb-3">Quem usa</p>
+            <h2 className="text-4xl font-black">Resultados reais.</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {DEPOIMENTOS.map((d, i) => {
+              const C = { emerald: 'bg-emerald-500 border-emerald-500/30', green: 'bg-green-500 border-green-500/30', blue: 'bg-blue-500 border-blue-500/30' }[d.cor]
+              return (
+                <div key={i} className={`rounded-2xl p-6 border border-white/[0.07] flex flex-col gap-4 transition-all duration-700 ${testi.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+                  style={{ background: 'rgba(12,14,24,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', transitionDelay: `${i * 100}ms` }}>
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, s) => <span key={s} className="text-yellow-400 text-xs">★</span>)}
+                  </div>
+                  <p className="text-zinc-300 text-sm leading-relaxed flex-1">"{d.quote}"</p>
+                  <div className="flex items-center gap-3 pt-3 border-t border-white/[0.05]">
+                    <div className={`w-8 h-8 rounded-xl ${C} flex items-center justify-center text-[10px] font-black text-white`}>{d.avatar}</div>
+                    <div>
+                      <p className="text-white text-sm font-bold">{d.nome}</p>
+                      <p className="text-zinc-600 text-xs">{d.cargo}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </section>
 
@@ -648,7 +674,7 @@ export default function Landing() {
             { n: '02', title: 'Conecte seu time de profissionais', desc: 'O profissional envia um link de convite. O atleta aceita. Todos passam a ver os mesmos dados em tempo real — sem WhatsApp no meio.', cor: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
             { n: '03', title: 'A IA trabalha — você executa', desc: 'Cada manhã, a IA analisa tudo e entrega a decisão do dia. Personal e nutri ajustam a prescrição com base em dados reais. Atleta executa com confiança.', cor: 'text-violet-400 border-violet-500/30 bg-violet-500/10' },
           ].map(s => (
-            <div key={s.n} className="flex gap-5 p-6 rounded-2xl border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div key={s.n} className="flex gap-5 p-6 rounded-2xl border border-white/[0.07]" style={{ background: '#0c0e18' }}>
               <span className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${s.cor}`}>{s.n}</span>
               <div>
                 <p className="text-white font-bold text-base mb-1">{s.title}</p>
@@ -661,7 +687,7 @@ export default function Landing() {
 
       {/* ── CREDIBILIDADE TÉCNICA ─────────────────────────────────────────── */}
       <section className="px-5 py-12 max-w-5xl mx-auto">
-        <div className="rounded-2xl border border-white/[0.05] p-6" style={{ background: '#0d0d0d' }}>
+        <div className="rounded-2xl border border-white/[0.06] p-6" style={{ background: '#0c0e18' }}>
           <p className="text-zinc-600 text-[9px] uppercase tracking-[0.3em] text-center mb-6">Tecnologia que sustenta</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
@@ -670,7 +696,7 @@ export default function Landing() {
               { nome: 'Vercel', desc: 'Infraestrutura global', icon: '⚡', badge: 'Edge computing' },
               { nome: 'Next.js 14', desc: 'Performance máxima', icon: '🚀', badge: 'App Router' },
             ].map(t => (
-              <div key={t.nome} className="text-center p-4 rounded-xl border border-white/[0.04]" style={{ background: '#111' }}>
+              <div key={t.nome} className="text-center p-4 rounded-xl border border-white/[0.05]" style={{ background: '#0a0c16' }}>
                 <div className="text-2xl mb-2">{t.icon}</div>
                 <p className="text-white text-sm font-bold">{t.nome}</p>
                 <p className="text-zinc-600 text-[10px] mt-0.5">{t.desc}</p>
@@ -683,12 +709,20 @@ export default function Landing() {
 
       {/* ── CTA FINAL ─────────────────────────────────────────────────────── */}
       <section className="px-5 py-16 max-w-5xl mx-auto">
-        <div className="relative rounded-3xl border border-emerald-500/20 p-10 sm:p-16 text-center overflow-hidden"
-          style={{ background: 'linear-gradient(145deg, #0a1c13, #080c0a)' }}>
-          {/* Dot grid inside CTA */}
+        <div className="relative rounded-3xl border border-emerald-500/25 p-10 sm:p-16 text-center overflow-hidden">
+          {/* Background photo: athlete in action */}
+          <img
+            src="https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=1920&q=80&auto=format&fit=crop"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ opacity: 0.13, filter: 'saturate(0.25) brightness(0.45)' }}
+          />
+          {/* Overlay gradient */}
+          <div className="absolute inset-0 rounded-3xl" style={{ background: 'linear-gradient(145deg, rgba(10,28,19,0.95), rgba(8,12,10,0.9))' }}/>
+          {/* Dot grid */}
           <div className="pointer-events-none absolute inset-0 rounded-3xl overflow-hidden"
-            style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '24px 24px' }}/>
-          <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full blur-[100px] opacity-[0.12]"
+            style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)', backgroundSize: '24px 24px' }}/>
+          <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full blur-[100px] opacity-[0.18]"
             style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }}/>
           <div className="relative">
             <span className="inline-flex items-center gap-2 border border-emerald-500/25 bg-emerald-500/10 rounded-full px-4 py-1.5 mb-6">
@@ -707,7 +741,7 @@ export default function Landing() {
                 Criar conta grátis →
               </button>
               <button onClick={() => router.push('/login')}
-                className="flex-1 border border-white/[0.12] text-zinc-300 font-semibold py-4 rounded-2xl text-sm uppercase tracking-widest active:scale-95 transition-all hover:border-white/25 hover:text-white">
+                className="flex-1 border border-white/[0.15] text-zinc-300 font-semibold py-4 rounded-2xl text-sm uppercase tracking-widest active:scale-95 transition-all hover:border-white/30 hover:text-white">
                 Entrar
               </button>
             </div>
@@ -716,7 +750,7 @@ export default function Landing() {
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.04] px-5 py-8">
+      <footer className="border-t border-white/[0.05] px-5 py-8">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-white font-black text-xl tracking-[-0.05em]">KORE</span>
