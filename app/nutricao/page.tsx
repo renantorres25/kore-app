@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -589,7 +589,7 @@ export default function Nutricao() {
 
   async function carregar() {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
+    if (!session) { router.push('/login'); return }
     setUserId(session.user.id)
     const hoje = getTodayBR()
     const [{ data: perfilData }, { data: sonoHoje }, { data: treinoHoje }, { data: atividadeHoje }, { data: registroHoje }, { data: vinculo }, { data: planoData }] = await Promise.all([

@@ -90,7 +90,7 @@ export default function NutricionistaPaciente() {
   useEffect(() => {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/'); return }
+      if (!session) { router.push('/login'); return }
       const hoje = getTodayBR()
       const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 6)
       const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })

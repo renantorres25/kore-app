@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -60,7 +60,7 @@ function PerfilConteudo() {
   useEffect(() => {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/'); return }
+      if (!session) { router.push('/login'); return }
       setUserId(session.user.id)
       setEmail(session.user.email ?? '')
 
@@ -160,7 +160,7 @@ function PerfilConteudo() {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/')
+    router.push('/login')
   }
 
   const imc = calcularIMC()

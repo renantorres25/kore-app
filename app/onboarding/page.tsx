@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -25,7 +25,7 @@ export default function Onboarding() {
     setErro('')
 
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
+    if (!session) { router.push('/login'); return }
 
     const { error } = await supabase.from('perfis').insert({
       id: session.user.id,

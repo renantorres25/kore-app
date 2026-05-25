@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -31,7 +31,7 @@ export default function BemEstar() {
   useEffect(() => {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/'); return }
+      if (!session) { router.push('/login'); return }
       setUserId(session.user.id)
       const hoje = getTodayBR()
       const { data } = await supabase.from('bem_estar').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single()

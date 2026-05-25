@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -286,7 +286,7 @@ export default function TreinoCliente() {
 
   async function carregar() {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
+    if (!session) { router.push('/login'); return }
     setUserId(session.user.id)
     const hoje = getTodayBR()
     const [{ data: sono }, { data: perfil }, { data: td }, { data: vinculo }] = await Promise.all([

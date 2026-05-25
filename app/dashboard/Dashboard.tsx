@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -215,7 +215,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function carregarDados() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/'); return }
+      if (!session) { router.push('/login'); return }
       setUserId(session.user.id)
 
       const { data: perfilData } = await supabase
@@ -359,7 +359,7 @@ Responda APENAS em JSON válido, sem markdown:
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/')
+    router.push('/login')
   }
 
   if (carregando) {

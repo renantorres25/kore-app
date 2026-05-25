@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -51,7 +51,7 @@ export default function PersonalAlunos() {
   useEffect(() => {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/'); return }
+      if (!session) { router.push('/login'); return }
 
       const { data: vinculos } = await supabase
         .from('vinculos')

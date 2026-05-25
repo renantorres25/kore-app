@@ -62,7 +62,7 @@ export default function PersonalAluno() {
 
   async function carregar() {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
+    if (!session) { router.push('/login'); return }
 
     const hoje = getTodayBR()
     const semanaAtras = new Date()

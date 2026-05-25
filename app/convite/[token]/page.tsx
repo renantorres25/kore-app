@@ -185,7 +185,7 @@ export default function AceitarConvite() {
             <div className="text-4xl mb-4">⚠️</div>
             <h2 className="text-xl font-black mb-3">Convite inválido</h2>
             <p className="text-zinc-500 text-sm mb-6">Este link de convite expirou ou não é válido.</p>
-            <button onClick={() => router.push('/')} className="w-full bg-white text-black font-bold py-3 rounded-xl text-sm active:scale-95 transition-all uppercase tracking-wider">
+            <button onClick={() => router.push('/login')} className="w-full bg-white text-black font-bold py-3 rounded-xl text-sm active:scale-95 transition-all uppercase tracking-wider">
               Ir para o KORE
             </button>
           </div>

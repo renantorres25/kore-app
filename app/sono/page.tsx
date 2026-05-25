@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -99,7 +99,7 @@ export default function Sono() {
   useEffect(() => {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/'); return }
+      if (!session) { router.push('/login'); return }
       setUserId(session.user.id)
       const hoje = getTodayBR()
       const { data: perfil } = await supabase.from('perfis').select('nome, peso, altura, objetivo').eq('id', session.user.id).single()
