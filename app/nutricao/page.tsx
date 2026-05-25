@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
+import NavBar from '../components/NavBar'
 
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -25,7 +26,7 @@ type PlanoEstruturado = {
   dica_fome: string
   orientacao_treino: string
 }
-type PlanoNutricional = { id: string; conteudo: string; calorias_meta: number | null; proteina_meta: number | null; refeicoes_por_dia: number | null; created_at: string }
+type PlanoNutricional = { id: string; conteudo: string; calorias_meta: number | null; proteina_meta: number | null; refeicoes_por_dia: number | null; created_at: string; criado_por: string | null }
 
 const QUALIDADE_OPCOES = [
   { valor: 1, label: 'Ruim',    emoji: '😞', cor: 'border-red-500/40 bg-red-500/10 text-red-400' },
@@ -64,32 +65,10 @@ function getIconeRefeicao(nome: string): string {
   return key ? ICONE_REFEICAO[key] : '🥗'
 }
 
-function IconHome({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
-}
-function IconTreino({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" /><path d="M7.5 6.5v11M17.5 6.5v11" /><path d="M7.5 12h9" /><path d="M3 10.5v3M21 10.5v3" /></svg>
-}
-function IconNutricao({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" /><path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" /></svg>
-}
-function IconEvolucao({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
-}
-function IconPerfil({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>
-}
-const NAV_ITEMS = [
-  { id: 'home', label: 'Início', Icon: IconHome, path: '/dashboard' },
-  { id: 'treino', label: 'Treino', Icon: IconTreino, path: '/treino' },
-  { id: 'nutri', label: 'Nutrição', Icon: IconNutricao, path: '/nutricao' },
-  { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao, path: '/evolucao' },
-  { id: 'perfil', label: 'Perfil', Icon: IconPerfil, path: '/perfil' },
-]
 
 function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
   plano: PlanoNutricional | null; gerandoPlano: boolean
-  vinculoNutri: { nome: string | null } | null; onIniciarConsulta: () => void
+  vinculoNutri: { nome: string | null; id: string } | null; onIniciarConsulta: () => void
 }) {
   const [refeicaoAberta, setRefeicaoAberta] = useState<number | null>(0)
   const [secaoAberta, setSecaoAberta] = useState<string | null>(null)
@@ -143,6 +122,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
     const dataCriacao = new Date(plano.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: 'numeric', month: 'long', year: 'numeric' })
     const totalCalDia = e ? e.refeicoes.reduce((s, r) => s + r.alimentos.reduce((ss, a) => ss + a.calorias, 0), 0) : 0
     const totalProtDia = e ? e.refeicoes.reduce((s, r) => s + r.alimentos.reduce((ss, a) => ss + a.proteina, 0), 0) : 0
+    const isPlanoProfissional = vinculoNutri && plano.criado_por === vinculoNutri.id
 
     return (
       <div className="pb-6">
@@ -150,12 +130,18 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[9px] uppercase tracking-[0.2em] text-blue-400 font-semibold">✦ Plano Alimentar · IA</span>
+                {isPlanoProfissional ? (
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-semibold">✦ Plano Alimentar · {vinculoNutri!.nome ?? 'Nutricionista'}</span>
+                ) : (
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-blue-400 font-semibold">✦ Plano Alimentar · IA</span>
+                )}
                 <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">Ativo</span>
               </div>
               <p className="text-zinc-600 text-[10px]">Criado em {dataCriacao}</p>
             </div>
-            <button onClick={onIniciarConsulta} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/20 hover:text-zinc-300 transition-all active:scale-95 shrink-0">↻ Refazer</button>
+            {!isPlanoProfissional && (
+              <button onClick={onIniciarConsulta} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/20 hover:text-zinc-300 transition-all active:scale-95 shrink-0">↻ Refazer</button>
+            )}
           </div>
         </div>
 
@@ -362,7 +348,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
 function AbaHoje({ perfil, scoreHoje, treinouHoje, planoAtivo, vinculoNutri, userId, registroId, setRegistroId, qualidade, setQualidade, calorias, setCalorias, proteina, setProteina, coposAgua, setCoposAgua, observacoes, setObservacoes, jaRegistrou, setJaRegistrou }: {
   perfil: Perfil; scoreHoje: number | null; treinouHoje: boolean; planoAtivo: PlanoNutricional | null
-  vinculoNutri: { nome: string | null } | null; userId: string; registroId: string | null
+  vinculoNutri: { nome: string | null; id: string } | null; userId: string; registroId: string | null
   setRegistroId: (v: string | null) => void; qualidade: number | null; setQualidade: (v: number | null) => void
   calorias: string; setCalorias: (v: string) => void; proteina: string; setProteina: (v: string) => void
   coposAgua: number; setCoposAgua: (v: number) => void; observacoes: string; setObservacoes: (v: string) => void
@@ -569,7 +555,7 @@ export default function Nutricao() {
   const [scoreHoje, setScoreHoje] = useState<number | null>(null)
   const [treinouHoje, setTreinouHoje] = useState(false)
   const [registroId, setRegistroId] = useState<string | null>(null)
-  const [vinculoNutri, setVinculoNutri] = useState<{ nome: string | null } | null>(null)
+  const [vinculoNutri, setVinculoNutri] = useState<{ nome: string | null; id: string } | null>(null)
   const [mostrarQuiz, setMostrarQuiz] = useState(false)
   const [gerandoPlano, setGerandoPlano] = useState(false)
   const [planoAtivo, setPlanoAtivo] = useState<PlanoNutricional | null>(null)
@@ -616,7 +602,7 @@ export default function Nutricao() {
     }
     if (vinculo) {
       const { data: np } = await supabase.from('perfis').select('nome').eq('id', vinculo.profissional_id).single()
-      if (np) setVinculoNutri(np)
+      if (np) setVinculoNutri({ nome: np.nome, id: vinculo.profissional_id })
     }
     setCarregando(false)
   }
@@ -757,20 +743,7 @@ Responda APENAS JSON válido:
           {aba === 'hoje' && <AbaHoje perfil={perfil} scoreHoje={scoreHoje} treinouHoje={treinouHoje} planoAtivo={planoAtivo} vinculoNutri={vinculoNutri} userId={userId} registroId={registroId} setRegistroId={setRegistroId} qualidade={qualidade} setQualidade={setQualidade} calorias={calorias} setCalorias={setCalorias} proteina={proteina} setProteina={setProteina} coposAgua={coposAgua} setCoposAgua={setCoposAgua} observacoes={observacoes} setObservacoes={setObservacoes} jaRegistrou={jaRegistrou} setJaRegistrou={setJaRegistrou} />}
         </div>
       </div>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]" style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
-          {NAV_ITEMS.map((item) => {
-            const active = item.id === 'nutri'
-            return (
-              <button key={item.id} onClick={() => router.push(item.path)} className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90">
-                <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}><item.Icon active={active} /></span>
-                <span className={`text-[9px] tracking-[0.1em] uppercase font-semibold transition-all ${active ? 'text-emerald-400' : 'text-zinc-700'}`}>{item.label}</span>
-                {active && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
-              </button>
-            )
-          })}
-        </div>
-      </nav>
+      <NavBar tipo="cliente" ativa="nutri" />
     </main>
   )
 }

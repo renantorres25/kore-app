@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
+import NavBar from '../components/NavBar'
 
 type Exercicio = { id: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; personal_id?: string | null; exercicios: Exercicio[] }
@@ -65,29 +66,6 @@ const ZONAS_FC = [
   { valor: 'misto', label: 'Misto',                desc: 'Várias zonas', cor: 'bg-purple-500/15 border-purple-500/30 text-purple-400' },
 ]
 
-function IconHome({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
-}
-function IconTreino({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" /><path d="M7.5 6.5v11M17.5 6.5v11" /><path d="M7.5 12h9" /><path d="M3 10.5v3M21 10.5v3" /></svg>
-}
-function IconNutricao({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" /><path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" /></svg>
-}
-function IconEvolucao({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
-}
-function IconPerfil({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>
-}
-
-const NAV_ITEMS = [
-  { id: 'home',     label: 'Início',   Icon: IconHome,     path: '/dashboard' },
-  { id: 'treino',   label: 'Treino',   Icon: IconTreino,   path: '/treino'    },
-  { id: 'nutri',    label: 'Nutrição', Icon: IconNutricao, path: '/nutricao'  },
-  { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao, path: '/evolucao'  },
-  { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil,   path: '/perfil'    },
-]
 
 function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
   const pace = calcularPace(duracaoAtual, parseFloat(form.distancia_km ?? '0'))
@@ -815,20 +793,7 @@ Responda APENAS JSON válido:
           </div>
         </div>
       </div>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]" style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
-          {NAV_ITEMS.map((item) => {
-            const active = item.id === 'treino'
-            return (
-              <button key={item.id} onClick={() => router.push(item.path)} className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90">
-                <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}><item.Icon active={active} /></span>
-                <span className={`text-[9px] tracking-[0.1em] uppercase font-semibold transition-all ${active ? 'text-emerald-400' : 'text-zinc-700'}`}>{item.label}</span>
-                {active && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
-              </button>
-            )
-          })}
-        </div>
-      </nav>
+      <NavBar tipo="cliente" ativa="treino" />
     </main>
   )
 }
