@@ -505,7 +505,7 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 3 PERFIS                                                          */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      <section ref={perfis} className="relative px-5 py-16 overflow-hidden">
+      <section ref={perfis.ref} className="relative px-5 py-16 overflow-hidden">
         {/* Bg image: athletes training */}
         <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1920&q=80&auto=format&fit=crop"
           alt="" className="pointer-events-none absolute inset-0 w-full h-full object-cover"
