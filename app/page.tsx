@@ -337,10 +337,10 @@ export default function Landing() {
             src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80&auto=format&fit=crop"
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ opacity: 0.14, filter: 'saturate(0.2) brightness(0.55)' }}
+            style={{ opacity: 0.25, filter: 'saturate(0.45) brightness(0.65)' }}
           />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #06070f 35%, transparent 65%, #06070f 100%)' }}/>
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 50%, #06070f 100%)' }}/>
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #06070f 20%, transparent 55%, #06070f 90%)' }}/>
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 60%, #06070f 100%)' }}/>
         </div>
 
         {/* Dot grid */}
@@ -478,8 +478,8 @@ export default function Landing() {
         {/* Bg image: runner outdoor */}
         <img src="https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=1920&q=80&auto=format&fit=crop"
           alt="" className="pointer-events-none absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.07, filter: 'saturate(0.15) brightness(0.5)' }}/>
-        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 30%, transparent 70%, #06070f 100%)' }}/>
+          style={{ opacity: 0.22, filter: 'saturate(0.45) brightness(0.6)' }}/>
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 18%, transparent 82%, #06070f 100%)' }}/>
 
         <div className="relative max-w-5xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-px rounded-3xl overflow-hidden border border-white/[0.08]" style={{ background: 'rgba(255,255,255,0.04)' }}>
@@ -509,8 +509,8 @@ export default function Landing() {
         {/* Bg image: athletes training */}
         <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1920&q=80&auto=format&fit=crop"
           alt="" className="pointer-events-none absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.08, filter: 'saturate(0.15) brightness(0.4)' }}/>
-        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 20%, transparent 80%, #06070f 100%)' }}/>
+          style={{ opacity: 0.24, filter: 'saturate(0.45) brightness(0.55)' }}/>
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 15%, transparent 85%, #06070f 100%)' }}/>
 
         <div className="relative max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -581,8 +581,8 @@ export default function Landing() {
             </div>
             <div className="p-8 flex items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.06] relative overflow-hidden" style={{ background: '#0a0c16' }}>
               <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80&auto=format&fit=crop"
-                alt="" className="absolute inset-0 w-full h-full object-cover opacity-[0.09]"
-                style={{ filter: 'saturate(0.1) brightness(0.5)' }}/>
+                alt="" className="absolute inset-0 w-full h-full object-cover opacity-[0.20]"
+                style={{ filter: 'saturate(0.35) brightness(0.55)' }}/>
               <div className="relative w-full max-w-[260px] space-y-3">
                 {[
                   { cor: 'border-emerald-500/35 bg-emerald-500/[0.1]', dot: 'bg-emerald-400', text: 'text-emerald-400', label: 'Treinar forte hoje', sub: 'Score 85 · HRV ótimo · Sono 8.2h', active: true },
@@ -664,8 +664,8 @@ export default function Landing() {
       <section ref={testi.ref} className="relative px-5 py-20 overflow-hidden">
         <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1920&q=80&auto=format&fit=crop"
           alt="" className="pointer-events-none absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.09, filter: 'saturate(0.12) brightness(0.45)' }}/>
-        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 25%, transparent 75%, #06070f 100%)' }}/>
+          style={{ opacity: 0.26, filter: 'saturate(0.4) brightness(0.55)' }}/>
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 15%, transparent 85%, #06070f 100%)' }}/>
 
         <div className="relative max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -704,8 +704,8 @@ export default function Landing() {
         {/* Bg image: gym interior */}
         <img src="https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=1920&q=80&auto=format&fit=crop"
           alt="" className="pointer-events-none absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.08, filter: 'saturate(0.15) brightness(0.45)' }}/>
-        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 25%, transparent 75%, #06070f 100%)' }}/>
+          style={{ opacity: 0.24, filter: 'saturate(0.45) brightness(0.55)' }}/>
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to bottom, #06070f 0%, transparent 15%, transparent 85%, #06070f 100%)' }}/>
 
         <div className="relative max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -764,7 +764,7 @@ export default function Landing() {
           {/* Bg: atleta em ação */}
           <img src="https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=1920&q=80&auto=format&fit=crop"
             alt="" className="absolute inset-0 w-full h-full object-cover rounded-3xl"
-            style={{ opacity: 0.18, filter: 'saturate(0.25) brightness(0.4)' }}/>
+            style={{ opacity: 0.32, filter: 'saturate(0.5) brightness(0.5)' }}/>
           <div className="absolute inset-0 rounded-3xl" style={{ background: 'linear-gradient(145deg, rgba(8,22,16,0.96), rgba(6,8,14,0.92))' }}/>
           <div className="pointer-events-none absolute inset-0 rounded-3xl overflow-hidden"
             style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)', backgroundSize: '24px 24px' }}/>
