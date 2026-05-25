@@ -700,7 +700,7 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* COMO FUNCIONA                                                     */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      <section ref={como} className="relative px-5 py-16 overflow-hidden">
+      <section ref={como.ref} className="relative px-5 py-16 overflow-hidden">
         {/* Bg image: gym interior */}
         <img src="https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=1920&q=80&auto=format&fit=crop"
           alt="" className="pointer-events-none absolute inset-0 w-full h-full object-cover"
