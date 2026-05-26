@@ -5,28 +5,14 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
 type AnamneseForm = {
-  patologias: string
-  medicamentos: string
-  alergias: string
-  cirurgias: string
-  historico_familiar: string
-  nivel_atividade: string
-  horas_sono: string
-  nivel_estresse: number
-  fuma: boolean
-  alcool: string
-  historico_esportivo: string
-  lesoes: string
-  restricoes_fisicas: string
-  restricoes_alimentares: string
-  suplementos: string
-  refeicoes_por_dia: string
-  habitos_alimentares: string
-  objetivo_detalhado: string
-  motivacao: string
-  prazo_semanas: string
-  observacoes: string
+  patologias: string; medicamentos: string; alergias: string; cirurgias: string
+  historico_familiar: string; nivel_atividade: string; horas_sono: string
+  nivel_estresse: number; fuma: boolean; alcool: string; historico_esportivo: string
+  lesoes: string; restricoes_fisicas: string; restricoes_alimentares: string
+  suplementos: string; refeicoes_por_dia: string; habitos_alimentares: string
+  objetivo_detalhado: string; motivacao: string; prazo_semanas: string; observacoes: string
 }
+type OutraAnamnese = AnamneseForm & { profissional_nome: string | null; profissional_tipo: string | null }
 
 const FORM_VAZIO: AnamneseForm = {
   patologias: '', medicamentos: '', alergias: '', cirurgias: '', historico_familiar: '',
@@ -37,30 +23,35 @@ const FORM_VAZIO: AnamneseForm = {
 }
 
 const NIVEL_ATIVIDADE = [
-  { val: 'sedentario',      label: 'Sedentário',      sub: 'Sem exercício regular' },
-  { val: 'levemente_ativo', label: 'Leve',            sub: '1–2x por semana' },
-  { val: 'moderado',        label: 'Moderado',        sub: '3–4x por semana' },
-  { val: 'muito_ativo',     label: 'Muito ativo',     sub: '5–6x por semana' },
-  { val: 'atleta',          label: 'Atleta',          sub: 'Treino diário/duplo' },
+  { val: 'sedentario',      label: 'Sedentário',  sub: 'Sem exercício regular' },
+  { val: 'levemente_ativo', label: 'Leve',         sub: '1–2x por semana' },
+  { val: 'moderado',        label: 'Moderado',     sub: '3–4x por semana' },
+  { val: 'muito_ativo',     label: 'Muito ativo',  sub: '5–6x por semana' },
+  { val: 'atleta',          label: 'Atleta',       sub: 'Treino diário/duplo' },
 ]
-
 const ALCOOL = [
-  { val: 'nao',       label: 'Não bebo' },
-  { val: 'social',    label: 'Social' },
-  { val: 'moderado',  label: 'Moderado' },
-  { val: 'frequente', label: 'Frequente' },
+  { val: 'nao', label: 'Não bebo' }, { val: 'social', label: 'Social' },
+  { val: 'moderado', label: 'Moderado' }, { val: 'frequente', label: 'Frequente' },
 ]
+const NIVEL_ATIVIDADE_LABEL: Record<string, string> = {
+  sedentario: 'Sedentário', levemente_ativo: 'Levemente ativo',
+  moderado: 'Moderado', muito_ativo: 'Muito ativo', atleta: 'Atleta',
+}
+const ALCOOL_LABEL: Record<string, string> = {
+  nao: 'Não bebe', social: 'Social', moderado: 'Moderado', frequente: 'Frequente',
+}
 
-function SectionCard({ icon, titulo, subtitulo, children }: { icon: string; titulo: string; subtitulo?: string; children: React.ReactNode }) {
+function SectionCard({ icon, titulo, subtitulo, badge, children }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
       <div className="px-5 py-4 border-b border-white/[0.04]" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="flex items-center gap-2.5">
           <span className="text-xl">{icon}</span>
-          <div>
+          <div className="flex-1">
             <p className="text-white font-bold text-sm">{titulo}</p>
             {subtitulo && <p className="text-zinc-600 text-[11px] mt-0.5">{subtitulo}</p>}
           </div>
+          {badge && <span className="text-[9px] uppercase tracking-wider text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{badge}</span>}
         </div>
       </div>
       <div className="p-5 space-y-4">{children}</div>
@@ -72,9 +63,20 @@ function Field({ label, optional, children }: { label: string; optional?: boolea
   return (
     <div>
       <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">
-        {label} {optional && <span className="text-zinc-700 normal-case tracking-normal">(opcional)</span>}
+        {label}{optional && <span className="text-zinc-700 normal-case tracking-normal ml-1">(opcional)</span>}
       </label>
       {children}
+    </div>
+  )
+}
+
+function ReadRow({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
+  if (!value && value !== false && value !== 0) return null
+  const display = typeof value === 'boolean' ? (value ? 'Sim' : 'Não') : String(value)
+  return (
+    <div className="flex gap-3 py-2 border-b border-white/[0.03] last:border-0">
+      <span className="text-zinc-600 text-[10px] uppercase tracking-wider w-32 shrink-0 pt-0.5">{label}</span>
+      <span className="text-zinc-300 text-sm flex-1">{display}</span>
     </div>
   )
 }
@@ -89,6 +91,8 @@ export default function AnamnesePage() {
 
   const [form, setForm] = useState<AnamneseForm>(FORM_VAZIO)
   const [anamneseId, setAnamneseId] = useState<string | null>(null)
+  const [outraAnamnese, setOutraAnamnese] = useState<OutraAnamnese | null>(null)
+  const [verOutra, setVerOutra] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [sucesso, setSucesso] = useState(false)
@@ -101,51 +105,73 @@ export default function AnamnesePage() {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
-
       const meuId = session.user.id
 
-      // Load viewer profile
-      const { data: perfil } = await supabase.from('perfis').select('tipo, nome').eq('id', meuId).single()
+      const [{ data: perfil }, { data: clientePerfil }] = await Promise.all([
+        supabase.from('perfis').select('tipo, nome').eq('id', meuId).single(),
+        supabase.from('perfis').select('nome, email').eq('id', clienteId).single(),
+      ])
       setMeuPerfil(perfil)
-
-      // Load client name
-      const { data: clientePerfil } = await supabase.from('perfis').select('nome, email').eq('id', clienteId).single()
       setClienteNome(clientePerfil?.nome ?? clientePerfil?.email ?? null)
 
-      // Determine back URL
       if (perfil?.tipo === 'personal') setBackUrl(`/personal/aluno/${clienteId}`)
       else if (perfil?.tipo === 'nutricionista') setBackUrl(`/nutricionista/paciente/${clienteId}`)
       else setBackUrl('/perfil')
 
-      // Load existing anamnese
-      const { data: existente } = await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).order('criado_em', { ascending: false }).limit(1).single()
+      const isProfissional = perfil?.tipo === 'personal' || perfil?.tipo === 'nutricionista'
 
-      if (existente) {
-        setAnamneseId(existente.id)
+      // Load own anamnese (by profissional_id for professionals, by cliente_id for clients)
+      const propria = isProfissional
+        ? await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).eq('profissional_id', meuId).limit(1).single()
+        : await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).is('profissional_id', null).limit(1).single()
+
+      if (propria.data) {
+        const e = propria.data
+        setAnamneseId(e.id)
         setForm({
-          patologias: existente.patologias ?? '',
-          medicamentos: existente.medicamentos ?? '',
-          alergias: existente.alergias ?? '',
-          cirurgias: existente.cirurgias ?? '',
-          historico_familiar: existente.historico_familiar ?? '',
-          nivel_atividade: existente.nivel_atividade ?? '',
-          horas_sono: existente.horas_sono != null ? String(existente.horas_sono) : '',
-          nivel_estresse: existente.nivel_estresse ?? 0,
-          fuma: existente.fuma ?? false,
-          alcool: existente.alcool ?? '',
-          historico_esportivo: existente.historico_esportivo ?? '',
-          lesoes: existente.lesoes ?? '',
-          restricoes_fisicas: existente.restricoes_fisicas ?? '',
-          restricoes_alimentares: existente.restricoes_alimentares ?? '',
-          suplementos: existente.suplementos ?? '',
-          refeicoes_por_dia: existente.refeicoes_por_dia != null ? String(existente.refeicoes_por_dia) : '',
-          habitos_alimentares: existente.habitos_alimentares ?? '',
-          objetivo_detalhado: existente.objetivo_detalhado ?? '',
-          motivacao: existente.motivacao ?? '',
-          prazo_semanas: existente.prazo_semanas != null ? String(existente.prazo_semanas) : '',
-          observacoes: existente.observacoes ?? '',
+          patologias: e.patologias ?? '', medicamentos: e.medicamentos ?? '',
+          alergias: e.alergias ?? '', cirurgias: e.cirurgias ?? '',
+          historico_familiar: e.historico_familiar ?? '', nivel_atividade: e.nivel_atividade ?? '',
+          horas_sono: e.horas_sono != null ? String(e.horas_sono) : '',
+          nivel_estresse: e.nivel_estresse ?? 0, fuma: e.fuma ?? false, alcool: e.alcool ?? '',
+          historico_esportivo: e.historico_esportivo ?? '', lesoes: e.lesoes ?? '',
+          restricoes_fisicas: e.restricoes_fisicas ?? '', restricoes_alimentares: e.restricoes_alimentares ?? '',
+          suplementos: e.suplementos ?? '', refeicoes_por_dia: e.refeicoes_por_dia != null ? String(e.refeicoes_por_dia) : '',
+          habitos_alimentares: e.habitos_alimentares ?? '', objetivo_detalhado: e.objetivo_detalhado ?? '',
+          motivacao: e.motivacao ?? '', prazo_semanas: e.prazo_semanas != null ? String(e.prazo_semanas) : '',
+          observacoes: e.observacoes ?? '',
         })
       }
+
+      // Load other professionals' anamneses
+      if (isProfissional) {
+        const { data: outras } = await supabase
+          .from('anamneses').select('*').eq('cliente_id', clienteId).neq('profissional_id', meuId)
+          .order('criado_em', { ascending: false }).limit(1)
+        if (outras?.length) {
+          const o = outras[0]
+          // Load other professional's name/type
+          const { data: outroPerfil } = o.profissional_id
+            ? await supabase.from('perfis').select('nome, tipo').eq('id', o.profissional_id).single()
+            : { data: null }
+          setOutraAnamnese({
+            patologias: o.patologias ?? '', medicamentos: o.medicamentos ?? '',
+            alergias: o.alergias ?? '', cirurgias: o.cirurgias ?? '',
+            historico_familiar: o.historico_familiar ?? '', nivel_atividade: o.nivel_atividade ?? '',
+            horas_sono: o.horas_sono != null ? String(o.horas_sono) : '',
+            nivel_estresse: o.nivel_estresse ?? 0, fuma: o.fuma ?? false, alcool: o.alcool ?? '',
+            historico_esportivo: o.historico_esportivo ?? '', lesoes: o.lesoes ?? '',
+            restricoes_fisicas: o.restricoes_fisicas ?? '', restricoes_alimentares: o.restricoes_alimentares ?? '',
+            suplementos: o.suplementos ?? '', refeicoes_por_dia: o.refeicoes_por_dia != null ? String(o.refeicoes_por_dia) : '',
+            habitos_alimentares: o.habitos_alimentares ?? '', objetivo_detalhado: o.objetivo_detalhado ?? '',
+            motivacao: o.motivacao ?? '', prazo_semanas: o.prazo_semanas != null ? String(o.prazo_semanas) : '',
+            observacoes: o.observacoes ?? '',
+            profissional_nome: outroPerfil?.nome ?? null,
+            profissional_tipo: outroPerfil?.tipo ?? null,
+          })
+        }
+      }
+
       setCarregando(false)
     }
     carregar()
@@ -156,14 +182,14 @@ export default function AnamnesePage() {
   }
 
   async function handleSalvar() {
-    setSalvando(true)
-    setErro('')
+    setSalvando(true); setErro('')
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/login'); return }
 
+    const isProfissional = meuperfil?.tipo === 'personal' || meuperfil?.tipo === 'nutricionista'
     const payload = {
       cliente_id: clienteId,
-      profissional_id: meuperfil?.tipo !== 'cliente' ? session.user.id : null,
+      profissional_id: isProfissional ? session.user.id : null,
       patologias: form.patologias.trim() || null,
       medicamentos: form.medicamentos.trim() || null,
       alergias: form.alergias.trim() || null,
@@ -220,6 +246,8 @@ export default function AnamnesePage() {
   )
 
   const isProfissional = meuperfil?.tipo === 'personal' || meuperfil?.tipo === 'nutricionista'
+  const outraTipoLabel = outraAnamnese?.profissional_tipo === 'personal' ? 'Personal' : outraAnamnese?.profissional_tipo === 'nutricionista' ? 'Nutricionista' : 'Profissional'
+  const outraNome = outraAnamnese?.profissional_nome ?? outraTipoLabel
 
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white">
@@ -241,38 +269,31 @@ export default function AnamnesePage() {
 
         <div className="space-y-5">
 
-          {/* Saúde */}
           <SectionCard icon="🏥" titulo="Saúde" subtitulo="Histórico médico e condições atuais">
             <Field label="Patologias / doenças diagnosticadas" optional>
               <textarea value={form.patologias} onChange={e => set('patologias', e.target.value)}
-                placeholder="Ex: Hipertensão, diabetes tipo 2, hipotireoidismo..."
-                rows={2} className={TEXTAREA_CLASS} />
+                placeholder="Ex: Hipertensão, diabetes tipo 2, hipotireoidismo..." rows={2} className={TEXTAREA_CLASS} />
             </Field>
             <Field label="Medicamentos em uso" optional>
               <textarea value={form.medicamentos} onChange={e => set('medicamentos', e.target.value)}
-                placeholder="Nome do medicamento e dose..."
-                rows={2} className={TEXTAREA_CLASS} />
+                placeholder="Nome do medicamento e dose..." rows={2} className={TEXTAREA_CLASS} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Alergias" optional>
                 <input value={form.alergias} onChange={e => set('alergias', e.target.value)}
-                  placeholder="Alimentos, medicamentos..."
-                  className={INPUT_CLASS} />
+                  placeholder="Alimentos, medicamentos..." className={INPUT_CLASS} />
               </Field>
               <Field label="Cirurgias" optional>
                 <input value={form.cirurgias} onChange={e => set('cirurgias', e.target.value)}
-                  placeholder="Ex: Joelho (2019)..."
-                  className={INPUT_CLASS} />
+                  placeholder="Ex: Joelho (2019)..." className={INPUT_CLASS} />
               </Field>
             </div>
             <Field label="Histórico familiar relevante" optional>
               <input value={form.historico_familiar} onChange={e => set('historico_familiar', e.target.value)}
-                placeholder="Ex: Pai com diabetes, mãe com hipertensão..."
-                className={INPUT_CLASS} />
+                placeholder="Ex: Pai com diabetes, mãe com hipertensão..." className={INPUT_CLASS} />
             </Field>
           </SectionCard>
 
-          {/* Estilo de vida */}
           <SectionCard icon="🌿" titulo="Estilo de vida" subtitulo="Rotina, hábitos e bem-estar geral">
             <Field label="Nível de atividade física atual">
               <div className="grid grid-cols-1 gap-1.5">
@@ -288,26 +309,22 @@ export default function AnamnesePage() {
                 ))}
               </div>
             </Field>
-
             <div className="grid grid-cols-2 gap-3">
               <Field label="Horas de sono por noite" optional>
                 <div className="relative">
                   <input type="number" value={form.horas_sono} onChange={e => set('horas_sono', e.target.value)}
-                    placeholder="7" min={0} max={24} step={0.5}
-                    className={INPUT_CLASS + " pr-10"} />
+                    placeholder="7" min={0} max={24} step={0.5} className={INPUT_CLASS + " pr-10"} />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[11px]">h</span>
                 </div>
               </Field>
               <Field label="Nível de estresse (1–10)" optional>
                 <div className="relative">
                   <input type="number" value={form.nivel_estresse || ''} onChange={e => set('nivel_estresse', parseInt(e.target.value) || 0)}
-                    placeholder="5" min={1} max={10}
-                    className={INPUT_CLASS + " pr-10"} />
+                    placeholder="5" min={1} max={10} className={INPUT_CLASS + " pr-10"} />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[11px]">/10</span>
                 </div>
               </Field>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <Field label="Fuma?">
                 <div className="flex gap-2">
@@ -329,77 +346,138 @@ export default function AnamnesePage() {
             </div>
           </SectionCard>
 
-          {/* Histórico esportivo */}
           <SectionCard icon="🏋️" titulo="Histórico esportivo" subtitulo="Experiência, lesões e limitações físicas">
             <Field label="Histórico esportivo" optional>
               <textarea value={form.historico_esportivo} onChange={e => set('historico_esportivo', e.target.value)}
-                placeholder="Ex: 3 anos musculação, praticou natação na infância, parou de correr em 2022..."
-                rows={3} className={TEXTAREA_CLASS} />
+                placeholder="Ex: 3 anos musculação, praticou natação na infância..." rows={3} className={TEXTAREA_CLASS} />
             </Field>
             <Field label="Lesões e histórico de dores" optional>
               <textarea value={form.lesoes} onChange={e => set('lesoes', e.target.value)}
-                placeholder="Ex: Lesão no manguito rotador direito (2021), dor lombar crônica..."
-                rows={2} className={TEXTAREA_CLASS} />
+                placeholder="Ex: Lesão no manguito rotador direito (2021), dor lombar crônica..." rows={2} className={TEXTAREA_CLASS} />
             </Field>
             <Field label="Restrições físicas / movimentos limitados" optional>
               <input value={form.restricoes_fisicas} onChange={e => set('restricoes_fisicas', e.target.value)}
-                placeholder="Ex: Evitar agachamento profundo, não pode supino..."
-                className={INPUT_CLASS} />
+                placeholder="Ex: Evitar agachamento profundo, não pode supino..." className={INPUT_CLASS} />
             </Field>
           </SectionCard>
 
-          {/* Nutrição */}
           <SectionCard icon="🥗" titulo="Nutrição" subtitulo="Alimentação, restrições e suplementação">
             <Field label="Restrições alimentares" optional>
               <input value={form.restricoes_alimentares} onChange={e => set('restricoes_alimentares', e.target.value)}
-                placeholder="Ex: Intolerância a lactose, vegetariano, sem glúten..."
-                className={INPUT_CLASS} />
+                placeholder="Ex: Intolerância a lactose, vegetariano, sem glúten..." className={INPUT_CLASS} />
             </Field>
             <Field label="Suplementos em uso" optional>
               <input value={form.suplementos} onChange={e => set('suplementos', e.target.value)}
-                placeholder="Ex: Whey 30g pós-treino, creatina 5g, vitamina D..."
-                className={INPUT_CLASS} />
+                placeholder="Ex: Whey 30g pós-treino, creatina 5g, vitamina D..." className={INPUT_CLASS} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Refeições por dia" optional>
                 <input type="number" value={form.refeicoes_por_dia} onChange={e => set('refeicoes_por_dia', e.target.value)}
-                  placeholder="5" min={1} max={10}
-                  className={INPUT_CLASS} />
+                  placeholder="5" min={1} max={10} className={INPUT_CLASS} />
               </Field>
             </div>
             <Field label="Hábitos alimentares" optional>
               <textarea value={form.habitos_alimentares} onChange={e => set('habitos_alimentares', e.target.value)}
-                placeholder="Ex: Come muito fora, pula o café da manhã, come rápido, come bem nos finais de semana..."
-                rows={2} className={TEXTAREA_CLASS} />
+                placeholder="Ex: Come muito fora, pula o café da manhã, come bem nos finais de semana..." rows={2} className={TEXTAREA_CLASS} />
             </Field>
           </SectionCard>
 
-          {/* Objetivos */}
           <SectionCard icon="🎯" titulo="Objetivos" subtitulo="O que o cliente quer alcançar">
             <Field label="Objetivo detalhado">
               <textarea value={form.objetivo_detalhado} onChange={e => set('objetivo_detalhado', e.target.value)}
-                placeholder="Ex: Perder 8kg em 4 meses, principalmente abdômen. Quer melhorar disposição para o trabalho..."
-                rows={3} className={TEXTAREA_CLASS} />
+                placeholder="Ex: Perder 8kg em 4 meses, principalmente abdômen..." rows={3} className={TEXTAREA_CLASS} />
             </Field>
             <Field label="Motivação principal" optional>
               <input value={form.motivacao} onChange={e => set('motivacao', e.target.value)}
-                placeholder="Ex: Casamento em novembro, recomendação médica, autoestima..."
-                className={INPUT_CLASS} />
+                placeholder="Ex: Casamento em novembro, recomendação médica..." className={INPUT_CLASS} />
             </Field>
-            <Field label="Prazo desejado (semanas)" optional>
-              <div className="relative">
-                <input type="number" value={form.prazo_semanas} onChange={e => set('prazo_semanas', e.target.value)}
-                  placeholder="16" min={1}
-                  className={INPUT_CLASS + " pr-20"} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[11px]">semanas</span>
-              </div>
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Prazo desejado" optional>
+                <div className="relative">
+                  <input type="number" value={form.prazo_semanas} onChange={e => set('prazo_semanas', e.target.value)}
+                    placeholder="16" min={1} className={INPUT_CLASS + " pr-16"} />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[11px]">sem.</span>
+                </div>
+              </Field>
+            </div>
             <Field label="Observações adicionais" optional>
               <textarea value={form.observacoes} onChange={e => set('observacoes', e.target.value)}
-                placeholder="Qualquer outra informação relevante..."
-                rows={2} className={TEXTAREA_CLASS} />
+                placeholder="Qualquer outra informação relevante..." rows={2} className={TEXTAREA_CLASS} />
             </Field>
           </SectionCard>
+
+          {/* ── Notas do outro profissional (read-only) ───────────────────── */}
+          {outraAnamnese && (
+            <div className="rounded-2xl border border-blue-500/20 overflow-hidden" style={{ background: '#0a0f18' }}>
+              <button onClick={() => setVerOutra(v => !v)}
+                className="w-full px-5 py-4 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
+                  <span className="text-sm">{outraAnamnese.profissional_tipo === 'nutricionista' ? '🥗' : '🏋️'}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-blue-300 font-bold text-sm">Notas de {outraNome}</p>
+                  <p className="text-zinc-500 text-[10px]">{outraTipoLabel} · somente leitura</p>
+                </div>
+                <span className="text-zinc-600 text-xs">{verOutra ? '▲' : '▼'}</span>
+              </button>
+
+              {verOutra && (
+                <div className="px-5 pb-5 space-y-4 border-t border-blue-500/10">
+                  {/* Saúde */}
+                  {(outraAnamnese.patologias || outraAnamnese.medicamentos || outraAnamnese.alergias || outraAnamnese.cirurgias || outraAnamnese.historico_familiar) && (
+                    <div className="pt-4">
+                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Saúde</p>
+                      <ReadRow label="Patologias" value={outraAnamnese.patologias} />
+                      <ReadRow label="Medicamentos" value={outraAnamnese.medicamentos} />
+                      <ReadRow label="Alergias" value={outraAnamnese.alergias} />
+                      <ReadRow label="Cirurgias" value={outraAnamnese.cirurgias} />
+                      <ReadRow label="Hist. familiar" value={outraAnamnese.historico_familiar} />
+                    </div>
+                  )}
+                  {/* Estilo de vida */}
+                  {(outraAnamnese.nivel_atividade || outraAnamnese.horas_sono || outraAnamnese.nivel_estresse || outraAnamnese.alcool) && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Estilo de vida</p>
+                      <ReadRow label="Atividade" value={outraAnamnese.nivel_atividade ? NIVEL_ATIVIDADE_LABEL[outraAnamnese.nivel_atividade] : null} />
+                      <ReadRow label="Sono" value={outraAnamnese.horas_sono ? `${outraAnamnese.horas_sono}h/noite` : null} />
+                      <ReadRow label="Estresse" value={outraAnamnese.nivel_estresse ? `${outraAnamnese.nivel_estresse}/10` : null} />
+                      <ReadRow label="Fuma" value={outraAnamnese.fuma} />
+                      <ReadRow label="Álcool" value={outraAnamnese.alcool ? ALCOOL_LABEL[outraAnamnese.alcool] : null} />
+                    </div>
+                  )}
+                  {/* Esportivo */}
+                  {(outraAnamnese.historico_esportivo || outraAnamnese.lesoes || outraAnamnese.restricoes_fisicas) && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Histórico esportivo</p>
+                      <ReadRow label="Histórico" value={outraAnamnese.historico_esportivo} />
+                      <ReadRow label="Lesões" value={outraAnamnese.lesoes} />
+                      <ReadRow label="Restrições" value={outraAnamnese.restricoes_fisicas} />
+                    </div>
+                  )}
+                  {/* Nutrição */}
+                  {(outraAnamnese.restricoes_alimentares || outraAnamnese.suplementos || outraAnamnese.habitos_alimentares || outraAnamnese.refeicoes_por_dia) && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Nutrição</p>
+                      <ReadRow label="Restrições" value={outraAnamnese.restricoes_alimentares} />
+                      <ReadRow label="Suplementos" value={outraAnamnese.suplementos} />
+                      <ReadRow label="Refeições/dia" value={outraAnamnese.refeicoes_por_dia} />
+                      <ReadRow label="Hábitos" value={outraAnamnese.habitos_alimentares} />
+                    </div>
+                  )}
+                  {/* Objetivos */}
+                  {(outraAnamnese.objetivo_detalhado || outraAnamnese.motivacao || outraAnamnese.observacoes) && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Objetivos</p>
+                      <ReadRow label="Objetivo" value={outraAnamnese.objetivo_detalhado} />
+                      <ReadRow label="Motivação" value={outraAnamnese.motivacao} />
+                      <ReadRow label="Prazo" value={outraAnamnese.prazo_semanas ? `${outraAnamnese.prazo_semanas} semanas` : null} />
+                      <ReadRow label="Observações" value={outraAnamnese.observacoes} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
 
