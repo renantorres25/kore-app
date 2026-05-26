@@ -38,6 +38,8 @@ type AtividadeDia = {
 }
 
 type VolumeExercicio = { nome: string; sessoesCount: number; maxCarga: number; evolucao: number }
+type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null }
+type PlanoNutriHist = { calorias_meta: number; proteina_meta: number; created_at: string; observacoes: string | null }
 
 const MOD_CONFIG: Record<string, { icon: string; cor: string; corText: string; corBorder: string; hex: string; calHex: string }> = {
   musculacao: { icon: '🏋️', cor: 'bg-emerald-500/10', corText: 'text-emerald-400', corBorder: 'border-emerald-500/20', hex: '#10B981', calHex: '#10B981' },
@@ -230,6 +232,8 @@ export default function Evolucao() {
   const [mediaScore, setMediaScore] = useState<number | null>(null)
   const [melhorScore, setMelhorScore] = useState<number | null>(null)
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
+  const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
+  const [planosNutri, setPlanosNutri] = useState<PlanoNutriHist[]>([])
 
   useEffect(() => { carregar() }, [])
 
@@ -241,11 +245,13 @@ export default function Evolucao() {
     const dias30 = getLastNDays(30)
     const dataInicio = dias30[0]
 
-    const [{ data: sonoData }, { data: treinosData }, { data: atividadesData }, { data: treinosIds }] = await Promise.all([
+    const [{ data: sonoData }, { data: treinosData }, { data: atividadesData }, { data: treinosIds }, { data: medidasData }, { data: planosData }] = await Promise.all([
       supabase.from('sono').select('data, score_recuperacao').eq('usuario_id', session.user.id).gte('data', dataInicio).order('data'),
       supabase.from('treinos').select('id, data, plano, nome, calorias_estimadas').eq('cliente_id', session.user.id).eq('concluido', true).gte('data', dataInicio).order('data', { ascending: false }),
       supabase.from('atividades_livres').select('data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable').eq('usuario_id', session.user.id).gte('data', dataInicio).order('data', { ascending: false }),
       supabase.from('treinos').select('id, nome, plano').eq('cliente_id', session.user.id).eq('concluido', true),
+      supabase.from('evolucao_medidas').select('data, peso, gordura_pct, massa_muscular').eq('cliente_id', session.user.id).order('data'),
+      supabase.from('planos_nutricionais').select('calorias_meta, proteina_meta, created_at, observacoes').eq('cliente_id', session.user.id).order('created_at'),
     ])
 
     const scoreMap = new Map(sonoData?.map(s => [s.data, s.score_recuperacao]) ?? [])
@@ -308,6 +314,9 @@ export default function Evolucao() {
         return { nome, sessoesCount: v.sessoes.size, maxCarga: v.cargaMax, evolucao }
       }).sort((a, b) => b.sessoesCount - a.sessoesCount).slice(0, 6)
     )
+
+    if (medidasData?.length) setMedidasCP(medidasData as MedidaCP[])
+    if (planosData?.length) setPlanosNutri(planosData as PlanoNutriHist[])
 
     setCarregando(false)
   }
@@ -529,6 +538,128 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                 </div>
               </div>
             )}
+
+            {/* COMPOSIÇÃO CORPORAL */}
+            {medidasCP.length >= 2 && (() => {
+              const first = medidasCP[0]
+              const last = medidasCP[medidasCP.length - 1]
+              const deltaPeso = first.peso != null && last.peso != null ? +(last.peso - first.peso).toFixed(1) : null
+              const deltaGordura = first.gordura_pct != null && last.gordura_pct != null ? +(last.gordura_pct - first.gordura_pct).toFixed(1) : null
+              const deltaMuscular = first.massa_muscular != null && last.massa_muscular != null ? +(last.massa_muscular - first.massa_muscular).toFixed(1) : null
+              const rows = [
+                { label: 'Peso', unit: 'kg', values: medidasCP.map(m => m.peso), current: last.peso, delta: deltaPeso, color: '#60A5FA', inverseBetter: true },
+                { label: 'Gordura', unit: '%', values: medidasCP.map(m => m.gordura_pct), current: last.gordura_pct, delta: deltaGordura, color: '#F97316', inverseBetter: true },
+                { label: 'Músculo', unit: 'kg', values: medidasCP.map(m => m.massa_muscular), current: last.massa_muscular, delta: deltaMuscular, color: '#34D399', inverseBetter: false },
+              ]
+              return (
+                <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+                  <div className="px-5 pt-5 pb-5">
+                    <div className="flex items-center justify-between mb-5">
+                      <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Composição corporal</p>
+                      <p className="text-zinc-600 text-[10px]">{medidasCP.length} medições</p>
+                    </div>
+                    <div className="space-y-5">
+                      {rows.map(row => {
+                        if (row.current == null) return null
+                        const isBetter = row.delta !== null ? (row.inverseBetter ? row.delta < 0 : row.delta > 0) : false
+                        const isWorse = row.delta !== null ? (row.inverseBetter ? row.delta > 0 : row.delta < 0) : false
+                        const deltaColor = row.delta === null ? 'text-zinc-600' : isBetter ? 'text-emerald-400' : isWorse ? 'text-red-400' : 'text-zinc-500'
+                        return (
+                          <div key={row.label}>
+                            <div className="flex items-baseline justify-between mb-1.5">
+                              <p className="text-zinc-400 text-xs font-medium">{row.label}</p>
+                              <div className="flex items-baseline gap-2">
+                                <p className="text-white text-sm font-bold tabular-nums">{row.current}{row.unit}</p>
+                                {row.delta !== null && (
+                                  <p className={`text-[10px] font-semibold ${deltaColor}`}>{row.delta > 0 ? '+' : ''}{row.delta}{row.unit}</p>
+                                )}
+                              </div>
+                            </div>
+                            <Sparkline data={row.values} color={row.color} height={44} />
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="flex justify-between mt-3">
+                      <p className="text-zinc-700 text-[9px]">{formatDate(medidasCP[0].data)}</p>
+                      <p className="text-zinc-700 text-[9px]">{formatDate(medidasCP[medidasCP.length - 1].data)}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* HISTÓRICO CALÓRICO */}
+            {planosNutri.length >= 1 && (() => {
+              const current = planosNutri[planosNutri.length - 1]
+              const first = planosNutri[0]
+              const deltaKcal = current.calorias_meta - first.calorias_meta
+              const W = 280
+              const H = 80
+              const minK = Math.min(...planosNutri.map(p => p.calorias_meta)) - 150
+              const maxK = Math.max(...planosNutri.map(p => p.calorias_meta)) + 150
+              const range = maxK - minK
+              const pts = planosNutri.map((p, i) => ({
+                x: planosNutri.length === 1 ? W / 2 : (i / (planosNutri.length - 1)) * W,
+                y: H - ((p.calorias_meta - minK) / range) * (H - 20) - 10,
+                kcal: p.calorias_meta,
+              }))
+              const lineD = pts.reduce((acc, pt, i) => {
+                if (i === 0) return `M ${pt.x},${pt.y}`
+                const prev = pts[i - 1]
+                const cpx = (prev.x + pt.x) / 2
+                return `${acc} C ${cpx},${prev.y} ${cpx},${pt.y} ${pt.x},${pt.y}`
+              }, '')
+              const areaD = `${lineD} L ${W},${H} L 0,${H} Z`
+              return (
+                <div className="rounded-2xl border border-orange-500/10 mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+                  <div className="px-5 pt-5 pb-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Histórico calórico</p>
+                      <p className="text-zinc-600 text-[10px]">{planosNutri.length} plano{planosNutri.length !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="flex items-baseline gap-3 mb-4">
+                      <p className="text-3xl font-black text-orange-400 tabular-nums">{current.calorias_meta.toLocaleString('pt-BR')}<span className="text-zinc-600 text-sm font-light"> kcal</span></p>
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="text-zinc-500 text-xs">{current.proteina_meta}g prot</p>
+                        {planosNutri.length > 1 && (
+                          <span className={`text-[10px] font-semibold ${deltaKcal < 0 ? 'text-emerald-400' : deltaKcal > 0 ? 'text-orange-400' : 'text-zinc-500'}`}>
+                            · {deltaKcal > 0 ? '+' : ''}{deltaKcal} kcal
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {planosNutri.length > 1 && (
+                      <>
+                        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
+                          <defs>
+                            <linearGradient id="grad-kcalhist" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#F97316" stopOpacity="0.2" />
+                              <stop offset="100%" stopColor="#F97316" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          <path d={areaD} fill="url(#grad-kcalhist)" />
+                          <path d={lineD} fill="none" stroke="#F97316" strokeWidth="2" strokeLinecap="round" />
+                          {pts.map(({ x, y, kcal }, i) => (
+                            <g key={i}>
+                              <circle cx={x} cy={y} r="4" fill="#F97316" />
+                              <text x={x} y={y - 10} textAnchor="middle" fill="#71717a" fontSize="9">{kcal.toLocaleString('pt-BR')}</text>
+                            </g>
+                          ))}
+                        </svg>
+                        <div className="flex justify-between mt-2">
+                          <p className="text-zinc-700 text-[9px]">{new Date(planosNutri[0].created_at).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}</p>
+                          <p className="text-zinc-700 text-[9px]">{new Date(current.created_at).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}</p>
+                        </div>
+                      </>
+                    )}
+                    {current.observacoes && (
+                      <p className="text-zinc-600 text-[11px] mt-3 leading-relaxed italic">{current.observacoes}</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
             <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
               <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
