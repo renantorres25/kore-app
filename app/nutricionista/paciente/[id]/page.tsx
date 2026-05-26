@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import NavBar from '../../../components/NavBar'
+import AlimentoBusca, { type AlimentoTACO } from '../../../components/AlimentoBusca'
 
 type Paciente = {
   id: string; nome: string | null; email: string
@@ -16,16 +17,20 @@ type PlanoNutricional = {
   id: string; conteudo: string; calorias_meta: number | null
   proteina_meta: number | null; created_at: string
 }
-type AlimentoEd = { nome: string; quantidade: string; calorias: string; proteina: string }
+type AlimentoEd = {
+  nome: string; quantidade: string; calorias: string; proteina: string
+  kcal_100g?: number | null; prot_100g?: number | null; carbo_100g?: number | null
+}
 type RefeicaoEd = { nome: string; horario: string; dica: string; alimentos: AlimentoEd[] }
 type ExtrasEd = {
   hidratacaoLitros: string; hidratacaoOri: string
   oriTreino: string; estrategia: string; dicaFome: string
 }
 
+const ALIMENTO_VAZIO: AlimentoEd = { nome: '', quantidade: '', calorias: '', proteina: '', kcal_100g: null, prot_100g: null, carbo_100g: null }
 const REFEICAO_VAZIA: RefeicaoEd = {
   nome: '', horario: '', dica: '',
-  alimentos: [{ nome: '', quantidade: '', calorias: '', proteina: '' }],
+  alimentos: [{ ...ALIMENTO_VAZIO }],
 }
 const EXTRAS_VAZIO: ExtrasEd = { hidratacaoLitros: '', hidratacaoOri: '', oriTreino: '', estrategia: '', dicaFome: '' }
 
@@ -125,8 +130,9 @@ export default function NutricionistaPaciente() {
           ? r.alimentos.map((a: any) => ({
               nome: a.nome ?? '', quantidade: a.quantidade ?? '',
               calorias: String(a.calorias ?? ''), proteina: String(a.proteina ?? ''),
+              kcal_100g: a.kcal_100g ?? null, prot_100g: a.prot_100g ?? null, carbo_100g: a.carbo_100g ?? null,
             }))
-          : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? '') }],
+          : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? ''), kcal_100g: null, prot_100g: null, carbo_100g: null }],
       })))
       setNotaEd(planoEstruturado.nota_nutri ?? '')
       setExtrasEd({
@@ -146,7 +152,7 @@ export default function NutricionistaPaciente() {
   }
 
   function addRefeicao() {
-    setRefeicoesEd(p => [...p, { nome: '', horario: '', dica: '', alimentos: [{ nome: '', quantidade: '', calorias: '', proteina: '' }] }])
+    setRefeicoesEd(p => [...p, { nome: '', horario: '', dica: '', alimentos: [{ ...ALIMENTO_VAZIO }] }])
   }
   function removeRefeicao(i: number) {
     setRefeicoesEd(p => p.filter((_, idx) => idx !== i))
@@ -156,7 +162,7 @@ export default function NutricionistaPaciente() {
   }
   function addAlimento(rIdx: number) {
     setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
-      ? { ...r, alimentos: [...r.alimentos, { nome: '', quantidade: '', calorias: '', proteina: '' }] }
+      ? { ...r, alimentos: [...r.alimentos, { ...ALIMENTO_VAZIO }] }
       : r))
   }
   function removeAlimento(rIdx: number, aIdx: number) {
@@ -165,9 +171,37 @@ export default function NutricionistaPaciente() {
       : r))
   }
   function updateAlimento(rIdx: number, aIdx: number, field: keyof AlimentoEd, val: string) {
-    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
-      ? { ...r, alimentos: r.alimentos.map((a, i) => i === aIdx ? { ...a, [field]: val } : a) }
-      : r))
+    setRefeicoesEd(p => p.map((r, idx) => {
+      if (idx !== rIdx) return r
+      const novos = r.alimentos.map((a, i) => {
+        if (i !== aIdx) return a
+        const updated = { ...a, [field]: val }
+        // autocalcula macros se tiver TACO e mudar a quantidade
+        if (field === 'quantidade' && a.kcal_100g != null) {
+          const gramas = parseFloat(val)
+          if (!isNaN(gramas) && gramas > 0) {
+            updated.calorias = String(Math.round(a.kcal_100g * gramas / 100))
+            updated.proteina = String(((a.prot_100g ?? 0) * gramas / 100).toFixed(1))
+          }
+        }
+        return updated
+      })
+      return { ...r, alimentos: novos }
+    }))
+  }
+  function handleSelectTACO(rIdx: number, aIdx: number, taco: AlimentoTACO) {
+    setRefeicoesEd(p => p.map((r, idx) => {
+      if (idx !== rIdx) return r
+      const novos = r.alimentos.map((a, i) => {
+        if (i !== aIdx) return a
+        // preserva quantidade já digitada e recalcula se for numérica
+        const gramas = parseFloat(a.quantidade)
+        const kcal = (!isNaN(gramas) && gramas > 0) ? String(Math.round(taco.energia_kcal * gramas / 100)) : ''
+        const prot = (!isNaN(gramas) && gramas > 0) ? String((taco.proteina_g * gramas / 100).toFixed(1)) : ''
+        return { ...a, nome: taco.nome, kcal_100g: taco.energia_kcal, prot_100g: taco.proteina_g, carbo_100g: taco.carbo_g, calorias: kcal, proteina: prot }
+      })
+      return { ...r, alimentos: novos }
+    }))
   }
 
   async function salvarEdicao() {
@@ -183,6 +217,7 @@ export default function NutricionistaPaciente() {
           nome: a.nome, quantidade: a.quantidade,
           calorias: parseFloat(a.calorias) || 0,
           proteina: parseFloat(a.proteina) || 0,
+          ...(a.kcal_100g != null ? { kcal_100g: a.kcal_100g, prot_100g: a.prot_100g, carbo_100g: a.carbo_100g } : {}),
         })),
       })),
     }
@@ -495,16 +530,32 @@ Responda APENAS JSON válido:
                           {ref.alimentos.map((al, aIdx) => (
                             <div key={aIdx} className="rounded-xl border border-white/[0.05] p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
                               <div className="flex items-center gap-2">
-                                <input value={al.nome} onChange={e => updateAlimento(rIdx, aIdx, 'nome', e.target.value)}
-                                  placeholder="Nome do alimento"
-                                  className="flex-1 bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]" />
+                                <AlimentoBusca
+                                  value={al.nome}
+                                  onChange={v => updateAlimento(rIdx, aIdx, 'nome', v)}
+                                  onSelect={taco => handleSelectTACO(rIdx, aIdx, taco)}
+                                  placeholder="Buscar alimento (TACO) ou digitar..."
+                                  className="flex-1 bg-transparent text-white placeholder-zinc-600 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]"
+                                />
                                 {ref.alimentos.length > 1 && (
                                   <button onClick={() => removeAlimento(rIdx, aIdx)} className="text-zinc-700 hover:text-red-400 transition-colors text-sm shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.04]">✕</button>
                                 )}
                               </div>
-                              <input value={al.quantidade} onChange={e => updateAlimento(rIdx, aIdx, 'quantidade', e.target.value)}
-                                placeholder="Quantidade (ex: 100g, 2 colheres, 1 unidade)"
-                                className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]" />
+                              {/* badge TACO quando alimento foi selecionado do banco */}
+                              {al.kcal_100g != null && (
+                                <div className="flex items-center gap-2 px-1">
+                                  <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ TACO</span>
+                                  <span className="text-zinc-600 text-[9px]">{al.kcal_100g} kcal · {al.prot_100g}g prot · {al.carbo_100g}g carb por 100g</span>
+                                </div>
+                              )}
+                              <div className="relative">
+                                <input value={al.quantidade} onChange={e => updateAlimento(rIdx, aIdx, 'quantidade', e.target.value)}
+                                  placeholder={al.kcal_100g != null ? 'Quantidade em gramas (ex: 150)' : 'Quantidade (ex: 100g, 2 col., 1 unidade)'}
+                                  className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]" />
+                                {al.kcal_100g != null && al.quantidade && (
+                                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">g</span>
+                                )}
+                              </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">
                                   <input type="number" value={al.calorias} onChange={e => updateAlimento(rIdx, aIdx, 'calorias', e.target.value)}
