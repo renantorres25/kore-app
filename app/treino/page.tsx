@@ -10,6 +10,7 @@ import NavBar from '../components/NavBar'
 type Exercicio = { id: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; personal_id?: string | null; exercicios: Exercicio[] }
 type SerieRegistrada = { exercicio_id: string; numero_serie: number; carga: number | null; repeticoes: number; concluida: boolean }
+type BlocoAtual = { nome: string; tipo: string; semanaNoBloco: number; totalSemanas: number; descricao: string | null; semanaGlobal: number; totalSemanasCiclo: number; ciclonome: string }
 type Modalidade = 'musculacao' | 'corrida' | 'bike' | 'natacao' | 'crossfit' | 'outro'
 
 const MET: Record<Modalidade, number> = { musculacao: 4.5, corrida: 8.0, bike: 6.0, natacao: 7.0, crossfit: 8.5, outro: 5.0 }
@@ -65,6 +66,15 @@ const ZONAS_FC = [
   { valor: 'Z5', label: 'Z5 — VO2max',             desc: '> 92% FCmax',  cor: 'bg-red-500/15 border-red-500/30 text-red-400' },
   { valor: 'misto', label: 'Misto',                desc: 'Várias zonas', cor: 'bg-purple-500/15 border-purple-500/30 text-purple-400' },
 ]
+
+const TIPO_BLOCO: Record<string, { text: string; bg: string; bar: string; dot: string }> = {
+  adaptacao:  { text: 'text-emerald-400', bg: 'bg-emerald-500/10', bar: 'bg-emerald-400', dot: 'bg-emerald-400' },
+  hipertrofia:{ text: 'text-blue-400',    bg: 'bg-blue-500/10',    bar: 'bg-blue-400',    dot: 'bg-blue-400'    },
+  forca:      { text: 'text-purple-400',  bg: 'bg-purple-500/10',  bar: 'bg-purple-400',  dot: 'bg-purple-400'  },
+  deload:     { text: 'text-zinc-400',    bg: 'bg-zinc-500/10',    bar: 'bg-zinc-400',    dot: 'bg-zinc-400'    },
+  potencia:   { text: 'text-orange-400',  bg: 'bg-orange-500/10',  bar: 'bg-orange-400',  dot: 'bg-orange-400'  },
+  resistencia:{ text: 'text-cyan-400',    bg: 'bg-cyan-500/10',    bar: 'bg-cyan-400',    dot: 'bg-cyan-400'    },
+}
 
 
 function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
@@ -242,6 +252,7 @@ export default function TreinoCliente() {
   const [carregando, setCarregando] = useState(true)
   const [score, setScore] = useState<number | null>(null)
   const [pesoKg, setPesoKg] = useState<number>(70)
+  const [blocoAtual, setBlocoAtual] = useState<BlocoAtual | null>(null)
 
   const MENSAGENS_GERANDO = [
     'Analisando seu perfil e histórico...',
@@ -283,6 +294,28 @@ export default function TreinoCliente() {
       const completos: Treino[] = td.map((t: any) => ({ ...t, exercicios: ex?.filter((e: any) => e.treino_id === t.id) ?? [] }))
       setTreinos(completos)
       if (completos.length) setPlanoAtivo(completos[0].plano)
+    }
+    // Periodização: fase atual do cliente
+    const { data: perData } = await supabase
+      .from('periodizacoes').select('id, nome, data_inicio')
+      .eq('cliente_id', session.user.id).eq('status', 'ativo').single()
+    if (perData) {
+      const { data: blocos } = await supabase
+        .from('blocos_periodizacao').select('nome, tipo, semanas, ordem, descricao')
+        .eq('periodizacao_id', perData.id).order('ordem')
+      if (blocos?.length) {
+        const diasDecorridos = Math.floor((Date.now() - new Date(perData.data_inicio + 'T12:00:00-03:00').getTime()) / 86400000)
+        const semG = Math.max(1, Math.floor(diasDecorridos / 7) + 1)
+        const totalS = (blocos as any[]).reduce((s: number, b: any) => s + b.semanas, 0)
+        let acum = 0
+        for (const b of blocos as any[]) {
+          acum += b.semanas
+          if (semG <= acum) {
+            setBlocoAtual({ nome: b.nome, tipo: b.tipo, semanaNoBloco: semG - (acum - b.semanas), totalSemanas: b.semanas, descricao: b.descricao, semanaGlobal: semG, totalSemanasCiclo: totalS, ciclonome: perData.nome })
+            break
+          }
+        }
+      }
     }
     setCarregando(false)
   }
@@ -708,6 +741,31 @@ Responda APENAS JSON válido:
           <h1 className="text-2xl font-black text-white tracking-tight">Treinos</h1>
           <p className="text-zinc-600 text-xs mt-1">Planos do personal ou registre qualquer atividade</p>
         </div>
+        {blocoAtual && (() => {
+          const tb = TIPO_BLOCO[blocoAtual.tipo] ?? TIPO_BLOCO.adaptacao
+          const pct = Math.round((blocoAtual.semanaGlobal / blocoAtual.totalSemanasCiclo) * 100)
+          return (
+            <div className="rounded-2xl p-4 border border-white/[0.06] mb-5" style={{ background: '#0f0f0f' }}>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">📅 {blocoAtual.ciclonome}</p>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tb.bg}`}>
+                    <div className={`w-2.5 h-2.5 rounded-full ${tb.dot}`} />
+                  </div>
+                  <div>
+                    <p className={`font-bold text-base leading-tight ${tb.text}`}>{blocoAtual.nome}</p>
+                    <p className="text-zinc-500 text-[11px]">Semana {blocoAtual.semanaNoBloco} de {blocoAtual.totalSemanas}</p>
+                  </div>
+                </div>
+                <span className="text-zinc-600 text-[10px] shrink-0">Sem. {blocoAtual.semanaGlobal}/{blocoAtual.totalSemanasCiclo}</span>
+              </div>
+              <div className="w-full h-1 rounded-full bg-white/[0.05] mb-3 overflow-hidden">
+                <div className={`h-full rounded-full ${tb.bar}`} style={{ width: `${pct}%` }} />
+              </div>
+              {blocoAtual.descricao && <p className="text-zinc-500 text-[11px] leading-relaxed">{blocoAtual.descricao}</p>}
+            </div>
+          )
+        })()}
         {treinos.length > 0 && (
           <div className="mb-6">
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meus planos</p>
