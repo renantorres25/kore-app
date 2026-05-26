@@ -962,6 +962,22 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
           </div>
         ))}
       </div>
+      {!loadingStats && totalAlunos === 0 && (
+        <div className="rounded-2xl border border-white/[0.06] p-8 text-center mb-4" style={{ background: '#0f0f0f' }}>
+          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-4">
+            <span className="text-blue-400 font-black text-lg">PT</span>
+          </div>
+          <p className="text-white font-black text-lg mb-2">Convide seu primeiro aluno</p>
+          <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+            Envie um convite por email e conecte-se ao aluno. Você passa a ver o score de recuperação, treinos e evolução em tempo real.
+          </p>
+          <button onClick={() => router.push('/convite')}
+            className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all tracking-[0.08em] uppercase">
+            + Convidar aluno
+          </button>
+        </div>
+      )}
+
       {alunosRecentes.length > 0 && (
         <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
@@ -1100,6 +1116,22 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
           <p className="text-yellow-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚡ {semPlano} paciente{semPlano > 1 ? 's' : ''} sem plano alimentar</p>
           <p className="text-zinc-500 text-xs">Crie um plano personalizado para completar o acompanhamento.</p>
           <button onClick={() => router.push('/nutricionista/pacientes')} className="mt-3 text-[11px] border border-yellow-500/30 text-yellow-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver pacientes →</button>
+        </div>
+      )}
+
+      {!loadingStats && totalPacientes === 0 && (
+        <div className="rounded-2xl border border-white/[0.06] p-8 text-center mb-4" style={{ background: '#0f0f0f' }}>
+          <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4">
+            <span className="text-green-400 font-black text-lg">NU</span>
+          </div>
+          <p className="text-white font-black text-lg mb-2">Convide seu primeiro paciente</p>
+          <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+            Envie um convite por email e conecte-se ao paciente. Você passa a ver dados de sono, treino e energia para ajustar o plano alimentar.
+          </p>
+          <button onClick={() => router.push('/convite')}
+            className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all tracking-[0.08em] uppercase">
+            + Convidar paciente
+          </button>
         </div>
       )}
 

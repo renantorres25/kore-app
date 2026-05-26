@@ -27,6 +27,63 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+function ListaEspera() {
+  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.includes('@')) return
+    setStatus('loading')
+    try {
+      const res = await fetch('/api/lista-espera', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      setStatus(res.ok ? 'done' : 'error')
+    } catch { setStatus('error') }
+  }
+
+  return (
+    <section className="px-5 py-14 max-w-5xl mx-auto">
+      <div className="max-w-lg mx-auto rounded-3xl border border-white/[0.08] p-8 sm:p-10 text-center"
+        style={{ background: 'linear-gradient(145deg, #0d0f18 0%, #0a0c14 100%)' }}>
+        <p className="text-emerald-500/80 text-xs uppercase tracking-[0.35em] font-semibold mb-3">Acesso antecipado</p>
+        <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 leading-tight">
+          Quer ser dos primeiros<br/>a usar o KORE?
+        </h2>
+        <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+          Deixe seu email e avisamos quando as próximas vagas abrirem. Sem spam.
+        </p>
+
+        {status === 'done' ? (
+          <div className="flex items-center justify-center gap-3 py-4">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <span className="text-emerald-400 text-sm">✓</span>
+            </div>
+            <p className="text-emerald-400 font-semibold text-sm">Email confirmado! Te avisamos em breve.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="email" required
+              placeholder="seu@email.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="flex-1 bg-white/[0.05] border border-white/[0.1] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:border-emerald-500/50 transition-colors"
+            />
+            <button type="submit" disabled={status === 'loading'}
+              className="bg-emerald-500 text-black font-black px-6 py-3.5 rounded-xl text-sm uppercase tracking-[0.08em] active:scale-95 hover:bg-emerald-400 transition-all disabled:opacity-60 whitespace-nowrap">
+              {status === 'loading' ? 'Salvando...' : 'Entrar na lista →'}
+            </button>
+          </form>
+        )}
+        {status === 'error' && <p className="text-red-400 text-xs mt-3">Erro ao salvar. Tente novamente.</p>}
+      </div>
+    </section>
+  )
+}
+
 function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
   const r = size * 0.38
   const c = 2 * Math.PI * r
@@ -720,6 +777,11 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* LISTA DE ESPERA                                                   */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <ListaEspera />
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* CTA FINAL                                                         */}

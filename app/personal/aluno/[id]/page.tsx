@@ -57,6 +57,7 @@ export default function PersonalAluno() {
   const [erroSalvar, setErroSalvar] = useState('')
   const [modalAberto, setModalAberto] = useState(false)
   const [editandoTreino, setEditandoTreino] = useState<Treino | null>(null)
+  const [personalNome, setPersonalNome] = useState('')
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -69,15 +70,17 @@ export default function PersonalAluno() {
     semanaAtras.setDate(semanaAtras.getDate() - 7)
     const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
-    const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }] = await Promise.all([
+    const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }] = await Promise.all([
       supabase.from('perfis').select('id, nome, email, peso, objetivo').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
       supabase.from('sono').select('score_recuperacao, duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
       supabase.from('bem_estar').select('humor, energia, motivacao, dor_muscular').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
       supabase.from('treinos').select('data, concluido').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }),
+      supabase.from('perfis').select('nome').eq('id', session.user.id).single(),
     ])
 
     if (perfil) setAluno(perfil)
+    if (perfilPersonal?.nome) setPersonalNome(perfilPersonal.nome)
 
     const bemMedia = bemEstarData?.length
       ? Math.round(bemEstarData.slice(0, 7).reduce((acc, b) => acc + ((b.humor + b.energia + b.motivacao) / 3), 0) / Math.min(bemEstarData.length, 7))
@@ -159,6 +162,21 @@ export default function PersonalAluno() {
         const { error } = await supabase.from('exercicios_treino').insert(exs)
         if (error) throw error
       }
+      // Notifica aluno por email ao prescrever novo treino (fire-and-forget)
+      if (!editandoTreino.id && aluno?.email) {
+        fetch('/api/notif-treino', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            aluno_email: aluno.email,
+            aluno_nome: aluno.nome,
+            personal_nome: personalNome || 'Seu personal',
+            treino_nome: editandoTreino.nome,
+            plano: editandoTreino.plano,
+          }),
+        }).catch(console.error)
+      }
+
       setModalAberto(false)
       setEditandoTreino(null)
       await carregar()

@@ -9,7 +9,7 @@ export default function AceitarConvite() {
   const params = useParams()
   const token = params?.token as string
 
-  const [estado, setEstado] = useState<'carregando' | 'valido' | 'invalido' | 'aceito' | 'erro'>('carregando')
+  const [estado, setEstado] = useState<'carregando' | 'valido' | 'expirado' | 'invalido' | 'aceito' | 'erro'>('carregando')
   const [convite, setConvite] = useState<any>(null)
   const [processando, setProcessando] = useState(false)
   const [erroMsg, setErroMsg] = useState('')
@@ -18,7 +18,8 @@ export default function AceitarConvite() {
     async function verificarConvite() {
       if (!token) { setEstado('invalido'); return }
 
-      const { data } = await supabase
+      // Tenta encontrar convite válido (pendente e não expirado)
+      const { data: conviteValido } = await supabase
         .from('convites')
         .select('*')
         .eq('token', token)
@@ -26,17 +27,30 @@ export default function AceitarConvite() {
         .gt('expira_em', new Date().toISOString())
         .single()
 
-      if (!data) { setEstado('invalido'); return }
+      if (conviteValido) {
+        const { data: remetente } = await supabase
+          .from('perfis').select('nome, email, tipo').eq('id', conviteValido.profissional_id).single()
+        setConvite({ ...conviteValido, remetente })
+        setEstado('valido')
+        return
+      }
 
-      // Busca nome de quem enviou o convite
-      const { data: remetente } = await supabase
-        .from('perfis')
-        .select('nome, email, tipo')
-        .eq('id', data.profissional_id)
+      // Verifica se existe mas está expirado
+      const { data: conviteExpirado } = await supabase
+        .from('convites')
+        .select('*')
+        .eq('token', token)
         .single()
 
-      setConvite({ ...data, remetente })
-      setEstado('valido')
+      if (conviteExpirado) {
+        const { data: remetente } = await supabase
+          .from('perfis').select('nome, email, tipo').eq('id', conviteExpirado.profissional_id).single()
+        setConvite({ ...conviteExpirado, remetente })
+        setEstado('expirado')
+        return
+      }
+
+      setEstado('invalido')
     }
     verificarConvite()
   }, [token])
@@ -179,12 +193,31 @@ export default function AceitarConvite() {
           </div>
         )}
 
+        {/* Expirado */}
+        {estado === 'expirado' && (
+          <div className="rounded-2xl p-8 border border-yellow-500/20 text-center" style={{ background: '#0f0f0f' }}>
+            <div className="text-4xl mb-4">⏰</div>
+            <h2 className="text-xl font-black mb-2">Convite expirado</h2>
+            {convite?.remetente?.nome && (
+              <p className="text-zinc-400 text-sm mb-1">
+                Este convite de <strong className="text-white">{convite.remetente.nome}</strong> expirou após 7 dias.
+              </p>
+            )}
+            <p className="text-zinc-500 text-sm mb-6">
+              Peça para {convite?.remetente?.nome ?? 'o profissional'} enviar um novo link de convite.
+            </p>
+            <button onClick={() => router.push('/login')} className="w-full bg-white text-black font-bold py-3 rounded-xl text-sm active:scale-95 transition-all uppercase tracking-wider">
+              Ir para o KORE
+            </button>
+          </div>
+        )}
+
         {/* Inválido */}
         {estado === 'invalido' && (
           <div className="rounded-2xl p-8 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
             <div className="text-4xl mb-4">⚠️</div>
             <h2 className="text-xl font-black mb-3">Convite inválido</h2>
-            <p className="text-zinc-500 text-sm mb-6">Este link de convite expirou ou não é válido.</p>
+            <p className="text-zinc-500 text-sm mb-6">Este link de convite não é válido ou já foi utilizado.</p>
             <button onClick={() => router.push('/login')} className="w-full bg-white text-black font-bold py-3 rounded-xl text-sm active:scale-95 transition-all uppercase tracking-wider">
               Ir para o KORE
             </button>

@@ -66,6 +66,42 @@ function getScoreRecuperacao(sono: DadosSono, bemEstar: DadosBemEstar | null) {
   return Math.round((score / total) * 100)
 }
 
+function HrvAjuda() {
+  const [aberto, setAberto] = useState(false)
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setAberto(!aberto)}
+        className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors underline underline-offset-2">
+        Onde encontro?
+      </button>
+      {aberto && (
+        <div className="absolute right-0 bottom-6 z-10 w-64 rounded-2xl border border-white/[0.1] p-4 shadow-2xl"
+          style={{ background: '#111' }}>
+          <p className="text-zinc-400 text-[10px] uppercase tracking-wider mb-3">Como encontrar o HRV</p>
+          <div className="space-y-2.5">
+            {[
+              { device: 'Apple Watch', path: 'Saúde → Frequência Cardíaca → Variabilidade da FC' },
+              { device: 'Garmin',      path: 'Garmin Connect → Saúde → HRV' },
+              { device: 'Whoop',       path: 'Recovery → HRV' },
+              { device: 'Polar',       path: 'Polar Flow → Diário → HRV' },
+              { device: 'Fitbit',      path: 'App Fitbit → Hoje → Frequência Cardíaca' },
+            ].map((d, i) => (
+              <div key={i}>
+                <p className="text-white text-[11px] font-semibold">{d.device}</p>
+                <p className="text-zinc-600 text-[10px] leading-relaxed">{d.path}</p>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => setAberto(false)}
+            className="mt-3 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">
+            Fechar ✕
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function getCorScore(score: number) {
   if (score >= 80) return { cor: 'text-emerald-400', bg: 'bg-emerald-400', border: 'border-emerald-400/20', label: 'Excelente recuperação' }
   if (score >= 60) return { cor: 'text-yellow-400',  bg: 'bg-yellow-400',  border: 'border-yellow-400/20',  label: 'Boa recuperação' }
@@ -450,7 +486,10 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
                   <input type="number" placeholder="Ex: 55" value={fcRepouso} onChange={e => setFcRepouso(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
                 </div>
                 <div>
-                  <label className="text-zinc-600 text-xs mb-1.5 block">HRV (ms) — variabilidade cardíaca</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-zinc-600 text-xs">HRV (ms) — variabilidade cardíaca</label>
+                    <HrvAjuda />
+                  </div>
                   <input type="number" placeholder="Ex: 65" value={hrv} onChange={e => setHrv(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
                 </div>
                 <div>
