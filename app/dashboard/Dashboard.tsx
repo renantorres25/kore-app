@@ -137,6 +137,13 @@ function getScoreCores(score: number) {
   return              { text: 'text-red-400',     bg: 'bg-red-400',     border: 'border-red-400/20'     }
 }
 
+function getScoreHex(score: number): string {
+  if (score >= 80) return '#34d399'
+  if (score >= 60) return '#facc15'
+  if (score >= 40) return '#fb923c'
+  return '#f87171'
+}
+
 function calcularStreak(datas: string[]): number {
   if (!datas.length) return 0
   const hoje = getTodayBR()
@@ -222,6 +229,7 @@ export default function Dashboard() {
   const [userId, setUserId] = useState('')
   const [showNotifs, setShowNotifs] = useState(false)
   const [notifs, setNotifs] = useState<Notif[]>([])
+  const [recentDays, setRecentDays] = useState<boolean[]>(Array(7).fill(false))
 
   useEffect(() => {
     async function carregarDados() {
@@ -271,6 +279,15 @@ export default function Dashboard() {
         ]
         const datasUnicas = [...new Set(todasDatas)].sort((a, b) => b.localeCompare(a))
         setStreak(calcularStreak(datasUnicas))
+
+        const hoje7 = getTodayBR()
+        const datasSet = new Set(datasUnicas)
+        const d7 = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(hoje7 + 'T12:00:00-03:00')
+          d.setDate(d.getDate() - (6 - i))
+          return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+        })
+        setRecentDays(d7.map(d => datasSet.has(d)))
 
         // Decisão do dia já salva no banco?
         if (decisaoData) {
@@ -463,6 +480,7 @@ Responda APENAS em JSON válido, sem markdown:
             bemEstar={bemEstar}
             scoreRecuperacao={scoreRecuperacao}
             streak={streak}
+            recentDays={recentDays}
             vinculos={vinculos}
             treinoHoje={treinoHoje}
             nutricaoHoje={nutricaoHoje}
@@ -606,11 +624,34 @@ function CardDecisaoDia({
   )
 }
 
+function ScoreRing({ score }: { score: number }) {
+  const size = 120, stroke = 9
+  const r = (size - stroke) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - (score / 100) * circ
+  const color = getScoreHex(score)
+  return (
+    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={stroke} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+      </svg>
+      <div className="relative text-center z-10">
+        <span className="text-3xl font-black leading-none" style={{ color, fontVariantNumeric: 'tabular-nums' }}>{score}</span>
+        <span className="block text-zinc-600 text-[10px] mt-0.5">/100</span>
+      </div>
+    </div>
+  )
+}
+
 function DashboardCliente({
-  perfil, bemEstar, scoreRecuperacao, streak, vinculos, treinoHoje, nutricaoHoje,
+  perfil, bemEstar, scoreRecuperacao, streak, recentDays, vinculos, treinoHoje, nutricaoHoje,
   decisaoDia, gerandoDecisao, temSonoHoje, onLogout: _onLogout, onOpenNotifs, notifCount,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
+  recentDays: boolean[]
   vinculos: Vinculo[]; treinoHoje: { nome: string; plano: string; concluido: boolean } | null
   nutricaoHoje: NutricaoHoje; decisaoDia: DecisaoDia; gerandoDecisao: boolean; temSonoHoje: boolean
   activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number
@@ -672,31 +713,23 @@ function DashboardCliente({
           style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
           <div className={`absolute -top-12 -right-12 w-56 h-56 rounded-full blur-3xl opacity-15 ${cores?.bg}`} />
           <div className="relative">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.22em] mb-1.5">Recuperação hoje</p>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-[5rem] font-black leading-none ${cores?.text}`} style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.04em' }}>
-                    {scoreRecuperacao}
-                  </span>
-                  <span className="text-zinc-600 text-xl font-light">/100</span>
-                </div>
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.22em] mb-4">Recuperação hoje</p>
+            <div className="flex items-center gap-5">
+              <ScoreRing score={scoreRecuperacao} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-base font-black leading-tight mb-1 ${cores?.text}`}>{getScoreLabel(scoreRecuperacao)}</p>
+                <p className="text-zinc-600 text-[11px] mb-3">Ver análise completa →</p>
+                {bemEstar && (
+                  <div className="flex gap-4">
+                    <Metrica label="Energia"   valor={`${bemEstar.energia}/5`} />
+                    <div className="w-px bg-white/[0.06]" />
+                    <Metrica label="Humor"     valor={`${bemEstar.humor}/5`} />
+                    <div className="w-px bg-white/[0.06]" />
+                    <Metrica label="Dor musc." valor={`${6 - bemEstar.dor_muscular}/5`} />
+                  </div>
+                )}
               </div>
-              <span className="text-[10px] text-zinc-600 uppercase tracking-widest mt-1 opacity-70">Ver análise →</span>
             </div>
-            <p className={`text-sm font-bold mb-4 ${cores?.text}`}>{getScoreLabel(scoreRecuperacao)}</p>
-            <div className="h-[3px] bg-white/[0.05] rounded-full overflow-hidden mb-4">
-              <div className={`h-full rounded-full ${cores?.bg} transition-all duration-700`} style={{ width: `${scoreRecuperacao}%` }} />
-            </div>
-            {bemEstar && (
-              <div className="flex gap-5">
-                <Metrica label="Energia"   valor={`${bemEstar.energia}/5`} />
-                <div className="w-px bg-white/[0.06]" />
-                <Metrica label="Humor"     valor={`${bemEstar.humor}/5`} />
-                <div className="w-px bg-white/[0.06]" />
-                <Metrica label="Dor musc." valor={`${6 - bemEstar.dor_muscular}/5`} />
-              </div>
-            )}
           </div>
         </button>
       ) : (
@@ -741,7 +774,7 @@ function DashboardCliente({
 
       {/* Streak */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Streak de consistência</p>
             <div className="flex items-baseline gap-2">
@@ -753,6 +786,20 @@ function DashboardCliente({
             </p>
           </div>
           <div className={`text-4xl transition-all duration-300 ${streak > 0 ? 'opacity-100' : 'opacity-20'}`}>🔥</div>
+        </div>
+        <div className="flex gap-1.5">
+          {recentDays.map((treinou, i) => {
+            const d = new Date(getTodayBR() + 'T12:00:00-03:00')
+            d.setDate(d.getDate() - (6 - i))
+            const label = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short' }).replace('.', '').slice(0, 3)
+            const isToday = i === 6
+            return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className={`w-full h-1.5 rounded-full transition-all duration-300 ${treinou ? 'bg-emerald-400' : isToday ? 'bg-white/[0.15]' : 'bg-white/[0.06]'}`} />
+                <span className={`text-[8px] uppercase tracking-wide ${isToday ? 'text-zinc-500' : 'text-zinc-700'}`}>{label}</span>
+              </div>
+            )
+          })}
         </div>
       </div>
 

@@ -374,22 +374,50 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
 
         {historico.length > 0 && !editando && (
           <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-            <div className="px-5 py-4 border-b border-white/[0.04]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Últimos 7 dias</p>
+              <p className="text-zinc-700 text-[10px]">score de recuperação</p>
             </div>
-            <div className="px-5 py-4">
-              <div className="flex items-end gap-2 h-16">
-                {historico.slice().reverse().map((d, i) => {
-                  const alt = Math.min(100, ((d.duracao_minutos ?? 0) / 60) / 10 * 100)
-                  const cor = d.qualidade >= 4 ? 'bg-emerald-400' : d.qualidade >= 3 ? 'bg-yellow-400' : d.qualidade >= 1 ? 'bg-red-400' : 'bg-zinc-700'
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div className={`w-full rounded-t-lg ${d.duracao_minutos ? cor : 'bg-white/[0.05]'} transition-all`} style={{ height: `${Math.max(8, alt)}%` }} />
-                      <p className="text-zinc-600 text-[9px]">{new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).slice(0, 3)}</p>
+            <div className="px-5 pt-4 pb-3">
+              {(() => {
+                const sorted = historico.slice().reverse()
+                const W = 300, H = 72, padX = 6, padY = 8
+                const items = sorted.map((d, i) => {
+                  const score = d.score_recuperacao ?? (d.qualidade ? Math.round((d.qualidade / 5) * 100) : null)
+                  const x = padX + (sorted.length > 1 ? (i / (sorted.length - 1)) : 0.5) * (W - 2 * padX)
+                  const y = score != null ? H - padY - (score / 100) * (H - 2 * padY) : null
+                  return { d, score, x, y }
+                })
+                const valid = items.filter(it => it.y != null) as { d: any; score: number; x: number; y: number }[]
+                if (!valid.length) return null
+                const line = valid.map((it, i) => `${i === 0 ? 'M' : 'L'}${it.x.toFixed(1)},${it.y.toFixed(1)}`).join(' ')
+                const area = `${line} L${valid[valid.length-1].x.toFixed(1)},${H} L${valid[0].x.toFixed(1)},${H} Z`
+                const dotColor = (s: number) => s >= 80 ? '#34d399' : s >= 60 ? '#facc15' : s >= 40 ? '#fb923c' : '#f87171'
+                return (
+                  <div>
+                    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
+                      <defs>
+                        <linearGradient id="sonoAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#34d399" stopOpacity="0.2" />
+                          <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path d={area} fill="url(#sonoAreaGrad)" />
+                      <path d={line} fill="none" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+                      {valid.map((it, i) => (
+                        <circle key={i} cx={it.x} cy={it.y} r="3" fill={dotColor(it.score)} />
+                      ))}
+                    </svg>
+                    <div className="flex justify-between mt-2">
+                      {sorted.map((d, i) => (
+                        <span key={i} className="text-[8px] text-zinc-700 uppercase">
+                          {new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').slice(0, 3)}
+                        </span>
+                      ))}
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
