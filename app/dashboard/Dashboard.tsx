@@ -230,6 +230,7 @@ export default function Dashboard() {
   const [showNotifs, setShowNotifs] = useState(false)
   const [notifs, setNotifs] = useState<Notif[]>([])
   const [recentDays, setRecentDays] = useState<boolean[]>(Array(7).fill(false))
+  const [sonoHistorico, setSonoHistorico] = useState<{ data: string; score_recuperacao: number | null; qualidade: number | null }[]>([])
 
   useEffect(() => {
     async function carregarDados() {
@@ -255,6 +256,7 @@ export default function Dashboard() {
           { data: treinoHojeData },
           { data: nutricaoData },
           { data: decisaoData },
+          { data: sonoHistData },
         ] = await Promise.all([
           supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('score_recuperacao, duracao_minutos, hrv, sono_profundo, sono_rem').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -264,6 +266,7 @@ export default function Dashboard() {
           supabase.from('treinos').select('nome, plano, concluido').eq('cliente_id', session.user.id).eq('data', hoje).order('concluido', { ascending: false }).limit(1).single(),
           supabase.from('nutricao').select('calorias, proteina, qualidade_alimentacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('decisao_dia').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single(),
+          supabase.from('sono').select('data, score_recuperacao, qualidade').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(7),
         ])
 
         if (be) setBemEstar(be)
@@ -271,6 +274,7 @@ export default function Dashboard() {
         if (sonoHoje) setTemSonoHoje(true)
         if (treinoHojeData) setTreinoHoje(treinoHojeData)
         if (nutricaoData) setNutricaoHoje(nutricaoData)
+        if (sonoHistData) setSonoHistorico(sonoHistData)
 
         // Streak — une treinos + atividades livres
         const todasDatas = [
@@ -481,6 +485,7 @@ Responda APENAS em JSON válido, sem markdown:
             scoreRecuperacao={scoreRecuperacao}
             streak={streak}
             recentDays={recentDays}
+            sonoHistorico={sonoHistorico}
             vinculos={vinculos}
             treinoHoje={treinoHoje}
             nutricaoHoje={nutricaoHoje}
@@ -624,6 +629,60 @@ function CardDecisaoDia({
   )
 }
 
+function SonoMiniChart({ historico }: { historico: { data: string; score_recuperacao: number | null; qualidade: number | null }[] }) {
+  const hoje = getTodayBR()
+  const dotColor = (s: number) => s >= 80 ? '#34d399' : s >= 60 ? '#facc15' : s >= 40 ? '#fb923c' : '#f87171'
+
+  const dias = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(hoje + 'T12:00:00-03:00')
+    d.setDate(d.getDate() - (6 - i))
+    const ds = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const found = historico.find(s => s.data === ds)
+    const score = found?.score_recuperacao ?? (found?.qualidade ? Math.round((found.qualidade / 5) * 100) : null)
+    const raw = d.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')
+    const dayName = raw.charAt(0).toUpperCase() + raw.slice(1, 3)
+    return { score, dayName }
+  })
+
+  if (!dias.some(d => d.score != null)) return null
+
+  const W = 280, H = 56, padX = 10, padY = 8
+  const toY = (s: number) => H - padY - (s / 100) * (H - 2 * padY)
+  const withX = dias.map((d, i) => ({ ...d, x: padX + (i / 6) * (W - 2 * padX) }))
+  const valid = withX.filter(d => d.score != null) as (typeof withX[0] & { score: number })[]
+  const line = valid.map((d, i) => `${i === 0 ? 'M' : 'L'}${d.x.toFixed(1)},${toY(d.score).toFixed(1)}`).join(' ')
+  const area = valid.length > 1 ? `${line} L${valid[valid.length-1].x.toFixed(1)},${H} L${valid[0].x.toFixed(1)},${H} Z` : ''
+  const last = valid[valid.length - 1]
+
+  return (
+    <div className="mt-4 pt-4 border-t border-white/[0.04]">
+      <p className="text-zinc-600 text-[9px] uppercase tracking-[0.18em] mb-2">Score de recuperação · 7 dias</p>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" style={{ height: H }}>
+        <defs>
+          <linearGradient id="dashSonoGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#34d399" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {area && <path d={area} fill="url(#dashSonoGrad)" />}
+        {valid.length > 1 && <path d={line} fill="none" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />}
+        {valid.map((d, i) => <circle key={i} cx={d.x} cy={toY(d.score)} r="3" fill={dotColor(d.score)} />)}
+        {last && <text x={last.x} y={toY(last.score) - 7} textAnchor="middle" fill={dotColor(last.score)} fontSize="9" fontWeight="bold">{last.score}</text>}
+      </svg>
+      <div className="flex mt-0.5">
+        {withX.map((d, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+            <span className="font-bold text-[9px]" style={{ color: d.score != null ? dotColor(d.score) : 'transparent' }}>
+              {d.score ?? 0}
+            </span>
+            <span className="text-zinc-700 text-[8px] uppercase">{d.dayName}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function ScoreRing({ score }: { score: number }) {
   const size = 120, stroke = 9
   const r = (size - stroke) / 2
@@ -647,11 +706,11 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 function DashboardCliente({
-  perfil, bemEstar, scoreRecuperacao, streak, recentDays, vinculos, treinoHoje, nutricaoHoje,
+  perfil, bemEstar, scoreRecuperacao, streak, recentDays, sonoHistorico, vinculos, treinoHoje, nutricaoHoje,
   decisaoDia, gerandoDecisao, temSonoHoje, onLogout: _onLogout, onOpenNotifs, notifCount,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
-  recentDays: boolean[]
+  recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
   vinculos: Vinculo[]; treinoHoje: { nome: string; plano: string; concluido: boolean } | null
   nutricaoHoje: NutricaoHoje; decisaoDia: DecisaoDia; gerandoDecisao: boolean; temSonoHoje: boolean
   activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number
@@ -730,6 +789,7 @@ function DashboardCliente({
                 )}
               </div>
             </div>
+            <SonoMiniChart historico={sonoHistorico} />
           </div>
         </button>
       ) : (
