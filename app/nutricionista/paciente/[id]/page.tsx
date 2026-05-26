@@ -18,6 +18,8 @@ type PlanoNutricional = {
   proteina_meta: number | null; created_at: string
 }
 type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null }
+type PeriodizacaoFase = { nome_ciclo: string; nome_bloco: string; tipo_bloco: string; semana_bloco: number; total_semanas_bloco: number; semana_total: number; total_semanas: number; descricao: string | null; plano_associado: string | null }
+type MetaHistorico = { calorias_meta: number | null; proteina_meta: number | null; created_at: string }
 type AlimentoEd = {
   nome: string; quantidade: string; calorias: string; proteina: string
   kcal_100g?: number | null; prot_100g?: number | null; carbo_100g?: number | null
@@ -89,6 +91,8 @@ export default function NutricionistaPaciente() {
 
   // editor
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
+  const [periodizacaoFase, setPeriodizacaoFase] = useState<PeriodizacaoFase | null>(null)
+  const [historicoMetas, setHistoricoMetas] = useState<MetaHistorico[]>([])
 
   const [editandoPlano, setEditandoPlano] = useState(false)
   const [salvandoEd, setSalvandoEd] = useState(false)
@@ -106,7 +110,7 @@ export default function NutricionistaPaciente() {
       const [
         { data: perfil }, { data: treinos7d },
         { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
-        { data: medidas },
+        { data: medidas }, { data: historicoData }, { data: periData },
       ] = await Promise.all([
         supabase.from('perfis').select('id,nome,email,peso,objetivo').eq('id', clienteId).single(),
         supabase.from('treinos').select('data').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
@@ -115,6 +119,8 @@ export default function NutricionistaPaciente() {
         supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
         supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
+        supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
+        supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1),
       ])
       if (perfil) setPaciente(perfil)
       setTreinos7dDatas((treinos7d ?? []).map((t: { data: string }) => t.data))
@@ -123,6 +129,28 @@ export default function NutricionistaPaciente() {
       setBemEstar(bem ?? null)
       if (plano) { setPlanoAtivo(plano); setAbaAtiva('plano') }
       if (medidas?.length) setMedidasCP(medidas as MedidaCP[])
+      if (historicoData?.length) setHistoricoMetas(historicoData as MetaHistorico[])
+
+      // Carregar fase atual da periodização
+      const periAtiva = Array.isArray(periData) ? periData[0] : periData
+      if (periAtiva) {
+        const { data: blocos } = await supabase.from('blocos_periodizacao').select('*').eq('periodizacao_id', periAtiva.id).order('ordem')
+        if (blocos?.length) {
+          const inicio = new Date(periAtiva.data_inicio + 'T12:00:00-03:00')
+          const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+          const semanaTotal = Math.max(1, Math.floor(diasTotais / 7) + 1)
+          const totalSemanas = blocos.reduce((s: number, b: any) => s + b.semanas, 0)
+          let acum = 0, blocoIdx = blocos.length - 1
+          for (let i = 0; i < blocos.length; i++) {
+            if (semanaTotal <= acum + blocos[i].semanas) { blocoIdx = i; break }
+            acum += blocos[i].semanas
+          }
+          const b = blocos[blocoIdx]
+          const semanaNoBloco = Math.min(semanaTotal - acum, b.semanas)
+          setPeriodizacaoFase({ nome_ciclo: periAtiva.nome, nome_bloco: b.nome, tipo_bloco: b.tipo, semana_bloco: semanaNoBloco, total_semanas_bloco: b.semanas, semana_total: semanaTotal, total_semanas: totalSemanas, descricao: b.descricao ?? null, plano_associado: b.plano_associado ?? null })
+        }
+      }
+
       setCarregando(false)
     }
     carregar()
@@ -411,6 +439,60 @@ Responda APENAS JSON válido:
           )
         })()}
 
+        {/* Fase de treinamento — prescrita pelo personal */}
+        {periodizacaoFase && (() => {
+          const TIPO_COR: Record<string, { text: string; bg: string; border: string; dot: string }> = {
+            hipertrofia: { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', dot: 'bg-emerald-400' },
+            forca:       { text: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/25',    dot: 'bg-blue-400'    },
+            deload:      { text: 'text-zinc-400',    bg: 'bg-zinc-500/10',    border: 'border-zinc-500/25',    dot: 'bg-zinc-400'    },
+            potencia:    { text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/25',  dot: 'bg-orange-400'  },
+            resistencia: { text: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/25',  dot: 'bg-purple-400'  },
+          }
+          const AJUSTE: Record<string, { pct: number; label: string }> = {
+            hipertrofia: { pct:  0.10, label: 'Superávit para hipertrofia' },
+            forca:       { pct:  0.05, label: 'Leve superávit para força' },
+            deload:      { pct: -0.08, label: 'Redução na semana de deload' },
+            potencia:    { pct:  0.07, label: 'Combustível para potência' },
+            resistencia: { pct:  0.05, label: 'Suporte energético' },
+          }
+          const cfg = TIPO_COR[periodizacaoFase.tipo_bloco] ?? TIPO_COR.hipertrofia
+          const ajuste = AJUSTE[periodizacaoFase.tipo_bloco]
+          const metaAtual = planoAtivo?.calorias_meta
+          const delta = metaAtual && ajuste ? Math.round(metaAtual * ajuste.pct) : null
+          const pct = (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100
+          return (
+            <div className={`rounded-2xl border ${cfg.border} mb-4 overflow-hidden`} style={{ background: '#080f0d' }}>
+              <div className="px-5 py-3.5 flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-xl ${cfg.bg} ${cfg.border} border flex items-center justify-center shrink-0`}>
+                  <span className="text-sm">🏋️</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[10px] uppercase tracking-[0.15em] font-bold ${cfg.text}`}>Treino · {periodizacaoFase.nome_ciclo}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-white text-sm font-bold">{periodizacaoFase.nome_bloco}</span>
+                    <span className="text-zinc-600 text-[10px]">sem. {periodizacaoFase.semana_bloco}/{periodizacaoFase.total_semanas_bloco}</span>
+                    {periodizacaoFase.plano_associado && <span className="text-zinc-600 text-[10px]">· Plano {periodizacaoFase.plano_associado}</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="px-5 pb-3">
+                <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden mb-2">
+                  <div className={`h-full rounded-full ${cfg.dot}`} style={{ width: `${pct}%` }} />
+                </div>
+                {delta !== null && (
+                  <div className="flex items-center gap-2 mt-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+                    <span className={`text-sm font-black ${delta >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>{delta >= 0 ? '+' : ''}{delta} kcal</span>
+                    <p className="text-zinc-500 text-[11px] flex-1">{ajuste?.label} · meta sugerida: <span className="text-white font-semibold">{(metaAtual! + delta).toLocaleString('pt-BR')} kcal</span></p>
+                  </div>
+                )}
+                {!metaAtual && ajuste && (
+                  <p className="text-zinc-600 text-[11px] mt-1">Prescreva um plano nutricional para ver a sugestão por fase.</p>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Abas */}
         <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
           {([['hoje', '📊 Hoje'], ['plano', '🥗 Plano']] as const).map(([id, label]) => (
@@ -546,6 +628,61 @@ Responda APENAS JSON válido:
         {/* ── ABA PLANO ────────────────────────────────────────────────── */}
         {abaAtiva === 'plano' && (
           <div className="space-y-4">
+
+            {/* Histórico de metas nutricionais */}
+            {historicoMetas.length >= 2 && !editandoPlano && (() => {
+              const comCal = historicoMetas.filter(m => m.calorias_meta)
+              const comProt = historicoMetas.filter(m => m.proteina_meta)
+              if (comCal.length < 2) return null
+              const W = 200, H = 40
+              function linha(pts: MetaHistorico[], key: 'calorias_meta' | 'proteina_meta', cor: string) {
+                const vals = pts.map(m => m[key] as number)
+                const maxV = Math.max(...vals), minV = Math.min(...vals), range = maxV - minV || 1
+                const xStep = W / Math.max(pts.length - 1, 1)
+                const toY = (v: number) => H - 4 - ((v - minV) / range) * (H - 8)
+                const d = vals.map((v, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
+                return <path key={key} d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              }
+              const primeiro = comCal[0], ultimo = comCal[comCal.length - 1]
+              const deltaCal = (ultimo.calorias_meta ?? 0) - (primeiro.calorias_meta ?? 0)
+              return (
+                <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
+                  <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Evolução das metas nutricionais</p>
+                    <p className="text-zinc-600 text-[9px]">{historicoMetas.length} planos</p>
+                  </div>
+                  <div className="px-5 py-4">
+                    <div className="flex items-end gap-4 mb-3">
+                      <div>
+                        <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Atual</p>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-white text-xl font-black">{ultimo.calorias_meta?.toLocaleString('pt-BR')}</span>
+                          <span className="text-zinc-500 text-[11px]">kcal</span>
+                          {deltaCal !== 0 && <span className={`text-[10px] font-bold ${deltaCal > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>{deltaCal > 0 ? '+' : ''}{deltaCal}</span>}
+                        </div>
+                      </div>
+                      {ultimo.proteina_meta && (
+                        <div>
+                          <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Proteína</p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-blue-300 text-xl font-black">{ultimo.proteina_meta}</span>
+                            <span className="text-zinc-500 text-[11px]">g</span>
+                          </div>
+                        </div>
+                      )}
+                      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="ml-auto shrink-0 overflow-visible">
+                        {comCal.length >= 2 && linha(comCal, 'calorias_meta', '#f97316')}
+                        {comProt.length >= 2 && linha(comProt, 'proteina_meta', '#60a5fa')}
+                      </svg>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-400" /><span className="text-zinc-600 text-[9px]">Calorias</span></div>
+                      <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-400" /><span className="text-zinc-600 text-[9px]">Proteína</span></div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* ── EDITOR MANUAL ───────────────────────────────────────── */}
             {editandoPlano ? (
