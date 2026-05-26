@@ -17,7 +17,7 @@ type PlanoNutricional = {
   id: string; conteudo: string; calorias_meta: number | null
   proteina_meta: number | null; created_at: string
 }
-type PesoPonto = { data: string; peso: number }
+type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null }
 type AlimentoEd = {
   nome: string; quantidade: string; calorias: string; proteina: string
   kcal_100g?: number | null; prot_100g?: number | null; carbo_100g?: number | null
@@ -88,7 +88,7 @@ export default function NutricionistaPaciente() {
   const [carregando, setCarregando] = useState(true)
 
   // editor
-  const [evolucaoPeso, setEvolucaoPeso] = useState<PesoPonto[]>([])
+  const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
 
   const [editandoPlano, setEditandoPlano] = useState(false)
   const [salvandoEd, setSalvandoEd] = useState(false)
@@ -114,7 +114,7 @@ export default function NutricionistaPaciente() {
         supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
-        supabase.from('evolucao_medidas').select('data,peso_kg').eq('usuario_id', clienteId).not('peso_kg', 'is', null).order('data', { ascending: true }).limit(10),
+        supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
       ])
       if (perfil) setPaciente(perfil)
       setTreinos7dDatas((treinos7d ?? []).map((t: { data: string }) => t.data))
@@ -122,7 +122,7 @@ export default function NutricionistaPaciente() {
       setSonoHoje(sono ?? null)
       setBemEstar(bem ?? null)
       if (plano) { setPlanoAtivo(plano); setAbaAtiva('plano') }
-      if (medidas?.length) setEvolucaoPeso(medidas.map((m: any) => ({ data: m.data, peso: m.peso_kg })))
+      if (medidas?.length) setMedidasCP(medidas as MedidaCP[])
       setCarregando(false)
     }
     carregar()
@@ -354,36 +354,58 @@ Responda APENAS JSON válido:
           </button>
         </div>
 
-        {/* Evolução de peso */}
-        {evolucaoPeso.length >= 2 && (() => {
-          const primeiro = evolucaoPeso[0].peso
-          const ultimo = evolucaoPeso[evolucaoPeso.length - 1].peso
-          const delta = Math.round((ultimo - primeiro) * 10) / 10
-          const maxP = Math.max(...evolucaoPeso.map(p => p.peso))
-          const minP = Math.min(...evolucaoPeso.map(p => p.peso))
-          const W = 120, H = 36, range = maxP - minP || 1
-          const xStep = W / Math.max(evolucaoPeso.length - 1, 1)
-          const toY = (v: number) => H - 4 - ((v - minP) / range) * (H - 8)
-          const linePath = evolucaoPeso.map((p, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(p.peso).toFixed(1)}`).join(' ')
-          const cor = delta <= 0 && paciente?.objetivo === 'perder_peso' ? '#34d399' : delta >= 0 && paciente?.objetivo === 'ganhar_massa' ? '#34d399' : '#94a3b8'
-          const dataInicio = new Date(evolucaoPeso[0].data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })
-          const dataFim = new Date(ultimo === evolucaoPeso[evolucaoPeso.length - 1].peso ? evolucaoPeso[evolucaoPeso.length - 1].data + 'T12:00:00-03:00' : evolucaoPeso[evolucaoPeso.length - 1].data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })
+        {/* Composição Corporal */}
+        {medidasCP.length >= 2 && (() => {
+          const ultima = medidasCP[medidasCP.length - 1]
+          const primeira = medidasCP[0]
+          type MetricaDef = { key: keyof MedidaCP; label: string; unit: string; cor: string; inverse?: boolean }
+          const metricas: MetricaDef[] = [
+            { key: 'peso',           label: 'Peso',         unit: 'kg', cor: '#94a3b8' },
+            { key: 'gordura_pct',    label: '% Gordura',    unit: '%',  cor: '#f97316', inverse: true },
+            { key: 'massa_muscular', label: 'Massa musc.',  unit: 'kg', cor: '#34d399' },
+            { key: 'cintura',        label: 'Cintura',      unit: 'cm', cor: '#a78bfa', inverse: true },
+            { key: 'quadril',        label: 'Quadril',      unit: 'cm', cor: '#60a5fa' },
+            { key: 'braco_dir',      label: 'Braço',        unit: 'cm', cor: '#fb923c' },
+            { key: 'coxa_dir',       label: 'Coxa',         unit: 'cm', cor: '#f472b6' },
+          ].filter(m => ultima[m.key] != null && primeira[m.key] != null)
+          if (!metricas.length) return null
+          function sparkline(key: keyof MedidaCP, cor: string) {
+            const pts = medidasCP.filter(m => m[key] != null)
+            if (pts.length < 2) return null
+            const vals = pts.map(m => m[key] as number)
+            const W = 56, H = 24, maxV = Math.max(...vals), minV = Math.min(...vals), range = maxV - minV || 1
+            const xStep = W / Math.max(pts.length - 1, 1)
+            const toY = (v: number) => H - 3 - ((v - minV) / range) * (H - 6)
+            const d = vals.map((v, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
+            return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
+          }
           return (
-            <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Evolução de peso</p>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-white text-3xl font-black">{ultimo}</span>
-                    <span className="text-zinc-500 text-sm">kg</span>
-                    {delta !== 0 && <span className={`text-sm font-bold ${cor}`}>{delta > 0 ? '+' : ''}{delta}kg</span>}
-                  </div>
-                  <p className="text-zinc-600 text-[10px] mt-0.5">{dataInicio} → {dataFim}</p>
-                </div>
-                <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible">
-                  <path d={linePath} fill="none" stroke={cor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  {evolucaoPeso.map((p, j) => <circle key={j} cx={j * xStep} cy={toY(p.peso)} r="2.5" fill={cor} />)}
-                </svg>
+            <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+              <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
+                <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
+              </div>
+              <div className="divide-y divide-white/[0.04]">
+                {metricas.map(m => {
+                  const cur = ultima[m.key] as number
+                  const ini = primeira[m.key] as number
+                  const delta = Math.round((cur - ini) * 10) / 10
+                  const positivo = m.inverse ? delta < 0 : delta > 0
+                  const deltaCor = delta === 0 ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
+                  return (
+                    <div key={m.key} className="flex items-center gap-3 px-5 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-zinc-400 text-[10px] uppercase tracking-wider">{m.label}</p>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-white text-lg font-bold">{cur}</span>
+                          <span className="text-zinc-600 text-[10px]">{m.unit}</span>
+                          {delta !== 0 && <span className={`text-[10px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{m.unit}</span>}
+                        </div>
+                      </div>
+                      {sparkline(m.key, m.cor)}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )

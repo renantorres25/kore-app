@@ -15,6 +15,9 @@ type Monitor = {
   treinosSemana: number
   ultimoTreino: string | null
 }
+type Execucao = { id: string; nome: string; plano: string; data: string; volume: number; seriesFeitas: number }
+type CargaPonto = { data: string; carga: number }
+type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null }
 
 function getInitials(nome: string | null, email: string): string {
   if (nome) { const p = nome.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0][0].toUpperCase() }
@@ -61,6 +64,7 @@ export default function PersonalAluno() {
   const [execucoes, setExecucoes] = useState<Execucao[]>([])
   const [cargaEvolucao, setCargaEvolucao] = useState<Record<string, CargaPonto[]>>({})
   const [diasAtividade, setDiasAtividade] = useState<Map<string, 'treino' | 'livre'>>(new Map())
+  const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -105,6 +109,53 @@ export default function PersonalAluno() {
     } else {
       setTreinos([])
     }
+
+    // Histórico de execuções + evolução de carga + calendário + composição corporal
+    const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
+    const trintaStr = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const [{ data: treinosCompletos }, { data: atvsLivres30 }, { data: medidasData }] = await Promise.all([
+      supabase.from('treinos').select('id, nome, plano, data').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
+      supabase.from('atividades_livres').select('data, modalidade').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
+      supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
+    ])
+
+    if (medidasData?.length) setMedidasCP(medidasData as MedidaCP[])
+
+    const diasMap = new Map<string, 'treino' | 'livre'>()
+    atvsLivres30?.forEach((a: { data: string }) => diasMap.set(a.data, 'livre'))
+    treinosCompletos?.forEach((t: { data: string }) => diasMap.set(t.data, 'treino'))
+    setDiasAtividade(diasMap)
+
+    if (treinosCompletos?.length) {
+      const tIds = treinosCompletos.map((t: { id: string }) => t.id)
+      const { data: exsHist } = await supabase.from('exercicios_treino').select('id, treino_id, nome').in('treino_id', tIds)
+      const exIds = (exsHist ?? []).map((e: { id: string }) => e.id)
+      const { data: seriesHist } = exIds.length
+        ? await supabase.from('series_registradas').select('exercicio_id, carga, repeticoes').in('exercicio_id', exIds).not('carga', 'is', null)
+        : { data: [] }
+      const execData: Execucao[] = (treinosCompletos as any[]).slice(0, 8).map((t: any) => {
+        const exsT = (exsHist ?? []).filter((e: any) => e.treino_id === t.id)
+        const srsT = (seriesHist ?? []).filter((s: any) => exsT.some((e: any) => e.id === s.exercicio_id))
+        const vol = srsT.reduce((acc: number, s: any) => acc + ((s.carga ?? 0) * (s.repeticoes ?? 0)), 0)
+        return { id: t.id, nome: t.nome, plano: t.plano, data: t.data, volume: Math.round(vol), seriesFeitas: srsT.length }
+      })
+      setExecucoes(execData)
+      const cargaMap: Record<string, CargaPonto[]> = {}
+      for (const t of [...(treinosCompletos as any[])].reverse()) {
+        const exsT = (exsHist ?? []).filter((e: any) => e.treino_id === t.id)
+        for (const ex of (exsT as any[])) {
+          const srsEx = (seriesHist ?? []).filter((s: any) => s.exercicio_id === ex.id)
+          if (!srsEx.length) continue
+          const maxCarga = Math.max(...srsEx.map((s: any) => s.carga ?? 0))
+          if (maxCarga <= 0) continue
+          if (!cargaMap[ex.nome]) cargaMap[ex.nome] = []
+          if (!cargaMap[ex.nome].find((p: CargaPonto) => p.data === t.data))
+            cargaMap[ex.nome].push({ data: t.data, carga: maxCarga })
+        }
+      }
+      setCargaEvolucao(cargaMap)
+    }
+
     setCarregando(false)
   }
 
@@ -293,7 +344,72 @@ export default function PersonalAluno() {
               <p className="text-zinc-600 text-[10px]">Evolução corporal</p>
             </div>
           </button>
+          <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
+            className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left col-span-2">
+            <span className="text-xl shrink-0">📅</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-bold">Periodização</p>
+              <p className="text-zinc-600 text-[10px]">Blocos de treinamento</p>
+            </div>
+          </button>
         </div>
+
+        {/* Composição Corporal */}
+        {medidasCP.length >= 2 && (() => {
+          const ultima = medidasCP[medidasCP.length - 1]
+          const primeira = medidasCP[0]
+          type MetricaDef = { key: keyof MedidaCP; label: string; unit: string; cor: string; inverse?: boolean }
+          const metricas: MetricaDef[] = [
+            { key: 'peso',           label: 'Peso',         unit: 'kg', cor: '#94a3b8' },
+            { key: 'gordura_pct',    label: '% Gordura',    unit: '%',  cor: '#f97316', inverse: true },
+            { key: 'massa_muscular', label: 'Massa musc.',  unit: 'kg', cor: '#34d399' },
+            { key: 'cintura',        label: 'Cintura',      unit: 'cm', cor: '#a78bfa', inverse: true },
+            { key: 'quadril',        label: 'Quadril',      unit: 'cm', cor: '#60a5fa' },
+            { key: 'braco_dir',      label: 'Braço',        unit: 'cm', cor: '#fb923c' },
+            { key: 'coxa_dir',       label: 'Coxa',         unit: 'cm', cor: '#f472b6' },
+          ].filter(m => ultima[m.key] != null && primeira[m.key] != null)
+          if (!metricas.length) return null
+          function sparkline(key: keyof MedidaCP, cor: string) {
+            const pts = medidasCP.filter(m => m[key] != null)
+            if (pts.length < 2) return null
+            const vals = pts.map(m => m[key] as number)
+            const W = 56, H = 24, maxV = Math.max(...vals), minV = Math.min(...vals), range = maxV - minV || 1
+            const xStep = W / Math.max(pts.length - 1, 1)
+            const toY = (v: number) => H - 3 - ((v - minV) / range) * (H - 6)
+            const d = vals.map((v, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
+            return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
+          }
+          return (
+            <div className="rounded-2xl border border-white/[0.06] mb-5 overflow-hidden" style={{ background: '#0f0f0f' }}>
+              <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
+                <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
+              </div>
+              <div className="divide-y divide-white/[0.04]">
+                {metricas.map(m => {
+                  const cur = ultima[m.key] as number
+                  const ini = primeira[m.key] as number
+                  const delta = Math.round((cur - ini) * 10) / 10
+                  const positivo = m.inverse ? delta < 0 : delta > 0
+                  const deltaCor = delta === 0 ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
+                  return (
+                    <div key={m.key} className="flex items-center gap-3 px-5 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-zinc-400 text-[10px] uppercase tracking-wider">{m.label}</p>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-white text-lg font-bold">{cur}</span>
+                          <span className="text-zinc-600 text-[10px]">{m.unit}</span>
+                          {delta !== 0 && <span className={`text-[10px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{m.unit}</span>}
+                        </div>
+                      </div>
+                      {sparkline(m.key, m.cor)}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Calendário de aderência - 28 dias */}
         <div className="rounded-2xl p-5 border border-white/[0.06] mb-5" style={{ background: '#0f0f0f' }}>
