@@ -292,6 +292,26 @@ Responda APENAS JSON válido:
           </div>
         </div>
 
+        {/* Quick actions */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button onClick={() => router.push(`/anamnese/${clienteId}`)}
+            className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+            <span className="text-xl shrink-0">📋</span>
+            <div>
+              <p className="text-white text-sm font-bold">Anamnese</p>
+              <p className="text-zinc-600 text-[10px]">Ficha de saúde</p>
+            </div>
+          </button>
+          <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+            className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+            <span className="text-xl shrink-0">📏</span>
+            <div>
+              <p className="text-white text-sm font-bold">Medidas</p>
+              <p className="text-zinc-600 text-[10px]">Evolução corporal</p>
+            </div>
+          </button>
+        </div>
+
         {/* Abas */}
         <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
           {([['hoje', '📊 Hoje'], ['plano', '🥗 Plano']] as const).map(([id, label]) => (
