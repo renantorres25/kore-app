@@ -20,6 +20,7 @@ type PlanoNutricional = {
 type AlimentoEd = {
   nome: string; quantidade: string; calorias: string; proteina: string
   kcal_100g?: number | null; prot_100g?: number | null; carbo_100g?: number | null
+  gramas?: string
 }
 type RefeicaoEd = { nome: string; horario: string; dica: string; alimentos: AlimentoEd[] }
 type ExtrasEd = {
@@ -27,7 +28,7 @@ type ExtrasEd = {
   oriTreino: string; estrategia: string; dicaFome: string
 }
 
-const ALIMENTO_VAZIO: AlimentoEd = { nome: '', quantidade: '', calorias: '', proteina: '', kcal_100g: null, prot_100g: null, carbo_100g: null }
+const ALIMENTO_VAZIO: AlimentoEd = { nome: '', quantidade: '', calorias: '', proteina: '', kcal_100g: null, prot_100g: null, carbo_100g: null, gramas: '' }
 const REFEICAO_VAZIA: RefeicaoEd = {
   nome: '', horario: '', dica: '',
   alimentos: [{ ...ALIMENTO_VAZIO }],
@@ -130,7 +131,7 @@ export default function NutricionistaPaciente() {
           ? r.alimentos.map((a: any) => ({
               nome: a.nome ?? '', quantidade: a.quantidade ?? '',
               calorias: String(a.calorias ?? ''), proteina: String(a.proteina ?? ''),
-              kcal_100g: a.kcal_100g ?? null, prot_100g: a.prot_100g ?? null, carbo_100g: a.carbo_100g ?? null,
+              kcal_100g: a.kcal_100g ?? null, prot_100g: a.prot_100g ?? null, carbo_100g: a.carbo_100g ?? null, gramas: a.gramas ?? '',
             }))
           : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? ''), kcal_100g: null, prot_100g: null, carbo_100g: null }],
       })))
@@ -176,12 +177,15 @@ export default function NutricionistaPaciente() {
       const novos = r.alimentos.map((a, i) => {
         if (i !== aIdx) return a
         const updated = { ...a, [field]: val }
-        // autocalcula macros se tiver TACO e mudar a quantidade
-        if (field === 'quantidade' && a.kcal_100g != null) {
-          const gramas = parseFloat(val)
-          if (!isNaN(gramas) && gramas > 0) {
-            updated.calorias = String(Math.round(a.kcal_100g * gramas / 100))
-            updated.proteina = String(((a.prot_100g ?? 0) * gramas / 100).toFixed(1))
+        // autocalcula macros pelo campo gramas (separado da quantidade de exibição)
+        if (field === 'gramas' && a.kcal_100g != null) {
+          const g = parseFloat(val)
+          if (!isNaN(g) && g > 0) {
+            updated.calorias = String(Math.round(a.kcal_100g * g / 100))
+            updated.proteina = String(((a.prot_100g ?? 0) * g / 100).toFixed(1))
+          } else {
+            updated.calorias = ''
+            updated.proteina = ''
           }
         }
         return updated
@@ -194,11 +198,8 @@ export default function NutricionistaPaciente() {
       if (idx !== rIdx) return r
       const novos = r.alimentos.map((a, i) => {
         if (i !== aIdx) return a
-        // preserva quantidade já digitada e recalcula se for numérica
-        const gramas = parseFloat(a.quantidade)
-        const kcal = (!isNaN(gramas) && gramas > 0) ? String(Math.round(taco.energia_kcal * gramas / 100)) : ''
-        const prot = (!isNaN(gramas) && gramas > 0) ? String((taco.proteina_g * gramas / 100).toFixed(1)) : ''
-        return { ...a, nome: taco.nome, kcal_100g: taco.energia_kcal, prot_100g: taco.proteina_g, carbo_100g: taco.carbo_g, calorias: kcal, proteina: prot }
+        // ao selecionar da TACO: seta nome + armazena macros/100g, limpa gramas/calorias para redigitar
+        return { ...a, nome: taco.nome, kcal_100g: taco.energia_kcal, prot_100g: taco.proteina_g, carbo_100g: taco.carbo_g, gramas: '', calorias: '', proteina: '' }
       })
       return { ...r, alimentos: novos }
     }))
@@ -217,7 +218,7 @@ export default function NutricionistaPaciente() {
           nome: a.nome, quantidade: a.quantidade,
           calorias: parseFloat(a.calorias) || 0,
           proteina: parseFloat(a.proteina) || 0,
-          ...(a.kcal_100g != null ? { kcal_100g: a.kcal_100g, prot_100g: a.prot_100g, carbo_100g: a.carbo_100g } : {}),
+          ...(a.kcal_100g != null ? { kcal_100g: a.kcal_100g, prot_100g: a.prot_100g, carbo_100g: a.carbo_100g, gramas: a.gramas } : {}),
         })),
       })),
     }
@@ -541,21 +542,35 @@ Responda APENAS JSON válido:
                                   <button onClick={() => removeAlimento(rIdx, aIdx)} className="text-zinc-700 hover:text-red-400 transition-colors text-sm shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.04]">✕</button>
                                 )}
                               </div>
-                              {/* badge TACO quando alimento foi selecionado do banco */}
+                              {/* badge TACO + campos separados: exibição vs cálculo */}
                               {al.kcal_100g != null && (
-                                <div className="flex items-center gap-2 px-1">
+                                <div className="flex items-center gap-2 px-1 flex-wrap">
                                   <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ TACO</span>
-                                  <span className="text-zinc-600 text-[9px]">{al.kcal_100g} kcal · {al.prot_100g}g prot · {al.carbo_100g}g carb por 100g</span>
+                                  <span className="text-zinc-600 text-[9px]">{al.kcal_100g} kcal · {al.prot_100g}g prot · {al.carbo_100g}g carb <span className="text-zinc-700">por 100g</span></span>
                                 </div>
                               )}
-                              <div className="relative">
-                                <input value={al.quantidade} onChange={e => updateAlimento(rIdx, aIdx, 'quantidade', e.target.value)}
-                                  placeholder={al.kcal_100g != null ? 'Quantidade em gramas (ex: 150)' : 'Quantidade (ex: 100g, 2 col., 1 unidade)'}
-                                  className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]" />
-                                {al.kcal_100g != null && al.quantidade && (
-                                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">g</span>
-                                )}
-                              </div>
+                              {/* Quantidade para exibição no plano (ex: "2 ovos", "1 copo") */}
+                              <input value={al.quantidade} onChange={e => updateAlimento(rIdx, aIdx, 'quantidade', e.target.value)}
+                                placeholder="Quantidade para exibir (ex: 2 ovos, 1 copo, 100g)"
+                                className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]" />
+                              {/* Gramas para cálculo automático — só aparece quando TACO selecionado */}
+                              {al.kcal_100g != null && (
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <input type="number" value={al.gramas ?? ''} onChange={e => updateAlimento(rIdx, aIdx, 'gramas', e.target.value)}
+                                      placeholder="Gramas para calcular macros (ex: 120)"
+                                      className="w-full bg-emerald-500/5 border border-emerald-500/20 text-white placeholder-zinc-600 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px]">g</span>
+                                  </div>
+                                  {al.gramas && parseFloat(al.gramas) > 0 && (
+                                    <div className="text-right shrink-0">
+                                      <span className="text-orange-400 text-[11px] font-bold">{Math.round(al.kcal_100g * parseFloat(al.gramas) / 100)} kcal</span>
+                                      <span className="text-zinc-600 text-[11px] mx-1">·</span>
+                                      <span className="text-blue-400 text-[11px]">{((al.prot_100g ?? 0) * parseFloat(al.gramas) / 100).toFixed(1)}g</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">
                                   <input type="number" value={al.calorias} onChange={e => updateAlimento(rIdx, aIdx, 'calorias', e.target.value)}
