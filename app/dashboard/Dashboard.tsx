@@ -940,7 +940,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
             🔔
             {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
-          <button onClick={onLogout} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
+          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
@@ -1025,7 +1025,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
   const [semPlano, setSemPlano] = useState(0)
   const [pacientesRecentes, setPacientesRecentes] = useState<{
     id: string; nome: string | null; email: string
-    sonoScore: number | null; treinos7d: number; energia: number | null
+    sonoScore: number | null; treinos7d: number; kcal7d: number
   }[]>([])
 
   useEffect(() => {
@@ -1042,18 +1042,25 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       const ids = vinculos.map(v => v.cliente_id)
       setTotalPacientes(ids.length)
 
-      const [{ data: perfis }, { data: sonos }, { data: treinos }, { data: bems }, { data: planos }] = await Promise.all([
+      const [{ data: perfis }, { data: sonos }, { data: treinos }, { data: atividades }, { data: planos }] = await Promise.all([
         supabase.from('perfis').select('id, nome, email').in('id', ids),
         supabase.from('sono').select('usuario_id, score_recuperacao').in('usuario_id', ids).eq('data', hoje),
-        supabase.from('treinos').select('cliente_id').in('cliente_id', ids).gte('data', semStr).eq('concluido', true),
-        supabase.from('bem_estar').select('usuario_id, energia').in('usuario_id', ids).eq('data', hoje),
+        supabase.from('treinos').select('cliente_id, calorias_estimadas').in('cliente_id', ids).gte('data', semStr).eq('concluido', true),
+        supabase.from('atividades_livres').select('usuario_id, calorias_estimadas, calorias_wearable').in('usuario_id', ids).gte('data', semStr),
         supabase.from('planos_nutricionais').select('usuario_id').in('usuario_id', ids).eq('ativo', true),
       ])
 
       const sonoMap = new Map(sonos?.map(s => [s.usuario_id, s.score_recuperacao]) ?? [])
       const treinos7dSet = new Map<string, number>()
-      treinos?.forEach(t => treinos7dSet.set(t.cliente_id, (treinos7dSet.get(t.cliente_id) ?? 0) + 1))
-      const bемMap = new Map(bems?.map(b => [b.usuario_id, b.energia]) ?? [])
+      const kcalMap = new Map<string, number>()
+      treinos?.forEach(t => {
+        treinos7dSet.set(t.cliente_id, (treinos7dSet.get(t.cliente_id) ?? 0) + 1)
+        if (t.calorias_estimadas) kcalMap.set(t.cliente_id, (kcalMap.get(t.cliente_id) ?? 0) + t.calorias_estimadas)
+      })
+      atividades?.forEach(a => {
+        const kcal = a.calorias_wearable ?? a.calorias_estimadas ?? 0
+        if (kcal) kcalMap.set(a.usuario_id, (kcalMap.get(a.usuario_id) ?? 0) + kcal)
+      })
       const planosSet = new Set(planos?.map(p => p.usuario_id) ?? [])
 
       setBoaRecuperacao(ids.filter(id => (sonoMap.get(id) ?? 0) >= 60).length)
@@ -1066,7 +1073,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         email: p.email,
         sonoScore: sonoMap.get(p.id) ?? null,
         treinos7d: treinos7dSet.get(p.id) ?? 0,
-        energia: bемMap.get(p.id) ?? null,
+        kcal7d: kcalMap.get(p.id) ?? 0,
       }))
       setPacientesRecentes(recentes)
       setLoadingStats(false)
@@ -1087,7 +1094,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
             🔔
             {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
-          <button onClick={onLogout} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
+          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
@@ -1159,9 +1166,9 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
                         : <span className="text-zinc-600 text-[10px]">😴 —</span>}
                       <span className="text-zinc-700 text-[10px]">·</span>
                       <span className={`text-[10px] ${p.treinos7d > 0 ? 'text-blue-400' : 'text-zinc-600'}`}>🏋️ {p.treinos7d}x</span>
-                      {p.energia != null && <>
+                      {p.kcal7d > 0 && <>
                         <span className="text-zinc-700 text-[10px]">·</span>
-                        <span className={`text-[10px] ${p.energia >= 4 ? 'text-green-400' : p.energia >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>⚡ {p.energia}/5</span>
+                        <span className="text-[10px] text-orange-400">🔥 ~{p.kcal7d}kcal</span>
                       </>}
                     </div>
                   </div>

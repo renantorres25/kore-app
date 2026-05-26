@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import NavBar from '../components/NavBar'
 
 type Aluno = {
   id: string
@@ -119,7 +120,7 @@ export default function PersonalAlunos() {
 
   return (
     <main className="min-h-[100dvh] bg-[#080808] text-white">
-      <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+      <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -246,6 +247,7 @@ export default function PersonalAlunos() {
           </>
         )}
       </div>
+      <NavBar tipo="personal" ativa="alunos" />
     </main>
   )
 }

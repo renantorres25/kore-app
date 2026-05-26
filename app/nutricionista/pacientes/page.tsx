@@ -12,7 +12,7 @@ type Paciente = {
 type Stats = {
   sonoScore: number | null; sonoHoras: number | null
   treinos7d: number; ultimoTreino: string | null
-  energia: number | null; humor: number | null
+  kcal7d: number
   temPlano: boolean
 }
 
@@ -60,17 +60,25 @@ export default function NutricionistaPacientes() {
       const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
       // 4 queries paralelas para todos os pacientes de uma vez
-      const [{ data: sonos }, { data: treinos }, { data: bems }, { data: planos }] = await Promise.all([
+      const [{ data: sonos }, { data: treinos }, { data: atividades }, { data: planos }] = await Promise.all([
         supabase.from('sono').select('usuario_id, score_recuperacao, duracao').in('usuario_id', ids).eq('data', hoje),
         supabase.from('treinos').select('cliente_id, data, calorias_estimadas').in('cliente_id', ids).gte('data', semStr).eq('concluido', true).order('data', { ascending: false }),
-        supabase.from('bem_estar').select('usuario_id, humor, energia').in('usuario_id', ids).eq('data', hoje),
+        supabase.from('atividades_livres').select('usuario_id, calorias_estimadas, calorias_wearable').in('usuario_id', ids).gte('data', semStr),
         supabase.from('planos_nutricionais').select('usuario_id').in('usuario_id', ids).eq('ativo', true),
       ])
+
+      const kcalMap = new Map<string, number>()
+      treinos?.forEach(t => {
+        if (t.calorias_estimadas) kcalMap.set(t.cliente_id, (kcalMap.get(t.cliente_id) ?? 0) + t.calorias_estimadas)
+      })
+      atividades?.forEach(a => {
+        const kcal = a.calorias_wearable ?? a.calorias_estimadas ?? 0
+        if (kcal) kcalMap.set(a.usuario_id, (kcalMap.get(a.usuario_id) ?? 0) + kcal)
+      })
 
       const statsMap: Record<string, Stats> = {}
       for (const p of pacientesData) {
         const sono = sonos?.find(s => s.usuario_id === p.cliente_id)
-        const bem = bems?.find(b => b.usuario_id === p.cliente_id)
         const treinosPac = treinos?.filter(t => t.cliente_id === p.cliente_id) ?? []
         const temPlano = !!(planos?.find(pl => pl.usuario_id === p.cliente_id))
         statsMap[p.cliente_id] = {
@@ -78,8 +86,7 @@ export default function NutricionistaPacientes() {
           sonoHoras: sono?.duracao ?? null,
           treinos7d: treinosPac.length,
           ultimoTreino: treinosPac[0]?.data ?? null,
-          energia: bem?.energia ?? null,
-          humor: bem?.humor ?? null,
+          kcal7d: kcalMap.get(p.cliente_id) ?? 0,
           temPlano,
         }
       }
@@ -189,17 +196,13 @@ export default function NutricionistaPacientes() {
                         {s?.ultimoTreino && <p className="text-zinc-700 text-[9px]">Último: {s.ultimoTreino.slice(8,10)}/{s.ultimoTreino.slice(5,7)}</p>}
                       </div>
                       <div className="w-px bg-white/[0.05] mx-3" />
-                      {/* Energia */}
+                      {/* Kcal 7d */}
                       <div className="flex-1">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">⚡ Energia</p>
-                        {s?.energia != null ? (
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">🔥 Kcal / 7d</p>
+                        {(s?.kcal7d ?? 0) > 0 ? (
                           <div>
-                            <div className="flex gap-0.5 mt-1">
-                              {[1,2,3,4,5].map(i => (
-                                <div key={i} className={`w-2.5 h-2 rounded-full ${i <= s.energia! ? (s.energia! >= 4 ? 'bg-green-400' : s.energia! >= 3 ? 'bg-yellow-400' : 'bg-red-400') : 'bg-white/[0.08]'}`} />
-                              ))}
-                            </div>
-                            <p className="text-zinc-700 text-[9px] mt-0.5">{s.energia}/5</p>
+                            <p className="text-sm font-bold text-orange-400">~{s!.kcal7d}<span className="text-zinc-600 text-[9px]"> kcal</span></p>
+                            {s!.treinos7d > 0 && <p className="text-zinc-700 text-[9px] mt-0.5">~{Math.round(s!.kcal7d / s!.treinos7d)}/sessão</p>}
                           </div>
                         ) : <p className="text-zinc-700 text-sm">—</p>}
                       </div>
