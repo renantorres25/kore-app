@@ -17,6 +17,7 @@ type PlanoNutricional = {
   id: string; conteudo: string; calorias_meta: number | null
   proteina_meta: number | null; created_at: string
 }
+type PesoPonto = { data: string; peso: number }
 type AlimentoEd = {
   nome: string; quantidade: string; calorias: string; proteina: string
   kcal_100g?: number | null; prot_100g?: number | null; carbo_100g?: number | null
@@ -87,6 +88,8 @@ export default function NutricionistaPaciente() {
   const [carregando, setCarregando] = useState(true)
 
   // editor
+  const [evolucaoPeso, setEvolucaoPeso] = useState<PesoPonto[]>([])
+
   const [editandoPlano, setEditandoPlano] = useState(false)
   const [salvandoEd, setSalvandoEd] = useState(false)
   const [refeicoesEd, setRefeicoesEd] = useState<RefeicaoEd[]>([])
@@ -103,6 +106,7 @@ export default function NutricionistaPaciente() {
       const [
         { data: perfil }, { data: treinos7d },
         { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
+        { data: medidas },
       ] = await Promise.all([
         supabase.from('perfis').select('id,nome,email,peso,objetivo').eq('id', clienteId).single(),
         supabase.from('treinos').select('data').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
@@ -110,6 +114,7 @@ export default function NutricionistaPaciente() {
         supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
+        supabase.from('evolucao_medidas').select('data,peso_kg').eq('usuario_id', clienteId).not('peso_kg', 'is', null).order('data', { ascending: true }).limit(10),
       ])
       if (perfil) setPaciente(perfil)
       setTreinos7dDatas((treinos7d ?? []).map((t: { data: string }) => t.data))
@@ -117,6 +122,7 @@ export default function NutricionistaPaciente() {
       setSonoHoje(sono ?? null)
       setBemEstar(bem ?? null)
       if (plano) { setPlanoAtivo(plano); setAbaAtiva('plano') }
+      if (medidas?.length) setEvolucaoPeso(medidas.map((m: any) => ({ data: m.data, peso: m.peso_kg })))
       setCarregando(false)
     }
     carregar()
@@ -347,6 +353,41 @@ Responda APENAS JSON válido:
             </div>
           </button>
         </div>
+
+        {/* Evolução de peso */}
+        {evolucaoPeso.length >= 2 && (() => {
+          const primeiro = evolucaoPeso[0].peso
+          const ultimo = evolucaoPeso[evolucaoPeso.length - 1].peso
+          const delta = Math.round((ultimo - primeiro) * 10) / 10
+          const maxP = Math.max(...evolucaoPeso.map(p => p.peso))
+          const minP = Math.min(...evolucaoPeso.map(p => p.peso))
+          const W = 120, H = 36, range = maxP - minP || 1
+          const xStep = W / Math.max(evolucaoPeso.length - 1, 1)
+          const toY = (v: number) => H - 4 - ((v - minP) / range) * (H - 8)
+          const linePath = evolucaoPeso.map((p, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(p.peso).toFixed(1)}`).join(' ')
+          const cor = delta <= 0 && paciente?.objetivo === 'perder_peso' ? '#34d399' : delta >= 0 && paciente?.objetivo === 'ganhar_massa' ? '#34d399' : '#94a3b8'
+          const dataInicio = new Date(evolucaoPeso[0].data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })
+          const dataFim = new Date(ultimo === evolucaoPeso[evolucaoPeso.length - 1].peso ? evolucaoPeso[evolucaoPeso.length - 1].data + 'T12:00:00-03:00' : evolucaoPeso[evolucaoPeso.length - 1].data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })
+          return (
+            <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Evolução de peso</p>
+              <div className="flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-white text-3xl font-black">{ultimo}</span>
+                    <span className="text-zinc-500 text-sm">kg</span>
+                    {delta !== 0 && <span className={`text-sm font-bold ${cor}`}>{delta > 0 ? '+' : ''}{delta}kg</span>}
+                  </div>
+                  <p className="text-zinc-600 text-[10px] mt-0.5">{dataInicio} → {dataFim}</p>
+                </div>
+                <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible">
+                  <path d={linePath} fill="none" stroke={cor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  {evolucaoPeso.map((p, j) => <circle key={j} cx={j * xStep} cy={toY(p.peso)} r="2.5" fill={cor} />)}
+                </svg>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Abas */}
         <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>

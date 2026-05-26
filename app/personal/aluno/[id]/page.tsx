@@ -58,6 +58,9 @@ export default function PersonalAluno() {
   const [modalAberto, setModalAberto] = useState(false)
   const [editandoTreino, setEditandoTreino] = useState<Treino | null>(null)
   const [personalNome, setPersonalNome] = useState('')
+  const [execucoes, setExecucoes] = useState<Execucao[]>([])
+  const [cargaEvolucao, setCargaEvolucao] = useState<Record<string, CargaPonto[]>>({})
+  const [diasAtividade, setDiasAtividade] = useState<Map<string, 'treino' | 'livre'>>(new Map())
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -292,6 +295,34 @@ export default function PersonalAluno() {
           </button>
         </div>
 
+        {/* Calendário de aderência - 28 dias */}
+        <div className="rounded-2xl p-5 border border-white/[0.06] mb-5" style={{ background: '#0f0f0f' }}>
+          <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Calendário de aderência · 28 dias</p>
+          <div className="grid grid-cols-7 gap-1.5">
+            {Array.from({ length: 28 }, (_, i) => {
+              const d = new Date(getTodayBR() + 'T12:00:00-03:00')
+              d.setDate(d.getDate() - (27 - i))
+              const ds = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+              const tipo = diasAtividade.get(ds)
+              const isHoje = ds === getTodayBR()
+              return (
+                <div key={i} className={[
+                  'aspect-square rounded-lg flex items-center justify-center text-[8px] font-bold',
+                  tipo === 'treino' ? 'bg-emerald-500/75 text-black' : tipo === 'livre' ? 'bg-blue-500/60 text-white' : 'bg-white/[0.04] text-zinc-800',
+                  isHoje ? 'ring-1 ring-white/30' : '',
+                ].join(' ')}>
+                  {d.getDate()}
+                </div>
+              )
+            })}
+          </div>
+          <div className="flex items-center gap-4 mt-3">
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/75" /><span className="text-zinc-600 text-[9px]">Musculação</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-500/60" /><span className="text-zinc-600 text-[9px]">Atividade livre</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-white/[0.04] border border-white/[0.08]" /><span className="text-zinc-600 text-[9px]">Descanso</span></div>
+          </div>
+        </div>
+
         <div className="flex gap-2 mb-6">
           {PLANOS.map(p => {
             const c = CORES[p]
@@ -361,6 +392,81 @@ export default function PersonalAluno() {
           </div>
         )}
       </div>
+
+      {/* Últimas execuções */}
+      {execucoes.length > 0 && (
+        <div className="rounded-2xl border border-white/[0.06] mb-5 overflow-hidden" style={{ background: '#0f0f0f' }}>
+          <div className="px-5 py-4 border-b border-white/[0.04]">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Últimas execuções</p>
+          </div>
+          <div className="divide-y divide-white/[0.04]">
+            {execucoes.map((ex) => {
+              const c = CORES[ex.plano] ?? CORES.A
+              const dataLabel = new Date(ex.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })
+              return (
+                <div key={ex.id} className="flex items-center gap-3 px-5 py-3.5">
+                  <div className={`w-8 h-8 rounded-xl ${c.bg} ${c.border} border flex items-center justify-center shrink-0`}>
+                    <span className={`text-[10px] font-black ${c.text}`}>{ex.plano}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
+                    <p className="text-zinc-600 text-[10px]">{dataLabel}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {ex.volume > 0 && <p className="text-orange-400 text-[11px] font-bold">{ex.volume >= 1000 ? `${(ex.volume / 1000).toFixed(1)}t` : `${ex.volume}kg`}</p>}
+                    {ex.seriesFeitas > 0 && <p className="text-zinc-600 text-[9px]">{ex.seriesFeitas} séries</p>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Evolução de carga por exercício */}
+      {treinoDoPlano && (() => {
+        const exsComDados = treinoDoPlano.exercicios.filter(ex => (cargaEvolucao[ex.nome]?.length ?? 0) >= 2)
+        if (!exsComDados.length) return null
+        return (
+          <div className="rounded-2xl border border-white/[0.06] mb-5 overflow-hidden" style={{ background: '#0f0f0f' }}>
+            <div className="px-5 py-4 border-b border-white/[0.04]">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Evolução de carga · Plano {planoAtivo}</p>
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {exsComDados.map((ex, i) => {
+                const pontos = cargaEvolucao[ex.nome]
+                const primeiro = pontos[0].carga
+                const ultimo = pontos[pontos.length - 1].carga
+                const delta = Math.round((ultimo - primeiro) * 10) / 10
+                const maxC = Math.max(...pontos.map(p => p.carga))
+                const minC = Math.min(...pontos.map(p => p.carga))
+                const W = 64, H = 26
+                const range = maxC - minC || 1
+                const toY = (v: number) => H - 3 - ((v - minC) / range) * (H - 6)
+                const xStep = W / Math.max(pontos.length - 1, 1)
+                const linePath = pontos.map((p, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(p.carga).toFixed(1)}`).join(' ')
+                const cor = delta >= 0 ? '#34d399' : '#f87171'
+                return (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
+                      <p className="text-zinc-600 text-[10px]">{primeiro}kg → {ultimo}kg</p>
+                    </div>
+                    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible">
+                      <path d={linePath} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      {pontos.map((p, j) => <circle key={j} cx={j * xStep} cy={toY(p.carga)} r="2" fill={cor} />)}
+                    </svg>
+                    <div className="text-right shrink-0 w-14">
+                      <p className="text-white text-sm font-bold">{ultimo} kg</p>
+                      {delta !== 0 && <p className={`text-[10px] font-bold ${delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{delta > 0 ? '+' : ''}{delta}kg</p>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       {modalAberto && editandoTreino && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
