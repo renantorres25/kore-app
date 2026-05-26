@@ -837,68 +837,6 @@ function DashboardCliente({
         </button>
       </div>
 
-      {/* Nutrição */}
-      <button onClick={() => router.push('/nutricao')}
-        className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
-        style={{ background: '#0f0f0f' }}>
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Nutrição hoje</p>
-            {vinculoNutri ? (
-              <p className="text-white font-bold text-base">Plano ativo</p>
-            ) : nutricaoHoje?.calorias ? (
-              <p className="text-white font-bold text-base">{nutricaoHoje.calorias} kcal registradas</p>
-            ) : (
-              <p className="text-white font-bold text-base">Registrar alimentação</p>
-            )}
-            <p className="text-zinc-600 text-xs mt-0.5">
-              {vinculoNutri ? vinculoNutri.nome ?? 'Nutricionista conectada'
-                : metaCal ? `Meta: ${metaCal} kcal · ${metaProt}g proteína`
-                : 'Toque para registrar seu dia'}
-            </p>
-          </div>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : nutricaoHoje?.calorias ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/[0.04] text-zinc-500 border-white/[0.08]'}`}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" />
-              <path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" />
-            </svg>
-          </div>
-        </div>
-        {(nutricaoHoje?.calorias || nutricaoHoje?.proteina) && metaCal && (
-          <div className="space-y-2 mt-3 pt-3 border-t border-white/[0.04]">
-            {nutricaoHoje?.calorias && (
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Calorias</span>
-                  <span className="text-zinc-500 text-[9px]">{nutricaoHoje.calorias} / {metaCal} kcal</span>
-                </div>
-                <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${pctCal >= 100 ? 'bg-emerald-400' : 'bg-blue-400'}`} style={{ width: `${pctCal}%` }} />
-                </div>
-              </div>
-            )}
-            {nutricaoHoje?.proteina && metaProt && (
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Proteína</span>
-                  <span className="text-zinc-500 text-[9px]">{nutricaoHoje.proteina}g / {metaProt}g</span>
-                </div>
-                <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${pctProt >= 100 ? 'bg-emerald-400' : 'bg-purple-400'}`} style={{ width: `${pctProt}%` }} />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        {!vinculoNutri && !nutricaoHoje?.calorias && (
-          <div className="mt-3 pt-3 border-t border-white/[0.04]">
-            <p className="text-zinc-600 text-[11px] leading-relaxed">
-              {metaCal ? `Sua meta estimada é ${metaCal} kcal e ${metaProt}g de proteína. Registre seu dia →` : 'Registre sua alimentação diária para receber análise da IA →'}
-            </p>
-          </div>
-        )}
-      </button>
-
       {/* Meu time */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meu time</p>
