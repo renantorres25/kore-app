@@ -11,6 +11,8 @@ type Perfil = {
   email: string
   peso: number | null
   objetivo: string | null
+  meta_peso: number | null
+  meta_data_limite: string | null
 }
 
 type BemEstar = {
@@ -231,6 +233,8 @@ export default function Dashboard() {
   const [notifs, setNotifs] = useState<Notif[]>([])
   const [recentDays, setRecentDays] = useState<boolean[]>(Array(7).fill(false))
   const [sonoHistorico, setSonoHistorico] = useState<{ data: string; score_recuperacao: number | null; qualidade: number | null }[]>([])
+  const [pesoAtual, setPesoAtual] = useState<number | null>(null)
+  const [pesoDelta, setPesoDelta] = useState<number | null>(null)
 
   useEffect(() => {
     async function carregarDados() {
@@ -239,7 +243,7 @@ export default function Dashboard() {
       setUserId(session.user.id)
 
       const { data: perfilData } = await supabase
-        .from('perfis').select('tipo, nome, email, peso, objetivo').eq('id', session.user.id).single()
+        .from('perfis').select('tipo, nome, email, peso, objetivo, meta_peso, meta_data_limite').eq('id', session.user.id).single()
 
       if (!perfilData) { router.push('/onboarding'); return }
       setPerfil(perfilData)
@@ -257,6 +261,7 @@ export default function Dashboard() {
           { data: nutricaoData },
           { data: decisaoData },
           { data: sonoHistData },
+          { data: medidasData },
         ] = await Promise.all([
           supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('score_recuperacao, duracao_minutos, hrv, sono_profundo, sono_rem').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -267,6 +272,7 @@ export default function Dashboard() {
           supabase.from('nutricao').select('calorias, proteina, qualidade_alimentacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('decisao_dia').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('data, score_recuperacao, qualidade').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(7),
+          supabase.from('evolucao_medidas').select('peso, data').eq('usuario_id', session.user.id).not('peso', 'is', null).order('data', { ascending: false }).limit(2),
         ])
 
         if (be) setBemEstar(be)
@@ -275,6 +281,12 @@ export default function Dashboard() {
         if (treinoHojeData) setTreinoHoje(treinoHojeData)
         if (nutricaoData) setNutricaoHoje(nutricaoData)
         if (sonoHistData) setSonoHistorico(sonoHistData)
+        if (medidasData?.length) {
+          setPesoAtual(medidasData[0].peso)
+          if (medidasData.length >= 2) {
+            setPesoDelta(Math.round((medidasData[0].peso - medidasData[1].peso) * 10) / 10)
+          }
+        }
 
         // Streak — une treinos + atividades livres
         const todasDatas = [
@@ -419,6 +431,13 @@ Responda APENAS em JSON válido, sem markdown:
     setGerandoDecisao(false)
   }
 
+  async function handleSalvarMeta(metaPeso: number, metaData: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    await supabase.from('perfis').update({ meta_peso: metaPeso, meta_data_limite: metaData }).eq('id', session.user.id)
+    setPerfil(prev => prev ? { ...prev, meta_peso: metaPeso, meta_data_limite: metaData } : prev)
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
@@ -493,6 +512,10 @@ Responda APENAS em JSON válido, sem markdown:
             gerandoDecisao={gerandoDecisao}
             temSonoHoje={temSonoHoje}
             activeTab={activeTab}
+            userId={userId}
+            pesoAtual={pesoAtual}
+            pesoDelta={pesoDelta}
+            onSalvarMeta={handleSalvarMeta}
             onLogout={handleLogout}
             onOpenNotifs={() => setShowNotifs(true)}
             notifCount={notifs.length}
@@ -705,15 +728,177 @@ function ScoreRing({ score }: { score: number }) {
   )
 }
 
+// ─── CARD META PESSOAL ────────────────────────────────────────────────────────
+function CardMeta({
+  perfil, pesoAtual, pesoDelta, userId, onSalvarMeta, router
+}: {
+  perfil: Perfil; pesoAtual: number | null; pesoDelta: number | null
+  userId: string; onSalvarMeta: (metaPeso: number, metaData: string) => Promise<void>
+  router: ReturnType<typeof useRouter>
+}) {
+  const [editando, setEditando] = useState(false)
+  const [formMeta, setFormMeta] = useState({
+    peso: perfil.meta_peso ? String(perfil.meta_peso) : '',
+    data: perfil.meta_data_limite ?? '',
+  })
+
+  const metaPeso = perfil.meta_peso
+  const metaDataLimite = perfil.meta_data_limite
+  const pesoBase = perfil.peso
+  const pesoCurrent = pesoAtual ?? pesoBase
+  const perder = metaPeso != null && pesoCurrent != null ? pesoCurrent > metaPeso : true
+
+  function diasRestantes(): number | null {
+    if (!metaDataLimite) return null
+    const hoje = new Date(getTodayBR() + 'T12:00:00-03:00')
+    const meta = new Date(metaDataLimite + 'T12:00:00-03:00')
+    return Math.max(0, Math.round((meta.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)))
+  }
+
+  function progressoPct(): number {
+    if (!metaPeso || !pesoBase || pesoCurrent == null) return 0
+    const total = Math.abs(metaPeso - pesoBase)
+    if (total === 0) return 100
+    const feito = Math.abs(pesoCurrent - pesoBase)
+    return Math.min(100, Math.max(0, Math.round((feito / total) * 100)))
+  }
+
+  const faltam = metaPeso != null && pesoCurrent != null
+    ? Math.round(Math.abs(pesoCurrent - metaPeso) * 10) / 10
+    : null
+  const atingiu = faltam !== null && faltam < 0.5
+  const dias = diasRestantes()
+  const pct = progressoPct()
+
+  function handleSalvar() {
+    const mp = parseFloat(formMeta.peso)
+    if (!mp || !formMeta.data) return
+    onSalvarMeta(mp, formMeta.data)
+    setEditando(false)
+  }
+
+  if (!metaPeso && !editando) {
+    return (
+      <button onClick={() => setEditando(true)}
+        className="w-full text-left rounded-2xl p-5 mb-3 border border-dashed border-white/[0.1] active:scale-[0.98] transition-all"
+        style={{ background: '#0f0f0f' }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Meta pessoal</p>
+            <p className="text-white font-bold">Definir meta de peso</p>
+            <p className="text-zinc-600 text-xs mt-0.5">Acompanhe sua evolução com um objetivo claro</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-xl shrink-0">🎯</div>
+        </div>
+      </button>
+    )
+  }
+
+  if (editando) {
+    return (
+      <div className="rounded-2xl p-5 mb-3 border border-emerald-500/20" style={{ background: '#0f0f0f' }}>
+        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meta pessoal</p>
+        <div className="space-y-3">
+          <div>
+            <label className="text-zinc-600 text-[10px] mb-1.5 block">Peso-alvo (kg)</label>
+            <input type="number" step="0.5" placeholder="Ex: 80" value={formMeta.peso}
+              onChange={e => setFormMeta(p => ({ ...p, peso: e.target.value }))}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/30 placeholder:text-zinc-700" />
+          </div>
+          <div>
+            <label className="text-zinc-600 text-[10px] mb-1.5 block">Data-limite</label>
+            <input type="date" value={formMeta.data}
+              onChange={e => setFormMeta(p => ({ ...p, data: e.target.value }))}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/30"
+              style={{ colorScheme: 'dark' }} />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleSalvar}
+              className="flex-1 bg-emerald-500 text-black font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+              Salvar meta
+            </button>
+            <button onClick={() => setEditando(false)}
+              className="px-4 py-3 border border-white/[0.1] rounded-xl text-zinc-500 text-sm active:scale-95 transition-all">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl p-5 mb-3 border border-white/[0.06] relative overflow-hidden" style={{ background: '#0f0f0f' }}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Meta pessoal</p>
+          {atingiu ? (
+            <p className="text-emerald-400 font-black text-xl">Meta atingida! 🎉</p>
+          ) : (
+            <p className="text-white font-black text-xl">Faltam {faltam?.toFixed(1)} kg</p>
+          )}
+          <div className="flex items-center gap-2 mt-0.5">
+            {pesoCurrent != null && (
+              <p className="text-zinc-500 text-xs">{pesoCurrent} kg atual</p>
+            )}
+            {pesoDelta !== null && pesoDelta !== 0 && (
+              <span className={`text-[10px] font-bold ${(perder && pesoDelta < 0) || (!perder && pesoDelta > 0) ? 'text-emerald-400' : 'text-red-400'}`}>
+                {pesoDelta > 0 ? '+' : ''}{pesoDelta} kg
+              </span>
+            )}
+          </div>
+        </div>
+        <button onClick={() => setEditando(true)}
+          className="text-zinc-600 text-[10px] uppercase tracking-wider border border-white/[0.08] rounded-lg px-3 py-1.5 hover:text-white hover:border-white/20 transition-all active:scale-95 shrink-0">
+          editar
+        </button>
+      </div>
+
+      <div className="mb-3">
+        <div className="flex justify-between text-[10px] mb-1.5">
+          <span className="text-zinc-600">{pesoBase} kg início</span>
+          <span className="text-emerald-400">{metaPeso} kg meta</span>
+        </div>
+        <div className="h-2 bg-white/[0.05] rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-700 bg-emerald-400" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-zinc-600 text-[10px] mt-1.5">{pct}% do caminho percorrido</p>
+      </div>
+
+      {dias !== null && (
+        <div className="flex items-center gap-3 pt-3 border-t border-white/[0.04]">
+          <div className="text-center shrink-0">
+            <p className="text-white font-black text-lg leading-none">{dias}</p>
+            <p className="text-zinc-600 text-[9px] uppercase tracking-wider">dias</p>
+          </div>
+          <div className="w-px h-6 bg-white/[0.06] shrink-0" />
+          <p className="text-zinc-500 text-xs flex-1">
+            {dias > 0
+              ? `restantes até ${metaDataLimite ? new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }) : ''}`
+              : 'Prazo encerrado'}
+          </p>
+          <button onClick={() => router.push('/evolucao-medidas/' + userId)}
+            className="text-[10px] text-zinc-600 uppercase tracking-wider hover:text-white transition-colors shrink-0 active:scale-95">
+            Ver medidas →
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, recentDays, sonoHistorico, vinculos, treinoHoje, nutricaoHoje,
-  decisaoDia, gerandoDecisao, temSonoHoje, onLogout: _onLogout, onOpenNotifs, notifCount,
+  decisaoDia, gerandoDecisao, temSonoHoje, userId, pesoAtual, pesoDelta, onSalvarMeta,
+  onLogout: _onLogout, onOpenNotifs, notifCount,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
   vinculos: Vinculo[]; treinoHoje: { nome: string; plano: string; concluido: boolean } | null
   nutricaoHoje: NutricaoHoje; decisaoDia: DecisaoDia; gerandoDecisao: boolean; temSonoHoje: boolean
-  activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number
+  activeTab: string; userId: string; pesoAtual: number | null; pesoDelta: number | null
+  onSalvarMeta: (metaPeso: number, metaData: string) => Promise<void>
+  onLogout: () => void; onOpenNotifs: () => void; notifCount: number
 }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
@@ -896,6 +1081,57 @@ function DashboardCliente({
           {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treinos →'}
         </button>
       </div>
+
+      {/* Meta pessoal */}
+      <CardMeta
+        perfil={perfil}
+        pesoAtual={pesoAtual}
+        pesoDelta={pesoDelta}
+        userId={userId}
+        onSalvarMeta={onSalvarMeta}
+        router={router}
+      />
+
+      {/* Nutrição hoje */}
+      <button onClick={() => router.push('/nutricao')}
+        className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
+        style={{ background: '#0f0f0f' }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Nutrição hoje</p>
+          <span className="text-zinc-600 text-[10px] uppercase tracking-wider">Ver plano →</span>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="flex justify-between text-[10px] mb-1.5">
+              <span className="text-zinc-500">Calorias</span>
+              <span className={nutricaoHoje?.calorias ? 'text-orange-400' : 'text-zinc-700'}>
+                {nutricaoHoje?.calorias ?? 0} kcal
+              </span>
+            </div>
+            <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-orange-400 transition-all duration-500"
+                style={{ width: `${pctCal}%` }} />
+            </div>
+            <p className="text-zinc-700 text-[9px] mt-1">Meta: {metaCal ?? '—'} kcal</p>
+          </div>
+          <div>
+            <div className="flex justify-between text-[10px] mb-1.5">
+              <span className="text-zinc-500">Proteína</span>
+              <span className={nutricaoHoje?.proteina ? 'text-blue-400' : 'text-zinc-700'}>
+                {nutricaoHoje?.proteina ?? 0} g
+              </span>
+            </div>
+            <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-blue-400 transition-all duration-500"
+                style={{ width: `${pctProt}%` }} />
+            </div>
+            <p className="text-zinc-700 text-[9px] mt-1">Meta: {metaProt ?? '—'} g</p>
+          </div>
+        </div>
+        {!nutricaoHoje && (
+          <p className="text-zinc-600 text-xs mt-3 border-t border-white/[0.04] pt-3">Registre o que você comeu hoje →</p>
+        )}
+      </button>
 
       {/* Meu time */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
