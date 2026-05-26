@@ -292,8 +292,10 @@ const MARQUEE_ITEMS = [
 export default function Landing() {
   const router = useRouter()
   const [vis, setVis] = useState(false)
-  const perfis = useInView(0.1)
-  const problema = useInView(0.2)
+  const [perfilTab, setPerfilTab] = useState<0|1|2>(0)
+  const perfis    = useInView(0.1)
+  const visPerfis = useInView(0.08)
+  const problema  = useInView(0.2)
   const feat1  = useInView(0.15)
   const feat2  = useInView(0.15)
   const feat3  = useInView(0.15)
@@ -535,6 +537,148 @@ export default function Landing() {
               )
             })}
           </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* O QUE CADA PERFIL VÊ                                             */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <section ref={visPerfis.ref} className="px-5 py-16 max-w-5xl mx-auto">
+        <div className="text-center mb-10">
+          <SectionLabel>O que cada perfil vê</SectionLabel>
+          <h2 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">
+            Três telas.<br /><span className="text-zinc-400">Um só contexto.</span>
+          </h2>
+          <p className="text-zinc-400 text-base mt-4 max-w-xl mx-auto leading-relaxed">
+            Personal vê o sono do atleta. Nutri vê o treino. Atleta vê tudo junto. Os três trabalham com os <strong className="text-white">mesmos dados em tempo real</strong>.
+          </p>
+        </div>
+
+        {/* Tabs mobile */}
+        <div className="flex md:hidden gap-2 mb-6 justify-center">
+          {([
+            { label: 'Atleta',        active: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10 border' },
+            { label: 'Personal',      active: 'text-blue-400 border-blue-500/40 bg-blue-500/10 border' },
+            { label: 'Nutricionista', active: 'text-green-400 border-green-500/40 bg-green-500/10 border' },
+          ] as const).map((t, i) => (
+            <button key={i} onClick={() => setPerfilTab(i as 0|1|2)}
+              className={`text-xs font-bold px-3 py-2 rounded-xl transition-all ${perfilTab === i ? t.active : 'text-zinc-500 border border-white/[0.08]'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* ── ATLETA ─────────────────────────────────────────────── */}
+          <div className={`${perfilTab !== 0 ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl border border-emerald-500/15 overflow-hidden transition-all duration-700 ${visPerfis.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+            style={{ background: 'rgba(8,14,10,0.97)', transitionDelay: '0ms' }}>
+            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-[10px] font-black text-emerald-400">AT</div>
+              <div>
+                <p className="text-white text-xs font-black">Atleta</p>
+                <p className="text-zinc-600 text-[9px]">O que o atleta vê</p>
+              </div>
+            </div>
+            <div className="p-4 flex-1 space-y-2.5">
+              <div className="rounded-xl p-3 border border-emerald-500/25" style={{ background: 'linear-gradient(135deg,#091a10,#060e09)' }}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-emerald-400 text-[9px] uppercase tracking-widest font-bold">⚡ Recuperação</p>
+                  <span className="text-emerald-400 text-xs font-black">85</span>
+                </div>
+                <p className="text-white text-[11px] font-black">Ótima — treine forte hoje</p>
+                <p className="text-zinc-500 text-[9px] mt-0.5">HRV 68ms · Sono 8.2h</p>
+              </div>
+              <div className="rounded-xl p-3 border border-blue-500/15" style={{ background: '#080a16' }}>
+                <p className="text-blue-400 text-[9px] uppercase tracking-widest font-bold mb-1.5">🏋️ Fase de treino</p>
+                <p className="text-white text-[11px] font-bold">Força · Semana 1 de 4</p>
+                <div className="mt-2 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-400 rounded-full" style={{ width: '25%' }} />
+                </div>
+                <p className="text-zinc-600 text-[9px] mt-1">Ciclo Verão 2026 · Personal: Rafael</p>
+              </div>
+              <div className="rounded-xl p-3 border border-orange-500/15" style={{ background: '#100c08' }}>
+                <p className="text-orange-400 text-[9px] uppercase tracking-widest font-bold mb-1">🥗 Plano hoje</p>
+                <p className="text-white text-[11px] font-bold">2.100 kcal · 180g prot</p>
+                <p className="text-zinc-600 text-[9px] mt-0.5">Prescrito por Dra. Ana · Cutting</p>
+              </div>
+            </div>
+            <div className="px-4 pb-4">
+              <p className="text-emerald-400/50 text-[9px] border-l-2 border-emerald-500/25 pl-2 italic">Treino, nutrição e recuperação num só lugar</p>
+            </div>
+          </div>
+
+          {/* ── PERSONAL ────────────────────────────────────────────── */}
+          <div className={`${perfilTab !== 1 ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl border border-blue-500/15 overflow-hidden transition-all duration-700 ${visPerfis.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+            style={{ background: 'rgba(8,10,18,0.97)', transitionDelay: '120ms' }}>
+            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
+              <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-[10px] font-black text-blue-400">PT</div>
+              <div>
+                <p className="text-white text-xs font-black">Personal Trainer</p>
+                <p className="text-zinc-600 text-[9px]">Dashboard de alunos</p>
+              </div>
+            </div>
+            <div className="p-4 flex-1">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-zinc-500 text-[9px] uppercase tracking-widest">Meus alunos</p>
+                <span className="text-blue-400 text-[9px] font-bold">3 ativos · 1 alerta</span>
+              </div>
+              {([
+                { name: 'Pedro Santos', score: 85, sono: '8.2h', status: 'Pode treinar forte',    dot: 'bg-emerald-400', ct: 'text-emerald-400', cb: 'border-emerald-500/20 bg-emerald-500/[0.07]' },
+                { name: 'Ana Lima',     score: 42, sono: '5.1h', status: '⚠ Moderar hoje',       dot: 'bg-orange-400',  ct: 'text-orange-400',  cb: 'border-orange-500/20 bg-orange-500/[0.07]' },
+                { name: 'Carlos Moura', score: 71, sono: '7.5h', status: 'Treino moderado',       dot: 'bg-yellow-400',  ct: 'text-yellow-400',  cb: 'border-yellow-500/20 bg-yellow-500/[0.07]' },
+              ] as const).map((a, i) => (
+                <div key={i} className={`rounded-xl p-3 mb-2 border ${a.cb}`}>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-white text-[11px] font-bold">{a.name}</p>
+                    <span className={`text-xs font-black ${a.ct}`}>{a.score}</span>
+                  </div>
+                  <p className="text-zinc-500 text-[9px]">😴 {a.sono} sono</p>
+                  <p className={`text-[9px] font-semibold mt-0.5 ${a.ct}`}>{a.status}</p>
+                </div>
+              ))}
+            </div>
+            <div className="px-4 pb-4">
+              <p className="text-blue-400/50 text-[9px] border-l-2 border-blue-500/25 pl-2 italic">Prescreve baseado em dados reais, não em feeling</p>
+            </div>
+          </div>
+
+          {/* ── NUTRICIONISTA ────────────────────────────────────────── */}
+          <div className={`${perfilTab !== 2 ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl border border-green-500/15 overflow-hidden transition-all duration-700 ${visPerfis.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+            style={{ background: 'rgba(8,12,10,0.97)', transitionDelay: '240ms' }}>
+            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
+              <div className="w-7 h-7 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center justify-center text-[10px] font-black text-green-400">NU</div>
+              <div>
+                <p className="text-white text-xs font-black">Nutricionista</p>
+                <p className="text-zinc-600 text-[9px]">Perfil do paciente</p>
+              </div>
+            </div>
+            <div className="p-4 flex-1 space-y-2.5">
+              <div className="flex items-center justify-between pb-2 border-b border-white/[0.05]">
+                <p className="text-white text-sm font-black">Pedro Santos</p>
+                <span className="text-zinc-600 text-[9px]">consulta: 12/mai</span>
+              </div>
+              <div className="rounded-xl p-3 border border-violet-500/15" style={{ background: '#0c0914' }}>
+                <p className="text-violet-400 text-[9px] uppercase tracking-widest font-bold mb-1">😴 Sono & recuperação</p>
+                <p className="text-white text-[11px] font-bold">8.2h · Score 85 · HRV 68ms</p>
+                <p className="text-emerald-400 text-[9px] mt-0.5">Recuperação ótima hoje</p>
+              </div>
+              <div className="rounded-xl p-3 border border-blue-500/15" style={{ background: '#08090f' }}>
+                <p className="text-blue-400 text-[9px] uppercase tracking-widest font-bold mb-1">🏋️ Treino (via personal)</p>
+                <p className="text-white text-[11px] font-bold">Fase Força · Sem 11 de 13</p>
+                <p className="text-zinc-500 text-[9px] mt-0.5">3x/sem · volume alto esta semana</p>
+              </div>
+              <div className="rounded-xl p-3 border border-orange-500/15" style={{ background: '#100c08' }}>
+                <p className="text-orange-400 text-[9px] uppercase tracking-widest font-bold mb-1">🥗 Plano ativo</p>
+                <p className="text-white text-[11px] font-bold">2.100 kcal · déficit −700</p>
+                <p className="text-zinc-500 text-[9px] mt-0.5">180g prot · Cutting</p>
+              </div>
+            </div>
+            <div className="px-4 pb-4">
+              <p className="text-green-400/50 text-[9px] border-l-2 border-green-500/25 pl-2 italic">Ajusta o plano sabendo exatamente o que o personal prescreveu</p>
+            </div>
+          </div>
+
         </div>
       </section>
 
