@@ -458,6 +458,31 @@ function PerfilConteudo() {
             Pular por enquanto — completar depois
           </button>
         )}
+
+        {/* Acesso rápido — só para clientes (não profissionais) */}
+        {!isNovo && !isProf && (
+          <div className="mt-5 space-y-2">
+            <p className="text-zinc-600 text-[10px] uppercase tracking-widest">Ficha de saúde</p>
+            <button onClick={() => router.push(`/anamnese/${userId}`)}
+              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.98] transition-all text-left">
+              <span className="text-2xl shrink-0">📋</span>
+              <div className="flex-1">
+                <p className="text-white font-bold text-sm">Anamnese</p>
+                <p className="text-zinc-600 text-xs">Histórico de saúde, hábitos e objetivos</p>
+              </div>
+              <span className="text-zinc-700 text-sm shrink-0">→</span>
+            </button>
+            <button onClick={() => router.push(`/evolucao-medidas/${userId}`)}
+              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.98] transition-all text-left">
+              <span className="text-2xl shrink-0">📏</span>
+              <div className="flex-1">
+                <p className="text-white font-bold text-sm">Evolução de medidas</p>
+                <p className="text-zinc-600 text-xs">Peso, composição e circunferências ao longo do tempo</p>
+              </div>
+              <span className="text-zinc-700 text-sm shrink-0">→</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {!isNovo && <NavBar tipo={tipo || 'cliente'} ativa="perfil" />}
