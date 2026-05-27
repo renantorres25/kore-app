@@ -491,26 +491,35 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {([
+            {[
               {
                 sigla: 'AT', cor: 'emerald' as const, role: 'Atleta',
                 headline: 'Veja tudo em um lugar.',
                 desc: 'Sono, treino, nutrição e recuperação centralizados. Uma visão clara do seu dia — sem abrir vários apps.',
                 items: ['Score de recuperação diário', 'Plano de treino do seu personal', 'Plano alimentar da sua nutri'],
+                cta: 'Criar conta — sempre grátis →',
+                ctaNote: 'Gratuito para sempre · Sem cartão',
+                ctaClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20',
               },
               {
                 sigla: 'PT', cor: 'blue' as const, role: 'Personal Trainer',
                 headline: 'Acompanhe com dados reais.',
                 desc: 'Veja o sono, recuperação e bem-estar de cada aluno antes de prescrever. Sem depender de WhatsApp.',
-                items: ['Dados de todos os alunos', 'Alertas quando precisa de atenção', 'Agenda e histórico integrados'],
+                items: ['Toda sua carteira em um lugar', 'Alertas quando precisa de atenção', 'Agenda e histórico integrados'],
+                cta: 'Trazer minha carteira →',
+                ctaNote: '14 dias grátis · Depois R$ 79/mês',
+                ctaClass: 'bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20',
               },
               {
                 sigla: 'NU', cor: 'green' as const, role: 'Nutricionista',
                 headline: 'Prescreva no contexto certo.',
                 desc: 'Ajuste o plano com base em como o paciente está dormindo, treinando e se recuperando agora.',
                 items: ['Sono e energia do paciente visíveis', 'Plano alimentar personalizado', 'Agenda de consultas integrada'],
+                cta: 'Começar com meus pacientes →',
+                ctaNote: '14 dias grátis · Depois R$ 79/mês',
+                ctaClass: 'bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20',
               },
-            ] as const).map(p => {
+            ].map(p => {
               const C = {
                 emerald: { border: 'border-emerald-500/25', badge: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10', dot: 'bg-emerald-400', head: 'text-emerald-400' },
                 blue:    { border: 'border-blue-500/25',    badge: 'text-blue-400 border-blue-500/30 bg-blue-500/10',       dot: 'bg-blue-400',    head: 'text-blue-400' },
@@ -525,14 +534,21 @@ export default function Landing() {
                   </div>
                   <p className={`font-bold text-base mb-3 leading-snug ${C.head}`}>{p.headline}</p>
                   <p className="text-zinc-400 text-sm leading-relaxed mb-5 flex-1">{p.desc}</p>
-                  <ul className="space-y-2.5">
-                    {p.items.map(item => (
+                  <ul className="space-y-2.5 mb-6">
+                    {p.items.map((item: string) => (
                       <li key={item} className="flex items-start gap-2.5">
                         <div className={`w-1.5 h-1.5 rounded-full ${C.dot} shrink-0 mt-1.5`}/>
                         <p className="text-zinc-300 text-sm">{item}</p>
                       </li>
                     ))}
                   </ul>
+                  <div className="mt-auto pt-5 border-t border-white/[0.06]">
+                    <button onClick={() => router.push('/login?modo=cadastro')}
+                      className={`w-full text-sm font-black py-3 rounded-xl transition-all active:scale-95 ${p.ctaClass}`}>
+                      {p.cta}
+                    </button>
+                    <p className="text-zinc-700 text-[9px] text-center mt-2">{p.ctaNote}</p>
+                  </div>
                 </div>
               )
             })}
@@ -920,6 +936,102 @@ export default function Landing() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* PREÇOS                                                            */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <section className="px-5 py-16 max-w-5xl mx-auto">
+        <div className="text-center mb-12">
+          <SectionLabel>Preços simples</SectionLabel>
+          <h2 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">
+            Profissionais pagam.<br /><span className="text-emerald-400">Atletas, nunca.</span>
+          </h2>
+          <p className="text-zinc-500 text-sm mt-4 max-w-md mx-auto">
+            Quem tem ROI direto paga. Quem usa para evoluir, não.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          {/* Atleta */}
+          <div className="rounded-2xl p-7 border border-white/[0.07] flex flex-col" style={{ background: 'rgba(12,14,24,0.9)' }}>
+            <div className="mb-5">
+              <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Atleta</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-black text-white">Grátis</span>
+              </div>
+              <p className="text-zinc-600 text-xs mt-1">Para sempre · Sem cartão</p>
+            </div>
+            <ul className="space-y-3 flex-1 mb-6">
+              {['Acesso ao app completo', 'Score de recuperação diário', 'Acompanhamento de treino e nutrição', 'Histórico e evolução', 'Conecta com seus profissionais'].map(t => (
+                <li key={t} className="flex items-start gap-2.5">
+                  <span className="text-emerald-400 text-xs shrink-0 mt-0.5">✓</span>
+                  <p className="text-zinc-300 text-sm">{t}</p>
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => router.push('/login?modo=cadastro')}
+              className="w-full py-3 rounded-xl border border-white/[0.1] text-zinc-300 text-sm font-bold active:scale-95 transition-all hover:border-white/30 hover:text-white">
+              Criar conta grátis →
+            </button>
+          </div>
+
+          {/* Solo Profissional */}
+          <div className="rounded-2xl p-7 border border-emerald-500/25 flex flex-col relative overflow-hidden" style={{ background: 'rgba(10,18,14,0.95)' }}>
+            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl opacity-15" style={{ background: '#10b981' }} />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-zinc-400 text-xs uppercase tracking-widest">Profissional Solo</p>
+                <span className="text-[9px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 rounded-full px-2 py-0.5 font-bold uppercase tracking-widest">Popular</span>
+              </div>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-4xl font-black text-white">R$ 79</span>
+                <span className="text-zinc-500 text-sm">/mês</span>
+              </div>
+              <p className="text-zinc-600 text-xs mb-5">14 dias grátis · Cancele quando quiser</p>
+              <ul className="space-y-3 flex-1 mb-6">
+                {['Toda sua carteira de clientes', 'Gestão de treinos ou nutrição', 'Agenda integrada', 'Histórico e evolução dos clientes', 'Suporte prioritário'].map(t => (
+                  <li key={t} className="flex items-start gap-2.5">
+                    <span className="text-emerald-400 text-xs shrink-0 mt-0.5">✓</span>
+                    <p className="text-zinc-200 text-sm">{t}</p>
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => router.push('/login?modo=cadastro')}
+                className="w-full py-3 rounded-xl bg-emerald-500 text-black text-sm font-black active:scale-95 transition-all hover:bg-emerald-400">
+                Começar 14 dias grátis →
+              </button>
+            </div>
+          </div>
+
+          {/* Conectado */}
+          <div className="rounded-2xl p-7 border border-white/[0.07] flex flex-col" style={{ background: 'rgba(12,14,24,0.9)' }}>
+            <div className="mb-5">
+              <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Profissional Conectado</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-black text-white">R$ 129</span>
+                <span className="text-zinc-500 text-sm">/mês</span>
+              </div>
+              <p className="text-zinc-600 text-xs mt-1">14 dias grátis · Cancele quando quiser</p>
+            </div>
+            <ul className="space-y-3 flex-1 mb-6">
+              {['Tudo do plano Solo', 'Colaboração com outros profissionais', 'Personal vê plano nutricional', 'Nutri vê treino e recuperação', 'O triângulo completo — diferencial exclusivo KORE'].map((t, i) => (
+                <li key={t} className="flex items-start gap-2.5">
+                  <span className={`text-xs shrink-0 mt-0.5 ${i >= 1 ? 'text-violet-400' : 'text-zinc-500'}`}>{i >= 1 ? '✦' : '✓'}</span>
+                  <p className={`text-sm ${i >= 1 ? 'text-zinc-200' : 'text-zinc-400'}`}>{t}</p>
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => router.push('/login?modo=cadastro')}
+              className="w-full py-3 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-400 text-sm font-bold active:scale-95 transition-all hover:bg-violet-500/20">
+              Começar 14 dias grátis →
+            </button>
+          </div>
+        </div>
+
+        <p className="text-center text-zinc-700 text-xs mt-8">
+          Preços em fase piloto sujeitos a ajuste. Usuários do piloto garantem condições especiais.
+        </p>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
