@@ -10,6 +10,7 @@ type Paciente = {
   id: string; nome: string | null; email: string
   peso: number | null; objetivo: string | null
   altura: number | null; sexo: string | null; data_nascimento: string | null
+  meta_peso: number | null; meta_data_limite: string | null
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao: number | null }
@@ -102,6 +103,8 @@ export default function NutricionistaPaciente() {
   const [fichaSexo, setFichaSexo] = useState('')
   const [fichaNascimento, setFichaNascimento] = useState('')
   const [fichaObjetivo, setFichaObjetivo] = useState('')
+  const [fichaMetaPeso, setFichaMetaPeso] = useState('')
+  const [fichaMetaData, setFichaMetaData] = useState('')
 
   const [editandoPlano, setEditandoPlano] = useState(false)
   const [salvandoEd, setSalvandoEd] = useState(false)
@@ -121,7 +124,7 @@ export default function NutricionistaPaciente() {
         { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
       ] = await Promise.all([
-        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento').eq('id', clienteId).single(),
+        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite').eq('id', clienteId).single(),
         supabase.from('treinos').select('data').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
         supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
         supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
@@ -293,6 +296,8 @@ export default function NutricionistaPaciente() {
       sexo: fichaSexo || null,
       data_nascimento: fichaNascimento || null,
       objetivo: fichaObjetivo || null,
+      meta_peso: fichaMetaPeso ? parseFloat(fichaMetaPeso) || null : null,
+      meta_data_limite: fichaMetaData || null,
     }
     await supabase.from('perfis').update(updates).eq('id', clienteId)
     setPaciente(prev => prev ? { ...prev, ...updates } : prev)
@@ -416,6 +421,8 @@ Responda APENAS JSON válido:
                 setFichaSexo(paciente?.sexo ?? '')
                 setFichaNascimento(paciente?.data_nascimento ?? '')
                 setFichaObjetivo(paciente?.objetivo ?? '')
+                setFichaMetaPeso(String(paciente?.meta_peso ?? ''))
+                setFichaMetaData(paciente?.meta_data_limite ?? '')
               }
               setEditandoFicha(p => !p)
             }}
@@ -427,6 +434,7 @@ Responda APENAS JSON válido:
                   {paciente?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
                   {paciente?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{paciente.altura}cm</span>}
                   {paciente?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {paciente?.meta_peso && <span className="text-[9px] text-emerald-600 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-full px-2 py-0.5">Meta: {paciente.meta_peso}kg</span>}
                   {!paciente?.peso && !paciente?.altura && !paciente?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
                 </>
               )}
@@ -474,6 +482,23 @@ Responda APENAS JSON válido:
                       {l}
                     </button>
                   ))}
+                </div>
+              </div>
+              <div className="border-t border-white/[0.04] pt-3">
+                <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2.5">Meta de peso</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso-alvo (kg)</p>
+                    <input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)}
+                      placeholder="Ex: 62"
+                      className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.06]" />
+                  </div>
+                  <div>
+                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Prazo</p>
+                    <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
+                      className="w-full bg-white/[0.04] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.06]"
+                      style={{ colorScheme: 'dark' }} />
+                  </div>
                 </div>
               </div>
               <button onClick={salvarFicha} disabled={salvandoFicha}

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
-type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null }
+type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; status: string; data: string | null; exercicios: Exercicio[] }
 type Monitor = {
@@ -75,6 +75,8 @@ export default function PersonalAluno() {
   const [fichaSexo, setFichaSexo] = useState('')
   const [fichaNascimento, setFichaNascimento] = useState('')
   const [fichaObjetivo, setFichaObjetivo] = useState('')
+  const [fichaMetaPeso, setFichaMetaPeso] = useState('')
+  const [fichaMetaData, setFichaMetaData] = useState('')
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -88,7 +90,7 @@ export default function PersonalAluno() {
     const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
     const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }] = await Promise.all([
-      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento').eq('id', clienteId).single(),
+      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
       supabase.from('sono').select('score_recuperacao, duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
       supabase.from('bem_estar').select('humor, energia, motivacao, dor_muscular').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
@@ -271,6 +273,8 @@ export default function PersonalAluno() {
       sexo: fichaSexo || null,
       data_nascimento: fichaNascimento || null,
       objetivo: fichaObjetivo || null,
+      meta_peso: fichaMetaPeso ? parseFloat(fichaMetaPeso) || null : null,
+      meta_data_limite: fichaMetaData || null,
     }
     await supabase.from('perfis').update(updates).eq('id', clienteId)
     setAluno(prev => prev ? { ...prev, ...updates } : prev)
@@ -426,6 +430,8 @@ export default function PersonalAluno() {
                 setFichaSexo(aluno?.sexo ?? '')
                 setFichaNascimento(aluno?.data_nascimento ?? '')
                 setFichaObjetivo(aluno?.objetivo ?? '')
+                setFichaMetaPeso(String(aluno?.meta_peso ?? ''))
+                setFichaMetaData(aluno?.meta_data_limite ?? '')
               }
               setEditandoFicha(p => !p)
             }}
@@ -437,6 +443,7 @@ export default function PersonalAluno() {
                   {aluno?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
                   {aluno?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{aluno.altura}cm</span>}
                   {aluno?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
+                  {aluno?.meta_peso && <span className="text-[9px] text-emerald-600 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-full px-2 py-0.5">Meta: {aluno.meta_peso}kg</span>}
                   {!aluno?.peso && !aluno?.altura && !aluno?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
                 </>
               )}
@@ -484,6 +491,23 @@ export default function PersonalAluno() {
                       {l}
                     </button>
                   ))}
+                </div>
+              </div>
+              <div className="border-t border-white/[0.04] pt-3">
+                <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2.5">Meta de peso</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso-alvo (kg)</p>
+                    <input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)}
+                      placeholder="Ex: 78"
+                      className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.06]" />
+                  </div>
+                  <div>
+                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Prazo</p>
+                    <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
+                      className="w-full bg-white/[0.04] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.06]"
+                      style={{ colorScheme: 'dark' }} />
+                  </div>
                 </div>
               </div>
               <button onClick={salvarFicha} disabled={salvandoFicha}

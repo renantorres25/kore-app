@@ -755,8 +755,8 @@ function CardMeta({
 
   const objetivoLower = (perfil.objetivo ?? '').toLowerCase()
   const goalIsGain    = objetivoLower.includes('hiper') || objetivoLower.includes('ganh') || objetivoLower.includes('mass')
-  const metaSugerida  = !metaPeso && pesoBase
-    ? (goalIsGain ? Math.round(pesoBase * 1.08) : Math.round(pesoBase * 0.91))
+  const metaSugerida  = !metaPeso && pesoCurrent
+    ? (goalIsGain ? Math.round(pesoCurrent * 1.08) : Math.round(pesoCurrent * 0.91))
     : null
   const metaEfetiva   = metaPeso ?? metaSugerida
   const ehSugestao    = !metaPeso && !!metaSugerida
@@ -774,6 +774,7 @@ function CardMeta({
     if (!metaEfetiva || !pesoBase || pesoCurrent == null) return 0
     const total = Math.abs(metaEfetiva - pesoBase)
     if (total === 0) return 100
+    if (perder ? pesoCurrent > pesoBase : pesoCurrent < pesoBase) return 0
     const feito = Math.abs(pesoCurrent - pesoBase)
     return Math.min(100, Math.max(0, Math.round((feito / total) * 100)))
   }
