@@ -775,6 +775,12 @@ function CardMeta({
   const atingiu = faltam !== null && faltam < 0.5
   const dias = diasRestantes()
   const pct = progressoPct()
+  const deltaAlcancado = pesoBase != null && pesoCurrent != null
+    ? Math.round(Math.abs(pesoBase - pesoCurrent) * 10) / 10
+    : 0
+  const progredindo = pesoBase != null && pesoCurrent != null
+    ? (perder ? pesoCurrent <= pesoBase : pesoCurrent >= pesoBase)
+    : false
 
   function handleSalvar() {
     const mp = parseFloat(formMeta.peso)
@@ -786,16 +792,11 @@ function CardMeta({
   if (!metaPeso && !editando) {
     return (
       <button onClick={() => setEditando(true)}
-        className="w-full text-left rounded-2xl p-5 mb-3 border border-dashed border-white/[0.1] active:scale-[0.98] transition-all"
+        className="w-full text-left rounded-2xl p-5 mb-3 border border-dashed border-white/[0.15] active:scale-[0.98] transition-all"
         style={{ background: '#0f0f0f' }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Meta pessoal</p>
-            <p className="text-white font-bold">Definir meta de peso</p>
-            <p className="text-zinc-600 text-xs mt-0.5">Acompanhe sua evolução com um objetivo claro</p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-xl shrink-0">🎯</div>
-        </div>
+        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meta pessoal</p>
+        <p className="text-white font-black text-xl mb-1.5">Definir minha meta →</p>
+        <p className="text-zinc-600 text-sm leading-relaxed">Onde você quer chegar? Defina seu peso-alvo e acompanhe cada kg de progresso.</p>
       </button>
     )
   }
@@ -835,60 +836,70 @@ function CardMeta({
 
   return (
     <div className="rounded-2xl p-5 mb-3 border border-white/[0.06] relative overflow-hidden" style={{ background: '#0f0f0f' }}>
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Meta pessoal</p>
-          {atingiu ? (
-            <p className="text-emerald-400 font-black text-xl">Meta atingida! 🎉</p>
-          ) : (
-            <p className="text-white font-black text-xl">Faltam {faltam?.toFixed(1)} kg</p>
-          )}
-          <div className="flex items-center gap-2 mt-0.5">
-            {pesoCurrent != null && (
-              <p className="text-zinc-500 text-xs">{pesoCurrent} kg atual</p>
-            )}
-            {pesoDelta !== null && pesoDelta !== 0 && (
-              <span className={`text-[10px] font-bold ${(perder && pesoDelta < 0) || (!perder && pesoDelta > 0) ? 'text-emerald-400' : 'text-red-400'}`}>
-                {pesoDelta > 0 ? '+' : ''}{pesoDelta} kg
-              </span>
-            )}
-          </div>
-        </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Meta pessoal</p>
         <button onClick={() => setEditando(true)}
-          className="text-zinc-600 text-[10px] uppercase tracking-wider border border-white/[0.08] rounded-lg px-3 py-1.5 hover:text-white hover:border-white/20 transition-all active:scale-95 shrink-0">
+          className="text-zinc-600 text-[10px] uppercase tracking-wider border border-white/[0.08] rounded-lg px-3 py-1.5 hover:text-white hover:border-white/20 transition-all active:scale-95">
           editar
         </button>
       </div>
 
-      <div className="mb-3">
-        <div className="flex justify-between text-[10px] mb-1.5">
-          <span className="text-zinc-600">{pesoBase} kg início</span>
-          <span className="text-emerald-400">{metaPeso} kg meta</span>
+      {atingiu ? (
+        <p className="text-emerald-400 font-black text-3xl mb-5">Meta atingida! 🎉</p>
+      ) : (
+        <div className="mb-5">
+          <p className="font-black leading-none mb-1"
+            style={{ fontSize: '2.75rem', fontVariantNumeric: 'tabular-nums', color: deltaAlcancado > 0 && progredindo ? '#34d399' : deltaAlcancado === 0 ? '#71717a' : '#f87171' }}>
+            {deltaAlcancado > 0 ? `${perder ? '-' : '+'}${deltaAlcancado.toFixed(1)} kg` : '—'}
+          </p>
+          <p className="text-zinc-600 text-xs">
+            {deltaAlcancado > 0 && progredindo ? 'já conquistados' : deltaAlcancado > 0 ? 'de variação' : 'registre seu peso para acompanhar'}
+          </p>
         </div>
+      )}
+
+      {/* Início → Hoje → Meta */}
+      {!atingiu && (
+        <div className="flex items-center mb-4">
+          <div className="flex-1 text-center">
+            <p className="text-zinc-400 font-bold text-sm">{pesoBase != null ? `${pesoBase} kg` : '—'}</p>
+            <p className="text-zinc-700 text-[9px] uppercase tracking-wider mt-0.5">início</p>
+          </div>
+          <div className="text-zinc-700 text-xs px-1">→</div>
+          <div className="flex-1 text-center">
+            <p className="text-white font-black text-base">{pesoCurrent != null ? `${pesoCurrent} kg` : '—'}</p>
+            <p className="text-zinc-500 text-[9px] uppercase tracking-wider mt-0.5">hoje</p>
+          </div>
+          <div className="text-zinc-700 text-xs px-1">→</div>
+          <div className="flex-1 text-center">
+            <p className="text-emerald-400 font-bold text-sm">{metaPeso} kg</p>
+            <p className="text-zinc-700 text-[9px] uppercase tracking-wider mt-0.5">meta</p>
+          </div>
+        </div>
+      )}
+
+      {/* Barra de progresso */}
+      <div className="mb-4">
         <div className="h-2 bg-white/[0.05] rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all duration-700 bg-emerald-400" style={{ width: `${pct}%` }} />
         </div>
         <p className="text-zinc-600 text-[10px] mt-1.5">{pct}% do caminho percorrido</p>
       </div>
 
-      {dias !== null && (
-        <div className="flex items-center gap-3 pt-3 border-t border-white/[0.04]">
-          <div className="text-center shrink-0">
-            <p className="text-white font-black text-lg leading-none">{dias}</p>
-            <p className="text-zinc-600 text-[9px] uppercase tracking-wider">dias</p>
-          </div>
-          <div className="w-px h-6 bg-white/[0.06] shrink-0" />
+      {/* Rodapé */}
+      <div className="flex items-center gap-2 pt-3 border-t border-white/[0.04]">
+        {!atingiu && faltam != null && (
           <p className="text-zinc-500 text-xs flex-1">
-            {dias > 0
-              ? `restantes até ${metaDataLimite ? new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }) : ''}`
-              : 'Prazo encerrado'}
+            Faltam <span className="text-white font-bold">{faltam.toFixed(1)} kg</span>
+            {metaDataLimite && ` · ${new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
           </p>
-          <button onClick={() => router.push('/evolucao-medidas/' + userId)}
-            className="text-[10px] text-zinc-600 uppercase tracking-wider hover:text-white transition-colors shrink-0 active:scale-95">
-            Ver medidas →
-          </button>
-        </div>
-      )}
+        )}
+        <button onClick={() => router.push('/evolucao-medidas/' + userId)}
+          className="text-[10px] text-zinc-600 uppercase tracking-wider hover:text-white transition-colors shrink-0 active:scale-95">
+          Ver evolução →
+        </button>
+      </div>
     </div>
   )
 }
@@ -909,9 +920,9 @@ function DashboardCliente({
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
-  const media     = getMediaBemEstar(bemEstar)
-  const cores     = scoreRecuperacao ? getScoreCores(scoreRecuperacao) : null
-  const vinculoNutri = vinculos.find(v => v?.tipo === 'nutricionista')
+  const cores          = scoreRecuperacao ? getScoreCores(scoreRecuperacao) : null
+  const vinculoNutri   = vinculos.find(v => v?.tipo === 'nutricionista')
+  const vinculoPersonal = vinculos.find(v => v?.tipo === 'personal')
 
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -934,13 +945,25 @@ function DashboardCliente({
         </div>
       </div>
 
-      {/* ✦ CARD DE DECISÃO DO DIA — primeiro card, acima de tudo */}
-      <CardDecisaoDia
-        decisao={decisaoDia}
-        gerandoDecisao={gerandoDecisao}
-        temSonoHoje={temSonoHoje}
+      {/* Meta pessoal — primeiro da home, motivação central */}
+      <CardMeta
+        perfil={perfil}
+        pesoAtual={pesoAtual}
+        pesoDelta={pesoDelta}
+        userId={userId}
+        onSalvarMeta={onSalvarMeta}
         router={router}
       />
+
+      {/* ✦ Decisão do dia — só aparece quando há sono registrado */}
+      {temSonoHoje && (
+        <CardDecisaoDia
+          decisao={decisaoDia}
+          gerandoDecisao={gerandoDecisao}
+          temSonoHoje={temSonoHoje}
+          router={router}
+        />
+      )}
 
       {/* Score de recuperação */}
       {scoreRecuperacao ? (
@@ -979,77 +1002,6 @@ function DashboardCliente({
         </button>
       )}
 
-      {/* Bem-estar */}
-      <button onClick={() => router.push('/bem-estar')}
-        className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
-        style={{ background: '#0f0f0f' }}>
-        {media ? (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Como estou hoje</p>
-              <p className={`text-xl font-black ${getCorMedia(media)}`}>{getLabelMedia(media)}</p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <span className="text-[10px] text-zinc-600 uppercase tracking-widest">Atualizar →</span>
-              <div className="w-20 h-[3px] bg-white/[0.05] rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-500 ${media <= 2 ? 'bg-red-400' : media === 3 ? 'bg-yellow-400' : 'bg-emerald-400'}`}
-                  style={{ width: `${(media / 5) * 100}%` }} />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Como estou hoje</p>
-              <p className="text-white font-bold">Registrar bem-estar</p>
-              <p className="text-zinc-600 text-xs mt-0.5">30 segundos →</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center text-xl">😐</div>
-          </div>
-        )}
-      </button>
-
-      {/* Streak */}
-      <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Streak de consistência</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>{streak}</span>
-              <span className="text-zinc-600 text-sm">dias seguidos</span>
-            </div>
-            <p className="text-zinc-600 text-xs mt-1">
-              {streak === 0 ? 'Faça seu primeiro treino hoje' : streak >= 7 ? 'Incrível consistência! 💪' : 'Continue assim!'}
-            </p>
-          </div>
-          <div className={`text-4xl transition-all duration-300 ${streak > 0 ? 'opacity-100' : 'opacity-20'}`}>🔥</div>
-        </div>
-        <div className="flex gap-1.5">
-          {recentDays.map((treinou, i) => {
-            const d = new Date(getTodayBR() + 'T12:00:00-03:00')
-            d.setDate(d.getDate() - (6 - i))
-            const label = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short' }).replace('.', '').slice(0, 3)
-            const isToday = i === 6
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className={`w-full h-1.5 rounded-full transition-all duration-300 ${treinou ? 'bg-emerald-400' : isToday ? 'bg-white/[0.15]' : 'bg-white/[0.06]'}`} />
-                <span className={`text-[8px] uppercase tracking-wide ${isToday ? 'text-zinc-500' : 'text-zinc-700'}`}>{label}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Meta pessoal */}
-      <CardMeta
-        perfil={perfil}
-        pesoAtual={pesoAtual}
-        pesoDelta={pesoDelta}
-        userId={userId}
-        onSalvarMeta={onSalvarMeta}
-        router={router}
-      />
-
       {/* Treino de hoje */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <div className="flex items-start justify-between mb-4">
@@ -1059,13 +1011,21 @@ function DashboardCliente({
               <>
                 <p className="text-white font-bold text-base">{treinoHoje.nome}</p>
                 <p className={`text-xs mt-0.5 ${treinoHoje.concluido ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                  {treinoHoje.concluido ? '✓ Concluído hoje' : `Plano ${treinoHoje.plano} · Pronto para iniciar`}
+                  {treinoHoje.concluido
+                    ? '✓ Concluído hoje'
+                    : vinculoPersonal
+                      ? `Plano de ${vinculoPersonal.nome ?? vinculoPersonal.email}`
+                      : `Plano ${treinoHoje.plano}`}
                 </p>
               </>
             ) : (
               <>
                 <p className="text-white font-bold text-base">Escolha seu treino</p>
-                <p className="text-zinc-600 text-xs mt-0.5">Seus planos estão prontos</p>
+                <p className="text-zinc-600 text-xs mt-0.5">
+                  {vinculoPersonal
+                    ? `Plano de ${vinculoPersonal.nome ?? vinculoPersonal.email}`
+                    : 'Seus planos estão prontos'}
+                </p>
               </>
             )}
           </div>
