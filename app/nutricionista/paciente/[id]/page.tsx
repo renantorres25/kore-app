@@ -11,6 +11,7 @@ type Paciente = {
   peso: number | null; objetivo: string | null
   altura: number | null; sexo: string | null; data_nascimento: string | null
   meta_peso: number | null; meta_data_limite: string | null
+  nivel: string | null; fcmax: number | null; ftp: number | null
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao: number | null }
@@ -96,6 +97,13 @@ export default function NutricionistaPaciente() {
   const [periodizacaoFase, setPeriodizacaoFase] = useState<PeriodizacaoFase | null>(null)
   const [historicoMetas, setHistoricoMetas] = useState<MetaHistorico[]>([])
 
+  const [caloriasSemanais, setCaloriasSemanais] = useState<number | null>(null)
+  const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
+  const [anamneseLesoes, setAnamneseLesoes] = useState<string | null>(null)
+  const [anamneseRestricaoFisica, setAnamneseRestricaoFisica] = useState<string | null>(null)
+  const [anamneseMedicamentos, setAnamneseMedicamentos] = useState<string | null>(null)
+  const [anamneseAlergias, setAnamneseAlergias] = useState<string | null>(null)
+
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
   const [fichaPeso, setFichaPeso] = useState('')
@@ -123,9 +131,10 @@ export default function NutricionistaPaciente() {
         { data: perfil }, { data: treinos7d },
         { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
+        { data: anamneseData }, { data: ultimaAvalData },
       ] = await Promise.all([
-        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite').eq('id', clienteId).single(),
-        supabase.from('treinos').select('data').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
+        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp').eq('id', clienteId).single(),
+        supabase.from('treinos').select('data,calorias_estimadas').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
         supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
         supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
@@ -133,9 +142,22 @@ export default function NutricionistaPaciente() {
         supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
         supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
         supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1),
+        supabase.from('anamneses').select('lesoes,restricoes_fisicas,medicamentos,alergias,restricoes_alimentares').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
+        supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
       ])
       if (perfil) setPaciente(perfil)
-      setTreinos7dDatas((treinos7d ?? []).map((t: { data: string }) => t.data))
+      setTreinos7dDatas((treinos7d ?? []).map((t: any) => t.data))
+      const calSem = (treinos7d ?? []).reduce((s: number, t: any) => s + (t.calorias_estimadas ?? 0), 0)
+      if (calSem > 0) setCaloriasSemanais(calSem)
+      if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
+      const lesoes = (anamneseData ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
+      const rf = (anamneseData ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
+      const meds = (anamneseData ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
+      const alerg = (anamneseData ?? []).map((a: any) => [a.alergias, a.restricoes_alimentares].filter(Boolean).join(', ')).filter(Boolean).join(' · ')
+      if (lesoes) setAnamneseLesoes(lesoes)
+      if (rf) setAnamneseRestricaoFisica(rf)
+      if (meds) setAnamneseMedicamentos(meds)
+      if (alerg) setAnamneseAlergias(alerg)
       setTreinoHoje(trHoje ?? null)
       setSonoHoje(sono ?? null)
       setBemEstar(bem ?? null)
@@ -634,6 +656,42 @@ Responda APENAS JSON válido:
         {abaAtiva === 'hoje' && (
           <div className="space-y-4">
 
+            {/* Alertas clínicos */}
+            {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && (
+              <div className="rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#140a0a' }}>
+                <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
+                  <span className="text-red-400 text-sm">⚠</span>
+                  <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
+                </div>
+                <div className="px-5 py-3 flex flex-col gap-2">
+                  {anamneseLesoes && (
+                    <div>
+                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p>
+                      <p className="text-red-200/80 text-[11px] leading-relaxed">{anamneseLesoes}</p>
+                    </div>
+                  )}
+                  {anamneseRestricaoFisica && (
+                    <div>
+                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p>
+                      <p className="text-amber-200/80 text-[11px] leading-relaxed">{anamneseRestricaoFisica}</p>
+                    </div>
+                  )}
+                  {anamneseMedicamentos && (
+                    <div>
+                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p>
+                      <p className="text-zinc-300/80 text-[11px] leading-relaxed">{anamneseMedicamentos}</p>
+                    </div>
+                  )}
+                  {anamneseAlergias && (
+                    <div>
+                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Alergias / Restrições alimentares</p>
+                      <p className="text-amber-300/80 text-[11px] leading-relaxed">{anamneseAlergias}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Recuperação */}
             <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">😴 Recuperação hoje</p>
@@ -747,8 +805,42 @@ Responda APENAS JSON válido:
                 <span className={`text-xs font-bold ml-auto ${treinos7dDatas.length >= 4 ? 'text-blue-400' : treinos7dDatas.length >= 2 ? 'text-yellow-400' : 'text-zinc-500'}`}>
                   {treinos7dDatas.length}/7 dias
                 </span>
+                {caloriasSemanais != null && caloriasSemanais > 0 && (
+                  <span className="text-orange-400 text-[10px] font-bold">
+                    {caloriasSemanais.toLocaleString('pt-BR')} kcal gastos
+                  </span>
+                )}
               </div>
             </div>
+
+            {/* Perfil atlético */}
+            {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
+              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Perfil atlético</p>
+                <div className="flex flex-wrap gap-2">
+                  {paciente?.nivel && (
+                    <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
+                      Nível: {paciente.nivel}
+                    </span>
+                  )}
+                  {paciente?.fcmax && (
+                    <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
+                      FC máx: {paciente.fcmax} bpm
+                    </span>
+                  )}
+                  {paciente?.ftp && (
+                    <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
+                      FTP: {paciente.ftp}W
+                    </span>
+                  )}
+                  {ultimaAvaliacao && (
+                    <span className="text-[10px] text-zinc-400 bg-white/[0.03] border border-white/[0.06] rounded-full px-2.5 py-0.5">
+                      Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

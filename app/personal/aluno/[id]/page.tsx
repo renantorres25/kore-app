@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
-type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null }
+type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; status: string; data: string | null; exercicios: Exercicio[] }
 type Monitor = {
@@ -68,6 +68,10 @@ export default function PersonalAluno() {
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [planoNutri, setPlanoNutri] = useState<PlanoNutri | null>(null)
   const [restricaoNutri, setRestricaoNutri] = useState<string | null>(null)
+  const [lesoes, setLesoes] = useState<string | null>(null)
+  const [restricaoFisica, setRestricaoFisica] = useState<string | null>(null)
+  const [medicamentos, setMedicamentos] = useState<string | null>(null)
+  const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
   const [fichaPeso, setFichaPeso] = useState('')
@@ -90,7 +94,7 @@ export default function PersonalAluno() {
     const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
     const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }] = await Promise.all([
-      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite').eq('id', clienteId).single(),
+      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
       supabase.from('sono').select('score_recuperacao, duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
       supabase.from('bem_estar').select('humor, energia, motivacao, dor_muscular').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
@@ -125,12 +129,13 @@ export default function PersonalAluno() {
     // Histórico de execuções + evolução de carga + calendário + composição corporal
     const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
     const trintaStr = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    const [{ data: treinosCompletos }, { data: atvsLivres30 }, { data: medidasData }, { data: planoNutriData }, { data: anamneseNutri }] = await Promise.all([
+    const [{ data: treinosCompletos }, { data: atvsLivres30 }, { data: medidasData }, { data: planoNutriData }, { data: anamneseNutri }, { data: ultimaAvalData }] = await Promise.all([
       supabase.from('treinos').select('id, nome, plano, data').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
       supabase.from('atividades_livres').select('data, modalidade').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
       supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
       supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
-      supabase.from('anamneses').select('restricoes_alimentares,suplementos').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
+      supabase.from('anamneses').select('restricoes_alimentares,suplementos,lesoes,restricoes_fisicas,medicamentos').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
+      supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('profissional_id', session.user.id).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
     ])
 
     if (medidasData?.length) setMedidasCP(medidasData as MedidaCP[])
@@ -138,6 +143,13 @@ export default function PersonalAluno() {
     // Collect food restrictions from any professional's anamnese
     const restricoes = (anamneseNutri ?? []).map((a: any) => a.restricoes_alimentares).filter(Boolean).join(' · ')
     if (restricoes) setRestricaoNutri(restricoes)
+    const lesoesCombined = (anamneseNutri ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
+    const rfCombined = (anamneseNutri ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
+    const medsCombined = (anamneseNutri ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
+    if (lesoesCombined) setLesoes(lesoesCombined)
+    if (rfCombined) setRestricaoFisica(rfCombined)
+    if (medsCombined) setMedicamentos(medsCombined)
+    if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
 
     const diasMap = new Map<string, 'treino' | 'livre'>()
     atvsLivres30?.forEach((a: { data: string }) => diasMap.set(a.data, 'livre'))
@@ -311,6 +323,36 @@ export default function PersonalAluno() {
           </div>
         </div>
 
+        {/* Alertas clínicos */}
+        {(lesoes || restricaoFisica || medicamentos) && (
+          <div className="rounded-2xl border border-red-500/20 mb-5 overflow-hidden" style={{ background: '#140a0a' }}>
+            <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
+              <span className="text-red-400 text-sm">⚠</span>
+              <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
+            </div>
+            <div className="px-5 py-3 flex flex-col gap-2">
+              {lesoes && (
+                <div>
+                  <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p>
+                  <p className="text-red-200/80 text-[11px] leading-relaxed">{lesoes}</p>
+                </div>
+              )}
+              {restricaoFisica && (
+                <div>
+                  <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p>
+                  <p className="text-amber-200/80 text-[11px] leading-relaxed">{restricaoFisica}</p>
+                </div>
+              )}
+              {medicamentos && (
+                <div>
+                  <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p>
+                  <p className="text-zinc-300/80 text-[11px] leading-relaxed">{medicamentos}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Monitoramento de hoje */}
         {monitor && (
           <div className="rounded-2xl p-4 border border-white/[0.06] mb-5" style={{ background: '#0f0f0f' }}>
@@ -358,6 +400,30 @@ export default function PersonalAluno() {
                 <p className="text-zinc-700 text-[9px] mt-0.5">sem treinar</p>
               </div>
             </div>
+            {(aluno?.nivel || aluno?.fcmax || aluno?.ftp || ultimaAvaliacao) && (
+              <div className="mt-3 pt-3 border-t border-white/[0.05] flex flex-wrap gap-2">
+                {aluno?.nivel && (
+                  <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
+                    Nível: {aluno.nivel}
+                  </span>
+                )}
+                {aluno?.fcmax && (
+                  <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
+                    FC máx: {aluno.fcmax} bpm
+                  </span>
+                )}
+                {aluno?.ftp && (
+                  <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
+                    FTP: {aluno.ftp}W
+                  </span>
+                )}
+                {ultimaAvaliacao && (
+                  <span className="text-[10px] text-zinc-400 bg-white/[0.03] border border-white/[0.06] rounded-full px-2.5 py-0.5">
+                    Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
