@@ -748,11 +748,20 @@ function CardMeta({
     data: perfil.meta_data_limite ?? '',
   })
 
-  const metaPeso = perfil.meta_peso
+  const metaPeso      = perfil.meta_peso
   const metaDataLimite = perfil.meta_data_limite
-  const pesoBase = perfil.peso
-  const pesoCurrent = pesoAtual ?? pesoBase
-  const perder = metaPeso != null && pesoCurrent != null ? pesoCurrent > metaPeso : true
+  const pesoBase      = perfil.peso
+  const pesoCurrent   = pesoAtual ?? pesoBase
+
+  const objetivoLower = (perfil.objetivo ?? '').toLowerCase()
+  const goalIsGain    = objetivoLower.includes('hiper') || objetivoLower.includes('ganh') || objetivoLower.includes('mass')
+  const metaSugerida  = !metaPeso && pesoBase
+    ? (goalIsGain ? Math.round(pesoBase * 1.08) : Math.round(pesoBase * 0.91))
+    : null
+  const metaEfetiva   = metaPeso ?? metaSugerida
+  const ehSugestao    = !metaPeso && !!metaSugerida
+
+  const perder = metaEfetiva != null && pesoCurrent != null ? pesoCurrent > metaEfetiva : !goalIsGain
 
   function diasRestantes(): number | null {
     if (!metaDataLimite) return null
@@ -762,19 +771,20 @@ function CardMeta({
   }
 
   function progressoPct(): number {
-    if (!metaPeso || !pesoBase || pesoCurrent == null) return 0
-    const total = Math.abs(metaPeso - pesoBase)
+    if (!metaEfetiva || !pesoBase || pesoCurrent == null) return 0
+    const total = Math.abs(metaEfetiva - pesoBase)
     if (total === 0) return 100
     const feito = Math.abs(pesoCurrent - pesoBase)
     return Math.min(100, Math.max(0, Math.round((feito / total) * 100)))
   }
 
-  const faltam = metaPeso != null && pesoCurrent != null
-    ? Math.round(Math.abs(pesoCurrent - metaPeso) * 10) / 10
+  const faltam = metaEfetiva != null && pesoCurrent != null
+    ? Math.round(Math.abs(pesoCurrent - metaEfetiva) * 10) / 10
     : null
-  const atingiu = faltam !== null && faltam < 0.5
-  const dias = diasRestantes()
-  const pct = progressoPct()
+  const atingiu     = faltam !== null && faltam < 0.5
+  const dias        = diasRestantes()
+  const pct         = progressoPct()
+  const totalGoal   = pesoBase && metaEfetiva ? Math.round(Math.abs(metaEfetiva - pesoBase) * 10) / 10 : null
   const deltaAlcancado = pesoBase != null && pesoCurrent != null
     ? Math.round(Math.abs(pesoBase - pesoCurrent) * 10) / 10
     : 0
@@ -789,7 +799,7 @@ function CardMeta({
     setEditando(false)
   }
 
-  if (!metaPeso && !editando) {
+  if (!metaEfetiva && !editando) {
     return (
       <button onClick={() => setEditando(true)}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-dashed border-white/[0.15] active:scale-[0.98] transition-all"
@@ -838,15 +848,28 @@ function CardMeta({
     <div className="rounded-2xl p-5 mb-3 border border-white/[0.06] relative overflow-hidden" style={{ background: '#0f0f0f' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Meta pessoal</p>
+        <div className="flex items-center gap-2">
+          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Meta pessoal</p>
+          {ehSugestao && (
+            <span className="text-[9px] text-emerald-400 border border-emerald-500/30 rounded-md px-1.5 py-0.5 uppercase tracking-wider">IA</span>
+          )}
+        </div>
         <button onClick={() => setEditando(true)}
           className="text-zinc-600 text-[10px] uppercase tracking-wider border border-white/[0.08] rounded-lg px-3 py-1.5 hover:text-white hover:border-white/20 transition-all active:scale-95">
-          editar
+          {ehSugestao ? 'confirmar' : 'editar'}
         </button>
       </div>
 
       {atingiu ? (
         <p className="text-emerald-400 font-black text-3xl mb-5">Meta atingida! 🎉</p>
+      ) : ehSugestao ? (
+        <div className="mb-5">
+          <p className="font-black leading-none mb-1"
+            style={{ fontSize: '2.75rem', fontVariantNumeric: 'tabular-nums', color: '#34d399' }}>
+            {totalGoal != null ? `${perder ? '-' : '+'}${totalGoal.toFixed(1)} kg` : '—'}
+          </p>
+          <p className="text-zinc-600 text-xs">objetivo sugerido para você</p>
+        </div>
       ) : (
         <div className="mb-5">
           <p className="font-black leading-none mb-1"
@@ -873,7 +896,7 @@ function CardMeta({
           </div>
           <div className="text-zinc-700 text-xs px-1">→</div>
           <div className="flex-1 text-center">
-            <p className="text-emerald-400 font-bold text-sm">{metaPeso} kg</p>
+            <p className="text-emerald-400 font-bold text-sm">{metaEfetiva} kg</p>
             <p className="text-zinc-700 text-[9px] uppercase tracking-wider mt-0.5">meta</p>
           </div>
         </div>
@@ -882,24 +905,34 @@ function CardMeta({
       {/* Barra de progresso */}
       <div className="mb-4">
         <div className="h-2 bg-white/[0.05] rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-700 bg-emerald-400" style={{ width: `${pct}%` }} />
+          <div className={`h-full rounded-full transition-all duration-700 ${ehSugestao ? 'bg-emerald-400/30' : 'bg-emerald-400'}`}
+            style={{ width: `${pct}%` }} />
         </div>
-        <p className="text-zinc-600 text-[10px] mt-1.5">{pct}% do caminho percorrido</p>
+        <p className="text-zinc-600 text-[10px] mt-1.5">
+          {ehSugestao ? `Meta: ${perder ? 'perder' : 'ganhar'} ${totalGoal} kg · Confirme para começar` : `${pct}% do caminho percorrido`}
+        </p>
       </div>
 
       {/* Rodapé */}
-      <div className="flex items-center gap-2 pt-3 border-t border-white/[0.04]">
-        {!atingiu && faltam != null && (
-          <p className="text-zinc-500 text-xs flex-1">
-            Faltam <span className="text-white font-bold">{faltam.toFixed(1)} kg</span>
-            {metaDataLimite && ` · ${new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
-          </p>
-        )}
-        <button onClick={() => router.push('/evolucao-medidas/' + userId)}
-          className="text-[10px] text-zinc-600 uppercase tracking-wider hover:text-white transition-colors shrink-0 active:scale-95">
-          Ver evolução →
+      {ehSugestao ? (
+        <button onClick={() => setEditando(true)}
+          className="w-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all tracking-[0.04em]">
+          Confirmar esta meta →
         </button>
-      </div>
+      ) : (
+        <div className="flex items-center gap-2 pt-3 border-t border-white/[0.04]">
+          {!atingiu && faltam != null && (
+            <p className="text-zinc-500 text-xs flex-1">
+              Faltam <span className="text-white font-bold">{faltam.toFixed(1)} kg</span>
+              {metaDataLimite && ` · ${new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
+            </p>
+          )}
+          <button onClick={() => router.push('/evolucao-medidas/' + userId)}
+            className="text-[10px] text-zinc-600 uppercase tracking-wider hover:text-white transition-colors shrink-0 active:scale-95">
+            Ver evolução →
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -994,44 +1027,59 @@ function DashboardCliente({
         </button>
       ) : (
         <button onClick={() => router.push('/sono')}
-          className="w-full text-left rounded-3xl p-6 mb-3 border border-white/[0.06] relative overflow-hidden active:scale-[0.98] transition-all group"
+          className="w-full text-left rounded-3xl p-6 mb-3 border border-white/[0.06] relative overflow-hidden active:scale-[0.98] transition-all"
           style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
-          <p className="text-zinc-600 text-[10px] uppercase tracking-[0.22em] mb-3">Recuperação hoje</p>
-          <p className="text-white text-2xl font-black mb-1 group-hover:text-emerald-400 transition-colors">Registrar sono</p>
-          <p className="text-zinc-600 text-xs">Saiba como seu corpo está respondendo →</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-zinc-600 text-[10px] uppercase tracking-[0.22em]">Recuperação hoje</p>
+            <span className="text-[9px] text-zinc-600 border border-white/[0.08] rounded-md px-1.5 py-0.5 uppercase tracking-wider">demo</span>
+          </div>
+          <div className="flex items-center gap-5 opacity-50">
+            <div className="relative w-[72px] h-[72px] shrink-0">
+              <svg width="72" height="72" viewBox="0 0 72 72" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                <circle cx="36" cy="36" r="28" fill="none" stroke="#34d399" strokeWidth="6"
+                  strokeDasharray={`${2 * Math.PI * 28}`}
+                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - 72 / 100)}`}
+                  strokeLinecap="round" />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-black text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>72</span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-black leading-tight mb-1 text-emerald-400">Boa recuperação</p>
+              <div className="flex gap-4 mt-2">
+                <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Energia</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
+                <div className="w-px bg-white/[0.06]" />
+                <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Humor</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
+                <div className="w-px bg-white/[0.06]" />
+                <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Dor musc.</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
+              </div>
+            </div>
+          </div>
+          <p className="text-zinc-600 text-xs mt-4">Registre seu sono para ativar seu score real →</p>
         </button>
       )}
 
       {/* Treino de hoje */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Treino de hoje</p>
-            {treinoHoje ? (
-              <>
-                <p className="text-white font-bold text-base">{treinoHoje.nome}</p>
-                <p className={`text-xs mt-0.5 ${treinoHoje.concluido ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                  {treinoHoje.concluido
-                    ? '✓ Concluído hoje'
-                    : vinculoPersonal
-                      ? `Plano de ${vinculoPersonal.nome ?? vinculoPersonal.email}`
-                      : `Plano ${treinoHoje.plano}`}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-white font-bold text-base">Escolha seu treino</p>
-                <p className="text-zinc-600 text-xs mt-0.5">
-                  {vinculoPersonal
-                    ? `Plano de ${vinculoPersonal.nome ?? vinculoPersonal.email}`
-                    : 'Seus planos estão prontos'}
-                </p>
-              </>
-            )}
-          </div>
+        <div className="flex items-start justify-between mb-1">
+          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Treino de hoje</p>
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${treinoHoje?.concluido ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
             {treinoHoje?.concluido ? '✓' : 'TR'}
           </div>
+        </div>
+        <div className="mb-4">
+          <p className="text-white font-bold text-base mb-0.5">
+            {treinoHoje ? treinoHoje.nome : 'Escolha seu treino'}
+          </p>
+          {treinoHoje?.concluido ? (
+            <p className="text-emerald-400 font-black text-sm">✓ Concluído hoje</p>
+          ) : vinculoPersonal ? (
+            <p className="text-blue-400 font-black text-sm">{vinculoPersonal.nome ?? vinculoPersonal.email}</p>
+          ) : (
+            <p className="text-zinc-600 text-xs">Seus planos estão prontos</p>
+          )}
         </div>
         <button onClick={() => router.push('/treino')}
           className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 hover:bg-zinc-100 transition-all tracking-[0.05em]">
@@ -1043,21 +1091,20 @@ function DashboardCliente({
       <button onClick={() => router.push('/nutricao')}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
         style={{ background: '#0f0f0f' }}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-start justify-between mb-1">
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Minha nutrição</p>
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-600 border-white/[0.06]'}`}>NU</div>
         </div>
-        {vinculoNutri ? (
-          <div className="mb-4">
-            <p className="text-white font-bold text-base mb-0.5">Plano ativo</p>
-            <p className="text-zinc-500 text-xs">{vinculoNutri.nome ?? vinculoNutri.email}</p>
-          </div>
-        ) : (
-          <div className="mb-4">
-            <p className="text-white font-bold text-base mb-0.5">Sem plano alimentar</p>
+        <div className="mb-4">
+          <p className="text-white font-bold text-base mb-0.5">
+            {vinculoNutri ? 'Plano ativo' : 'Sem plano alimentar'}
+          </p>
+          {vinculoNutri ? (
+            <p className="text-green-400 font-black text-sm">{vinculoNutri.nome ?? vinculoNutri.email}</p>
+          ) : (
             <p className="text-zinc-600 text-xs">Conecte um nutricionista para receber seu plano</p>
-          </div>
-        )}
+          )}
+        </div>
         <div className="w-full bg-white/[0.06] text-white font-bold py-3.5 rounded-xl text-sm text-center tracking-[0.05em]">
           Ver meu plano alimentar →
         </div>
@@ -1077,8 +1124,10 @@ function DashboardCliente({
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${p.cor}`}>{p.sigla}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold">{p.label}</p>
-                    {vinculo ? <p className="text-emerald-400 text-xs">{vinculo.nome ?? vinculo.email}</p> : <p className="text-zinc-600 text-xs">Não conectado</p>}
+                    <p className="text-zinc-500 text-[10px] uppercase tracking-wider">{p.label}</p>
+                    {vinculo
+                      ? <p className={`font-black text-base mt-0.5 ${p.tipo === 'personal' ? 'text-blue-400' : 'text-green-400'}`}>{vinculo.nome ?? vinculo.email}</p>
+                      : <p className="text-zinc-600 text-sm mt-0.5">Não conectado</p>}
                   </div>
                   {!vinculo && (
                     <button onClick={() => router.push('/convite')}
