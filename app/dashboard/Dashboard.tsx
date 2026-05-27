@@ -242,10 +242,16 @@ export default function Dashboard() {
       if (!session) { router.push('/login'); return }
       setUserId(session.user.id)
 
-      const { data: perfilData } = await supabase
+      const { data: perfilData, error: perfilError } = await supabase
         .from('perfis').select('tipo, nome, email, peso, objetivo, meta_peso, meta_data_limite').eq('id', session.user.id).single()
 
-      if (!perfilData) { router.push('/onboarding'); return }
+      // Auth/network error → session expired → back to login; no profile → onboarding
+      if (!perfilData) {
+        if (perfilError?.code === 'PGRST116' || !perfilError) { router.push('/onboarding'); return }
+        await supabase.auth.signOut()
+        router.push('/login')
+        return
+      }
       setPerfil(perfilData)
 
       if (perfilData.tipo === 'cliente') {
@@ -272,7 +278,7 @@ export default function Dashboard() {
           supabase.from('nutricao').select('calorias, proteina, qualidade_alimentacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('decisao_dia').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('data, score_recuperacao, qualidade').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(7),
-          supabase.from('evolucao_medidas').select('peso, data').eq('usuario_id', session.user.id).not('peso', 'is', null).order('data', { ascending: false }).limit(2),
+          supabase.from('evolucao_medidas').select('peso, data').eq('cliente_id', session.user.id).not('peso', 'is', null).order('data', { ascending: false }).limit(2),
         ])
 
         if (be) setBemEstar(be)
