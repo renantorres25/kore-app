@@ -165,6 +165,7 @@ export default function Sono() {
 
   async function handleSalvar() {
     const duracao = (parseInt(horasSono || '0') * 60) + parseInt(minutosSono || '0')
+    if (!duracao && !qualidade) return
     const payload: any = {
       usuario_id: userId,
       data: getTodayBR(),

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
-type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null }
+type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; status: string; data: string | null; exercicios: Exercicio[] }
 type Monitor = {
@@ -68,6 +68,13 @@ export default function PersonalAluno() {
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [planoNutri, setPlanoNutri] = useState<PlanoNutri | null>(null)
   const [restricaoNutri, setRestricaoNutri] = useState<string | null>(null)
+  const [editandoFicha, setEditandoFicha] = useState(false)
+  const [salvandoFicha, setSalvandoFicha] = useState(false)
+  const [fichaPeso, setFichaPeso] = useState('')
+  const [fichaAltura, setFichaAltura] = useState('')
+  const [fichaSexo, setFichaSexo] = useState('')
+  const [fichaNascimento, setFichaNascimento] = useState('')
+  const [fichaObjetivo, setFichaObjetivo] = useState('')
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -81,7 +88,7 @@ export default function PersonalAluno() {
     const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
     const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }] = await Promise.all([
-      supabase.from('perfis').select('id, nome, email, peso, objetivo').eq('id', clienteId).single(),
+      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
       supabase.from('sono').select('score_recuperacao, duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
       supabase.from('bem_estar').select('humor, energia, motivacao, dor_muscular').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
@@ -256,6 +263,21 @@ export default function PersonalAluno() {
     await carregar()
   }
 
+  async function salvarFicha() {
+    setSalvandoFicha(true)
+    const updates = {
+      peso: fichaPeso ? parseFloat(fichaPeso) || null : null,
+      altura: fichaAltura ? parseFloat(fichaAltura) || null : null,
+      sexo: fichaSexo || null,
+      data_nascimento: fichaNascimento || null,
+      objetivo: fichaObjetivo || null,
+    }
+    await supabase.from('perfis').update(updates).eq('id', clienteId)
+    setAluno(prev => prev ? { ...prev, ...updates } : prev)
+    setEditandoFicha(false)
+    setSalvandoFicha(false)
+  }
+
   const treinoDoPlano = treinos.find(t => t.plano === planoAtivo)
   const cores = CORES[planoAtivo]
 
@@ -392,6 +414,84 @@ export default function PersonalAluno() {
               <p className="text-zinc-600 text-[10px]">Blocos de treinamento</p>
             </div>
           </button>
+        </div>
+
+        {/* Ficha do aluno */}
+        <div className="rounded-2xl border border-white/[0.06] mb-5 overflow-hidden" style={{ background: '#0f0f0f' }}>
+          <button
+            onClick={() => {
+              if (!editandoFicha) {
+                setFichaPeso(String(aluno?.peso ?? ''))
+                setFichaAltura(String(aluno?.altura ?? ''))
+                setFichaSexo(aluno?.sexo ?? '')
+                setFichaNascimento(aluno?.data_nascimento ?? '')
+                setFichaObjetivo(aluno?.objetivo ?? '')
+              }
+              setEditandoFicha(p => !p)
+            }}
+            className="w-full flex items-center justify-between px-5 py-4 text-left active:opacity-80">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Ficha do aluno</p>
+              {!editandoFicha && (
+                <>
+                  {aluno?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
+                  {aluno?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{aluno.altura}cm</span>}
+                  {aluno?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
+                  {!aluno?.peso && !aluno?.altura && !aluno?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
+                </>
+              )}
+            </div>
+            <span className={`text-zinc-600 text-xs transition-transform duration-200 ${editandoFicha ? 'rotate-180' : ''}`}>▼</span>
+          </button>
+          {editandoFicha && (
+            <div className="px-5 pb-5 space-y-3 border-t border-white/[0.04]">
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <div>
+                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso (kg)</p>
+                  <input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)}
+                    placeholder="75.5"
+                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                </div>
+                <div>
+                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Altura (cm)</p>
+                  <input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)}
+                    placeholder="175"
+                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                </div>
+              </div>
+              <div>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sexo</p>
+                <div className="flex gap-2">
+                  {['masculino', 'feminino', 'outro'].map(v => (
+                    <button key={v} onClick={() => setFichaSexo(v)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaSexo === v ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>
+                      {v.charAt(0).toUpperCase() + v.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Data de nascimento</p>
+                <input type="date" value={fichaNascimento} onChange={e => setFichaNascimento(e.target.value)}
+                  className="w-full bg-white/[0.04] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+              </div>
+              <div>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Objetivo</p>
+                <div className="flex flex-wrap gap-2">
+                  {[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde geral']].map(([v, l]) => (
+                    <button key={v} onClick={() => setFichaObjetivo(v)}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={salvarFicha} disabled={salvandoFicha}
+                className="w-full bg-white text-black font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-40">
+                {salvandoFicha ? 'Salvando...' : 'Salvar ficha'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Composição Corporal */}

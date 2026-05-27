@@ -40,6 +40,7 @@ export default function Agenda() {
   const [carregando, setCarregando] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [salvando, setSalvando] = useState(false)
+  const [cancelandoId, setCancelandoId] = useState<string | null>(null)
 
   const [novoClienteId, setNovoClienteId] = useState('')
   const [novaData, setNovaData] = useState(getTodayBR())
@@ -182,15 +183,33 @@ export default function Agenda() {
                       </div>
                       {ag.status === 'agendado' && (
                         <div className="flex border-t border-white/[0.04]">
-                          <button onClick={() => marcarRealizado(ag.id)}
-                            className="flex-1 py-2.5 text-green-400 text-[10px] uppercase tracking-wider font-semibold hover:bg-green-500/5 transition-colors active:scale-95">
-                            ✓ Realizado
-                          </button>
-                          <div className="w-px bg-white/[0.04]" />
-                          <button onClick={() => cancelar(ag.id)}
-                            className="flex-1 py-2.5 text-zinc-600 text-[10px] uppercase tracking-wider font-semibold hover:bg-white/[0.02] transition-colors active:scale-95">
-                            Cancelar
-                          </button>
+                          {cancelandoId === ag.id ? (
+                            <>
+                              <span className="flex-1 py-2.5 text-center text-zinc-400 text-[10px] uppercase tracking-wider font-semibold">Confirmar cancelamento?</span>
+                              <div className="w-px bg-white/[0.04]" />
+                              <button onClick={() => { cancelar(ag.id); setCancelandoId(null) }}
+                                className="px-4 py-2.5 text-red-400 text-[10px] uppercase tracking-wider font-semibold hover:bg-red-500/5 transition-colors active:scale-95">
+                                Sim
+                              </button>
+                              <div className="w-px bg-white/[0.04]" />
+                              <button onClick={() => setCancelandoId(null)}
+                                className="px-4 py-2.5 text-zinc-400 text-[10px] uppercase tracking-wider font-semibold hover:bg-white/[0.02] transition-colors active:scale-95">
+                                Não
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => marcarRealizado(ag.id)}
+                                className="flex-1 py-2.5 text-green-400 text-[10px] uppercase tracking-wider font-semibold hover:bg-green-500/5 transition-colors active:scale-95">
+                                ✓ Realizado
+                              </button>
+                              <div className="w-px bg-white/[0.04]" />
+                              <button onClick={() => setCancelandoId(ag.id)}
+                                className="flex-1 py-2.5 text-zinc-600 text-[10px] uppercase tracking-wider font-semibold hover:bg-white/[0.02] transition-colors active:scale-95">
+                                Cancelar
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

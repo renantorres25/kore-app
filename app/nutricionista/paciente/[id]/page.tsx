@@ -9,6 +9,7 @@ import AlimentoBusca, { type AlimentoTACO } from '../../../components/AlimentoBu
 type Paciente = {
   id: string; nome: string | null; email: string
   peso: number | null; objetivo: string | null
+  altura: number | null; sexo: string | null; data_nascimento: string | null
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao: number | null }
@@ -94,6 +95,14 @@ export default function NutricionistaPaciente() {
   const [periodizacaoFase, setPeriodizacaoFase] = useState<PeriodizacaoFase | null>(null)
   const [historicoMetas, setHistoricoMetas] = useState<MetaHistorico[]>([])
 
+  const [editandoFicha, setEditandoFicha] = useState(false)
+  const [salvandoFicha, setSalvandoFicha] = useState(false)
+  const [fichaPeso, setFichaPeso] = useState('')
+  const [fichaAltura, setFichaAltura] = useState('')
+  const [fichaSexo, setFichaSexo] = useState('')
+  const [fichaNascimento, setFichaNascimento] = useState('')
+  const [fichaObjetivo, setFichaObjetivo] = useState('')
+
   const [editandoPlano, setEditandoPlano] = useState(false)
   const [salvandoEd, setSalvandoEd] = useState(false)
   const [refeicoesEd, setRefeicoesEd] = useState<RefeicaoEd[]>([])
@@ -112,7 +121,7 @@ export default function NutricionistaPaciente() {
         { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
       ] = await Promise.all([
-        supabase.from('perfis').select('id,nome,email,peso,objetivo').eq('id', clienteId).single(),
+        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento').eq('id', clienteId).single(),
         supabase.from('treinos').select('data').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
         supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
         supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
@@ -276,6 +285,21 @@ export default function NutricionistaPaciente() {
     setSalvandoEd(false)
   }
 
+  async function salvarFicha() {
+    setSalvandoFicha(true)
+    const updates = {
+      peso: fichaPeso ? parseFloat(fichaPeso) || null : null,
+      altura: fichaAltura ? parseFloat(fichaAltura) || null : null,
+      sexo: fichaSexo || null,
+      data_nascimento: fichaNascimento || null,
+      objetivo: fichaObjetivo || null,
+    }
+    await supabase.from('perfis').update(updates).eq('id', clienteId)
+    setPaciente(prev => prev ? { ...prev, ...updates } : prev)
+    setEditandoFicha(false)
+    setSalvandoFicha(false)
+  }
+
   async function gerarPlanoIA() {
     if (!paciente) return
     setGerandoPlano(true); setEditandoPlano(false); setAbaAtiva('plano')
@@ -380,6 +404,84 @@ Responda APENAS JSON válido:
               <p className="text-zinc-600 text-[10px]">Evolução corporal</p>
             </div>
           </button>
+        </div>
+
+        {/* Ficha do paciente */}
+        <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+          <button
+            onClick={() => {
+              if (!editandoFicha) {
+                setFichaPeso(String(paciente?.peso ?? ''))
+                setFichaAltura(String(paciente?.altura ?? ''))
+                setFichaSexo(paciente?.sexo ?? '')
+                setFichaNascimento(paciente?.data_nascimento ?? '')
+                setFichaObjetivo(paciente?.objetivo ?? '')
+              }
+              setEditandoFicha(p => !p)
+            }}
+            className="w-full flex items-center justify-between px-5 py-4 text-left active:opacity-80">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Ficha do paciente</p>
+              {!editandoFicha && (
+                <>
+                  {paciente?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
+                  {paciente?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{paciente.altura}cm</span>}
+                  {paciente?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {!paciente?.peso && !paciente?.altura && !paciente?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
+                </>
+              )}
+            </div>
+            <span className={`text-zinc-600 text-xs transition-transform duration-200 ${editandoFicha ? 'rotate-180' : ''}`}>▼</span>
+          </button>
+          {editandoFicha && (
+            <div className="px-5 pb-5 space-y-3 border-t border-white/[0.04]">
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <div>
+                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso (kg)</p>
+                  <input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)}
+                    placeholder="65.0"
+                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                </div>
+                <div>
+                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Altura (cm)</p>
+                  <input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)}
+                    placeholder="165"
+                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                </div>
+              </div>
+              <div>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sexo</p>
+                <div className="flex gap-2">
+                  {['masculino', 'feminino', 'outro'].map(v => (
+                    <button key={v} onClick={() => setFichaSexo(v)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaSexo === v ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>
+                      {v.charAt(0).toUpperCase() + v.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Data de nascimento</p>
+                <input type="date" value={fichaNascimento} onChange={e => setFichaNascimento(e.target.value)}
+                  className="w-full bg-white/[0.04] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+              </div>
+              <div>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Objetivo</p>
+                <div className="flex flex-wrap gap-2">
+                  {[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde geral']].map(([v, l]) => (
+                    <button key={v} onClick={() => setFichaObjetivo(v)}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={salvarFicha} disabled={salvandoFicha}
+                className="w-full bg-white text-black font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-40">
+                {salvandoFicha ? 'Salvando...' : 'Salvar ficha'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Composição Corporal */}
