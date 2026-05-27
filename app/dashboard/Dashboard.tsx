@@ -771,7 +771,7 @@ function CardMeta({
   }
 
   function progressoPct(): number {
-    if (!metaEfetiva || !pesoBase || pesoCurrent == null) return 0
+    if (ehSugestao || !metaEfetiva || !pesoBase || pesoCurrent == null) return 0
     const total = Math.abs(metaEfetiva - pesoBase)
     if (total === 0) return 100
     if (perder ? pesoCurrent > pesoBase : pesoCurrent < pesoBase) return 0
@@ -785,7 +785,7 @@ function CardMeta({
   const atingiu     = faltam !== null && faltam < 0.5
   const dias        = diasRestantes()
   const pct         = progressoPct()
-  const totalGoal   = pesoBase && metaEfetiva ? Math.round(Math.abs(metaEfetiva - pesoBase) * 10) / 10 : null
+  const totalGoal   = pesoCurrent != null && metaEfetiva != null ? Math.round(Math.abs(pesoCurrent - metaEfetiva) * 10) / 10 : null
   const deltaAlcancado = pesoBase != null && pesoCurrent != null
     ? Math.round(Math.abs(pesoBase - pesoCurrent) * 10) / 10
     : 0
@@ -886,11 +886,15 @@ function CardMeta({
       {/* Início → Hoje → Meta */}
       {!atingiu && (
         <div className="flex items-center mb-4">
-          <div className="flex-1 text-center">
-            <p className="text-zinc-400 font-bold text-sm">{pesoBase != null ? `${pesoBase} kg` : '—'}</p>
-            <p className="text-zinc-700 text-[9px] uppercase tracking-wider mt-0.5">início</p>
-          </div>
-          <div className="text-zinc-700 text-xs px-1">→</div>
+          {!ehSugestao && (
+            <>
+              <div className="flex-1 text-center">
+                <p className="text-zinc-400 font-bold text-sm">{pesoBase != null ? `${pesoBase} kg` : '—'}</p>
+                <p className="text-zinc-700 text-[9px] uppercase tracking-wider mt-0.5">início</p>
+              </div>
+              <div className="text-zinc-700 text-xs px-1">→</div>
+            </>
+          )}
           <div className="flex-1 text-center">
             <p className="text-white font-black text-base">{pesoCurrent != null ? `${pesoCurrent} kg` : '—'}</p>
             <p className="text-zinc-500 text-[9px] uppercase tracking-wider mt-0.5">hoje</p>
