@@ -911,21 +911,7 @@ function DashboardCliente({
   const initials  = getInitials(perfil.nome, perfil.email)
   const media     = getMediaBemEstar(bemEstar)
   const cores     = scoreRecuperacao ? getScoreCores(scoreRecuperacao) : null
-  const metaCal   = getMetaCalorias(perfil.peso, perfil.objetivo)
-  const metaProt  = getMetaProteina(perfil.peso, perfil.objetivo)
   const vinculoNutri = vinculos.find(v => v?.tipo === 'nutricionista')
-
-  function getSugestaoIA(): string {
-    if (!scoreRecuperacao) return '✦ Registre seu sono para receber sugestões personalizadas da IA.'
-    if (scoreRecuperacao >= 85) return '✦ Recuperação excelente. Dia ideal para bater recordes — vá com tudo.'
-    if (scoreRecuperacao >= 70) return '✦ Sua recuperação está ótima. Considere um treino de força hoje.'
-    if (scoreRecuperacao >= 55) return '✦ Recuperação moderada. Prefira volume leve ou foco em técnica.'
-    if (scoreRecuperacao >= 40) return '✦ Recuperação baixa. Um treino leve ou mobilidade é o ideal hoje.'
-    return '✦ Recuperação crítica. Priorize descanso — seu corpo está pedindo.'
-  }
-
-  const pctCal = nutricaoHoje?.calorias && metaCal ? Math.min(100, Math.round((nutricaoHoje.calorias / metaCal) * 100)) : 0
-  const pctProt = nutricaoHoje?.proteina && metaProt ? Math.min(100, Math.round((nutricaoHoje.proteina / metaProt) * 100)) : 0
 
   return (
     <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -1054,6 +1040,16 @@ function DashboardCliente({
         </div>
       </div>
 
+      {/* Meta pessoal */}
+      <CardMeta
+        perfil={perfil}
+        pesoAtual={pesoAtual}
+        pesoDelta={pesoDelta}
+        userId={userId}
+        onSalvarMeta={onSalvarMeta}
+        router={router}
+      />
+
       {/* Treino de hoje */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <div className="flex items-start justify-between mb-4">
@@ -1077,66 +1073,34 @@ function DashboardCliente({
             {treinoHoje?.concluido ? '✓' : 'TR'}
           </div>
         </div>
-        {!treinoHoje?.concluido && (
-          <div className="bg-white/[0.03] rounded-xl p-3.5 mb-4 border border-white/[0.05]">
-            <p className="text-zinc-400 text-[11px] leading-relaxed">{getSugestaoIA()}</p>
-          </div>
-        )}
         <button onClick={() => router.push('/treino')}
           className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 hover:bg-zinc-100 transition-all tracking-[0.05em]">
-          {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treinos →'}
+          {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treino do dia →'}
         </button>
       </div>
 
-      {/* Meta pessoal */}
-      <CardMeta
-        perfil={perfil}
-        pesoAtual={pesoAtual}
-        pesoDelta={pesoDelta}
-        userId={userId}
-        onSalvarMeta={onSalvarMeta}
-        router={router}
-      />
-
-      {/* Nutrição hoje */}
+      {/* Nutrição */}
       <button onClick={() => router.push('/nutricao')}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
         style={{ background: '#0f0f0f' }}>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Nutrição hoje</p>
-          <span className="text-zinc-600 text-[10px] uppercase tracking-wider">Ver plano →</span>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Minha nutrição</p>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-600 border-white/[0.06]'}`}>NU</div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="flex justify-between text-[10px] mb-1.5">
-              <span className="text-zinc-500">Calorias</span>
-              <span className={nutricaoHoje?.calorias ? 'text-orange-400' : 'text-zinc-700'}>
-                {nutricaoHoje?.calorias ?? 0} kcal
-              </span>
-            </div>
-            <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-orange-400 transition-all duration-500"
-                style={{ width: `${pctCal}%` }} />
-            </div>
-            <p className="text-zinc-700 text-[9px] mt-1">Meta: {metaCal ?? '—'} kcal</p>
+        {vinculoNutri ? (
+          <div className="mb-4">
+            <p className="text-white font-bold text-base mb-0.5">Plano ativo</p>
+            <p className="text-zinc-500 text-xs">{vinculoNutri.nome ?? vinculoNutri.email}</p>
           </div>
-          <div>
-            <div className="flex justify-between text-[10px] mb-1.5">
-              <span className="text-zinc-500">Proteína</span>
-              <span className={nutricaoHoje?.proteina ? 'text-blue-400' : 'text-zinc-700'}>
-                {nutricaoHoje?.proteina ?? 0} g
-              </span>
-            </div>
-            <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-blue-400 transition-all duration-500"
-                style={{ width: `${pctProt}%` }} />
-            </div>
-            <p className="text-zinc-700 text-[9px] mt-1">Meta: {metaProt ?? '—'} g</p>
+        ) : (
+          <div className="mb-4">
+            <p className="text-white font-bold text-base mb-0.5">Sem plano alimentar</p>
+            <p className="text-zinc-600 text-xs">Conecte um nutricionista para receber seu plano</p>
           </div>
-        </div>
-        {!nutricaoHoje && (
-          <p className="text-zinc-600 text-xs mt-3 border-t border-white/[0.04] pt-3">Registre o que você comeu hoje →</p>
         )}
+        <div className="w-full bg-white/[0.06] text-white font-bold py-3.5 rounded-xl text-sm text-center tracking-[0.05em]">
+          Ver meu plano alimentar →
+        </div>
       </button>
 
       {/* Meu time */}
