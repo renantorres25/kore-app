@@ -1228,18 +1228,34 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
         ))}
       </div>
       {!loadingStats && totalAlunos === 0 && (
-        <div className="rounded-2xl border border-white/[0.06] p-8 text-center mb-4" style={{ background: '#0f0f0f' }}>
-          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-4">
-            <span className="text-blue-400 font-black text-lg">PT</span>
+        <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#080e14' }}>
+          <div className="px-5 pt-5 pb-4 border-b border-blue-500/10">
+            <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Primeiros passos</p>
+            <p className="text-white font-black text-lg">Bem-vindo ao KORE, {firstName}!</p>
+            <p className="text-zinc-500 text-sm mt-1">Siga os passos abaixo para começar a acompanhar seus alunos.</p>
           </div>
-          <p className="text-white font-black text-lg mb-2">Convide seu primeiro aluno</p>
-          <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-            Envie um convite por email e conecte-se ao aluno. Você passa a ver o score de recuperação, treinos e evolução em tempo real.
-          </p>
-          <button onClick={() => router.push('/convite')}
-            className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all tracking-[0.08em] uppercase">
-            + Convidar aluno
-          </button>
+          <div className="divide-y divide-blue-500/[0.08]">
+            {[
+              { num: '1', done: true,  label: 'Criar sua conta', desc: 'Feito! Você está dentro.' },
+              { num: '2', done: false, label: 'Convidar seu primeiro aluno', desc: 'Envie um link por email — leva 30 segundos.', action: () => router.push('/convite'), actionLabel: 'Convidar agora →' },
+              { num: '3', done: false, label: 'Montar o treino do aluno', desc: 'Após aceitar o convite, monte o plano de treino.', action: null, actionLabel: null },
+            ].map((s) => (
+              <div key={s.num} className="flex items-start gap-4 px-5 py-4">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-black ${s.done ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400' : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'}`}>
+                  {s.done ? '✓' : s.num}
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-bold ${s.done ? 'text-zinc-500 line-through' : 'text-white'}`}>{s.label}</p>
+                  <p className="text-zinc-600 text-xs mt-0.5">{s.desc}</p>
+                  {s.action && (
+                    <button onClick={s.action} className="mt-2 text-xs text-blue-400 font-semibold hover:text-blue-300 transition-colors">
+                      {s.actionLabel}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1392,18 +1408,34 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       )}
 
       {!loadingStats && totalPacientes === 0 && (
-        <div className="rounded-2xl border border-white/[0.06] p-8 text-center mb-4" style={{ background: '#0f0f0f' }}>
-          <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4">
-            <span className="text-green-400 font-black text-lg">NU</span>
+        <div className="rounded-2xl border border-green-500/20 mb-4 overflow-hidden" style={{ background: '#080e0a' }}>
+          <div className="px-5 pt-5 pb-4 border-b border-green-500/10">
+            <p className="text-green-400 text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Primeiros passos</p>
+            <p className="text-white font-black text-lg">Bem-vindo ao KORE, {firstName}!</p>
+            <p className="text-zinc-500 text-sm mt-1">Siga os passos abaixo para começar a acompanhar seus pacientes.</p>
           </div>
-          <p className="text-white font-black text-lg mb-2">Convide seu primeiro paciente</p>
-          <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-            Envie um convite por email e conecte-se ao paciente. Você passa a ver dados de sono, treino e energia para ajustar o plano alimentar.
-          </p>
-          <button onClick={() => router.push('/convite')}
-            className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all tracking-[0.08em] uppercase">
-            + Convidar paciente
-          </button>
+          <div className="divide-y divide-green-500/[0.08]">
+            {[
+              { num: '1', done: true,  label: 'Criar sua conta', desc: 'Feito! Você está dentro.' },
+              { num: '2', done: false, label: 'Convidar seu primeiro paciente', desc: 'Envie um link por email — leva 30 segundos.', action: () => router.push('/convite'), actionLabel: 'Convidar agora →' },
+              { num: '3', done: false, label: 'Prescrever o plano alimentar', desc: 'Após aceitar o convite, monte o plano nutricional.', action: null, actionLabel: null },
+            ].map((s) => (
+              <div key={s.num} className="flex items-start gap-4 px-5 py-4">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-black ${s.done ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400' : 'bg-green-500/10 border border-green-500/20 text-green-400'}`}>
+                  {s.done ? '✓' : s.num}
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-bold ${s.done ? 'text-zinc-500 line-through' : 'text-white'}`}>{s.label}</p>
+                  <p className="text-zinc-600 text-xs mt-0.5">{s.desc}</p>
+                  {s.action && (
+                    <button onClick={s.action} className="mt-2 text-xs text-green-400 font-semibold hover:text-green-300 transition-colors">
+                      {s.actionLabel}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

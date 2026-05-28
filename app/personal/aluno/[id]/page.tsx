@@ -584,6 +584,21 @@ export default function PersonalAluno() {
           )}
         </div>
 
+        {/* Composição Corporal — empty state */}
+        {medidasCP.length === 0 && (
+          <div className="rounded-2xl border border-white/[0.06] mb-5 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#0f0f0f' }}>
+            <span className="text-3xl">📏</span>
+            <div>
+              <p className="text-white text-sm font-bold">Sem medidas corporais</p>
+              <p className="text-zinc-600 text-xs mt-1">Registre as medidas iniciais do aluno para acompanhar a evolução</p>
+            </div>
+            <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+              className="mt-1 text-xs text-blue-400 border border-blue-500/20 bg-blue-500/10 rounded-xl px-4 py-2 hover:bg-blue-500/20 active:scale-95 transition-all font-semibold">
+              + Registrar primeira medida
+            </button>
+          </div>
+        )}
+
         {/* Composição Corporal */}
         {medidasCP.length >= 2 && (() => {
           const ultima = medidasCP[medidasCP.length - 1]

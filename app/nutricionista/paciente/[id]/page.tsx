@@ -531,6 +531,17 @@ Responda APENAS JSON válido:
           )}
         </div>
 
+        {/* Composição Corporal — empty state */}
+        {medidasCP.length === 0 && (
+          <div className="rounded-2xl border border-white/[0.06] mb-4 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#0f0f0f' }}>
+            <span className="text-3xl">📏</span>
+            <div>
+              <p className="text-white text-sm font-bold">Sem medidas corporais</p>
+              <p className="text-zinc-600 text-xs mt-1">O personal ainda não registrou as medidas. Peça para ele iniciar o acompanhamento.</p>
+            </div>
+          </div>
+        )}
+
         {/* Composição Corporal */}
         {medidasCP.length >= 2 && (() => {
           const ultima = medidasCP[medidasCP.length - 1]
@@ -802,8 +813,8 @@ Responda APENAS JSON válido:
                   <div className="w-2.5 h-2.5 rounded-md bg-blue-500/30 border border-blue-500/40" />
                   <span className="text-zinc-600 text-[9px]">Treinou</span>
                 </div>
-                <span className={`text-xs font-bold ml-auto ${treinos7dDatas.length >= 4 ? 'text-blue-400' : treinos7dDatas.length >= 2 ? 'text-yellow-400' : 'text-zinc-500'}`}>
-                  {treinos7dDatas.length}/7 dias
+                <span className={`text-xs font-bold ml-auto ${treinos7dDatas.length >= 4 ? 'text-blue-400' : treinos7dDatas.length >= 2 ? 'text-yellow-400' : treinos7dDatas.length === 0 ? 'text-red-400' : 'text-zinc-500'}`}>
+                  {treinos7dDatas.length === 0 ? 'Nenhum treino esta semana' : `${treinos7dDatas.length}/7 dias`}
                 </span>
                 {caloriasSemanais != null && caloriasSemanais > 0 && (
                   <span className="text-orange-400 text-[10px] font-bold">
