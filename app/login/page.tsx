@@ -140,7 +140,7 @@ function LoginForm() {
 
         {/* ── HERO MOBILE (escondido no desktop) ─────────── */}
         <div className="lg:hidden relative overflow-hidden flex flex-col items-center justify-end pb-8 pt-16"
-          style={{ minHeight: '38vh', background: 'linear-gradient(175deg, #040c06 0%, #060e08 60%, #080808 100%)' }}>
+          style={{ minHeight: '32vh', background: 'linear-gradient(175deg, #040c06 0%, #060e08 60%, #080808 100%)' }}>
 
           {/* glows mobile */}
           <div className="pointer-events-none absolute top-[-60px] left-1/2 -translate-x-1/2 w-[340px] h-[280px] rounded-full blur-[80px] opacity-30"
@@ -182,10 +182,10 @@ function LoginForm() {
         </div>
 
         {/* ── FORMULÁRIO ─────────────────────────────────── */}
-        <div className="flex-1 flex items-center justify-center px-6 py-10">
+        <div className="flex-1 flex items-center justify-center px-6 py-6">
           <div className={`w-full max-w-sm transition-all duration-700 ${vis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
 
-            <div className="mb-7">
+            <div className="mb-5">
               <h2 className="text-2xl font-black text-white">
                 {modo === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'}
               </h2>

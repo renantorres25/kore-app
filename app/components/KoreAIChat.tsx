@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 type Mensagem = { role: 'user' | 'assistant'; content: string }
@@ -78,6 +79,7 @@ function KoreIcon({ size = 20, className = '' }: { size?: number; className?: st
 }
 
 export default function KoreAIChat() {
+  const pathname = usePathname()
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
@@ -232,6 +234,9 @@ export default function KoreAIChat() {
   }
 
   if (tipo && tipo !== 'cliente') return null
+
+  const ROTAS_OCULTAS = ['/', '/login', '/cadastro', '/onboarding', '/nova-senha']
+  if (ROTAS_OCULTAS.includes(pathname)) return null
 
   return (
     <>
