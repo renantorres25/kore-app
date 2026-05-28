@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 const BENEFITS = [
-  { emoji: '👥', label: 'Time integrado' },
-  { emoji: '📈', label: 'Evolução real' },
-  { emoji: '⚡', label: 'Performance' },
+  { emoji: '👥', label: 'Personal e nutri conectados' },
+  { emoji: '📈', label: 'Evolução em tempo real' },
+  { emoji: '⚡', label: 'Decisões pelos seus dados' },
 ]
 
 function EyeIcon({ open }: { open: boolean }) {
@@ -98,7 +98,7 @@ function LoginForm() {
 
         {/* branding */}
         <div className="relative z-10">
-          <p className="text-emerald-500 text-[10px] uppercase tracking-[0.4em] font-semibold mb-5">Performance integrada</p>
+          <p className="text-emerald-500 text-[10px] uppercase tracking-[0.4em] font-semibold mb-5">Seu time de evolução</p>
 
           <h1 className="text-[7.5rem] font-black tracking-[-0.05em] leading-none select-none"
             style={{ textShadow: '0 0 140px rgba(16,185,129,0.3), 0 0 40px rgba(16,185,129,0.1)' }}>
@@ -106,15 +106,16 @@ function LoginForm() {
           </h1>
 
           <p className="text-zinc-300 text-xl mt-5 leading-relaxed max-w-[340px] font-light">
-            O único app onde seu <span className="text-white font-semibold">personal</span> e <span className="text-white font-semibold">nutricionista</span> trabalham juntos pelo seu resultado.
+            Você não está seguindo um plano.<br />
+            <span className="text-white font-semibold">Você tem um time.</span>
           </p>
 
           {/* cards de benefícios */}
           <div className="mt-10 flex flex-col gap-3">
             {[
-              { icon: '👥', title: 'Time integrado', desc: 'Personal e nutricionista colaborando em tempo real pelo seu objetivo' },
-              { icon: '📈', title: 'Evolução visível', desc: 'Carga, composição corporal e metas sempre atualizados' },
-              { icon: '⚡', title: 'Treino + Nutrição', desc: 'Plano alimentar e treinos alinhados para performance máxima' },
+              { icon: '👥', title: 'Personal e nutri conectados', desc: 'Seu time trabalha junto, com acesso aos mesmos dados, pelo mesmo objetivo' },
+              { icon: '📈', title: 'Evolução em tempo real', desc: 'Carga, composição corporal e metas sempre atualizados para quem te acompanha' },
+              { icon: '⚡', title: 'Decisões pelos seus dados', desc: 'Treino e plano alimentar ajustados com base no que seu corpo está sinalizando' },
             ].map((b, i) => (
               <div key={i} className="flex items-start gap-4 bg-white/[0.02] border border-white/[0.05] rounded-2xl px-4 py-3.5 backdrop-blur-sm">
                 <span className="text-xl mt-0.5">{b.icon}</span>
@@ -166,12 +167,12 @@ function LoginForm() {
               KORE
             </h1>
             <p className="text-emerald-500/70 text-[9px] uppercase tracking-[0.4em] mt-2 font-medium">
-              Performance integrada
+              Seu time de evolução
             </p>
           </div>
 
           {/* chips de benefício */}
-          <div className="relative z-10 flex items-center gap-2 mt-6 px-5 flex-wrap justify-center">
+          <div className="relative z-10 flex items-center gap-2 mt-5 px-5 flex-wrap justify-center">
             {BENEFITS.map((b, i) => (
               <span key={i} className="flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1.5 text-[11px] text-zinc-300 font-medium backdrop-blur-sm">
                 <span className="text-sm">{b.emoji}</span>
@@ -179,6 +180,11 @@ function LoginForm() {
               </span>
             ))}
           </div>
+
+          {/* tagline */}
+          <p className="relative z-10 text-zinc-500 text-[11px] text-center mt-4 px-8 leading-relaxed italic">
+            "Você não está seguindo um plano. Você tem um time."
+          </p>
         </div>
 
         {/* ── FORMULÁRIO ─────────────────────────────────── */}
