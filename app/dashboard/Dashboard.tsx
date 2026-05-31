@@ -855,15 +855,15 @@ function CardMeta({
     )
   }
 
+  const C = 2 * Math.PI * 30 // circumference r=30 → ~188.5
+
   return (
-    <div className="rounded-2xl p-5 mb-3 border border-white/[0.06] relative overflow-hidden" style={{ background: '#0f0f0f' }}>
+    <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Meta pessoal</p>
-          {ehSugestao && (
-            <span className="text-[9px] text-emerald-400 border border-emerald-500/30 rounded-md px-1.5 py-0.5 uppercase tracking-wider">IA</span>
-          )}
+          {ehSugestao && <span className="text-[9px] text-emerald-400 border border-emerald-500/30 rounded-md px-1.5 py-0.5 uppercase tracking-wider">IA</span>}
         </div>
         <button onClick={() => setEditando(true)}
           className="text-zinc-600 text-[10px] uppercase tracking-wider border border-white/[0.08] rounded-lg px-3 py-1.5 hover:text-white hover:border-white/20 transition-all active:scale-95">
@@ -872,61 +872,77 @@ function CardMeta({
       </div>
 
       {atingiu ? (
-        <p className="text-emerald-400 font-black text-3xl mb-5">Meta atingida! 🎉</p>
-      ) : ehSugestao ? (
-        <div className="mb-5">
-          <p className="font-black leading-none mb-1"
-            style={{ fontSize: '2.75rem', fontVariantNumeric: 'tabular-nums', color: '#34d399' }}>
-            {totalGoal != null ? `${perder ? '-' : '+'}${totalGoal.toFixed(1)} kg` : '—'}
-          </p>
-          <p className="text-zinc-600 text-xs">objetivo sugerido para você</p>
-        </div>
+        <p className="text-emerald-400 font-black text-3xl mb-4">Meta atingida! 🎉</p>
       ) : (
-        <div className="mb-5">
-          <p className="font-black leading-none mb-1"
-            style={{ fontSize: '2.75rem', fontVariantNumeric: 'tabular-nums', color: deltaAlcancado > 0 && progredindo ? '#34d399' : deltaAlcancado === 0 ? '#71717a' : '#f87171' }}>
-            {deltaAlcancado > 0 ? `${perder ? '-' : '+'}${deltaAlcancado.toFixed(1)} kg` : '—'}
-          </p>
-          <p className="text-zinc-600 text-xs">
-            {deltaAlcancado > 0 && progredindo ? 'já conquistados' : deltaAlcancado > 0 ? 'de variação' : 'registre seu peso para acompanhar'}
-          </p>
-        </div>
-      )}
-
-      {/* Início → Hoje → Meta */}
-      {!atingiu && (
-        <div className="flex items-center mb-4">
-          {!ehSugestao && (
-            <>
-              <div className="flex-1 text-center">
-                <p className="text-zinc-400 font-bold text-sm">{pesoBase != null ? `${pesoBase} kg` : '—'}</p>
-                <p className="text-zinc-700 text-[9px] uppercase tracking-wider mt-0.5">início</p>
-              </div>
-              <div className="text-zinc-700 text-xs px-1">→</div>
-            </>
-          )}
-          <div className="flex-1 text-center">
-            <p className="text-white font-black text-base">{pesoCurrent != null ? `${pesoCurrent} kg` : '—'}</p>
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wider mt-0.5">hoje</p>
+        <div className="flex items-center gap-5 mb-4">
+          {/* Gauge circular */}
+          <div className="relative shrink-0 w-[76px] h-[76px]">
+            <svg width="76" height="76" viewBox="0 0 76 76">
+              <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5.5" />
+              <circle cx="38" cy="38" r="30" fill="none"
+                stroke={ehSugestao ? '#34d399' : (pct > 0 && progredindo ? '#34d399' : pct === 0 ? '#52525b' : '#f87171')}
+                strokeWidth="5.5" strokeLinecap="round"
+                strokeDasharray={`${(pct / 100) * C} ${C}`}
+                transform="rotate(-90 38 38)"
+                style={{ transition: 'stroke-dasharray 0.7s ease' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-white font-black text-base leading-none">{pct}%</span>
+            </div>
           </div>
-          <div className="text-zinc-700 text-xs px-1">→</div>
-          <div className="flex-1 text-center">
-            <p className="text-emerald-400 font-bold text-sm">{metaEfetiva} kg</p>
-            <p className="text-zinc-700 text-[9px] uppercase tracking-wider mt-0.5">meta</p>
+
+          {/* Info direita */}
+          <div className="flex-1 min-w-0">
+            {ehSugestao ? (
+              <>
+                <p className="text-emerald-400 font-black text-2xl leading-tight mb-0.5">
+                  {totalGoal != null ? `${perder ? '-' : '+'}${totalGoal.toFixed(1)} kg` : '—'}
+                </p>
+                <p className="text-zinc-500 text-xs mb-3">objetivo sugerido pela IA</p>
+              </>
+            ) : (
+              <>
+                <p className="text-white font-black text-2xl leading-tight mb-0.5">
+                  {faltam != null ? `${faltam.toFixed(1)} kg` : '—'}
+                </p>
+                <p className="text-zinc-500 text-xs mb-3">
+                  {deltaAlcancado > 0 && progredindo ? `${deltaAlcancado.toFixed(1)} kg já conquistados` : 'faltam para a meta'}
+                </p>
+              </>
+            )}
+            {/* Chips INÍCIO · HOJE · META */}
+            <div className="flex items-center gap-3">
+              {!ehSugestao && pesoBase != null && (
+                <>
+                  <div>
+                    <p className="text-zinc-400 text-xs font-bold leading-tight">{pesoBase} kg</p>
+                    <p className="text-zinc-600 text-[8px] uppercase tracking-wider">início</p>
+                  </div>
+                  <span className="text-zinc-700 text-[10px]">→</span>
+                </>
+              )}
+              <div>
+                <p className="text-white text-xs font-black leading-tight">{pesoCurrent != null ? `${pesoCurrent} kg` : '—'}</p>
+                <p className="text-zinc-500 text-[8px] uppercase tracking-wider">hoje</p>
+              </div>
+              <span className="text-zinc-700 text-[10px]">→</span>
+              <div>
+                <p className="text-emerald-400 text-xs font-bold leading-tight">{metaEfetiva} kg</p>
+                <p className="text-zinc-600 text-[8px] uppercase tracking-wider">meta</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Barra de progresso */}
-      <div className="mb-4">
-        <div className="h-2 bg-white/[0.05] rounded-full overflow-hidden">
+      {!atingiu && (
+        <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden mb-4">
           <div className={`h-full rounded-full transition-all duration-700 ${ehSugestao ? 'bg-emerald-400/30' : 'bg-emerald-400'}`}
             style={{ width: `${pct}%` }} />
         </div>
-        <p className="text-zinc-600 text-[10px] mt-1.5">
-          {ehSugestao ? `Meta: ${perder ? 'perder' : 'ganhar'} ${totalGoal} kg · Confirme para começar` : `${pct}% do caminho percorrido`}
-        </p>
-      </div>
+      )}
 
       {/* Rodapé */}
       {ehSugestao ? (
@@ -935,16 +951,17 @@ function CardMeta({
           Confirmar esta meta →
         </button>
       ) : (
-        <div className="flex items-center gap-2 pt-3 border-t border-white/[0.04]">
+        <div className="flex items-center pt-3 border-t border-white/[0.04]">
           {!atingiu && faltam != null && (
             <p className="text-zinc-500 text-xs flex-1">
-              Faltam <span className="text-white font-bold">{faltam.toFixed(1)} kg</span>
-              {metaDataLimite && ` · ${new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
+              {metaDataLimite && `até ${new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
+              {dias != null && metaDataLimite && ` · `}
+              {dias != null && <span className="text-white font-semibold">{dias}d</span>}
             </p>
           )}
           <button onClick={() => router.push('/evolucao-medidas/' + userId)}
             className="text-[10px] text-zinc-600 uppercase tracking-wider hover:text-white transition-colors shrink-0 active:scale-95">
-            Ver evolução →
+            VER EVOLUÇÃO →
           </button>
         </div>
       )}
