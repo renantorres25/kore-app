@@ -534,6 +534,7 @@ Responda APENAS em JSON válido, sem markdown:
             onLogout={handleLogout}
             onOpenNotifs={() => setShowNotifs(true)}
             notifCount={notifs.length}
+            planoNutriRefeicoes={planoNutriRefeicoes}
           />
         )}
         {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} />}
@@ -954,7 +955,7 @@ function CardMeta({
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, recentDays, sonoHistorico, vinculos, treinoHoje, nutricaoHoje,
   decisaoDia, gerandoDecisao, temSonoHoje, userId, pesoAtual, pesoDelta, onSalvarMeta,
-  onLogout: _onLogout, onOpenNotifs, notifCount,
+  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
@@ -963,6 +964,7 @@ function DashboardCliente({
   activeTab: string; userId: string; pesoAtual: number | null; pesoDelta: number | null
   onSalvarMeta: (metaPeso: number, metaData: string) => Promise<void>
   onLogout: () => void; onOpenNotifs: () => void; notifCount: number
+  planoNutriRefeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]
 }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
