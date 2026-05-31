@@ -325,7 +325,8 @@ export default function PeriodizacaoPage() {
                             <div className="flex-1">
                               <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1">Tipo</label>
                               <select value={b.tipo} onChange={e => updateBloco(i, 'tipo', e.target.value)}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20">
+                                className="w-full border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20"
+                                style={{ colorScheme: 'dark', background: '#141414' }}>
                                 {Object.entries(TIPO).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                               </select>
                             </div>
@@ -338,7 +339,8 @@ export default function PeriodizacaoPage() {
                             <div className="w-16">
                               <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1">Plano</label>
                               <select value={b.plano_associado} onChange={e => updateBloco(i, 'plano_associado', e.target.value)}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20">
+                                className="w-full border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20"
+                                style={{ colorScheme: 'dark', background: '#141414' }}>
                                 <option value="">—</option>
                                 <option value="A">A</option>
                                 <option value="B">B</option>

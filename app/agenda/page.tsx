@@ -273,7 +273,8 @@ export default function Agenda() {
             <div>
               <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">{tipo === 'nutricionista' ? 'Paciente' : 'Aluno'}</p>
               <select value={novoClienteId} onChange={e => setNovoClienteId(e.target.value)}
-                className="w-full bg-white/[0.05] text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]">
+                className="w-full text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]"
+                style={{ colorScheme: 'dark', background: '#141414' }}>
                 <option value="">Selecionar...</option>
                 {clientes.map(c => <option key={c.id} value={c.id}>{c.nome ?? c.email}</option>)}
               </select>

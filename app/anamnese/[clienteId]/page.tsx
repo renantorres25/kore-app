@@ -338,7 +338,7 @@ export default function AnamnesePage() {
               </Field>
               <Field label="Álcool" optional>
                 <select value={form.alcool} onChange={e => set('alcool', e.target.value)}
-                  className={INPUT_CLASS + " appearance-none"} style={{ colorScheme: 'dark' }}>
+                  className={INPUT_CLASS + " appearance-none"} style={{ colorScheme: 'dark', background: '#141414' }}>
                   <option value="">Selecione</option>
                   {ALCOOL.map(a => <option key={a.val} value={a.val}>{a.label}</option>)}
                 </select>
