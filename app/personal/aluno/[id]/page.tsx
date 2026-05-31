@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
@@ -895,6 +896,58 @@ export default function PersonalAluno() {
             </div>
           </div>
         </div>
+      )}
+
+      {aluno && (
+        <ProfissionalAIChat contexto={{
+          profissionalTipo: 'personal',
+          profissionalNome: personalNome || null,
+          paciente: {
+            nome: aluno.nome,
+            peso: aluno.peso,
+            altura: aluno.altura,
+            objetivo: aluno.objetivo,
+            nivel: aluno.nivel,
+            metaPeso: aluno.meta_peso,
+            metaDataLimite: aluno.meta_data_limite,
+            fcmax: aluno.fcmax,
+            ftp: aluno.ftp,
+          },
+          alertasClinicos: {
+            lesoes,
+            restricoesFisicas: restricaoFisica,
+            medicamentos,
+            restricoesAlimentares: restricaoNutri,
+          },
+          treinamento: {
+            treinosSemana: monitor?.treinosSemana ?? 0,
+            diasSemTreinar: monitor?.ultimoTreino ? diasSemTreinar(monitor.ultimoTreino) : null,
+            scoreRecuperacaoHoje: monitor?.scoreRecuperacao ?? null,
+            sonoHorasHoje: monitor?.sonoHoras ?? null,
+            exerciciosMaxCarga: Object.entries(cargaEvolucao)
+              .map(([nome, pontos]) => ({
+                nome,
+                maxCarga: Math.max(...pontos.map(p => p.carga)),
+                sessoes: pontos.length,
+              }))
+              .sort((a, b) => b.sessoes - a.sessoes)
+              .slice(0, 6),
+          },
+          nutricao: planoNutri ? {
+            caloriasPrescritas: planoNutri.calorias_meta,
+            proteinaPrescritas: planoNutri.proteina_meta,
+            caloriasSemanaisGastas: null,
+            treinosSemana: monitor?.treinosSemana ?? 0,
+            periodizacao: null,
+          } : null,
+          composicao: medidasCP.length > 0 ? {
+            ultimoPeso: medidasCP[medidasCP.length - 1].peso,
+            gorduraPct: medidasCP[medidasCP.length - 1].gordura_pct,
+            massaMuscular: medidasCP[medidasCP.length - 1].massa_muscular,
+            data: medidasCP[medidasCP.length - 1].data,
+          } : null,
+          ultimaAvaliacao,
+        }} />
       )}
     </main>
   )

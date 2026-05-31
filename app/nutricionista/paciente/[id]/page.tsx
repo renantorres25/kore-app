@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import NavBar from '../../../components/NavBar'
 import AlimentoBusca, { type AlimentoTACO } from '../../../components/AlimentoBusca'
+import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 
 type Paciente = {
   id: string; nome: string | null; email: string
@@ -97,6 +98,7 @@ export default function NutricionistaPaciente() {
   const [periodizacaoFase, setPeriodizacaoFase] = useState<PeriodizacaoFase | null>(null)
   const [historicoMetas, setHistoricoMetas] = useState<MetaHistorico[]>([])
 
+  const [nutriNome, setNutriNome] = useState<string | null>(null)
   const [caloriasSemanais, setCaloriasSemanais] = useState<number | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
   const [anamneseLesoes, setAnamneseLesoes] = useState<string | null>(null)
@@ -130,6 +132,7 @@ export default function NutricionistaPaciente() {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
+      supabase.from('perfis').select('nome').eq('id', session.user.id).single().then(({ data }) => { if (data?.nome) setNutriNome(data.nome) })
       const hoje = getTodayBR()
       const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 6)
       const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -1310,6 +1313,44 @@ Responda APENAS JSON válido:
             </div>
           </details>
         </div>
+      )}
+
+      {paciente && (
+        <ProfissionalAIChat contexto={{
+          profissionalTipo: 'nutricionista',
+          profissionalNome: nutriNome,
+          paciente: {
+            nome: paciente.nome,
+            peso: paciente.peso,
+            altura: paciente.altura,
+            objetivo: paciente.objetivo,
+            nivel: paciente.nivel ?? null,
+            metaPeso: paciente.meta_peso,
+            metaDataLimite: paciente.meta_data_limite,
+            fcmax: paciente.fcmax ?? null,
+            ftp: paciente.ftp ?? null,
+          },
+          alertasClinicos: {
+            lesoes: anamneseLesoes,
+            restricoesFisicas: anamneseRestricaoFisica,
+            medicamentos: anamneseMedicamentos,
+            alergias: anamneseAlergias,
+          },
+          nutricao: {
+            caloriasPrescritas: planoAtivo?.calorias_meta ?? null,
+            proteinaPrescritas: planoAtivo?.proteina_meta ?? null,
+            caloriasSemanaisGastas: caloriasSemanais,
+            treinosSemana: treinos7dDatas.length,
+            periodizacao: periodizacaoFase ? `${periodizacaoFase.nome_bloco} (${periodizacaoFase.tipo_bloco}) semana ${periodizacaoFase.semana_bloco}/${periodizacaoFase.total_semanas_bloco}` : null,
+          },
+          composicao: medidasCP.length > 0 ? {
+            ultimoPeso: medidasCP[medidasCP.length - 1].peso,
+            gorduraPct: medidasCP[medidasCP.length - 1].gordura_pct,
+            massaMuscular: medidasCP[medidasCP.length - 1].massa_muscular,
+            data: medidasCP[medidasCP.length - 1].data,
+          } : null,
+          ultimaAvaliacao,
+        }} />
       )}
     </main>
   )
