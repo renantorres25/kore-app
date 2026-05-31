@@ -239,6 +239,7 @@ export default function EvolucaoMedidasPage() {
     </main>
   )
 
+  const isProfissional = meuperfil?.tipo === 'personal' || meuperfil?.tipo === 'nutricionista'
   const mais_recente = medicoes[0] ?? null
   const anterior = medicoes[1] ?? null
 
@@ -271,7 +272,9 @@ export default function EvolucaoMedidasPage() {
               <p className="text-zinc-500 text-xs mt-0.5">{clienteNome ?? 'Medidas corporais'}</p>
             </div>
           </div>
-          <button onClick={abrirNova} className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center text-lg font-black active:scale-90 transition-all">+</button>
+          {isProfissional && (
+            <button onClick={abrirNova} className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center text-lg font-black active:scale-90 transition-all">+</button>
+          )}
         </div>
 
         {medicoes.length === 0 ? (
@@ -279,9 +282,11 @@ export default function EvolucaoMedidasPage() {
             <div className="w-16 h-16 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-3xl opacity-40">📏</div>
             <div className="text-center">
               <p className="text-white font-bold mb-1">Sem medidas registradas</p>
-              <p className="text-zinc-600 text-sm">Registre a primeira avaliação corporal</p>
+              <p className="text-zinc-600 text-sm">{isProfissional ? 'Registre a primeira avaliação corporal' : 'Seu profissional ainda não registrou medidas'}</p>
             </div>
-            <button onClick={abrirNova} className="mt-2 bg-white text-black font-bold px-6 py-3 rounded-xl text-sm active:scale-95 transition-all">+ Registrar medidas</button>
+            {isProfissional && (
+              <button onClick={abrirNova} className="mt-2 bg-white text-black font-bold px-6 py-3 rounded-xl text-sm active:scale-95 transition-all">+ Registrar medidas</button>
+            )}
           </div>
         ) : (
           <>
@@ -332,10 +337,12 @@ export default function EvolucaoMedidasPage() {
                         <p className="text-white font-bold text-sm">{new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                         {idx === 0 && <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider">Mais recente</span>}
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => abrirEditar(m)} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white active:scale-95 transition-all">Editar</button>
-                        <button onClick={() => deletar(m.id)} className="text-[10px] text-red-500/60 border border-red-500/20 rounded-lg px-2.5 py-1.5 hover:text-red-400 active:scale-95 transition-all">✕</button>
-                      </div>
+                      {isProfissional && (
+                        <div className="flex gap-2">
+                          <button onClick={() => abrirEditar(m)} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white active:scale-95 transition-all">Editar</button>
+                          <button onClick={() => deletar(m.id)} className="text-[10px] text-red-500/60 border border-red-500/20 rounded-lg px-2.5 py-1.5 hover:text-red-400 active:scale-95 transition-all">✕</button>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {m.peso != null && <span className="text-xs text-zinc-300 bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1">{m.peso}kg</span>}
