@@ -117,6 +117,16 @@ export default function Agenda() {
     setAgendamentos(prev => prev.filter(a => a.id !== id))
   }
 
+  const hoje = getTodayBR()
+  // Semana atual: dom→sáb
+  const semana7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(hoje + 'T12:00:00-03:00')
+    const dow = d.getDay()
+    d.setDate(d.getDate() - dow + i)
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  })
+  const DIAS_LABEL = ['D','S','T','Q','Q','S','S']
+
   const grupos = agendamentos.reduce<Record<string, Agendamento[]>>((acc, a) => {
     if (!acc[a.data]) acc[a.data] = []; acc[a.data].push(a); return acc
   }, {})
@@ -138,7 +148,7 @@ export default function Agenda() {
     <main className="min-h-[100dvh] bg-[#080808] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">KORE</p>
             <h1 className="text-[1.85rem] font-black tracking-tight">Agenda</h1>
@@ -147,6 +157,33 @@ export default function Agenda() {
             className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center text-xl font-black active:scale-95 transition-all">
             +
           </button>
+        </div>
+
+        {/* Mini calendário semanal */}
+        <div className="rounded-2xl border border-white/[0.06] p-4 mb-5" style={{ background: '#0f0f0f' }}>
+          <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-3">Esta semana</p>
+          <div className="grid grid-cols-7 gap-1">
+            {semana7.map((dia, i) => {
+              const temAg = grupos[dia]?.length > 0
+              const isHoje = dia === hoje
+              const [,,dd] = dia.split('-')
+              return (
+                <div key={dia} className="flex flex-col items-center gap-1">
+                  <p className={`text-[9px] uppercase font-semibold ${isHoje ? 'text-white' : 'text-zinc-600'}`}>{DIAS_LABEL[i]}</p>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold relative
+                    ${isHoje ? 'bg-white text-black' : temAg ? 'bg-white/[0.08] text-white border border-white/[0.12]' : 'text-zinc-700'}`}>
+                    {dd}
+                    {temAg && !isHoje && (
+                      <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-green-400" />
+                    )}
+                  </div>
+                  {grupos[dia] && (
+                    <p className="text-[8px] text-green-400 font-bold">{grupos[dia].length}x</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         {Object.keys(grupos).length === 0 ? (

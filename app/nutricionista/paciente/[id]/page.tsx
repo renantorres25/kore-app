@@ -114,6 +114,12 @@ export default function NutricionistaPaciente() {
   const [fichaMetaPeso, setFichaMetaPeso] = useState('')
   const [fichaMetaData, setFichaMetaData] = useState('')
 
+  const [confirmandoIA, setConfirmandoIA] = useState(false)
+  const [notaAvulsa, setNotaAvulsa] = useState('')
+  const [salvandoNota, setSalvandoNota] = useState(false)
+  const [notaAnamneseId, setNotaAnamneseId] = useState<string | null>(null)
+  const [metaSemPrazoAviso, setMetaSemPrazoAviso] = useState(false)
+
   const [editandoPlano, setEditandoPlano] = useState(false)
   const [salvandoEd, setSalvandoEd] = useState(false)
   const [refeicoesEd, setRefeicoesEd] = useState<RefeicaoEd[]>([])
@@ -158,6 +164,17 @@ export default function NutricionistaPaciente() {
       if (rf) setAnamneseRestricaoFisica(rf)
       if (meds) setAnamneseMedicamentos(meds)
       if (alerg) setAnamneseAlergias(alerg)
+
+      // Nota clínica avulsa — armazenada na anamnese do profissional
+      const { data: anamnesePropria } = await supabase
+        .from('anamneses').select('id,observacoes')
+        .eq('cliente_id', clienteId).eq('profissional_id', session.user.id)
+        .limit(1).maybeSingle()
+      if (anamnesePropria) {
+        setNotaAnamneseId(anamnesePropria.id)
+        setNotaAvulsa(anamnesePropria.observacoes ?? '')
+      }
+
       setTreinoHoje(trHoje ?? null)
       setSonoHoje(sono ?? null)
       setBemEstar(bem ?? null)
@@ -311,6 +328,11 @@ export default function NutricionistaPaciente() {
   }
 
   async function salvarFicha() {
+    if (fichaMetaPeso && !fichaMetaData) {
+      setMetaSemPrazoAviso(true)
+      return
+    }
+    setMetaSemPrazoAviso(false)
     setSalvandoFicha(true)
     const updates = {
       peso: fichaPeso ? parseFloat(fichaPeso) || null : null,
@@ -325,6 +347,22 @@ export default function NutricionistaPaciente() {
     setPaciente(prev => prev ? { ...prev, ...updates } : prev)
     setEditandoFicha(false)
     setSalvandoFicha(false)
+  }
+
+  async function salvarNotaAvulsa() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    setSalvandoNota(true)
+    if (notaAnamneseId) {
+      await supabase.from('anamneses').update({ observacoes: notaAvulsa, atualizado_em: new Date().toISOString() }).eq('id', notaAnamneseId)
+    } else {
+      const { data: nova } = await supabase.from('anamneses').insert({
+        cliente_id: clienteId, profissional_id: session.user.id,
+        observacoes: notaAvulsa, atualizado_em: new Date().toISOString(),
+      }).select('id').single()
+      if (nova) setNotaAnamneseId(nova.id)
+    }
+    setSalvandoNota(false)
   }
 
   async function gerarPlanoIA() {
@@ -523,6 +561,11 @@ Responda APENAS JSON válido:
                   </div>
                 </div>
               </div>
+              {metaSemPrazoAviso && (
+                <p className="text-amber-400 text-xs text-center py-2 px-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                  ⚠️ Defina um prazo para a meta de peso antes de salvar.
+                </p>
+              )}
               <button onClick={salvarFicha} disabled={salvandoFicha}
                 className="w-full bg-white text-black font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-40">
                 {salvandoFicha ? 'Salvando...' : 'Salvar ficha'}
@@ -1136,7 +1179,7 @@ Responda APENAS JSON válido:
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => iniciarEdicao(false)} className="text-[10px] text-zinc-400 border border-white/[0.1] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✏️ Editar</button>
-                      <button onClick={gerarPlanoIA} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✦ IA</button>
+                      <button onClick={() => setConfirmandoIA(true)} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✦ IA</button>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 divide-x divide-white/[0.05]">
@@ -1210,7 +1253,7 @@ Responda APENAS JSON válido:
                 <p className="text-zinc-500 text-sm leading-relaxed mb-6">Monte manualmente com alimentos e gramas, ou deixe a IA gerar um plano completo.</p>
                 <div className="flex gap-2">
                   <button onClick={() => iniciarEdicao(true)} className="flex-1 border border-white/[0.12] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all hover:border-white/25">✏️ Manual</button>
-                  <button onClick={gerarPlanoIA} className="flex-1 bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">✦ Gerar IA</button>
+                  <button onClick={() => setConfirmandoIA(true)} className="flex-1 bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">✦ Gerar IA</button>
                 </div>
               </div>
             )}
@@ -1219,6 +1262,55 @@ Responda APENAS JSON válido:
       </div>
 
       <NavBar tipo="nutricionista" ativa="pacientes" />
+
+      {/* Modal confirmação IA */}
+      {confirmandoIA && (
+        <div className="fixed inset-0 z-[70] flex items-end" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setConfirmandoIA(false) }}>
+          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.08] px-5 pt-6 pb-10 space-y-4" style={{ background: '#111' }}>
+            <div className="w-12 h-12 rounded-2xl bg-green-500/15 border border-green-500/25 flex items-center justify-center mx-auto mb-2 text-2xl">✦</div>
+            <p className="text-white font-black text-xl text-center">Gerar plano com IA?</p>
+            <p className="text-zinc-400 text-sm text-center leading-relaxed">
+              Isso criará um novo plano e salvará no histórico. O plano atual ficará como versão anterior.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setConfirmandoIA(false)}
+                className="flex-1 border border-white/[0.12] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+                Cancelar
+              </button>
+              <button onClick={() => { setConfirmandoIA(false); gerarPlanoIA() }}
+                className="flex-1 bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+                ✦ Gerar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal nota clínica avulsa */}
+      {abaAtiva === 'hoje' && (
+        <div className="fixed bottom-20 right-4 z-50">
+          <details className="group">
+            <summary className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center cursor-pointer text-blue-300 text-xl list-none active:scale-95 transition-all">
+              📝
+            </summary>
+            <div className="absolute bottom-14 right-0 w-72 rounded-2xl border border-blue-500/20 p-4 space-y-3" style={{ background: '#0a0f18' }}>
+              <p className="text-blue-300 text-[10px] uppercase tracking-[0.15em] font-bold">Nota clínica</p>
+              <textarea
+                value={notaAvulsa}
+                onChange={e => setNotaAvulsa(e.target.value)}
+                placeholder="Anotações sobre o paciente, observações da consulta..."
+                rows={5}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/30 resize-none"
+              />
+              <button onClick={salvarNotaAvulsa} disabled={salvandoNota}
+                className="w-full bg-blue-500/20 border border-blue-500/30 text-blue-300 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition-all disabled:opacity-40">
+                {salvandoNota ? 'Salvando...' : 'Salvar nota'}
+              </button>
+            </div>
+          </details>
+        </div>
+      )}
     </main>
   )
 }
