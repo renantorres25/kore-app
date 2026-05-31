@@ -1122,7 +1122,12 @@ function DashboardCliente({
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
         style={{ background: '#0f0f0f' }}>
         <div className="flex items-start justify-between mb-1">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Minha nutrição</p>
+          <div>
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Minha nutrição</p>
+            {vinculoNutri && (
+              <p className="text-green-400 font-black text-sm mt-0.5">{vinculoNutri.nome ?? vinculoNutri.email}</p>
+            )}
+          </div>
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-600 border-white/[0.06]'}`}>NU</div>
         </div>
         <div className="mb-4">
@@ -1137,7 +1142,7 @@ function DashboardCliente({
               {refeicaoAtual.alimentos?.length > 0 && (
                 <p className="text-zinc-400 text-xs leading-relaxed mb-2 line-clamp-2">
                   {refeicaoAtual.alimentos.slice(0, 3).map(a => a.nome).join(', ')}
-                  {refeicaoAtual.alimentos.length > 3 ? ` +${refeicaoAtual.alimentos.length - 3}` : ''}
+                  {refeicaoAtual.alimentos.length > 3 ? ` +${refeicaoAtual.alimentos.length - 3} alimento${refeicaoAtual.alimentos.length - 3 > 1 ? 's' : ''}` : ''}
                 </p>
               )}
               <div className="flex gap-3">
@@ -1147,7 +1152,6 @@ function DashboardCliente({
                 {refeicaoAtual.proteina > 0 && (
                   <span className="text-blue-400 text-xs">{refeicaoAtual.proteina}g prot</span>
                 )}
-                <span className="text-green-400 text-xs ml-auto">{vinculoNutri.nome ?? vinculoNutri.email}</span>
               </div>
             </>
           ) : (
@@ -1155,9 +1159,7 @@ function DashboardCliente({
               <p className="text-white font-bold text-base mb-0.5">
                 {vinculoNutri ? 'Plano ativo' : 'Sem plano alimentar'}
               </p>
-              {vinculoNutri ? (
-                <p className="text-green-400 font-black text-sm">{vinculoNutri.nome ?? vinculoNutri.email}</p>
-              ) : (
+              {!vinculoNutri && (
                 <p className="text-zinc-600 text-xs">Conecte um nutricionista para receber seu plano</p>
               )}
             </>
