@@ -221,28 +221,28 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
       </button>
 
       {aberto && (
-        <div className="fixed inset-0 z-50 flex flex-col"
+        <div className="fixed inset-0 z-50 flex flex-col md:flex-row md:justify-end"
           style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
           onClick={e => { if (e.target === e.currentTarget) setAberto(false) }}>
-          <div className="mt-auto bg-[#0a0a0a] rounded-t-3xl flex flex-col" style={{ height: '88dvh' }}>
+          <div className="mt-auto md:mt-0 bg-[#0a0a0a] rounded-t-3xl md:rounded-none md:rounded-l-3xl flex flex-col md:w-[440px] md:h-full md:border-l md:border-white/[0.06]" style={{ height: '88dvh' }}>
 
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.06] shrink-0">
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06] shrink-0">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl ${corClass.iconBg} border flex items-center justify-center shrink-0`}>
-                  <KoreIcon size={16} className={corClass.iconText} />
+                <div className={`w-10 h-10 rounded-xl ${corClass.iconBg} border flex items-center justify-center shrink-0`}>
+                  <KoreIcon size={18} className={corClass.iconText} />
                 </div>
                 <div>
-                  <p className="text-white font-black text-sm">KORE AI</p>
+                  <p className="text-white font-black text-base md:text-lg">KORE AI</p>
                   <div className="flex items-center gap-1.5">
                     <div className={`w-1.5 h-1.5 rounded-full ${corClass.pulse} animate-pulse`} />
-                    <p className={`${corClass.label} text-[10px] uppercase tracking-wider`}>
+                    <p className={`${corClass.label} text-[11px] md:text-xs uppercase tracking-wider`}>
                       {contexto.paciente.nome ?? 'Paciente'} · Assistente clínico
                     </p>
                   </div>
                 </div>
               </div>
               <button onClick={() => setAberto(false)}
-                className="w-7 h-7 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all text-xs">✕</button>
+                className="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all text-sm">✕</button>
             </div>
 
             {(contexto.alertasClinicos.lesoes || contexto.alertasClinicos.restricoesFisicas || contexto.alertasClinicos.medicamentos) && (
@@ -262,8 +262,8 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
                       <KoreIcon size={11} className={corClass.iconText} />
                     </div>
                   )}
-                  <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 ${msg.role === 'user' ? 'bg-white text-black rounded-tr-sm' : 'bg-white/[0.06] text-zinc-200 rounded-tl-sm border border-white/[0.06]'}`}>
-                    <p className="text-sm leading-relaxed">{msg.content}</p>
+                  <div className={`max-w-[82%] rounded-2xl px-4 py-3 ${msg.role === 'user' ? 'bg-white text-black rounded-tr-sm' : 'bg-white/[0.06] text-zinc-200 rounded-tl-sm border border-white/[0.06]'}`}>
+                    <p className="text-sm md:text-[15px] leading-relaxed">{msg.content}</p>
                   </div>
                 </div>
               ))}
@@ -289,7 +289,7 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
               <div className="px-4 pb-2 flex gap-2 overflow-x-auto shrink-0">
                 {SUGESTOES[contexto.profissionalTipo].map(s => (
                   <button key={s} onClick={() => enviarMensagem(s)}
-                    className={`shrink-0 text-[11px] border border-white/[0.10] text-zinc-400 rounded-xl px-3 py-2 ${corClass.sugestao} active:scale-95 transition-all whitespace-nowrap`}>
+                    className={`shrink-0 text-[11px] md:text-xs border border-white/[0.10] text-zinc-400 rounded-xl px-3 py-2 md:px-4 md:py-2.5 ${corClass.sugestao} active:scale-95 transition-all whitespace-nowrap`}>
                     {s}
                   </button>
                 ))}
@@ -304,7 +304,7 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensagem()}
                   placeholder={`Pergunte sobre ${contexto.paciente.nome?.split(' ')[0] ?? 'este paciente'}...`}
                   disabled={enviando}
-                  className={`flex-1 bg-white/[0.06] border border-white/[0.10] rounded-2xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none ${corClass.focus} disabled:opacity-50 transition-colors`} />
+                  className={`flex-1 bg-white/[0.06] border border-white/[0.10] rounded-2xl px-4 py-3 text-white text-sm md:text-base placeholder:text-zinc-600 focus:outline-none ${corClass.focus} disabled:opacity-50 transition-colors`} />
                 <button onClick={() => enviarMensagem()} disabled={!input.trim() || enviando}
                   className={`w-11 h-11 rounded-2xl ${corClass.btn} flex items-center justify-center active:scale-90 transition-all disabled:opacity-30 shrink-0`}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

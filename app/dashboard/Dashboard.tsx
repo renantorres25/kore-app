@@ -235,6 +235,7 @@ export default function Dashboard() {
   const [sonoHistorico, setSonoHistorico] = useState<{ data: string; score_recuperacao: number | null; qualidade: number | null }[]>([])
   const [pesoAtual, setPesoAtual] = useState<number | null>(null)
   const [pesoDelta, setPesoDelta] = useState<number | null>(null)
+  const [planoNutriRefeicoes, setPlanoNutriRefeicoes] = useState<{ nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]>([])
 
   useEffect(() => {
     async function carregarDados() {
@@ -268,6 +269,7 @@ export default function Dashboard() {
           { data: decisaoData },
           { data: sonoHistData },
           { data: medidasData },
+          { data: planoData },
         ] = await Promise.all([
           supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('score_recuperacao, duracao_minutos, hrv, sono_profundo, sono_rem').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -279,8 +281,15 @@ export default function Dashboard() {
           supabase.from('decisao_dia').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('data, score_recuperacao, qualidade').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(7),
           supabase.from('evolucao_medidas').select('peso, data').eq('cliente_id', session.user.id).not('peso', 'is', null).order('data', { ascending: false }).limit(2),
+          supabase.from('planos_nutricionais').select('conteudo').eq('usuario_id', session.user.id).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
         ])
 
+        if (planoData?.conteudo) {
+          try {
+            const p = JSON.parse(planoData.conteudo)
+            if (Array.isArray(p.refeicoes)) setPlanoNutriRefeicoes(p.refeicoes)
+          } catch {}
+        }
         if (be) setBemEstar(be)
         if (sonoHoje?.score_recuperacao) setScoreRecuperacao(sonoHoje.score_recuperacao)
         if (sonoHoje) setTemSonoHoje(true)
@@ -960,6 +969,20 @@ function DashboardCliente({
   const initials  = getInitials(perfil.nome, perfil.email)
   const cores          = scoreRecuperacao ? getScoreCores(scoreRecuperacao) : null
   const vinculoNutri   = vinculos.find(v => v?.tipo === 'nutricionista')
+
+  function getRefeicaoAtual() {
+    if (!planoNutriRefeicoes.length) return null
+    const agora = parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10) * 60
+      + parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', minute: 'numeric' }), 10)
+    const comHorario = planoNutriRefeicoes.filter(r => r.horario).map(r => {
+      const [h, m] = r.horario.split(':').map(Number)
+      return { ...r, minutos: (h || 0) * 60 + (m || 0) }
+    }).sort((a, b) => a.minutos - b.minutos)
+    if (!comHorario.length) return planoNutriRefeicoes[0]
+    // Próxima refeição (horário >= agora) ou a última do dia
+    return comHorario.find(r => r.minutos >= agora) ?? comHorario[comHorario.length - 1]
+  }
+  const refeicaoAtual = getRefeicaoAtual()
   const vinculoPersonal = vinculos.find(v => v?.tipo === 'personal')
 
   return (
@@ -1101,13 +1124,41 @@ function DashboardCliente({
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-600 border-white/[0.06]'}`}>NU</div>
         </div>
         <div className="mb-4">
-          <p className="text-white font-bold text-base mb-0.5">
-            {vinculoNutri ? 'Plano ativo' : 'Sem plano alimentar'}
-          </p>
-          {vinculoNutri ? (
-            <p className="text-green-400 font-black text-sm">{vinculoNutri.nome ?? vinculoNutri.email}</p>
+          {vinculoNutri && refeicaoAtual ? (
+            <>
+              <div className="flex items-baseline gap-2 mb-1">
+                <p className="text-white font-bold text-base">{refeicaoAtual.nome}</p>
+                {refeicaoAtual.horario && (
+                  <span className="text-zinc-500 text-xs">{refeicaoAtual.horario}</span>
+                )}
+              </div>
+              {refeicaoAtual.alimentos?.length > 0 && (
+                <p className="text-zinc-400 text-xs leading-relaxed mb-2 line-clamp-2">
+                  {refeicaoAtual.alimentos.slice(0, 3).map(a => a.nome).join(', ')}
+                  {refeicaoAtual.alimentos.length > 3 ? ` +${refeicaoAtual.alimentos.length - 3}` : ''}
+                </p>
+              )}
+              <div className="flex gap-3">
+                {refeicaoAtual.calorias > 0 && (
+                  <span className="text-orange-400 text-xs font-bold">{refeicaoAtual.calorias} kcal</span>
+                )}
+                {refeicaoAtual.proteina > 0 && (
+                  <span className="text-blue-400 text-xs">{refeicaoAtual.proteina}g prot</span>
+                )}
+                <span className="text-green-400 text-xs ml-auto">{vinculoNutri.nome ?? vinculoNutri.email}</span>
+              </div>
+            </>
           ) : (
-            <p className="text-zinc-600 text-xs">Conecte um nutricionista para receber seu plano</p>
+            <>
+              <p className="text-white font-bold text-base mb-0.5">
+                {vinculoNutri ? 'Plano ativo' : 'Sem plano alimentar'}
+              </p>
+              {vinculoNutri ? (
+                <p className="text-green-400 font-black text-sm">{vinculoNutri.nome ?? vinculoNutri.email}</p>
+              ) : (
+                <p className="text-zinc-600 text-xs">Conecte um nutricionista para receber seu plano</p>
+              )}
+            </>
           )}
         </div>
         <div className="w-full bg-white/[0.06] text-white font-bold py-3.5 rounded-xl text-sm text-center tracking-[0.05em]">
