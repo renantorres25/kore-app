@@ -150,18 +150,18 @@ export default function Agenda() {
   const STATUS_COR: Record<string, string> = {
     agendado: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     realizado: 'text-green-400 bg-green-500/10 border-green-500/20',
-    cancelado: 'text-zinc-600 bg-white/[0.03] border-white/[0.06]',
+    cancelado: 'text-zinc-600 bg-white/[0.05] border-white/[0.11]',
   }
   const STATUS_LABEL: Record<string, string> = { agendado: 'Agendado', realizado: 'Realizado', cancelado: 'Cancelado' }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         <div className="flex items-center justify-between mb-4">
@@ -187,7 +187,7 @@ export default function Agenda() {
 
         {/* Calendário semanal */}
         {vistaCalendario === 'semana' && (
-        <div className="rounded-2xl border border-white/[0.06] p-4 mb-5" style={{ background: '#0f0f0f' }}>
+        <div className="rounded-2xl border border-white/[0.11] p-4 mb-5" style={{ background: '#1a1a1a' }}>
           <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-3">Esta semana</p>
           <div className="grid grid-cols-7 gap-1">
             {semana7.map((dia, i) => {
@@ -228,13 +228,13 @@ export default function Agenda() {
           })
           const mesLabel = new Date(mesY, mesM - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
           return (
-            <div className="rounded-2xl border border-white/[0.06] p-4 mb-5" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl border border-white/[0.11] p-4 mb-5" style={{ background: '#1a1a1a' }}>
               <div className="flex items-center justify-between mb-4">
                 <button onClick={() => { const d = new Date(mesY, mesM - 2, 1); setMesAtual(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`) }}
-                  className="w-8 h-8 rounded-xl bg-white/[0.06] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">‹</button>
+                  className="w-8 h-8 rounded-xl bg-white/[0.09] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">‹</button>
                 <p className="text-white font-bold text-sm capitalize">{mesLabel}</p>
                 <button onClick={() => { const d = new Date(mesY, mesM, 1); setMesAtual(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`) }}
-                  className="w-8 h-8 rounded-xl bg-white/[0.06] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">›</button>
+                  className="w-8 h-8 rounded-xl bg-white/[0.09] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">›</button>
               </div>
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {['D','S','T','Q','Q','S','S'].map((l, i) => <p key={i} className="text-[9px] text-zinc-600 text-center font-semibold uppercase">{l}</p>)}
@@ -262,7 +262,7 @@ export default function Agenda() {
         })()}
 
         {Object.keys(grupos).length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] p-10 text-center" style={{ background: '#0f0f0f' }}>
+          <div className="rounded-2xl border border-white/[0.11] p-10 text-center" style={{ background: '#1a1a1a' }}>
             <p className="text-3xl mb-3">📅</p>
             <p className="text-white font-bold mb-1">Agenda vazia</p>
             <p className="text-zinc-500 text-sm">Toque em + para agendar uma consulta ou treino.</p>
@@ -278,13 +278,13 @@ export default function Agenda() {
                 </div>
                 <div className="space-y-2">
                   {ags.map(ag => (
-                    <div key={ag.id} className={`rounded-2xl border overflow-hidden ${ag.status === 'realizado' ? 'border-white/[0.04] opacity-60' : 'border-white/[0.08]'}`} style={{ background: '#0f0f0f' }}>
+                    <div key={ag.id} className={`rounded-2xl border overflow-hidden ${ag.status === 'realizado' ? 'border-white/[0.14] opacity-60' : 'border-white/[0.14]'}`} style={{ background: '#1a1a1a' }}>
                       <div className="flex items-center gap-3 px-4 py-3.5">
                         <div className="text-center shrink-0 w-12">
                           <p className="text-white font-black text-base leading-none">{formatHora(ag.hora)}</p>
                           <p className="text-zinc-600 text-[9px] mt-0.5 leading-tight">{ag.tipo}</p>
                         </div>
-                        <div className="w-px h-8 bg-white/[0.06] shrink-0" />
+                        <div className="w-px h-8 bg-white/[0.09] shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-bold text-sm truncate">{ag.clienteNome ?? ag.clienteEmail}</p>
                           {ag.notas && <p className="text-zinc-500 text-xs truncate mt-0.5">{ag.notas}</p>}
@@ -294,16 +294,16 @@ export default function Agenda() {
                         </span>
                       </div>
                       {ag.status === 'agendado' && (
-                        <div className="flex border-t border-white/[0.04]">
+                        <div className="flex border-t border-white/[0.14]">
                           {cancelandoId === ag.id ? (
                             <>
                               <span className="flex-1 py-2.5 text-center text-zinc-400 text-[10px] uppercase tracking-wider font-semibold">Confirmar cancelamento?</span>
-                              <div className="w-px bg-white/[0.04]" />
+                              <div className="w-px bg-white/[0.07]" />
                               <button onClick={() => { cancelar(ag.id); setCancelandoId(null) }}
                                 className="px-4 py-2.5 text-red-400 text-[10px] uppercase tracking-wider font-semibold hover:bg-red-500/5 transition-colors active:scale-95">
                                 Sim
                               </button>
-                              <div className="w-px bg-white/[0.04]" />
+                              <div className="w-px bg-white/[0.07]" />
                               <button onClick={() => setCancelandoId(null)}
                                 className="px-4 py-2.5 text-zinc-400 text-[10px] uppercase tracking-wider font-semibold hover:bg-white/[0.02] transition-colors active:scale-95">
                                 Não
@@ -315,7 +315,7 @@ export default function Agenda() {
                                 className="flex-1 py-2.5 text-green-400 text-[10px] uppercase tracking-wider font-semibold hover:bg-green-500/5 transition-colors active:scale-95">
                                 ✓ Realizado
                               </button>
-                              <div className="w-px bg-white/[0.04]" />
+                              <div className="w-px bg-white/[0.07]" />
                               <button onClick={() => setCancelandoId(ag.id)}
                                 className="flex-1 py-2.5 text-zinc-600 text-[10px] uppercase tracking-wider font-semibold hover:bg-white/[0.02] transition-colors active:scale-95">
                                 Cancelar
@@ -339,7 +339,7 @@ export default function Agenda() {
       {showModal && (
         <div className="fixed inset-0 z-[60] flex items-end" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.08] px-5 pt-5 pb-8 space-y-4" style={{ background: '#111' }}>
+          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.14] px-5 pt-5 pb-8 space-y-4" style={{ background: '#1c1c1c' }}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-white font-black text-lg">Novo agendamento</h2>
               <button onClick={() => setShowModal(false)} className="text-zinc-500 hover:text-white transition-colors text-xl leading-none">✕</button>
@@ -348,7 +348,7 @@ export default function Agenda() {
             <div>
               <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">{tipo === 'nutricionista' ? 'Paciente' : 'Aluno'}</p>
               <select value={novoClienteId} onChange={e => setNovoClienteId(e.target.value)}
-                className="w-full text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]"
+                className="w-full text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]"
                 style={{ colorScheme: 'dark', background: '#141414' }}>
                 <option value="">Selecionar...</option>
                 {clientes.map(c => <option key={c.id} value={c.id}>{c.nome ?? c.email}</option>)}
@@ -360,7 +360,7 @@ export default function Agenda() {
               <div className="flex flex-wrap gap-2">
                 {tiposOpcoes.map(t => (
                   <button key={t} onClick={() => setNovoTipo(t)}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${novoTipo === t ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${novoTipo === t ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
                     {t}
                   </button>
                 ))}
@@ -371,12 +371,12 @@ export default function Agenda() {
               <div>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">Data</p>
                 <input type="date" value={novaData} onChange={e => setNovaData(e.target.value)}
-                  className="w-full bg-white/[0.05] text-white rounded-xl px-3 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]" />
+                  className="w-full bg-white/[0.05] text-white rounded-xl px-3 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
               </div>
               <div>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">Hora</p>
                 <input type="time" value={novaHora} onChange={e => setNovaHora(e.target.value)}
-                  className="w-full bg-white/[0.05] text-white rounded-xl px-3 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]" />
+                  className="w-full bg-white/[0.05] text-white rounded-xl px-3 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
               </div>
             </div>
 
@@ -384,7 +384,7 @@ export default function Agenda() {
               <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">Observações (opcional)</p>
               <input value={novasNotas} onChange={e => setNovasNotas(e.target.value)}
                 placeholder="Ex: Trazer exames, primeira consulta..."
-                className="w-full bg-white/[0.05] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]" />
+                className="w-full bg-white/[0.05] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
             </div>
 
             <div>
@@ -392,7 +392,7 @@ export default function Agenda() {
               <div className="grid grid-cols-3 gap-2">
                 {(['nenhuma', 'semanal', 'quinzenal'] as const).map(r => (
                   <button key={r} onClick={() => setRecorrencia(r)}
-                    className={`py-2.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 capitalize ${recorrencia === r ? 'bg-white/[0.1] border-white/30 text-white' : 'bg-white/[0.03] border-white/[0.06] text-zinc-500'}`}>
+                    className={`py-2.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 capitalize ${recorrencia === r ? 'bg-white/[0.1] border-white/30 text-white' : 'bg-white/[0.05] border-white/[0.11] text-zinc-500'}`}>
                     {r === 'nenhuma' ? 'Não repetir' : r.charAt(0).toUpperCase() + r.slice(1)}
                   </button>
                 ))}
@@ -401,9 +401,9 @@ export default function Agenda() {
                 <div className="mt-3 flex items-center gap-3">
                   <p className="text-zinc-500 text-xs flex-1">Repetir por quantas semanas?</p>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setRecorrenciaSemanas(s => Math.max(2, s - 1))} className="w-8 h-8 rounded-lg bg-white/[0.06] text-white text-sm font-bold active:scale-90 transition-all">−</button>
+                    <button onClick={() => setRecorrenciaSemanas(s => Math.max(2, s - 1))} className="w-8 h-8 rounded-lg bg-white/[0.09] text-white text-sm font-bold active:scale-90 transition-all">−</button>
                     <span className="text-white font-bold text-sm w-6 text-center">{recorrenciaSemanas}</span>
-                    <button onClick={() => setRecorrenciaSemanas(s => Math.min(26, s + 1))} className="w-8 h-8 rounded-lg bg-white/[0.06] text-white text-sm font-bold active:scale-90 transition-all">+</button>
+                    <button onClick={() => setRecorrenciaSemanas(s => Math.min(26, s + 1))} className="w-8 h-8 rounded-lg bg-white/[0.09] text-white text-sm font-bold active:scale-90 transition-all">+</button>
                   </div>
                 </div>
               )}

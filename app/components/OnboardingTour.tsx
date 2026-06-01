@@ -99,9 +99,9 @@ export default function OnboardingTour() {
     >
       {/* Card */}
       <div
-        className="w-full max-w-md rounded-3xl border border-white/[0.08] p-6 mb-8"
+        className="w-full max-w-md rounded-3xl border border-white/[0.14] p-6 mb-8"
         style={{
-          background: 'linear-gradient(145deg, #141414 0%, #0f0f0f 100%)',
+          background: 'linear-gradient(145deg, #141414 0%, #1a1a1a 100%)',
           transform: animating ? 'translateY(8px)' : 'translateY(0)',
           opacity: animating ? 0 : 1,
           transition: 'all 0.2s ease',
@@ -123,7 +123,7 @@ export default function OnboardingTour() {
         </div>
 
         {/* Emoji */}
-        <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-3xl mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-3xl mb-4">
           {current.emoji}
         </div>
 
@@ -144,7 +144,7 @@ export default function OnboardingTour() {
           <div className="flex gap-2">
             <button
               onClick={next}
-              className="flex-1 border border-white/[0.08] text-zinc-400 font-semibold py-3 rounded-xl text-sm active:scale-95 transition-all hover:border-white/20 hover:text-white"
+              className="flex-1 border border-white/[0.14] text-zinc-400 font-semibold py-3 rounded-xl text-sm active:scale-95 transition-all hover:border-white/20 hover:text-white"
             >
               {step === STEPS.length - 1 ? 'Entendi' : 'Próximo →'}
             </button>

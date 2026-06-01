@@ -149,13 +149,13 @@ export default function PeriodizacaoPage() {
   const totalSemanas = periodizacao?.blocos.reduce((s, b) => s + b.semanas, 0) ?? 0
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
@@ -181,7 +181,7 @@ export default function PeriodizacaoPage() {
           const cfg = getTipoCfg(b.tipo)
           const pct = Math.min(100, (semanaAtual.semanaTotal / totalSemanas) * 100)
           return (
-            <div className={`rounded-2xl p-5 border ${cfg.border} mb-5`} style={{ background: '#0f0f0f' }}>
+            <div className={`rounded-2xl p-5 border ${cfg.border} mb-5`} style={{ background: '#1a1a1a' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Fase atual</p>
               <div className="flex items-center gap-3 mb-4">
                 <div className={`w-12 h-12 rounded-2xl ${cfg.bg} ${cfg.border} border flex items-center justify-center`}>
@@ -192,19 +192,19 @@ export default function PeriodizacaoPage() {
                   <p className="text-zinc-500 text-[11px]">Semana {semanaAtual.semanaNoBloco} de {b.semanas} · {cfg.label}</p>
                 </div>
               </div>
-              <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden mb-1.5">
+              <div className="h-2 bg-white/[0.09] rounded-full overflow-hidden mb-1.5">
                 <div className={`h-full rounded-full transition-all ${cfg.dot}`} style={{ width: `${pct}%` }} />
               </div>
               <p className="text-zinc-600 text-[9px]">Semana {semanaAtual.semanaTotal} de {totalSemanas} no ciclo</p>
-              {b.descricao && <p className="text-zinc-400 text-xs mt-4 leading-relaxed border-t border-white/[0.04] pt-3">{b.descricao}</p>}
+              {b.descricao && <p className="text-zinc-400 text-xs mt-4 leading-relaxed border-t border-white/[0.14] pt-3">{b.descricao}</p>}
             </div>
           )
         })()}
 
         {/* Timeline */}
         {periodizacao && periodizacao.blocos.length > 0 && (
-          <div className="rounded-2xl border border-white/[0.06] mb-5 overflow-hidden" style={{ background: '#0f0f0f' }}>
-            <div className="px-5 py-4 border-b border-white/[0.04]">
+          <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#1a1a1a' }}>
+            <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Linha do tempo · {totalSemanas} semanas</p>
             </div>
             <div className="px-5 pt-4 pb-3">
@@ -240,12 +240,12 @@ export default function PeriodizacaoPage() {
                 )
               })}
             </div>
-            <div className="px-5 py-3 border-t border-white/[0.04] flex items-center justify-between">
+            <div className="px-5 py-3 border-t border-white/[0.14] flex items-center justify-between">
               <p className="text-zinc-700 text-[9px]">
                 Início: {new Date(periodizacao.data_inicio + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
               </p>
               <button onClick={arquivarCiclo}
-                className="text-[9px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 active:scale-95 transition-all hover:text-zinc-300 uppercase tracking-wider">
+                className="text-[9px] text-zinc-500 border border-white/[0.14] rounded-lg px-2.5 py-1.5 active:scale-95 transition-all hover:text-zinc-300 uppercase tracking-wider">
                 Arquivar ciclo
               </button>
             </div>
@@ -264,8 +264,8 @@ export default function PeriodizacaoPage() {
                 {historico.map(p => {
                   const total = p.blocos.reduce((s, b) => s + b.semanas, 0)
                   return (
-                    <div key={p.id} className="rounded-2xl border border-white/[0.04] overflow-hidden" style={{ background: '#0a0a0a' }}>
-                      <div className="px-4 py-3 border-b border-white/[0.04]">
+                    <div key={p.id} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#141414' }}>
+                      <div className="px-4 py-3 border-b border-white/[0.14]">
                         <p className="text-zinc-400 font-semibold text-sm">{p.nome}</p>
                         <p className="text-zinc-600 text-[10px] mt-0.5">{total} semanas · {new Date(p.data_inicio + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', timeZone: 'America/Sao_Paulo' })}</p>
                       </div>
@@ -301,20 +301,20 @@ export default function PeriodizacaoPage() {
 
         {/* Formulário */}
         {criando && (
-          <div ref={formRef} className="rounded-2xl border border-white/[0.08] overflow-hidden" style={{ background: '#0f0f0f' }}>
-            <div className="px-5 py-4 border-b border-white/[0.04]">
+          <div ref={formRef} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#1a1a1a' }}>
+            <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Novo ciclo de treinamento</p>
             </div>
             <div className="p-5 space-y-4">
               <div>
                 <label className="text-zinc-500 text-[10px] uppercase tracking-wider block mb-1.5">Nome do ciclo</label>
                 <input value={nomeForm} onChange={e => setNomeForm(e.target.value)} placeholder="ex: Ciclo Verão, Base Aeróbica…"
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 placeholder:text-zinc-700" />
+                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 placeholder:text-zinc-700" />
               </div>
               <div>
                 <label className="text-zinc-500 text-[10px] uppercase tracking-wider block mb-1.5">Data de início</label>
                 <input type="date" value={dataInicioForm} onChange={e => setDataInicioForm(e.target.value)}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30" />
+                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30" />
               </div>
 
               <div>
@@ -322,7 +322,7 @@ export default function PeriodizacaoPage() {
                   <label className="text-zinc-500 text-[10px] uppercase tracking-wider">
                     Blocos · {blocosForm.reduce((s, b) => s + b.semanas, 0)} semanas total
                   </label>
-                  <button onClick={addBloco} className="text-[10px] text-zinc-400 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/20 active:scale-95 transition-all">+ Bloco</button>
+                  <button onClick={addBloco} className="text-[10px] text-zinc-400 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/20 active:scale-95 transition-all">+ Bloco</button>
                 </div>
                 <div className="space-y-3">
                   {blocosForm.map((b, i) => {
@@ -345,7 +345,7 @@ export default function PeriodizacaoPage() {
                               <input value={b.tipo} onChange={e => updateBloco(i, 'tipo', e.target.value)}
                                 placeholder="Ex: Hipertrofia, Força, Peaking…"
                                 list={`tipos-bloco-${i}`}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                                className="w-full bg-white/[0.07] border border-white/[0.14] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                               <datalist id={`tipos-bloco-${i}`}>
                                 {Object.values(TIPO).map(v => <option key={v.label} value={v.label} />)}
                               </datalist>
@@ -354,14 +354,14 @@ export default function PeriodizacaoPage() {
                               <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1">Semanas</label>
                               <input type="number" min={1} max={16} value={b.semanas}
                                 onChange={e => updateBloco(i, 'semanas', Math.max(1, parseInt(e.target.value) || 1))}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs text-center focus:outline-none focus:border-white/20" />
+                                className="w-full bg-white/[0.07] border border-white/[0.14] rounded-lg px-3 py-2 text-white text-xs text-center focus:outline-none focus:border-white/20" />
                             </div>
                           </div>
                           <div>
                             <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1">Orientações do bloco</label>
                             <textarea value={b.descricao} onChange={e => updateBloco(i, 'descricao', e.target.value)} rows={2}
                               placeholder="Foco, rep ranges, intensidade, observações…"
-                              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
+                              className="w-full bg-white/[0.07] border border-white/[0.14] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
                           </div>
                         </div>
                       </div>
@@ -372,7 +372,7 @@ export default function PeriodizacaoPage() {
 
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setCriando(false)}
-                  className="flex-1 py-3 rounded-xl border border-white/[0.08] text-zinc-400 text-sm font-bold active:scale-95 transition-all">
+                  className="flex-1 py-3 rounded-xl border border-white/[0.14] text-zinc-400 text-sm font-bold active:scale-95 transition-all">
                   Cancelar
                 </button>
                 <button onClick={salvar} disabled={salvando}

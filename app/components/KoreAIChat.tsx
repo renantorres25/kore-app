@@ -255,9 +255,9 @@ export default function KoreAIChat() {
       {aberto && (
         <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setAberto(false) }}>
-          <div className="mt-auto bg-[#0a0a0a] rounded-t-3xl flex flex-col" style={{ height: '88dvh' }}>
+          <div className="mt-auto bg-[#141414] rounded-t-3xl flex flex-col" style={{ height: '88dvh' }}>
 
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.06] shrink-0">
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.11] shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
                   <KoreIcon size={16} className="text-emerald-400" />
@@ -270,7 +270,7 @@ export default function KoreAIChat() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => setAberto(false)} className="w-7 h-7 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all text-xs">✕</button>
+              <button onClick={() => setAberto(false)} className="w-7 h-7 rounded-xl bg-white/[0.09] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all text-xs">✕</button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
@@ -286,7 +286,7 @@ export default function KoreAIChat() {
                       <KoreIcon size={11} className="text-emerald-400" />
                     </div>
                   )}
-                  <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 ${msg.role === 'user' ? 'bg-white text-black rounded-tr-sm' : 'bg-white/[0.06] text-zinc-200 rounded-tl-sm border border-white/[0.06]'}`}>
+                  <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 ${msg.role === 'user' ? 'bg-white text-black rounded-tr-sm' : 'bg-white/[0.09] text-zinc-200 rounded-tl-sm border border-white/[0.11]'}`}>
                     <p className="text-sm leading-relaxed">{msg.content}</p>
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export default function KoreAIChat() {
                   <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mr-2">
                     <KoreIcon size={11} className="text-emerald-400" />
                   </div>
-                  <div className="bg-white/[0.06] border border-white/[0.06] rounded-2xl rounded-tl-sm px-4 py-3">
+                  <div className="bg-white/[0.09] border border-white/[0.11] rounded-2xl rounded-tl-sm px-4 py-3">
                     <div className="flex gap-1">{[0,1,2].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />)}</div>
                   </div>
                 </div>
@@ -315,12 +315,12 @@ export default function KoreAIChat() {
               </div>
             )}
 
-            <div className="px-4 pt-2 pb-4 border-t border-white/[0.06] shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+            <div className="px-4 pt-2 pb-4 border-t border-white/[0.11] shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               <div className="flex gap-2">
                 <input ref={inputRef} type="text" value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensagem()}
                   placeholder="Pergunte ao seu coach..." disabled={enviando || carregandoCtx}
-                  className="flex-1 bg-white/[0.06] border border-white/[0.10] rounded-2xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/40 disabled:opacity-50 transition-colors" />
+                  className="flex-1 bg-white/[0.09] border border-white/[0.10] rounded-2xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/40 disabled:opacity-50 transition-colors" />
                 <button onClick={enviarMensagem} disabled={!input.trim() || enviando || carregandoCtx}
                   className="w-11 h-11 rounded-2xl bg-emerald-500 flex items-center justify-center active:scale-90 transition-all disabled:opacity-30 shrink-0">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

@@ -77,7 +77,7 @@ function HrvAjuda() {
       </button>
       {aberto && (
         <div className="absolute right-0 bottom-6 z-10 w-64 rounded-2xl border border-white/[0.1] p-4 shadow-2xl"
-          style={{ background: '#111' }}>
+          style={{ background: '#1c1c1c' }}>
           <p className="text-zinc-400 text-[10px] uppercase tracking-wider mb-3">Como encontrar o HRV</p>
           <div className="space-y-2.5">
             {[
@@ -230,25 +230,25 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
   const duracaoRef = sono.duracao_minutos ?? totalEstagio
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/dashboard')} className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95">←</button>
+            <button onClick={() => router.push('/dashboard')} className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95">←</button>
             <div>
               <h1 className="text-xl font-black tracking-tight">Sono & Recuperação</h1>
               <p className="text-zinc-500 text-xs capitalize">{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
           </div>
           {temDadosSono && (
-            <button onClick={() => setEditando(!editando)} className="text-[10px] text-zinc-400 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white transition-all uppercase tracking-wider active:scale-95">
+            <button onClick={() => setEditando(!editando)} className="text-[10px] text-zinc-400 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white transition-all uppercase tracking-wider active:scale-95">
               {editando ? 'Cancelar' : 'Editar'}
             </button>
           )}
@@ -272,8 +272,8 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {temDadosSono && !editando && (
-          <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-            <div className="px-5 py-4 border-b border-white/[0.04]">
+          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+            <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Dados da noite</p>
             </div>
             <div className="grid grid-cols-2 divide-x divide-y divide-white/[0.05]">
@@ -287,8 +287,8 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {temDadosSono && !editando && (sono.sono_leve || sono.sono_profundo || sono.sono_rem) && (
-          <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-            <div className="px-5 py-4 border-b border-white/[0.04]">
+          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+            <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Estágios do sono</p>
             </div>
             <div className="p-5 space-y-3">
@@ -321,8 +321,8 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {bemEstar && !editando && (
-          <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-            <div className="px-5 py-4 border-b border-white/[0.04]">
+          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+            <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Cruzamento com bem-estar</p>
             </div>
             <div className="grid grid-cols-3 divide-x divide-white/[0.05]">
@@ -344,8 +344,8 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {temDadosSono && !editando && (
-          <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
+          <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #1a1a1a 0%, #141414 100%)' }}>
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
               <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
                 <span className="text-[11px] font-black text-emerald-400">✦</span>
               </div>
@@ -356,7 +356,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               {analisando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
             </div>
             <div className="px-5 py-4">
-              {analisando && <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
+              {analisando && <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
               {analiseIA && !analisando && (
                 <>
                   <p className="text-zinc-300 text-sm leading-relaxed">{analiseIA}</p>
@@ -374,8 +374,8 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {historico.length > 0 && !editando && (
-          <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
+          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Últimos 7 dias</p>
               <p className="text-zinc-700 text-[10px]">score de recuperação</p>
             </div>
@@ -425,26 +425,26 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
 
         {editando && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#1a1a1a' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Duração do sono</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-zinc-600 text-xs mb-1.5 block">Horas</label>
-                  <input type="number" placeholder="8" value={horasSono} onChange={e => setHorasSono(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
+                  <input type="number" placeholder="8" value={horasSono} onChange={e => setHorasSono(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
                 </div>
                 <div>
                   <label className="text-zinc-600 text-xs mb-1.5 block">Minutos</label>
-                  <input type="number" placeholder="30" value={minutosSono} onChange={e => setMinutosSono(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
+                  <input type="number" placeholder="30" value={minutosSono} onChange={e => setMinutosSono(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#1a1a1a' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Qualidade do sono</p>
               <div className="flex gap-2">
                 {[{v:1,emoji:'😫',label:'Péssimo'},{v:2,emoji:'😪',label:'Ruim'},{v:3,emoji:'😐',label:'Regular'},{v:4,emoji:'😴',label:'Bom'},{v:5,emoji:'🌙',label:'Ótimo'}].map((q) => (
                   <button key={q.v} onClick={() => setQualidade(q.v)}
-                    className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${qualidade === q.v ? 'bg-white border-white' : 'bg-white/[0.03] border-white/[0.08]'}`}>
+                    className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${qualidade === q.v ? 'bg-white border-white' : 'bg-white/[0.05] border-white/[0.14]'}`}>
                     <span className="text-xl">{q.emoji}</span>
                     <span className={`text-[9px] mt-1 font-semibold ${qualidade === q.v ? 'text-black' : 'text-zinc-600'}`}>{q.label}</span>
                   </button>
@@ -452,7 +452,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            <div className="rounded-2xl border border-indigo-500/20 p-5" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl border border-indigo-500/20 p-5" style={{ background: '#1a1a1a' }}>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-indigo-400 text-[10px] uppercase tracking-[0.15em]">🌙 Estágios do sono</p>
                 <span className="text-[9px] text-indigo-400/60 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider">Opcional</span>
@@ -474,7 +474,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
                     <div className="flex items-center gap-2">
                       <input type="number" placeholder={estagio.placeholder} value={estagio.val}
                         onChange={e => estagio.set(e.target.value)}
-                        className="flex-1 bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/30 transition-colors" />
+                        className="flex-1 bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/30 transition-colors" />
                       <span className="text-zinc-600 text-xs shrink-0">min</span>
                     </div>
                   </div>
@@ -504,27 +504,27 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#1a1a1a' }}>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">⌚ Dados do wearable</p>
-                <span className="text-[9px] text-zinc-600 border border-white/[0.08] rounded-full px-2 py-0.5 uppercase tracking-wider">Opcional</span>
+                <span className="text-[9px] text-zinc-600 border border-white/[0.14] rounded-full px-2 py-0.5 uppercase tracking-wider">Opcional</span>
               </div>
               <p className="text-zinc-600 text-xs mb-4">FC, HRV e SpO2 melhoram muito a precisão do score.</p>
               <div className="space-y-3">
                 <div>
                   <label className="text-zinc-600 text-xs mb-1.5 block">FC em repouso (bpm)</label>
-                  <input type="number" placeholder="Ex: 55" value={fcRepouso} onChange={e => setFcRepouso(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
+                  <input type="number" placeholder="Ex: 55" value={fcRepouso} onChange={e => setFcRepouso(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-zinc-600 text-xs">HRV (ms) — variabilidade cardíaca</label>
                     <HrvAjuda />
                   </div>
-                  <input type="number" placeholder="Ex: 65" value={hrv} onChange={e => setHrv(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
+                  <input type="number" placeholder="Ex: 65" value={hrv} onChange={e => setHrv(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
                 </div>
                 <div>
                   <label className="text-zinc-600 text-xs mb-1.5 block">SpO2 (%) — saturação de oxigênio</label>
-                  <input type="number" placeholder="Ex: 97" value={spo2} onChange={e => setSpo2(e.target.value)} className="w-full bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
+                  <input type="number" placeholder="Ex: 97" value={spo2} onChange={e => setSpo2(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
                 </div>
               </div>
             </div>
@@ -536,7 +536,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {!editando && (
-          <div className="rounded-2xl border border-white/[0.06] p-5 mt-4" style={{ background: '#0f0f0f' }}>
+          <div className="rounded-2xl border border-white/[0.11] p-5 mt-4" style={{ background: '#1a1a1a' }}>
             <div className="flex items-center gap-3 mb-3">
               <span className="text-2xl">⌚</span>
               <div>
@@ -544,7 +544,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
                 <p className="text-zinc-600 text-xs">Apple Watch, Garmin, Whoop, Polar e mais</p>
               </div>
             </div>
-            <button className="w-full border border-white/[0.08] text-zinc-500 font-semibold py-3 rounded-xl text-sm hover:border-white/20 hover:text-zinc-300 active:scale-95 transition-all uppercase tracking-wider">Em breve</button>
+            <button className="w-full border border-white/[0.14] text-zinc-500 font-semibold py-3 rounded-xl text-sm hover:border-white/20 hover:text-zinc-300 active:scale-95 transition-all uppercase tracking-wider">Em breve</button>
           </div>
         )}
       </div>

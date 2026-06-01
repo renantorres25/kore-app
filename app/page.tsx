@@ -46,7 +46,7 @@ function ListaEspera() {
 
   return (
     <section className="px-5 py-14 max-w-5xl mx-auto">
-      <div className="max-w-lg mx-auto rounded-3xl border border-white/[0.08] p-8 sm:p-10 text-center"
+      <div className="max-w-lg mx-auto rounded-3xl border border-white/[0.14] p-8 sm:p-10 text-center"
         style={{ background: 'linear-gradient(145deg, #0d0f18 0%, #0a0c14 100%)' }}>
         <p className="text-emerald-500/80 text-xs uppercase tracking-[0.35em] font-semibold mb-3">Acesso antecipado</p>
         <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 leading-tight">
@@ -124,7 +124,7 @@ function PhoneMockup({ visible }: { visible: boolean }) {
       <div className="relative w-[230px] rounded-[2.8rem] border border-white/[0.18] overflow-hidden"
         style={{ background: '#08091a', boxShadow: '0 60px 120px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.09)' }}>
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-20 h-5 rounded-full bg-black flex items-center justify-center gap-1.5 border border-white/[0.06]">
+          <div className="w-20 h-5 rounded-full bg-black flex items-center justify-center gap-1.5 border border-white/[0.11]">
             <div className="w-2 h-2 rounded-full bg-zinc-800"/>
           </div>
         </div>
@@ -162,14 +162,14 @@ function PhoneMockup({ visible }: { visible: boolean }) {
               { icon: '😴', label: 'Sono', val: '8.2h', sub: 'HRV 68ms', c: '' },
               { icon: '🏋️', label: 'Treino', val: '✓ Feito', sub: '410 kcal', c: 'text-emerald-400' },
             ].map(s => (
-              <div key={s.label} className="rounded-xl p-2.5 border border-white/[0.08]" style={{ background: '#0d0f20' }}>
+              <div key={s.label} className="rounded-xl p-2.5 border border-white/[0.14]" style={{ background: '#0d0f20' }}>
                 <p className="text-zinc-500 text-[7px] uppercase tracking-wider mb-0.5">{s.icon} {s.label}</p>
                 <p className={`text-[10px] font-black ${s.c || 'text-white'}`}>{s.val}</p>
                 <p className="text-zinc-600 text-[7px]">{s.sub}</p>
               </div>
             ))}
           </div>
-          <div className="rounded-xl p-3 border border-white/[0.08]" style={{ background: '#0d0f20' }}>
+          <div className="rounded-xl p-3 border border-white/[0.14]" style={{ background: '#0d0f20' }}>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/>
               <p className="text-emerald-400 text-[7px] uppercase tracking-wider font-semibold">✦ Decisão do dia</p>
@@ -542,7 +542,7 @@ export default function Landing() {
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-auto pt-5 border-t border-white/[0.06]">
+                  <div className="mt-auto pt-5 border-t border-white/[0.11]">
                     <button onClick={() => router.push('/login?modo=cadastro')}
                       className={`w-full text-sm font-black py-3 rounded-xl transition-all active:scale-95 ${p.ctaClass}`}>
                       {p.cta}
@@ -578,7 +578,7 @@ export default function Landing() {
             { label: 'Nutricionista', active: 'text-green-400 border-green-500/40 bg-green-500/10 border' },
           ] as const).map((t, i) => (
             <button key={i} onClick={() => setPerfilTab(i as 0|1|2)}
-              className={`text-xs font-bold px-3 py-2 rounded-xl transition-all ${perfilTab === i ? t.active : 'text-zinc-500 border border-white/[0.08]'}`}>
+              className={`text-xs font-bold px-3 py-2 rounded-xl transition-all ${perfilTab === i ? t.active : 'text-zinc-500 border border-white/[0.14]'}`}>
               {t.label}
             </button>
           ))}
@@ -589,7 +589,7 @@ export default function Landing() {
           {/* ── ATLETA ─────────────────────────────────────────────── */}
           <div className={`${perfilTab !== 0 ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl border border-emerald-500/15 overflow-hidden transition-all duration-700 ${visPerfis.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
             style={{ background: 'rgba(8,14,10,0.97)', transitionDelay: '0ms' }}>
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.11]">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-[10px] font-black text-emerald-400">AT</div>
               <div>
                 <p className="text-white text-xs font-black">Atleta</p>
@@ -627,7 +627,7 @@ export default function Landing() {
           {/* ── PERSONAL ────────────────────────────────────────────── */}
           <div className={`${perfilTab !== 1 ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl border border-blue-500/15 overflow-hidden transition-all duration-700 ${visPerfis.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
             style={{ background: 'rgba(8,10,18,0.97)', transitionDelay: '120ms' }}>
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.11]">
               <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-[10px] font-black text-blue-400">PT</div>
               <div>
                 <p className="text-white text-xs font-black">Personal Trainer</p>
@@ -662,7 +662,7 @@ export default function Landing() {
           {/* ── NUTRICIONISTA ────────────────────────────────────────── */}
           <div className={`${perfilTab !== 2 ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl border border-green-500/15 overflow-hidden transition-all duration-700 ${visPerfis.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
             style={{ background: 'rgba(8,12,10,0.97)', transitionDelay: '240ms' }}>
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.11]">
               <div className="w-7 h-7 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center justify-center text-[10px] font-black text-green-400">NU</div>
               <div>
                 <p className="text-white text-xs font-black">Nutricionista</p>
@@ -670,7 +670,7 @@ export default function Landing() {
               </div>
             </div>
             <div className="p-4 flex-1 space-y-2.5">
-              <div className="flex items-center justify-between pb-2 border-b border-white/[0.05]">
+              <div className="flex items-center justify-between pb-2 border-b border-white/[0.09]">
                 <p className="text-white text-sm font-black">Pedro Santos</p>
                 <span className="text-zinc-600 text-[9px]">consulta: 12/mai</span>
               </div>
@@ -777,7 +777,7 @@ export default function Landing() {
               <p className="text-zinc-300 text-sm leading-relaxed mb-4">Toda manhã, a plataforma cruza dados de sono, recuperação e histórico para sugerir <strong className="text-white">o que faz mais sentido agora</strong> — treinar forte, moderar ou descansar.</p>
               <p className="text-zinc-400 text-sm border-l-2 border-emerald-500/40 pl-4">Não é um dashboard genérico. É uma orientação prática.</p>
             </div>
-            <div className="p-8 flex items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.06] relative overflow-hidden" style={{ background: '#0a0c16' }}>
+            <div className="p-8 flex items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.11] relative overflow-hidden" style={{ background: '#0a0c16' }}>
               <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80&auto=format&fit=crop"
                 alt="" className="absolute inset-0 w-full h-full object-cover opacity-[0.20]"
                 style={{ filter: 'saturate(0.35) brightness(0.55)' }}/>
@@ -804,7 +804,7 @@ export default function Landing() {
         {/* Feature 2: Heatmap */}
         <div ref={feat2.ref} className={`rounded-3xl border border-white/[0.07] overflow-hidden transition-all duration-700 delay-100 ${feat2.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ background: '#0c0e18' }}>
           <div className="grid grid-cols-1 md:grid-cols-2">
-            <div className="p-8 flex items-center justify-center order-2 md:order-1 border-t md:border-t-0 md:border-r border-white/[0.06]" style={{ background: '#0a0c16' }}>
+            <div className="p-8 flex items-center justify-center order-2 md:order-1 border-t md:border-t-0 md:border-r border-white/[0.11]" style={{ background: '#0a0c16' }}>
               <div>
                 <p className="text-zinc-400 text-xs uppercase tracking-widest mb-4 font-medium">Histórico de treinos · 14 semanas</p>
                 <WorkoutHeatmap active={feat2.inView}/>
@@ -832,7 +832,7 @@ export default function Landing() {
               <p className="text-zinc-300 text-sm leading-relaxed mb-4">Score calculado com duração, HRV, sono profundo e REM. <strong className="text-white">Personal e nutri acessam esses dados</strong> para ajustar a prescrição no momento certo.</p>
               <p className="text-zinc-400 text-sm border-l-2 border-violet-500/40 pl-4">Um dia mal dormido muda tudo. O KORE deixa isso visível para o time.</p>
             </div>
-            <div className="p-8 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.06]" style={{ background: '#0a0c16' }}>
+            <div className="p-8 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-white/[0.11]" style={{ background: '#0a0c16' }}>
               <p className="text-zinc-400 text-xs uppercase tracking-widest mb-5 self-start font-medium">Score de recuperação · 7 dias</p>
               <SleepChart active={feat3.inView}/>
               <div className="flex items-center justify-between w-full max-w-[260px] mt-4">
@@ -925,7 +925,7 @@ export default function Landing() {
               { n: '03', title: 'Acompanhe junto', desc: 'Cada um acessa o que importa para o seu perfil. Personal e nutri ajustam com base em dados reais. Atleta evolui com suporte real.', cor: 'text-violet-400 border-violet-500/35 bg-violet-500/10' },
             ].map((s, i) => (
               <div key={s.n}
-                className={`flex gap-5 p-6 rounded-2xl border border-white/[0.08] transition-all duration-700 ${como.inView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+                className={`flex gap-5 p-6 rounded-2xl border border-white/[0.14] transition-all duration-700 ${como.inView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
                 style={{ background: 'rgba(12,14,24,0.9)', backdropFilter: 'blur(8px)', transitionDelay: `${i * 120}ms` }}>
                 <span className={`w-11 h-11 rounded-xl border flex items-center justify-center text-sm font-black shrink-0 ${s.cor}`}>{s.n}</span>
                 <div>
@@ -1078,7 +1078,7 @@ export default function Landing() {
       </section>
 
       {/* ── FOOTER ──────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.06] px-5 py-8">
+      <footer className="border-t border-white/[0.11] px-5 py-8">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-white font-black text-xl tracking-[-0.05em]">KORE</span>

@@ -97,7 +97,7 @@ export default function NutricionistaPacientes() {
   }, [router])
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -106,7 +106,7 @@ export default function NutricionistaPacientes() {
   const treinaram = pacientes.filter(p => (stats[p.cliente_id]?.treinos7d ?? 0) > 0).length
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
@@ -121,7 +121,7 @@ export default function NutricionistaPacientes() {
 
         {pacientes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-3xl opacity-40">🥗</div>
+            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] border border-white/[0.11] flex items-center justify-center text-3xl opacity-40">🥗</div>
             <div className="text-center">
               <p className="text-white font-bold mb-1">Nenhum paciente ainda</p>
               <p className="text-zinc-600 text-sm">Convide seu primeiro paciente para começar</p>
@@ -137,7 +137,7 @@ export default function NutricionistaPacientes() {
                 { val: treinaram,           label: 'Treinaram',     sub: 'essa semana', icon: '🏋️' },
                 { val: comBoaSono,          label: 'Boa recuperação', sub: 'hoje', icon: '😴' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-4 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
+                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1a1a1a' }}>
                   <p className="text-lg mb-1">{s.icon}</p>
                   <p className="text-white text-2xl font-black">{s.val}</p>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5 leading-tight">{s.label}</p>
@@ -156,11 +156,11 @@ export default function NutricionistaPacientes() {
 
                 return (
                   <button key={pac.id} onClick={() => router.push(`/nutricionista/paciente/${pac.cliente_id}`)}
-                    className="w-full text-left rounded-2xl p-5 border border-white/[0.06] active:scale-[0.98] transition-all"
-                    style={{ background: '#0f0f0f' }}>
+                    className="w-full text-left rounded-2xl p-5 border border-white/[0.11] active:scale-[0.98] transition-all"
+                    style={{ background: '#1a1a1a' }}>
 
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${sonoOk ? 'bg-green-500/10 border border-green-500/20' : sonoBaixo ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.06] border border-white/[0.08]'}`}>
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${sonoOk ? 'bg-green-500/10 border border-green-500/20' : sonoBaixo ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.09] border border-white/[0.14]'}`}>
                         <span className={`font-black text-sm ${sonoOk ? 'text-green-400' : sonoBaixo ? 'text-red-400' : 'text-zinc-400'}`}>{initials}</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -177,7 +177,7 @@ export default function NutricionistaPacientes() {
                     </div>
 
                     {/* Métricas profissionais */}
-                    <div className="flex gap-0 mt-4 pt-4 border-t border-white/[0.04]">
+                    <div className="flex gap-0 mt-4 pt-4 border-t border-white/[0.14]">
                       {/* Sono */}
                       <div className="flex-1">
                         <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">😴 Sono</p>

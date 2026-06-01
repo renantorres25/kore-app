@@ -404,7 +404,7 @@ export default function QuizIA({ tipo, onConcluir, onCancelar }: Props) {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
+    <main className="min-h-[100dvh] bg-[#111111] text-white flex flex-col">
 
       {/* Header */}
       <div className="shrink-0 px-4 pt-12 pb-4" style={{ background: 'rgba(8,8,8,0.97)' }}>
@@ -415,7 +415,7 @@ export default function QuizIA({ tipo, onConcluir, onCancelar }: Props) {
             </button>
             <p className="text-zinc-600 text-[10px] uppercase tracking-widest">{stepAtual + 1} de {total}</p>
           </div>
-          <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+          <div className="h-1 bg-white/[0.09] rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all duration-500 ${cor.barra}`}
               style={{ width: `${progresso + (100 / total)}%` }} />
           </div>
@@ -454,7 +454,7 @@ export default function QuizIA({ tipo, onConcluir, onCancelar }: Props) {
                   onChange={e => setCamposLivres(p => ({ ...p, [pergunta.id]: e.target.value }))}
                   placeholder={pergunta.placeholder}
                   rows={5}
-                  className={`w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-4 text-white text-sm placeholder:text-zinc-700 focus:outline-none resize-none leading-relaxed ${cor.input} transition-colors`}
+                  className={`w-full bg-white/[0.07] border border-white/[0.14] rounded-2xl px-4 py-4 text-white text-sm placeholder:text-zinc-700 focus:outline-none resize-none leading-relaxed ${cor.input} transition-colors`}
                 />
                 {pergunta.obrigatorio === false && (
                   <p className="text-zinc-700 text-[10px] mt-2 text-center">Campo opcional — mas quanto mais detalhe, melhor o plano</p>
@@ -468,7 +468,7 @@ export default function QuizIA({ tipo, onConcluir, onCancelar }: Props) {
               return (
                 <button key={op.valor} onClick={() => selecionarOpcao(op.valor)}
                   className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all active:scale-[0.98] text-left ${
-                    sel ? `${cor.selectedBg} ${cor.selectedBorder}` : 'bg-white/[0.02] border-white/[0.06] hover:border-white/[0.12]'
+                    sel ? `${cor.selectedBg} ${cor.selectedBorder}` : 'bg-white/[0.02] border-white/[0.11] hover:border-white/[0.12]'
                   }`}>
                   {op.emoji && <span className="text-2xl shrink-0">{op.emoji}</span>}
                   <span className={`font-semibold text-sm flex-1 ${sel ? cor.selectedText : 'text-zinc-300'}`}>{op.label}</span>
@@ -491,7 +491,7 @@ export default function QuizIA({ tipo, onConcluir, onCancelar }: Props) {
                       : 'Descreva sua limitação ou lesão com detalhes...'
                   }
                   rows={3}
-                  className={`w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-white text-sm placeholder:text-zinc-700 focus:outline-none resize-none ${cor.input} transition-colors`}
+                  className={`w-full bg-white/[0.07] border border-white/[0.14] rounded-2xl px-4 py-3 text-white text-sm placeholder:text-zinc-700 focus:outline-none resize-none ${cor.input} transition-colors`}
                 />
               </div>
             )}
@@ -501,12 +501,12 @@ export default function QuizIA({ tipo, onConcluir, onCancelar }: Props) {
       </div>
 
       {/* Footer */}
-      <div className="shrink-0 px-4 py-4 border-t border-white/[0.04]"
+      <div className="shrink-0 px-4 py-4 border-t border-white/[0.14]"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)', background: 'rgba(8,8,8,0.97)' }}>
         <div className="max-w-md mx-auto">
           <button onClick={avancar} disabled={!temResposta || animando}
             className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${
-              temResposta ? cor.btn : 'bg-white/[0.06] text-zinc-600 border border-white/[0.08]'
+              temResposta ? cor.btn : 'bg-white/[0.09] text-zinc-600 border border-white/[0.14]'
             }`}>
             {stepAtual === total - 1 ? '✦ Gerar meu plano personalizado' : 'Próximo →'}
           </button>

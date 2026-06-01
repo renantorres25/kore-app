@@ -71,7 +71,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080808] text-white flex lg:flex-row flex-col">
+    <main className="min-h-screen bg-[#111111] text-white flex lg:flex-row flex-col">
 
       {/* ═══════════════════════════════════════
           PAINEL ESQUERDO — desktop only
@@ -117,7 +117,7 @@ function LoginForm() {
               { icon: '📈', title: 'Evolução em tempo real', desc: 'Carga, composição corporal e metas sempre atualizados para quem te acompanha' },
               { icon: '⚡', title: 'Decisões pelos seus dados', desc: 'Treino e plano alimentar ajustados com base no que seu corpo está sinalizando' },
             ].map((b, i) => (
-              <div key={i} className="flex items-start gap-4 bg-white/[0.02] border border-white/[0.05] rounded-2xl px-4 py-3.5 backdrop-blur-sm">
+              <div key={i} className="flex items-start gap-4 bg-white/[0.02] border border-white/[0.09] rounded-2xl px-4 py-3.5 backdrop-blur-sm">
                 <span className="text-xl mt-0.5">{b.icon}</span>
                 <div>
                   <p className="text-white text-sm font-semibold">{b.title}</p>
@@ -141,13 +141,13 @@ function LoginForm() {
 
         {/* ── HERO MOBILE (escondido no desktop) ─────────── */}
         <div className="lg:hidden relative overflow-hidden flex flex-col items-center justify-end pb-8 pt-16"
-          style={{ minHeight: '32vh', background: 'linear-gradient(175deg, #040c06 0%, #060e08 60%, #080808 100%)' }}>
+          style={{ minHeight: '32vh', background: 'linear-gradient(175deg, #040c06 0%, #060e08 60%, #111111 100%)' }}>
 
           {/* glows mobile */}
           <div className="pointer-events-none absolute top-[-60px] left-1/2 -translate-x-1/2 w-[340px] h-[280px] rounded-full blur-[80px] opacity-30"
             style={{ background: 'radial-gradient(ellipse, #10b981 0%, transparent 65%)' }} />
           <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-16"
-            style={{ background: 'linear-gradient(to bottom, transparent, #080808)' }} />
+            style={{ background: 'linear-gradient(to bottom, transparent, #111111)' }} />
 
           {/* grid mobile */}
           <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -174,7 +174,7 @@ function LoginForm() {
           {/* chips de benefício */}
           <div className="relative z-10 flex items-center gap-2 mt-5 px-5 flex-wrap justify-center">
             {BENEFITS.map((b, i) => (
-              <span key={i} className="flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1.5 text-[11px] text-zinc-300 font-medium backdrop-blur-sm">
+              <span key={i} className="flex items-center gap-1.5 bg-white/[0.05] border border-white/[0.14] rounded-full px-3 py-1.5 text-[11px] text-zinc-300 font-medium backdrop-blur-sm">
                 <span className="text-sm">{b.emoji}</span>
                 {b.label}
               </span>
@@ -218,7 +218,7 @@ function LoginForm() {
                   type="email" placeholder="seu@email.com" value={email}
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-2xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/40 border border-white/[0.07] focus:border-emerald-500/25 transition-all"
+                  className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-2xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/40 border border-white/[0.07] focus:border-emerald-500/25 transition-all"
                 />
               </div>
               <div>
@@ -228,7 +228,7 @@ function LoginForm() {
                     type={showPass ? 'text' : 'password'} placeholder="••••••••" value={senha}
                     onChange={e => setSenha(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-2xl px-4 py-3.5 pr-12 text-sm outline-none focus:ring-1 focus:ring-emerald-500/40 border border-white/[0.07] focus:border-emerald-500/25 transition-all"
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-2xl px-4 py-3.5 pr-12 text-sm outline-none focus:ring-1 focus:ring-emerald-500/40 border border-white/[0.07] focus:border-emerald-500/25 transition-all"
                   />
                   <button type="button" onClick={() => setShowPass(v => !v)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors">
@@ -285,7 +285,7 @@ function LoginForm() {
 export default function Login() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+      <main className="min-h-screen bg-[#111111] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
       </main>
     }>

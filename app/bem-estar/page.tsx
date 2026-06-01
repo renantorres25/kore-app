@@ -88,13 +88,13 @@ export default function BemEstar() {
   const total = getTotalPreenchido()
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   if (sucesso) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="text-6xl">✅</div>
         <p className="text-white font-bold text-lg">Registrado!</p>
@@ -104,10 +104,10 @@ export default function BemEstar() {
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.push('/dashboard')} className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95">←</button>
+          <button onClick={() => router.push('/dashboard')} className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95">←</button>
           <div>
             <h1 className="text-xl font-black tracking-tight">Como estou hoje</h1>
             <p className="text-zinc-500 text-xs">{jaRegistrou ? 'Atualizar registro de hoje' : 'Registro diário de bem-estar'}</p>
@@ -115,7 +115,7 @@ export default function BemEstar() {
         </div>
 
         {media && (
-          <div className="rounded-2xl p-5 border border-white/[0.06] mb-6" style={{ background: '#0f0f0f' }}>
+          <div className="rounded-2xl p-5 border border-white/[0.11] mb-6" style={{ background: '#1a1a1a' }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Seu estado geral hoje</p>
@@ -126,7 +126,7 @@ export default function BemEstar() {
                 <p className="text-zinc-600 text-xs">de 5</p>
               </div>
             </div>
-            <div className="mt-3 h-1.5 bg-white/[0.06] rounded-full">
+            <div className="mt-3 h-1.5 bg-white/[0.09] rounded-full">
               <div className={`h-1.5 rounded-full transition-all duration-500 ${media <= 2 ? 'bg-red-400' : media === 3 ? 'bg-yellow-400' : 'bg-emerald-400'}`} style={{ width: `${(media / 5) * 100}%` }} />
             </div>
           </div>
@@ -134,13 +134,13 @@ export default function BemEstar() {
 
         <div className="space-y-5 mb-6">
           {indicadores.map((ind) => (
-            <div key={ind.id} className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div key={ind.id} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-white font-bold text-sm mb-0.5">{ind.label}</p>
               <p className="text-zinc-500 text-xs mb-4">{ind.descricao}</p>
               <div className="flex justify-between gap-1">
                 {[1,2,3,4,5].map((v) => (
                   <button key={v} onClick={() => setValor(ind.id, v)}
-                    className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all active:scale-95 ${valores[ind.id] === v ? 'bg-white border-white' : 'bg-white/[0.04] border-white/[0.08] hover:border-white/20'}`}>
+                    className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all active:scale-95 ${valores[ind.id] === v ? 'bg-white border-white' : 'bg-white/[0.07] border-white/[0.14] hover:border-white/20'}`}>
                     <span className="text-xl">{ind.icones[v-1]}</span>
                     <span className={`text-[9px] font-semibold leading-tight text-center ${valores[ind.id] === v ? 'text-black' : 'text-zinc-500'}`}>{ind.labels[v-1]}</span>
                   </button>
@@ -153,7 +153,7 @@ export default function BemEstar() {
         <div className="mb-6">
           <label className="text-zinc-400 text-[10px] uppercase tracking-widest mb-2 block">Observações <span className="text-zinc-600 normal-case">(opcional)</span></label>
           <textarea placeholder="Algo específico que quer registrar?" value={notas} onChange={(e) => setNotas(e.target.value)} rows={3}
-            className="w-full bg-white/[0.04] text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/20 border border-white/[0.08] resize-none" />
+            className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/20 border border-white/[0.14] resize-none" />
         </div>
 
         <div className="flex items-center gap-2 mb-4">

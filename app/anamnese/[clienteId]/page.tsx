@@ -43,15 +43,15 @@ const ALCOOL_LABEL: Record<string, string> = {
 
 function SectionCard({ icon, titulo, subtitulo, badge, children }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
-      <div className="px-5 py-4 border-b border-white/[0.04]" style={{ background: 'rgba(255,255,255,0.02)' }}>
+    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+      <div className="px-5 py-4 border-b border-white/[0.14]" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="flex items-center gap-2.5">
           <span className="text-xl">{icon}</span>
           <div className="flex-1">
             <p className="text-white font-bold text-sm">{titulo}</p>
             {subtitulo && <p className="text-zinc-600 text-[11px] mt-0.5">{subtitulo}</p>}
           </div>
-          {badge && <span className="text-[9px] uppercase tracking-wider text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{badge}</span>}
+          {badge && <span className="text-[9px] uppercase tracking-wider text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{badge}</span>}
         </div>
       </div>
       <div className="p-5 space-y-4">{children}</div>
@@ -81,7 +81,7 @@ function ReadRow({ label, value }: { label: string; value: string | number | boo
   )
 }
 
-const INPUT_CLASS = "w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
+const INPUT_CLASS = "w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
 const TEXTAREA_CLASS = INPUT_CLASS + " resize-none"
 
 export default function AnamnesePage() {
@@ -230,13 +230,13 @@ export default function AnamnesePage() {
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   if (sucesso) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="text-6xl">✅</div>
         <p className="text-white font-bold text-lg">Anamnese salva!</p>
@@ -250,12 +250,12 @@ export default function AnamnesePage() {
   const outraNome = outraAnamnese?.profissional_nome ?? outraTipoLabel
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-32" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-7">
-          <button onClick={() => router.push(backUrl)} className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shrink-0">←</button>
+          <button onClick={() => router.push(backUrl)} className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shrink-0">←</button>
           <div>
             <h1 className="text-xl font-black tracking-tight">Anamnese</h1>
             <p className="text-zinc-500 text-xs mt-0.5">
@@ -299,7 +299,7 @@ export default function AnamnesePage() {
               <div className="grid grid-cols-1 gap-1.5">
                 {NIVEL_ATIVIDADE.map(n => (
                   <button key={n.val} onClick={() => set('nivel_atividade', n.val)}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.nivel_atividade === n.val ? 'bg-white border-white text-black' : 'bg-white/[0.03] border-white/[0.08] hover:border-white/20'}`}>
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.nivel_atividade === n.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] hover:border-white/20'}`}>
                     <div className={`w-2 h-2 rounded-full shrink-0 ${form.nivel_atividade === n.val ? 'bg-black' : 'bg-white/20'}`} />
                     <div>
                       <p className={`text-sm font-bold ${form.nivel_atividade === n.val ? 'text-black' : 'text-white'}`}>{n.label}</p>
@@ -330,7 +330,7 @@ export default function AnamnesePage() {
                 <div className="flex gap-2">
                   {[{ val: false, label: 'Não' }, { val: true, label: 'Sim' }].map(o => (
                     <button key={String(o.val)} onClick={() => set('fuma', o.val)}
-                      className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all active:scale-95 ${form.fuma === o.val ? 'bg-white border-white text-black' : 'bg-white/[0.03] border-white/[0.08] text-zinc-400'}`}>
+                      className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all active:scale-95 ${form.fuma === o.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] text-zinc-400'}`}>
                       {o.label}
                     </button>
                   ))}
@@ -408,7 +408,7 @@ export default function AnamnesePage() {
 
           {/* ── Notas do outro profissional (read-only) ───────────────────── */}
           {outraAnamnese && (
-            <div className="rounded-2xl border border-blue-500/20 overflow-hidden" style={{ background: '#0a0f18' }}>
+            <div className="rounded-2xl border border-blue-500/20 overflow-hidden" style={{ background: '#101825' }}>
               <button onClick={() => setVerOutra(v => !v)}
                 className="w-full px-5 py-4 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors">
                 <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">

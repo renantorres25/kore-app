@@ -53,7 +53,7 @@ export default function NavBar({ tipo, ativa }: { tipo: string; ativa: string })
   const items = getItems(tipo)
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.14]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
       <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
         {items.map(item => {

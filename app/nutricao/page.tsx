@@ -81,7 +81,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
   if (!vinculoNutri && !plano && !gerandoPlano) {
     return (
       <div className="px-4 pt-4">
-        <div className="rounded-2xl border border-blue-500/20 p-6 text-center" style={{ background: 'linear-gradient(145deg,#0a0d14,#080a10)' }}>
+        <div className="rounded-2xl border border-blue-500/20 p-6 text-center" style={{ background: 'linear-gradient(145deg,#111520,#10131a)' }}>
           <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-4 text-3xl">🥗</div>
           <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">Nutricionista virtual · IA</p>
           <p className="text-white font-black text-xl mb-2">Crie seu plano alimentar</p>
@@ -95,7 +95,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
   if (gerandoPlano) {
     return (
       <div className="px-4 pt-4">
-        <div className="rounded-2xl border border-blue-500/20 p-6" style={{ background: '#0a0d14' }}>
+        <div className="rounded-2xl border border-blue-500/20 p-6" style={{ background: '#111520' }}>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
               <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -140,20 +140,20 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
               <p className="text-zinc-600 text-[10px]">Criado em {dataCriacao}</p>
             </div>
             {!isPlanoProfissional && (
-              <button onClick={onIniciarConsulta} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/20 hover:text-zinc-300 transition-all active:scale-95 shrink-0">↻ Refazer</button>
+              <button onClick={onIniciarConsulta} className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/20 hover:text-zinc-300 transition-all active:scale-95 shrink-0">↻ Refazer</button>
             )}
           </div>
         </div>
 
         {e?.nota_nutri && (
-          <div className="mx-4 mb-4 rounded-2xl border border-blue-500/15 px-4 py-3.5" style={{ background: 'linear-gradient(135deg,#0a0d14,#080a10)' }}>
+          <div className="mx-4 mb-4 rounded-2xl border border-blue-500/15 px-4 py-3.5" style={{ background: 'linear-gradient(135deg,#111520,#10131a)' }}>
             <p className="text-blue-400 text-[9px] uppercase tracking-wider mb-1.5">📋 Nota da nutricionista</p>
             <p className="text-zinc-300 text-sm leading-relaxed">{e.nota_nutri}</p>
           </div>
         )}
 
-        <div className="mx-4 mb-4 rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
-          <div className="px-4 py-3 border-b border-white/[0.04]">
+        <div className="mx-4 mb-4 rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div className="px-4 py-3 border-b border-white/[0.14]">
             <p className="text-zinc-500 text-[10px] uppercase tracking-wider">Resumo diário</p>
           </div>
           <div className="grid grid-cols-4 divide-x divide-white/[0.05]">
@@ -171,7 +171,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
           </div>
           {totalCalDia > 0 && plano.calorias_meta && (
             <div className="px-4 pb-3">
-              <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+              <div className="h-1 bg-white/[0.09] rounded-full overflow-hidden">
                 <div className="h-full bg-orange-400 rounded-full transition-all" style={{ width: `${Math.min(100, Math.round((totalCalDia / plano.calorias_meta) * 100))}%` }} />
               </div>
               <p className="text-zinc-700 text-[9px] mt-1">{Math.round((totalCalDia / plano.calorias_meta) * 100)}% da meta calórica</p>
@@ -188,21 +188,21 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
               const pctDia = totalCalDia > 0 ? Math.round((totalCal / totalCalDia) * 100) : 0
 
               return (
-                <div key={i} className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
+                <div key={i} className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
                   <button onClick={() => setRefeicaoAberta(aberta ? null : i)}
                     className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
                     <div className="relative shrink-0">
-                      <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-xl">
+                      <div className="w-11 h-11 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-xl">
                         {getIconeRefeicao(ref.nome)}
                       </div>
-                      <div className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-zinc-800 border border-white/[0.08] flex items-center justify-center">
+                      <div className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-zinc-800 border border-white/[0.14] flex items-center justify-center">
                         <span className="text-zinc-400 text-[8px] font-black">{i + 1}</span>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-white font-bold text-sm">{ref.nome}</p>
-                        <span className="text-zinc-600 text-[10px] bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>
+                        <span className="text-zinc-600 text-[10px] bg-white/[0.07] border border-white/[0.11] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-orange-400 text-[11px] font-semibold">{totalCal} kcal</span>
@@ -214,7 +214,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                   </button>
 
                   {aberta && (
-                    <div className="border-t border-white/[0.04]">
+                    <div className="border-t border-white/[0.14]">
                       <div className="flex items-center justify-between px-4 py-2 bg-white/[0.02] border-b border-white/[0.03]">
                         <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimento</span>
                         <div className="flex gap-4">
@@ -235,7 +235,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                           </div>
                         </div>
                       ))}
-                      <div className="flex items-center justify-between px-4 py-3 bg-white/[0.02] border-t border-white/[0.06]">
+                      <div className="flex items-center justify-between px-4 py-3 bg-white/[0.02] border-t border-white/[0.11]">
                         <span className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider">Total</span>
                         <div className="flex items-center gap-4">
                           <span className="text-zinc-600 text-[11px] w-[60px] text-right">—</span>
@@ -244,7 +244,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                         </div>
                       </div>
                       {ref.dica && (
-                        <div className="mx-4 mb-3 mt-2 rounded-xl bg-white/[0.02] border border-white/[0.05] px-3 py-2.5">
+                        <div className="mx-4 mb-3 mt-2 rounded-xl bg-white/[0.02] border border-white/[0.09] px-3 py-2.5">
                           <p className="text-emerald-400 text-[9px] uppercase tracking-wider mb-1">💡 Dica</p>
                           <p className="text-zinc-400 text-[11px] leading-relaxed">{ref.dica}</p>
                         </div>
@@ -256,7 +256,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
             })}
 
             {e.suplementos && e.suplementos.length > 0 && (
-              <div className="rounded-2xl border border-purple-500/20 overflow-hidden" style={{ background: '#0f0f0f' }}>
+              <div className="rounded-2xl border border-purple-500/20 overflow-hidden" style={{ background: '#1a1a1a' }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === 'suplementos' ? null : 'suplementos')}
                   className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
                   <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-xl shrink-0">💊</div>
@@ -267,7 +267,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                   <span className={`text-zinc-600 text-[10px] transition-transform duration-200 shrink-0 ${secaoAberta === 'suplementos' ? 'rotate-180' : ''}`}>▼</span>
                 </button>
                 {secaoAberta === 'suplementos' && (
-                  <div className="border-t border-white/[0.04] divide-y divide-white/[0.04]">
+                  <div className="border-t border-white/[0.14] divide-y divide-white/[0.04]">
                     {e.suplementos.map((s, i) => (
                       <div key={i} className="px-4 py-3.5">
                         <p className="text-white font-bold text-sm">{s.nome}</p>
@@ -281,7 +281,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
             )}
 
             {e.hidratacao && (
-              <div className="rounded-2xl border border-cyan-500/20 overflow-hidden" style={{ background: '#0f0f0f' }}>
+              <div className="rounded-2xl border border-cyan-500/20 overflow-hidden" style={{ background: '#1a1a1a' }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === 'hidratacao' ? null : 'hidratacao')}
                   className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
                   <div className="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-xl shrink-0">💧</div>
@@ -292,7 +292,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                   <span className={`text-zinc-600 text-[10px] transition-transform duration-200 shrink-0 ${secaoAberta === 'hidratacao' ? 'rotate-180' : ''}`}>▼</span>
                 </button>
                 {secaoAberta === 'hidratacao' && (
-                  <div className="border-t border-white/[0.04] px-4 py-3.5">
+                  <div className="border-t border-white/[0.14] px-4 py-3.5">
                     <p className="text-zinc-300 text-sm leading-relaxed">{e.hidratacao.orientacao}</p>
                   </div>
                 )}
@@ -314,7 +314,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                   <span className={`text-zinc-500 text-[10px] transition-transform duration-200 shrink-0 ${secaoAberta === s.key ? 'rotate-180' : ''}`}>▼</span>
                 </button>
                 {secaoAberta === s.key && (
-                  <div className="px-4 pb-4 border-t border-white/[0.06]">
+                  <div className="px-4 pb-4 border-t border-white/[0.11]">
                     <p className="text-zinc-300 text-sm leading-relaxed pt-3">{s.val}</p>
                   </div>
                 )}
@@ -322,7 +322,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
             ))}
           </div>
         ) : (
-          <div className="mx-4 rounded-2xl border border-white/[0.06] p-5" style={{ background: '#0f0f0f' }}>
+          <div className="mx-4 rounded-2xl border border-white/[0.11] p-5" style={{ background: '#1a1a1a' }}>
             <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-line">{plano.conteudo}</p>
             <button onClick={onIniciarConsulta} className="mt-4 w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">✦ Gerar novo plano detalhado →</button>
           </div>
@@ -333,7 +333,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
   return (
     <div className="px-4 pt-4">
-      <div className="rounded-2xl border border-emerald-500/20 p-5" style={{ background: '#0f0f0f' }}>
+      <div className="rounded-2xl border border-emerald-500/20 p-5" style={{ background: '#1a1a1a' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-xs font-black text-green-400 shrink-0">NU</div>
           <div>
@@ -414,9 +414,9 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
     <div className="px-4 pt-4 space-y-4 pb-4">
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Recuperação', val: scoreHoje ?? '—', sub: '/100', cor: scoreHoje ? scoreHoje >= 70 ? 'text-emerald-400' : 'text-yellow-400' : 'text-zinc-600', bg: scoreHoje ? scoreHoje >= 70 ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-yellow-500/20 bg-yellow-500/5' : 'border-white/[0.06]' },
-          { label: 'Treino', val: treinouHoje ? '✓' : '—', sub: 'hoje', cor: treinouHoje ? 'text-emerald-400' : 'text-zinc-600', bg: treinouHoje ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/[0.06]' },
-          { label: 'Meta', val: metaCal ? `${Math.round(metaCal / 100) / 10}k` : '—', sub: 'kcal', cor: 'text-white', bg: 'border-white/[0.06]' },
+          { label: 'Recuperação', val: scoreHoje ?? '—', sub: '/100', cor: scoreHoje ? scoreHoje >= 70 ? 'text-emerald-400' : 'text-yellow-400' : 'text-zinc-600', bg: scoreHoje ? scoreHoje >= 70 ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-yellow-500/20 bg-yellow-500/5' : 'border-white/[0.11]' },
+          { label: 'Treino', val: treinouHoje ? '✓' : '—', sub: 'hoje', cor: treinouHoje ? 'text-emerald-400' : 'text-zinc-600', bg: treinouHoje ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/[0.11]' },
+          { label: 'Meta', val: metaCal ? `${Math.round(metaCal / 100) / 10}k` : '—', sub: 'kcal', cor: 'text-white', bg: 'border-white/[0.11]' },
         ].map((s, i) => (
           <div key={i} className={`rounded-2xl p-3 border text-center ${s.bg}`}>
             <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-1">{s.label}</p>
@@ -426,8 +426,8 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         ))}
       </div>
 
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
-        <div className="px-5 pt-4 pb-3 border-b border-white/[0.04]">
+      <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+        <div className="px-5 pt-4 pb-3 border-b border-white/[0.14]">
           <p className="text-white font-bold text-sm">Como foi hoje?</p>
           <p className="text-zinc-600 text-[11px]">Avalie e registre em 30 segundos</p>
         </div>
@@ -435,7 +435,7 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
           <div className="grid grid-cols-4 gap-2">
             {QUALIDADE_OPCOES.map(op => (
               <button key={op.valor} onClick={() => setQualidade(op.valor)}
-                className={`flex flex-col items-center py-3 rounded-2xl border transition-all active:scale-95 ${qualidade === op.valor ? op.cor : 'border-white/[0.06] bg-white/[0.02] text-zinc-500'}`}>
+                className={`flex flex-col items-center py-3 rounded-2xl border transition-all active:scale-95 ${qualidade === op.valor ? op.cor : 'border-white/[0.11] bg-white/[0.02] text-zinc-500'}`}>
                 <span className="text-2xl mb-1">{op.emoji}</span>
                 <span className="text-[10px] font-bold">{op.label}</span>
               </button>
@@ -454,12 +454,12 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
                 </div>
                 <div className="relative">
                   <input type="number" placeholder="0" value={f.val} onChange={e => f.set(e.target.value)}
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                    className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">{f.unit}</span>
                 </div>
                 {f.val && f.meta && (
                   <div className="mt-1.5">
-                    <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div className="h-1 bg-white/[0.09] rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all ${f.barCor}`} style={{ width: `${f.pct}%` }} />
                     </div>
                     <p className="text-zinc-700 text-[9px] text-center mt-1">{f.pct}%</p>
@@ -471,17 +471,17 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
 
           <textarea placeholder="Como foi? Algo que dificultou ou ajudou... (opcional — melhora a análise da IA)" value={observacoes}
             onChange={e => setObservacoes(e.target.value)} rows={2}
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
+            className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
 
           <button onClick={salvarRegistro} disabled={!qualidade || salvando}
-            className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all ${jaRegistrou ? 'bg-white/[0.06] border border-white/[0.10] text-zinc-300' : 'bg-white text-black'}`}>
+            className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all ${jaRegistrou ? 'bg-white/[0.09] border border-white/[0.10] text-zinc-300' : 'bg-white text-black'}`}>
             {salvando ? 'Salvando...' : jaRegistrou ? '✓ Registrado — atualizar' : 'Registrar →'}
           </button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
-        <div className="px-5 py-4 border-b border-white/[0.04]">
+      <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+        <div className="px-5 py-4 border-b border-white/[0.14]">
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-white font-bold text-sm">Hidratação</p>
@@ -491,23 +491,23 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
               {coposAgua}<span className="text-zinc-600 text-sm font-normal">/8</span>
             </p>
           </div>
-          <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+          <div className="h-1.5 bg-white/[0.09] rounded-full overflow-hidden">
             <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${Math.min(100, (coposAgua / 8) * 100)}%` }} />
           </div>
         </div>
         <div className="p-4 flex items-center gap-2">
-          <button onClick={() => atualizarAgua(coposAgua - 1)} className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white text-lg font-bold active:scale-90 transition-all shrink-0">−</button>
+          <button onClick={() => atualizarAgua(coposAgua - 1)} className="w-10 h-10 rounded-xl bg-white/[0.09] border border-white/[0.14] flex items-center justify-center text-white text-lg font-bold active:scale-90 transition-all shrink-0">−</button>
           <div className="flex-1 grid grid-cols-8 gap-1">
             {Array.from({ length: 8 }, (_, i) => (
-              <button key={i} onClick={() => atualizarAgua(i + 1)} className={`h-7 rounded-lg transition-all active:scale-90 ${i < coposAgua ? 'bg-blue-400' : 'bg-white/[0.05] border border-white/[0.08]'}`} />
+              <button key={i} onClick={() => atualizarAgua(i + 1)} className={`h-7 rounded-lg transition-all active:scale-90 ${i < coposAgua ? 'bg-blue-400' : 'bg-white/[0.05] border border-white/[0.14]'}`} />
             ))}
           </div>
-          <button onClick={() => atualizarAgua(coposAgua + 1)} className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white text-lg font-bold active:scale-90 transition-all shrink-0">+</button>
+          <button onClick={() => atualizarAgua(coposAgua + 1)} className="w-10 h-10 rounded-xl bg-white/[0.09] border border-white/[0.14] flex items-center justify-center text-white text-lg font-bold active:scale-90 transition-all shrink-0">+</button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: '#0f0f0f' }}>
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
+      <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: '#1a1a1a' }}>
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
           <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0"><span className="text-[11px] font-black text-emerald-400">✦</span></div>
           <div className="flex-1">
             <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em] font-semibold">Feedback do dia · IA</p>
@@ -522,7 +522,7 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
               {jaRegistrou && <button onClick={gerarAnalise} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">✦ Gerar feedback do dia</button>}
             </div>
           )}
-          {analise.carregando && <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
+          {analise.carregando && <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
           {analise.gerado && !analise.carregando && (
             <div>
               <p className="text-zinc-300 text-sm leading-relaxed">{analise.texto}</p>
@@ -532,14 +532,14 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.06] p-4" style={{ background: '#0f0f0f' }}>
+      <div className="rounded-2xl border border-white/[0.11] p-4" style={{ background: '#1a1a1a' }}>
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-500 border-white/[0.08]'}`}>NU</div>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.07] text-zinc-500 border-white/[0.14]'}`}>NU</div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold">Nutricionista</p>
             <p className="text-zinc-600 text-xs">{vinculoNutri ? vinculoNutri.nome ?? 'Conectada' : 'Conecte para plano profissional'}</p>
           </div>
-          {!vinculoNutri && <button className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 uppercase tracking-wider shrink-0">+ Conectar</button>}
+          {!vinculoNutri && <button className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 uppercase tracking-wider shrink-0">+ Conectar</button>}
           {vinculoNutri && <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
         </div>
       </div>
@@ -710,10 +710,10 @@ Responda APENAS JSON válido:
   }
 
   if (mostrarQuiz) return <QuizIA tipo="nutricao" onConcluir={gerarPlanoNutricional} onCancelar={() => setMostrarQuiz(false)} />
-  if (carregando) return <main className="min-h-screen bg-[#080808] flex items-center justify-center"><div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /></main>
+  if (carregando) return <main className="min-h-screen bg-[#111111] flex items-center justify-center"><div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /></main>
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
+    <main className="min-h-[100dvh] bg-[#111111] text-white flex flex-col">
       <div className="shrink-0 px-4" style={{ paddingTop: 'max(3rem,calc(env(safe-area-inset-top)+1.5rem))', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
         <div className="max-w-md mx-auto">
           <div className="flex items-start justify-between mb-4">

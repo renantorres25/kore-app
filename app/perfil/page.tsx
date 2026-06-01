@@ -175,13 +175,13 @@ function PerfilConteudo() {
   const progresso = [dataNascimento, sexo, peso, altura, objetivo, nivel].filter(Boolean).length
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
@@ -195,7 +195,7 @@ function PerfilConteudo() {
           </div>
           {!isNovo && (
             <button onClick={handleLogout}
-              className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">
+              className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">
               Sair
             </button>
           )}
@@ -208,7 +208,7 @@ function PerfilConteudo() {
               <p className="text-emerald-400 text-[11px] font-bold uppercase tracking-wider">Configuração do perfil</p>
               <p className="text-emerald-400 text-[11px] font-bold">{progresso}/6</p>
             </div>
-            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-white/[0.09] rounded-full overflow-hidden">
               <div className="h-full bg-emerald-400 rounded-full transition-all duration-500" style={{ width: `${(progresso / 6) * 100}%` }} />
             </div>
             <p className="text-zinc-600 text-[10px] mt-2">
@@ -218,9 +218,9 @@ function PerfilConteudo() {
         )}
 
         {/* Card identidade */}
-        <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
+        <div className="rounded-2xl p-5 border border-white/[0.11] mb-4" style={{ background: '#1a1a1a' }}>
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0">
+            <div className="w-14 h-14 rounded-2xl bg-white/[0.09] border border-white/[0.14] flex items-center justify-center shrink-0">
               <span className="text-xl font-black text-white">{(nome || email)[0]?.toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
@@ -236,7 +236,7 @@ function PerfilConteudo() {
 
         {/* Stats */}
         {imc && (
-          <div className="rounded-2xl p-5 border border-white/[0.06] mb-4" style={{ background: '#0f0f0f' }}>
+          <div className="rounded-2xl p-5 border border-white/[0.11] mb-4" style={{ background: '#1a1a1a' }}>
             <div className="grid grid-cols-4 gap-3 text-center">
               <div>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">Idade</p>
@@ -277,18 +277,18 @@ function PerfilConteudo() {
         {/* ABA BÁSICO */}
         {abaAtiva === 'basico' && (
           <div className="space-y-4">
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Data de nascimento</p>
               <input type="date" value={dataNascimento} onChange={e => setDataNascimento(e.target.value)}
-                className="w-full bg-white/[0.04] text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]" />
+                className="w-full bg-white/[0.07] text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
             </div>
 
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Sexo</p>
               <div className="grid grid-cols-3 gap-2">
                 {[{ valor: 'masculino', label: 'Masculino', emoji: '♂️' }, { valor: 'feminino', label: 'Feminino', emoji: '♀️' }, { valor: 'outro', label: 'Outro', emoji: '⚧' }].map(s => (
                   <button key={s.valor} onClick={() => setSexo(s.valor)}
-                    className={`py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${sexo === s.valor ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>
+                    className={`py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${sexo === s.valor ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
                     <div className="text-lg mb-0.5">{s.emoji}</div>
                     <div className="text-[10px]">{s.label}</div>
                   </button>
@@ -296,29 +296,29 @@ function PerfilConteudo() {
               </div>
             </div>
 
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Medidas</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-zinc-600 text-[10px] mb-1 block">Peso (kg)</label>
                   <input type="number" placeholder="75" value={peso} onChange={e => setPeso(e.target.value)}
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
                 </div>
                 <div>
                   <label className="text-zinc-600 text-[10px] mb-1 block">Altura (cm)</label>
                   <input type="number" placeholder="175" value={altura} onChange={e => setAltura(e.target.value)}
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
                 </div>
               </div>
             </div>
 
             {!isProf && (
-              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Objetivo principal</p>
                 <div className="grid grid-cols-2 gap-2">
                   {objetivos.map(o => (
                     <button key={o.valor} onClick={() => setObjetivo(o.valor)}
-                      className={`py-4 px-3 rounded-xl border text-left transition-all active:scale-95 ${objetivo === o.valor ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-white border-white/[0.08]'}`}>
+                      className={`py-4 px-3 rounded-xl border text-left transition-all active:scale-95 ${objetivo === o.valor ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-white border-white/[0.14]'}`}>
                       <div className="text-2xl mb-1">{o.emoji}</div>
                       <div className="text-xs font-semibold leading-tight">{o.label}</div>
                     </button>
@@ -328,12 +328,12 @@ function PerfilConteudo() {
             )}
 
             {!isProf && (
-              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Nível de experiência</p>
                 <div className="space-y-2">
                   {niveis.map(n => (
                     <button key={n.valor} onClick={() => setNivel(n.valor)}
-                      className={`w-full flex items-center gap-4 py-4 px-4 rounded-xl border text-left transition-all active:scale-95 ${nivel === n.valor ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-white border-white/[0.08]'}`}>
+                      className={`w-full flex items-center gap-4 py-4 px-4 rounded-xl border text-left transition-all active:scale-95 ${nivel === n.valor ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-white border-white/[0.14]'}`}>
                       <span className="text-2xl">{n.emoji}</span>
                       <div>
                         <p className="text-sm font-bold">{n.label}</p>
@@ -351,13 +351,13 @@ function PerfilConteudo() {
         {abaAtiva === 'atletico' && (
           <div className="space-y-4">
 
-            <div className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.06] rounded-2xl px-4 py-3">
+            <div className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.11] rounded-2xl px-4 py-3">
               <span className="text-lg shrink-0">💡</span>
               <p className="text-zinc-500 text-xs leading-relaxed">Dados opcionais — mas quanto mais você preencher, mais precisa e personalizada será a análise da IA. A FCmax real é o dado mais importante.</p>
             </div>
 
             {/* Modalidades */}
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Modalidades que pratica</p>
               <p className="text-zinc-600 text-xs mb-4">Selecione todas que fazem parte da sua rotina</p>
               <div className="grid grid-cols-4 gap-2">
@@ -365,7 +365,7 @@ function PerfilConteudo() {
                   const sel = modalidades.includes(m.valor)
                   return (
                     <button key={m.valor} onClick={() => toggleModalidade(m.valor)}
-                      className={`flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${sel ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.02] border-white/[0.06] text-zinc-500'}`}>
+                      className={`flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${sel ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.02] border-white/[0.11] text-zinc-500'}`}>
                       <span className="text-xl mb-1">{m.icon}</span>
                       <span className="text-[9px] font-semibold text-center leading-tight">{m.label}</span>
                     </button>
@@ -375,13 +375,13 @@ function PerfilConteudo() {
             </div>
 
             {/* FCmax */}
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">❤️ Frequência cardíaca máxima (FCmax)</p>
               <p className="text-zinc-600 text-xs mb-4 leading-relaxed">O dado mais importante para análise de zonas. Faça um teste de FCmax ou use o valor do seu Garmin/Apple Watch. Sem isso, estimamos pela fórmula 220-idade.</p>
               <div className="flex items-center gap-3">
                 <input type="number" placeholder={fcmaxEstimada ? `Estimada: ${fcmaxEstimada}` : 'Ex: 185'} value={fcmax}
                   onChange={e => setFcmax(e.target.value)}
-                  className="flex-1 bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500/30 transition-colors" />
+                  className="flex-1 bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500/30 transition-colors" />
                 <span className="text-zinc-500 text-sm shrink-0">bpm</span>
               </div>
               {fcmax && zonas && (
@@ -391,7 +391,7 @@ function PerfilConteudo() {
                     const cores: Record<string, string> = { Z1: 'text-blue-400', Z2: 'text-emerald-400', Z3: 'text-yellow-400', Z4: 'text-orange-400', Z5: 'text-red-400' }
                     const labels: Record<string, string> = { Z1: 'Recuperação', Z2: 'Base aeróbica', Z3: 'Tempo', Z4: 'Limiar', Z5: 'VO2max' }
                     return (
-                      <div key={zona} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
+                      <div key={zona} className="flex items-center justify-between py-2 border-b border-white/[0.14] last:border-0">
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-black ${cores[zona]}`}>{zona}</span>
                           <span className="text-zinc-600 text-[11px]">{labels[zona]}</span>
@@ -408,13 +408,13 @@ function PerfilConteudo() {
             </div>
 
             {/* FTP bike */}
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">🚴 FTP — Limiar de Potência Funcional</p>
               <p className="text-zinc-600 text-xs mb-4 leading-relaxed">Para ciclistas com medidor de potência. É a maior potência que você sustenta por 1 hora. Usado para calcular zonas de potência no bike.</p>
               <div className="flex items-center gap-3">
                 <input type="number" placeholder="Ex: 220" value={ftp}
                   onChange={e => setFtp(e.target.value)}
-                  className="flex-1 bg-white/[0.04] border border-white/[0.08] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500/30 transition-colors" />
+                  className="flex-1 bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500/30 transition-colors" />
                 <span className="text-zinc-500 text-sm shrink-0">watts</span>
               </div>
               {ftp && (
@@ -427,7 +427,7 @@ function PerfilConteudo() {
                     { zona: 'Z4', label: 'Limiar (FTP)',       min: Math.round(parseInt(ftp) * 0.91), max: Math.round(parseInt(ftp) * 1.05), cor: 'text-orange-400' },
                     { zona: 'Z5', label: 'VO2max',             min: Math.round(parseInt(ftp) * 1.06), max: Math.round(parseInt(ftp) * 1.20), cor: 'text-red-400' },
                   ].map(z => (
-                    <div key={z.zona} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
+                    <div key={z.zona} className="flex items-center justify-between py-2 border-b border-white/[0.14] last:border-0">
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-black ${z.cor}`}>{z.zona}</span>
                         <span className="text-zinc-600 text-[11px]">{z.label}</span>
@@ -464,7 +464,7 @@ function PerfilConteudo() {
           <div className="mt-5 space-y-2">
             <p className="text-zinc-600 text-[10px] uppercase tracking-widest">Ficha de saúde</p>
             <button onClick={() => router.push(`/anamnese/${userId}`)}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.98] transition-all text-left">
+              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.98] transition-all text-left">
               <span className="text-2xl shrink-0">📋</span>
               <div className="flex-1">
                 <p className="text-white font-bold text-sm">Anamnese</p>
@@ -473,7 +473,7 @@ function PerfilConteudo() {
               <span className="text-zinc-700 text-sm shrink-0">→</span>
             </button>
             <button onClick={() => router.push(`/evolucao-medidas/${userId}`)}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.98] transition-all text-left">
+              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.98] transition-all text-left">
               <span className="text-2xl shrink-0">📏</span>
               <div className="flex-1">
                 <p className="text-white font-bold text-sm">Evolução de medidas</p>
@@ -493,7 +493,7 @@ function PerfilConteudo() {
 export default function Perfil() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+      <main className="min-h-screen bg-[#111111] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
       </main>
     }>

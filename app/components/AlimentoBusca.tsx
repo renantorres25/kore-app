@@ -88,7 +88,7 @@ export default function AlimentoBusca({ value, onChange, onSelect, placeholder =
           style={{ background: '#171717' }}>
           {sugestoes.map(al => (
             <button key={al.id} onMouseDown={e => { e.preventDefault(); handleSelect(al) }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.06] transition-colors text-left border-b border-white/[0.04] last:border-0">
+              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.09] transition-colors text-left border-b border-white/[0.14] last:border-0">
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-medium truncate">{al.nome}</p>
                 <p className={`text-[10px] ${CATEGORIA_COR[al.categoria] ?? 'text-zinc-500'}`}>{al.categoria}</p>
@@ -99,7 +99,7 @@ export default function AlimentoBusca({ value, onChange, onSelect, placeholder =
               </div>
             </button>
           ))}
-          <div className="px-3 py-2 border-t border-white/[0.04]">
+          <div className="px-3 py-2 border-t border-white/[0.14]">
             <p className="text-zinc-700 text-[9px] uppercase tracking-wider">TACO/UNICAMP · valores por 100g</p>
           </div>
         </div>

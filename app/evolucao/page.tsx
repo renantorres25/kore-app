@@ -172,11 +172,11 @@ function CalendarioConsistencia({ atividades, onSelecionarDia }: {
                   title={formatDate(dia)}
                   style={{ height: 32 }}
                   className={`rounded-lg transition-all active:scale-90 overflow-hidden relative ${
-                    isSelecionado ? 'ring-2 ring-white/60 ring-offset-1 ring-offset-[#0f0f0f]' : ''
+                    isSelecionado ? 'ring-2 ring-white/60 ring-offset-1 ring-offset-[#1a1a1a]' : ''
                   } ${
                     isHoje && !temAtividade ? 'ring-1 ring-white/30' : ''
                   } ${
-                    !temAtividade ? 'bg-white/[0.04]' : ''
+                    !temAtividade ? 'bg-white/[0.07]' : ''
                   }`}
                 >
                   {temAtividade && cores.length === 1 && (
@@ -208,7 +208,7 @@ function CalendarioConsistencia({ atividades, onSelecionarDia }: {
 
       <div className="flex gap-4 mt-3">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-white/[0.04] border border-white/[0.08]" />
+          <div className="w-3 h-3 rounded-sm bg-white/[0.07] border border-white/[0.14]" />
           <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Descanso</span>
         </div>
         {diaSelecionado && (
@@ -356,7 +356,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -370,7 +370,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
   }, {} as Record<string, AtividadeDia[]>)
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         <div className="mb-8">
@@ -381,7 +381,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
 
         {!temDados ? (
           <div className="flex flex-col items-center py-20 gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-3xl opacity-40">📈</div>
+            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] border border-white/[0.11] flex items-center justify-center text-3xl opacity-40">📈</div>
             <div className="text-center">
               <p className="text-white font-bold mb-1">Sem dados ainda</p>
               <p className="text-zinc-600 text-sm">Registre sua primeira atividade para ver sua evolução</p>
@@ -397,7 +397,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                 { val: mediaScore ?? '—', label: 'Recup.', cor: mediaScore && mediaScore >= 70 ? 'text-emerald-400' : mediaScore ? 'text-yellow-400' : 'text-zinc-500' },
                 { val: totalCalorias > 0 ? `${Math.round(totalCalorias/1000)}k` : '—', label: 'kcal', cor: 'text-orange-400' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-3 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
+                <div key={i} className="rounded-2xl p-3 border border-white/[0.11] text-center" style={{ background: '#1a1a1a' }}>
                   <p className={`text-xl font-black tabular-nums ${s.cor}`}>{s.val}</p>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5">{s.label}</p>
                 </div>
@@ -405,7 +405,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
             </div>
 
             {scores.some(s => s.score !== null) && (
-              <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+              <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
                 <div className="px-5 pt-5 pb-3">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Score de recuperação</p>
@@ -427,7 +427,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
             )}
 
             {/* CALENDÁRIO COLORIDO */}
-            <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
               <div className="px-5 pt-5 pb-5">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Consistência</p>
@@ -440,7 +440,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                 const atividadesDia = atividades.filter(a => a.data === diaSelecionado)
                 const scoreDia = scores.find(s => s.data === diaSelecionado)
                 return (
-                  <div className="border-t border-white/[0.06] px-5 py-4">
+                  <div className="border-t border-white/[0.11] px-5 py-4">
                     <p className="text-zinc-400 text-[11px] font-semibold uppercase tracking-wider mb-3">
                       {formatDateFull(diaSelecionado)}
                     </p>
@@ -449,7 +449,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                     ) : (
                       <div className="space-y-2">
                         {scoreDia?.score && (
-                          <div className="flex items-center gap-3 py-2 border-b border-white/[0.04]">
+                          <div className="flex items-center gap-3 py-2 border-b border-white/[0.14]">
                             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-sm">⚡</div>
                             <div className="flex-1">
                               <p className="text-white text-sm font-semibold">Recuperação</p>
@@ -494,7 +494,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
               })
               const maxCount = Math.max(...counts, 1)
               return (
-                <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+                <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
                   <div className="px-5 pt-5 pb-5">
                     <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-5">Atividades por semana</p>
                     <div className="flex items-end gap-3 h-20">
@@ -514,7 +514,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
             })()}
 
             {volumeExercicios.length > 0 && (
-              <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+              <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
                 <div className="px-5 pt-5 pb-1">
                   <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Evolução — Musculação</p>
                 </div>
@@ -552,7 +552,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                 { label: 'Músculo', unit: 'kg', values: medidasCP.map(m => m.massa_muscular), current: last.massa_muscular, delta: deltaMuscular, color: '#34D399', inverseBetter: false },
               ]
               return (
-                <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+                <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
                   <div className="px-5 pt-5 pb-5">
                     <div className="flex items-center justify-between mb-5">
                       <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Composição corporal</p>
@@ -612,7 +612,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
               }, '')
               const areaD = `${lineD} L ${W},${H} L 0,${H} Z`
               return (
-                <div className="rounded-2xl border border-orange-500/10 mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+                <div className="rounded-2xl border border-orange-500/10 mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
                   <div className="px-5 pt-5 pb-5">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Histórico calórico</p>
@@ -661,8 +661,8 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
               )
             })()}
 
-            <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #0f0f0f 0%, #0a0a0a 100%)' }}>
-              <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
+            <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #1a1a1a 0%, #141414 100%)' }}>
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
                 <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
                   <span className="text-[11px] font-black text-emerald-400">✦</span>
                 </div>
@@ -679,7 +679,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                     <button onClick={gerarAnaliseIA} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 hover:bg-emerald-500/20 transition-all">✦ Analisar minha evolução</button>
                   </div>
                 )}
-                {analise.carregando && <div className="space-y-2">{[1, 0.85, 0.65].map((w, i) => <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
+                {analise.carregando && <div className="space-y-2">{[1, 0.85, 0.65].map((w, i) => <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
                 {analise.gerado && !analise.carregando && (
                   <div>
                     <p className="text-zinc-300 text-sm leading-relaxed">{analise.texto}</p>
@@ -689,8 +689,8 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
-              <div className="px-5 pt-5 pb-3 border-b border-white/[0.04]">
+            <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+              <div className="px-5 pt-5 pb-3 border-b border-white/[0.14]">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Histórico de atividades</p>
               </div>
               <div className="divide-y divide-white/[0.04]">

@@ -481,7 +481,7 @@ Responda APENAS em JSON válido, sem markdown:
 
   if (carregando) {
     return (
-      <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+      <main className="min-h-screen bg-[#111111] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-600 text-[10px] tracking-[0.25em] uppercase">Carregando</p>
@@ -491,15 +491,15 @@ Responda APENAS em JSON válido, sem markdown:
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
+    <main className="min-h-[100dvh] bg-[#111111] text-white flex flex-col">
       {perfil?.tipo === 'cliente' && <OnboardingTour />}
 
       {/* Painel de Notificações */}
       {showNotifs && (
         <div className="fixed inset-0 z-[80] flex items-end" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowNotifs(false) }}>
-          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.08] px-5 pt-5 pb-10"
-            style={{ background: '#111' }}>
+          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.14] px-5 pt-5 pb-10"
+            style={{ background: '#1c1c1c' }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-black text-lg">Notificações</h2>
               <button onClick={() => setShowNotifs(false)} className="text-zinc-500 hover:text-white text-xl leading-none">✕</button>
@@ -514,8 +514,8 @@ Responda APENAS em JSON válido, sem markdown:
               <div className="space-y-2">
                 {notifs.map(n => (
                   <button key={n.id} onClick={() => { setShowNotifs(false); if (n.link) router.push(n.link) }}
-                    className="w-full text-left rounded-2xl p-4 border border-white/[0.06] active:scale-[0.98] transition-all flex items-center gap-3"
-                    style={{ background: '#0f0f0f' }}>
+                    className="w-full text-left rounded-2xl p-4 border border-white/[0.11] active:scale-[0.98] transition-all flex items-center gap-3"
+                    style={{ background: '#1a1a1a' }}>
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${n.tipo === 'agendamento' ? 'bg-blue-500/10' : n.tipo === 'alerta' ? 'bg-red-500/10' : 'bg-zinc-800'}`}>
                       {n.icon}
                     </div>
@@ -563,7 +563,7 @@ Responda APENAS em JSON válido, sem markdown:
         {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} />}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.04]"
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.14]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
           {getNavItems(perfil?.tipo).map((item) => {
@@ -619,10 +619,10 @@ function CardDecisaoDia({
   if (!temSonoHoje) {
     return (
       <button onClick={() => router.push('/sono')}
-        className="w-full text-left rounded-3xl p-5 mb-3 border border-white/[0.06] relative overflow-hidden active:scale-[0.98] transition-all group"
+        className="w-full text-left rounded-3xl p-5 mb-3 border border-white/[0.11] relative overflow-hidden active:scale-[0.98] transition-all group"
         style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0 text-lg">🌙</div>
+          <div className="w-8 h-8 rounded-xl bg-white/[0.09] flex items-center justify-center shrink-0 text-lg">🌙</div>
           <div>
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em]">✦ Decisão do dia</p>
             <p className="text-white font-black text-base group-hover:text-emerald-400 transition-colors">Registre seu sono</p>
@@ -648,7 +648,7 @@ function CardDecisaoDia({
         </div>
         <div className="space-y-2">
           {[1, 0.75, 0.55].map((w, i) => (
-            <div key={i} className="h-3 bg-white/[0.06] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />
+            <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />
           ))}
         </div>
       </div>
@@ -716,7 +716,7 @@ function SonoMiniChart({ historico }: { historico: { data: string; score_recuper
   const last = valid[valid.length - 1]
 
   return (
-    <div className="mt-4 pt-4 border-t border-white/[0.04]">
+    <div className="mt-4 pt-4 border-t border-white/[0.14]">
       <p className="text-zinc-600 text-[9px] uppercase tracking-[0.18em] mb-2">Score de recuperação · 7 dias</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" style={{ height: H }}>
         <defs>
@@ -836,7 +836,7 @@ function CardMeta({
     return (
       <button onClick={() => setEditando(true)}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-dashed border-white/[0.15] active:scale-[0.98] transition-all"
-        style={{ background: '#0f0f0f' }}>
+        style={{ background: '#1a1a1a' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meta pessoal</p>
         <p className="text-white font-black text-xl mb-1.5">Definir minha meta →</p>
         <p className="text-zinc-600 text-sm leading-relaxed">Onde você quer chegar? Defina seu peso-alvo e acompanhe cada kg de progresso.</p>
@@ -846,20 +846,20 @@ function CardMeta({
 
   if (editando) {
     return (
-      <div className="rounded-2xl p-5 mb-3 border border-emerald-500/20" style={{ background: '#0f0f0f' }}>
+      <div className="rounded-2xl p-5 mb-3 border border-emerald-500/20" style={{ background: '#1a1a1a' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meta pessoal</p>
         <div className="space-y-3">
           <div>
             <label className="text-zinc-600 text-[10px] mb-1.5 block">Peso-alvo (kg)</label>
             <input type="number" step="0.5" placeholder="Ex: 80" value={formMeta.peso}
               onChange={e => setFormMeta(p => ({ ...p, peso: e.target.value }))}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/30 placeholder:text-zinc-700" />
+              className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/30 placeholder:text-zinc-700" />
           </div>
           <div>
             <label className="text-zinc-600 text-[10px] mb-1.5 block">Data-limite</label>
             <input type="date" value={formMeta.data}
               onChange={e => setFormMeta(p => ({ ...p, data: e.target.value }))}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/30"
+              className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/30"
               style={{ colorScheme: 'dark' }} />
           </div>
           <div className="flex gap-2 pt-1">
@@ -880,7 +880,7 @@ function CardMeta({
   const C = 2 * Math.PI * 30 // circumference r=30 → ~188.5
 
   return (
-    <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+    <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -888,7 +888,7 @@ function CardMeta({
           {ehSugestao && <span className="text-[9px] text-emerald-400 border border-emerald-500/30 rounded-md px-1.5 py-0.5 uppercase tracking-wider">IA</span>}
         </div>
         <button onClick={() => setEditando(true)}
-          className="text-zinc-600 text-[10px] uppercase tracking-wider border border-white/[0.08] rounded-lg px-3 py-1.5 hover:text-white hover:border-white/20 transition-all active:scale-95">
+          className="text-zinc-600 text-[10px] uppercase tracking-wider border border-white/[0.14] rounded-lg px-3 py-1.5 hover:text-white hover:border-white/20 transition-all active:scale-95">
           {ehSugestao ? 'confirmar' : 'editar'}
         </button>
       </div>
@@ -973,7 +973,7 @@ function CardMeta({
           Confirmar esta meta →
         </button>
       ) : (
-        <div className="flex items-center pt-3 border-t border-white/[0.04]">
+        <div className="flex items-center pt-3 border-t border-white/[0.14]">
           {!atingiu && faltam != null && (
             <p className="text-zinc-500 text-xs flex-1">
               {metaDataLimite && `até ${new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
@@ -1038,11 +1038,11 @@ function DashboardCliente({
           <p className="text-zinc-600 text-[11px] mt-1.5 capitalize tracking-wide">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">
+          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center text-sm active:scale-90 transition-all">
             🔔
             {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
-          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
+          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
@@ -1084,9 +1084,9 @@ function DashboardCliente({
                 {bemEstar && (
                   <div className="flex gap-4">
                     <Metrica label="Energia"   valor={`${bemEstar.energia}/5`} />
-                    <div className="w-px bg-white/[0.06]" />
+                    <div className="w-px bg-white/[0.09]" />
                     <Metrica label="Humor"     valor={`${bemEstar.humor}/5`} />
-                    <div className="w-px bg-white/[0.06]" />
+                    <div className="w-px bg-white/[0.09]" />
                     <Metrica label="Dor musc." valor={`${6 - bemEstar.dor_muscular}/5`} />
                   </div>
                 )}
@@ -1097,11 +1097,11 @@ function DashboardCliente({
         </button>
       ) : (
         <button onClick={() => router.push('/sono')}
-          className="w-full text-left rounded-3xl p-6 mb-3 border border-white/[0.06] relative overflow-hidden active:scale-[0.98] transition-all"
+          className="w-full text-left rounded-3xl p-6 mb-3 border border-white/[0.11] relative overflow-hidden active:scale-[0.98] transition-all"
           style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
           <div className="flex items-center justify-between mb-4">
             <p className="text-zinc-600 text-[10px] uppercase tracking-[0.22em]">Recuperação hoje</p>
-            <span className="text-[9px] text-zinc-600 border border-white/[0.08] rounded-md px-1.5 py-0.5 uppercase tracking-wider">demo</span>
+            <span className="text-[9px] text-zinc-600 border border-white/[0.14] rounded-md px-1.5 py-0.5 uppercase tracking-wider">demo</span>
           </div>
           <div className="flex items-center gap-5 opacity-50">
             <div className="relative w-[72px] h-[72px] shrink-0">
@@ -1120,9 +1120,9 @@ function DashboardCliente({
               <p className="text-base font-black leading-tight mb-1 text-emerald-400">Boa recuperação</p>
               <div className="flex gap-4 mt-2">
                 <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Energia</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
-                <div className="w-px bg-white/[0.06]" />
+                <div className="w-px bg-white/[0.09]" />
                 <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Humor</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
-                <div className="w-px bg-white/[0.06]" />
+                <div className="w-px bg-white/[0.09]" />
                 <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Dor musc.</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
               </div>
             </div>
@@ -1144,7 +1144,7 @@ function DashboardCliente({
         const c = CORES_FASE[fasePeriodizacao.tipoBloco] ?? CORES_FASE.hipertrofia
         const pct = Math.min(100, (fasePeriodizacao.semanaBloco / fasePeriodizacao.semanasBloco) * 100)
         return (
-          <div className={`rounded-2xl p-5 mb-3 border ${c.border}`} style={{ background: '#0f0f0f' }}>
+          <div className={`rounded-2xl p-5 mb-3 border ${c.border}`} style={{ background: '#1a1a1a' }}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Fase atual</p>
               <span className={`text-[9px] font-bold uppercase tracking-wider ${c.text}`}>
@@ -1152,7 +1152,7 @@ function DashboardCliente({
               </span>
             </div>
             <p className={`text-xl font-black mb-3 ${c.text}`}>{fasePeriodizacao.nomeBloco}</p>
-            <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden mb-2">
+            <div className="h-2 bg-white/[0.09] rounded-full overflow-hidden mb-2">
               <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${pct}%` }} />
             </div>
             <div className="flex items-center justify-between">
@@ -1164,7 +1164,7 @@ function DashboardCliente({
       })()}
 
       {/* Treino de hoje */}
-      <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+      <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
         <div className="flex items-start justify-between mb-1">
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Treino de hoje</p>
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${treinoHoje?.concluido ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
@@ -1191,8 +1191,8 @@ function DashboardCliente({
 
       {/* Nutrição */}
       <button onClick={() => router.push('/nutricao')}
-        className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.06] active:scale-[0.98] transition-all"
-        style={{ background: '#0f0f0f' }}>
+        className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.11] active:scale-[0.98] transition-all"
+        style={{ background: '#1a1a1a' }}>
         <div className="flex items-start justify-between mb-1">
           <div>
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Minha nutrição</p>
@@ -1200,7 +1200,7 @@ function DashboardCliente({
               <p className="text-green-400 font-black text-sm mt-0.5">{vinculoNutri.nome ?? vinculoNutri.email}</p>
             )}
           </div>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.04] text-zinc-600 border-white/[0.06]'}`}>NU</div>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.07] text-zinc-600 border-white/[0.11]'}`}>NU</div>
         </div>
         <div className="mb-4">
           {vinculoNutri && refeicaoAtual ? (
@@ -1237,13 +1237,13 @@ function DashboardCliente({
             </>
           )}
         </div>
-        <div className="w-full bg-white/[0.06] text-white font-bold py-3.5 rounded-xl text-sm text-center tracking-[0.05em]">
+        <div className="w-full bg-white/[0.09] text-white font-bold py-3.5 rounded-xl text-sm text-center tracking-[0.05em]">
           Ver meu plano alimentar →
         </div>
       </button>
 
       {/* Meu time */}
-      <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+      <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meu time</p>
         <div className="space-y-3">
           {[
@@ -1263,13 +1263,13 @@ function DashboardCliente({
                   </div>
                   {!vinculo && (
                     <button onClick={() => router.push('/convite')}
-                      className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0">
+                      className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0">
                       + Conectar
                     </button>
                   )}
                   {vinculo && <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
                 </div>
-                {i === 0 && <div className="h-px bg-white/[0.04] mt-3" />}
+                {i === 0 && <div className="h-px bg-white/[0.07] mt-3" />}
               </div>
             )
           })}
@@ -1361,11 +1361,11 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
           <p className="text-zinc-600 text-[11px] mt-1 capitalize tracking-wide">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">
+          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center text-sm active:scale-90 transition-all">
             🔔
             {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
-          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
+          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
@@ -1380,7 +1380,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
           { valor: loadingStats ? '—' : String(treinaramHoje), label: 'Treinaram', sub: 'hoje',           cor: treinaramHoje > 0 ? 'text-emerald-400' : 'text-white' },
           { valor: loadingStats ? '—' : String(alertas),       label: 'Alertas',   sub: 'sem treinar 7d', cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-4 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
+          <div key={m.label} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1a1a1a' }}>
             <p className={`text-2xl font-black ${m.cor}`}>{m.valor}</p>
             <p className="text-zinc-500 text-[10px] mt-0.5 leading-tight">{m.label}</p>
             <p className="text-zinc-700 text-[9px]">{m.sub}</p>
@@ -1388,7 +1388,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
         ))}
       </div>
       {!loadingStats && totalAlunos === 0 && (
-        <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#080e14' }}>
+        <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#0f1a24' }}>
           <div className="px-5 pt-5 pb-4 border-b border-blue-500/10">
             <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Primeiros passos</p>
             <p className="text-white font-black text-lg">Bem-vindo ao KORE, {firstName}!</p>
@@ -1420,15 +1420,15 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
       )}
 
       {alunosRecentes.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
+        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Seus alunos hoje</p>
             <button onClick={() => router.push('/personal')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
           </div>
           <div className="divide-y divide-white/[0.04]">
             {alunosRecentes.map((a, i) => (
               <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${a.treinouHoje ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/[0.04] text-zinc-500'}`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${a.treinouHoje ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/[0.07] text-zinc-500'}`}>
                   {(a.nome ?? a.email)[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1442,7 +1442,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
         </div>
       )}
       {notifBlocos.length > 0 && (
-        <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#080e14' }}>
+        <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#0f1a24' }}>
           <div className="px-5 py-3 border-b border-blue-500/10 flex items-center gap-2">
             <span className="text-blue-400 text-sm">📅</span>
             <p className="text-blue-300 text-[10px] uppercase tracking-[0.15em] font-bold">Prepare os próximos blocos</p>
@@ -1471,7 +1471,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
           <button onClick={() => router.push('/personal')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver alunos →</button>
         </div>
       )}
-      <button onClick={() => router.push('/personal')} className="w-full border border-white/[0.08] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os alunos</button>
+      <button onClick={() => router.push('/personal')} className="w-full border border-white/[0.14] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os alunos</button>
       <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">+ Convidar aluno</button>
     </div>
   )
@@ -1578,11 +1578,11 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
           <p className="text-zinc-600 text-[11px] mt-1 capitalize tracking-wide">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center text-sm active:scale-90 transition-all">
+          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center text-sm active:scale-90 transition-all">
             🔔
             {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
-          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.06] flex items-center justify-center active:scale-90 transition-all">
+          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
@@ -1598,7 +1598,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
           { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Recuperados',   sub: 'hoje',            cor: boaRecuperacao > 0 ? 'text-green-400' : 'text-white' },
           { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',     sub: 'essa semana',     cor: treinaram7d > 0 ? 'text-blue-400' : 'text-white' },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-4 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
+          <div key={m.label} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1a1a1a' }}>
             <p className={`text-2xl font-black ${m.cor}`}>{m.valor}</p>
             <p className="text-zinc-500 text-[10px] mt-0.5 leading-tight">{m.label}</p>
             <p className="text-zinc-700 text-[9px]">{m.sub}</p>
@@ -1615,7 +1615,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       )}
 
       {!loadingStats && totalPacientes === 0 && (
-        <div className="rounded-2xl border border-green-500/20 mb-4 overflow-hidden" style={{ background: '#080e0a' }}>
+        <div className="rounded-2xl border border-green-500/20 mb-4 overflow-hidden" style={{ background: '#141f18' }}>
           <div className="px-5 pt-5 pb-4 border-b border-green-500/10">
             <p className="text-green-400 text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Primeiros passos</p>
             <p className="text-white font-black text-lg">Bem-vindo ao KORE, {firstName}!</p>
@@ -1648,7 +1648,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
 
       {/* Planos para revisar */}
       {planosParaRevisar.length > 0 && (
-        <div className="rounded-2xl border border-green-500/20 mb-4 overflow-hidden" style={{ background: '#080e0a' }}>
+        <div className="rounded-2xl border border-green-500/20 mb-4 overflow-hidden" style={{ background: '#141f18' }}>
           <div className="px-5 py-3 border-b border-green-500/10 flex items-center gap-2">
             <span className="text-green-400 text-sm">📋</span>
             <p className="text-green-300 text-[10px] uppercase tracking-[0.15em] font-bold">Planos para revisar</p>
@@ -1672,8 +1672,8 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       )}
 
       {pacientesRecentes.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
+        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Seus pacientes hoje</p>
             <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
           </div>
@@ -1684,8 +1684,8 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
               const planoAntigo = p.diasDesdeUltimoPlano != null && p.diasDesdeUltimoPlano >= 30
               return (
                 <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 active:bg-white/[0.03] transition-colors text-left">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${!p.temPlano ? 'bg-yellow-500/10 text-yellow-400' : sonoOk ? 'bg-green-500/10 text-green-400' : sonoBaixo ? 'bg-red-500/10 text-red-400' : 'bg-white/[0.04] text-zinc-500'}`}>
+                  className="w-full flex items-center gap-3 px-5 py-3.5 active:bg-white/[0.05] transition-colors text-left">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${!p.temPlano ? 'bg-yellow-500/10 text-yellow-400' : sonoOk ? 'bg-green-500/10 text-green-400' : sonoBaixo ? 'bg-red-500/10 text-red-400' : 'bg-white/[0.07] text-zinc-500'}`}>
                     {(p.nome ?? p.email)[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1716,7 +1716,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         </div>
       )}
 
-      <button onClick={() => router.push('/nutricionista/pacientes')} className="w-full border border-white/[0.08] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os pacientes</button>
+      <button onClick={() => router.push('/nutricionista/pacientes')} className="w-full border border-white/[0.14] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os pacientes</button>
       <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">+ Convidar paciente</button>
     </div>
   )

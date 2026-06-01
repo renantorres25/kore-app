@@ -39,13 +39,13 @@ export default function NovaSenha() {
   }
 
   if (!pronto) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-[#080808] text-white flex flex-col items-center justify-center px-4">
+    <main className="min-h-screen bg-[#111111] text-white flex flex-col items-center justify-center px-4">
       <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[300px] rounded-full blur-3xl opacity-[0.06]"
         style={{ background: 'radial-gradient(ellipse, #10b981 0%, transparent 70%)' }} />
 
@@ -61,11 +61,11 @@ export default function NovaSenha() {
         <div className="space-y-3 mb-4">
           <input type="password" placeholder="Nova senha (mín. 6 caracteres)" value={senha}
             onChange={e => setSenha(e.target.value)}
-            className="w-full bg-white/[0.05] text-white placeholder-zinc-600 rounded-2xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-white/25 border border-white/[0.08]" />
+            className="w-full bg-white/[0.05] text-white placeholder-zinc-600 rounded-2xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-white/25 border border-white/[0.14]" />
           <input type="password" placeholder="Confirmar nova senha" value={confirmar}
             onChange={e => setConfirmar(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSalvar()}
-            className="w-full bg-white/[0.05] text-white placeholder-zinc-600 rounded-2xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-white/25 border border-white/[0.08]" />
+            className="w-full bg-white/[0.05] text-white placeholder-zinc-600 rounded-2xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-white/25 border border-white/[0.14]" />
         </div>
 
         {mensagem && (

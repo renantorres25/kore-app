@@ -150,7 +150,7 @@ export default function ConvitePage() {
       setTimeout(() => setCopiado(false), 2500)
     }
     return (
-      <main className="min-h-[100dvh] bg-[#080808] text-white flex items-center justify-center px-4">
+      <main className="min-h-[100dvh] bg-[#111111] text-white flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
           <div className={`w-20 h-20 rounded-3xl ${emailFalhou ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'} border flex items-center justify-center text-4xl mx-auto mb-6`}>
             {emailFalhou ? '⚠️' : '✓'}
@@ -198,14 +198,14 @@ export default function ConvitePage() {
   // ── Tela principal ────────────────────────────────────────────────────────
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 py-8">
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-10">
           <button
             onClick={getVoltar}
-            className="w-9 h-9 rounded-xl bg-zinc-900 border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95"
+            className="w-9 h-9 rounded-xl bg-zinc-900 border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95"
           >
             ←
           </button>
@@ -232,7 +232,7 @@ export default function ConvitePage() {
                   key={p.valor}
                   onClick={() => setTipoProfissional(p.valor as 'personal' | 'nutricionista')}
                   className={`flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all active:scale-95 ${
-                    tipoProfissional === p.valor ? p.corAtivo : 'bg-zinc-900 border-white/[0.08]'
+                    tipoProfissional === p.valor ? p.corAtivo : 'bg-zinc-900 border-white/[0.14]'
                   }`}
                 >
                   <div className={`w-12 h-12 rounded-xl border flex items-center justify-center text-sm font-black ${p.cor}`}>
@@ -246,7 +246,7 @@ export default function ConvitePage() {
         )}
 
         {/* O que o convidado vai ter acesso */}
-        <div className="rounded-2xl p-5 border border-white/[0.06] mb-6" style={{ background: '#0f0f0f' }}>
+        <div className="rounded-2xl p-5 border border-white/[0.11] mb-6" style={{ background: '#1a1a1a' }}>
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">
             {tipoUsuario === 'cliente' ? 'O que ele vai ver no KORE' : 'O que você vai acompanhar'}
           </p>
@@ -271,7 +271,7 @@ export default function ConvitePage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleEnviar()}
-            className="w-full bg-zinc-900 text-white placeholder-zinc-600 rounded-xl px-4 py-4 text-sm outline-none focus:ring-2 focus:ring-white/20 border border-white/[0.08] transition-all"
+            className="w-full bg-zinc-900 text-white placeholder-zinc-600 rounded-xl px-4 py-4 text-sm outline-none focus:ring-2 focus:ring-white/20 border border-white/[0.14] transition-all"
           />
         </div>
 
@@ -297,7 +297,7 @@ export default function ConvitePage() {
               {convitesPendentes.map(c => {
                 const diasRestantes = Math.max(0, 7 - Math.floor((Date.now() - new Date(c.criado_em).getTime()) / (1000 * 60 * 60 * 24)))
                 return (
-                  <div key={c.id} className="flex items-center gap-3 rounded-xl border border-white/[0.06] px-4 py-3" style={{ background: '#0f0f0f' }}>
+                  <div key={c.id} className="flex items-center gap-3 rounded-xl border border-white/[0.11] px-4 py-3" style={{ background: '#1a1a1a' }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">{c.email_convidado}</p>
                       <p className="text-zinc-600 text-[10px]">{diasRestantes > 0 ? `Expira em ${diasRestantes} dia${diasRestantes !== 1 ? 's' : ''}` : 'Expirado'}</p>

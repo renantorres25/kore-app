@@ -156,7 +156,7 @@ export default function PersonalAlunos() {
   }, [router])
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -167,7 +167,7 @@ export default function PersonalAlunos() {
   })
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
@@ -184,7 +184,7 @@ export default function PersonalAlunos() {
 
         {alunos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-3xl opacity-40">👥</div>
+            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] border border-white/[0.11] flex items-center justify-center text-3xl opacity-40">👥</div>
             <div className="text-center">
               <p className="text-white font-bold mb-1">Nenhum aluno ainda</p>
               <p className="text-zinc-600 text-sm">Convide seu primeiro aluno para começar</p>
@@ -200,7 +200,7 @@ export default function PersonalAlunos() {
                 { val: totalTreinouHoje, label: 'Treinaram', sub: 'hoje', icon: '💪' },
                 { val: mediaScore ? `${mediaScore}` : '—', label: 'Recup. média', sub: '/100', icon: '⚡' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-4 border border-white/[0.06] text-center" style={{ background: '#0f0f0f' }}>
+                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1a1a1a' }}>
                   <p className="text-lg mb-1">{s.icon}</p>
                   <p className="text-white text-2xl font-black">{s.val}</p>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5">{s.label}</p>
@@ -249,15 +249,15 @@ export default function PersonalAlunos() {
 
                 return (
                   <button key={aluno.id} onClick={() => router.push(`/personal/aluno/${aluno.cliente_id}`)}
-                    className="w-full text-left rounded-2xl p-5 border border-white/[0.06] active:scale-[0.98] transition-all"
-                    style={{ background: '#0f0f0f' }}>
+                    className="w-full text-left rounded-2xl p-5 border border-white/[0.11] active:scale-[0.98] transition-all"
+                    style={{ background: '#1a1a1a' }}>
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${treinouHoje ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-white/[0.06] border border-white/[0.08]'}`}>
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${treinouHoje ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-white/[0.09] border border-white/[0.14]'}`}>
                           <span className={`font-black text-sm ${treinouHoje ? 'text-emerald-400' : 'text-zinc-400'}`}>{initials}</span>
                         </div>
                         {treinouHoje && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0f0f0f]" />
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#1a1a1a]" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -274,7 +274,7 @@ export default function PersonalAlunos() {
                               </p>
                               <p className="text-zinc-600 text-[9px]">Sem. {fase.semanaBloco}/{fase.semanasBloco}</p>
                             </div>
-                            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                            <div className="h-1.5 bg-white/[0.09] rounded-full overflow-hidden">
                               <div className={`h-full rounded-full transition-all ${faseCor.split(' ')[0].replace('text-', 'bg-')}`}
                                 style={{ width: `${Math.min(100, (fase.semanaBloco / fase.semanasBloco) * 100)}%` }} />
                             </div>
@@ -287,17 +287,17 @@ export default function PersonalAlunos() {
                     </div>
 
                     {s && (
-                      <div className="flex gap-4 mt-4 pt-4 border-t border-white/[0.04]">
+                      <div className="flex gap-4 mt-4 pt-4 border-t border-white/[0.14]">
                         <div>
                           <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-0.5">Total</p>
                           <p className="text-white text-sm font-bold">{s.totalTreinos}x</p>
                         </div>
-                        <div className="w-px bg-white/[0.06]" />
+                        <div className="w-px bg-white/[0.09]" />
                         <div>
                           <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-0.5">Semana</p>
                           <p className="text-white text-sm font-bold">{s.treinosSemana}x</p>
                         </div>
-                        <div className="w-px bg-white/[0.06]" />
+                        <div className="w-px bg-white/[0.09]" />
                         <div>
                           <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-0.5">Recuperação</p>
                           <p className={`text-sm font-bold ${s.scoreHoje ? (s.scoreHoje >= 70 ? 'text-emerald-400' : s.scoreHoje >= 50 ? 'text-yellow-400' : 'text-red-400') : 'text-zinc-600'}`}>

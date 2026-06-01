@@ -108,7 +108,7 @@ function DeltaBadge({ atual, anterior, campo, unidade = '', inverso = false }: {
   )
 }
 
-const INPUT_CLASS = "w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors text-center"
+const INPUT_CLASS = "w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors text-center"
 
 export default function EvolucaoMedidasPage() {
   const router = useRouter()
@@ -234,7 +234,7 @@ export default function EvolucaoMedidasPage() {
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -260,13 +260,13 @@ export default function EvolucaoMedidasPage() {
   ]
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
+    <main className="min-h-[100dvh] bg-[#111111] text-white">
       <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push(backUrl)} className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shrink-0">←</button>
+            <button onClick={() => router.push(backUrl)} className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shrink-0">←</button>
             <div>
               <h1 className="text-xl font-black tracking-tight">Evolução</h1>
               <p className="text-zinc-500 text-xs mt-0.5">{clienteNome ?? 'Medidas corporais'}</p>
@@ -279,7 +279,7 @@ export default function EvolucaoMedidasPage() {
 
         {medicoes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-3xl opacity-40">📏</div>
+            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] border border-white/[0.11] flex items-center justify-center text-3xl opacity-40">📏</div>
             <div className="text-center">
               <p className="text-white font-bold mb-1">Sem medidas registradas</p>
               <p className="text-zinc-600 text-sm">{isProfissional ? 'Registre a primeira avaliação corporal' : 'Seu profissional ainda não registrou medidas'}</p>
@@ -292,7 +292,7 @@ export default function EvolucaoMedidasPage() {
           <>
             {/* Snapshot atual */}
             {mais_recente && (
-              <div className="rounded-2xl p-5 border border-white/[0.06] mb-5" style={{ background: '#0f0f0f' }}>
+              <div className="rounded-2xl p-5 border border-white/[0.11] mb-5" style={{ background: '#1a1a1a' }}>
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Último registro</p>
                   <span className="text-zinc-600 text-xs">{new Date(mais_recente.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
@@ -302,7 +302,7 @@ export default function EvolucaoMedidasPage() {
                     const val = mais_recente[m.campo] as number | null
                     const prev = anterior ? anterior[m.campo] as number | null : null
                     return (
-                      <div key={m.campo} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
+                      <div key={m.campo} className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
                         <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">{m.label}</p>
                         {val != null ? (
                           <div>
@@ -331,7 +331,7 @@ export default function EvolucaoMedidasPage() {
             {abaAtiva === 'historico' && (
               <div className="space-y-2">
                 {medicoes.map((m, idx) => (
-                  <div key={m.id} className="rounded-2xl p-4 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+                  <div key={m.id} className="rounded-2xl p-4 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="text-white font-bold text-sm">{new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
@@ -339,13 +339,13 @@ export default function EvolucaoMedidasPage() {
                       </div>
                       {isProfissional && (
                         <div className="flex gap-2">
-                          <button onClick={() => abrirEditar(m)} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white active:scale-95 transition-all">Editar</button>
+                          <button onClick={() => abrirEditar(m)} className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white active:scale-95 transition-all">Editar</button>
                           <button onClick={() => deletar(m.id)} className="text-[10px] text-red-500/60 border border-red-500/20 rounded-lg px-2.5 py-1.5 hover:text-red-400 active:scale-95 transition-all">✕</button>
                         </div>
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {m.peso != null && <span className="text-xs text-zinc-300 bg-white/[0.05] border border-white/[0.06] rounded-lg px-2.5 py-1">{m.peso}kg</span>}
+                      {m.peso != null && <span className="text-xs text-zinc-300 bg-white/[0.05] border border-white/[0.11] rounded-lg px-2.5 py-1">{m.peso}kg</span>}
                       {m.gordura_pct != null && <span className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-2.5 py-1">{m.gordura_pct}% gord.</span>}
                       {m.massa_muscular != null && <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1">{m.massa_muscular}kg musc.</span>}
                       {m.cintura != null && <span className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-2.5 py-1">{m.cintura}cm cin.</span>}
@@ -363,7 +363,7 @@ export default function EvolucaoMedidasPage() {
                 {METRICAS_COMPOSICAO.map(m => {
                   const pontos = medicoes.filter(d => d[m.campo] != null)
                   if (pontos.length === 0) return (
-                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
                       <p className="text-zinc-500 text-sm">{m.label} — sem dados</p>
                     </div>
                   )
@@ -372,7 +372,7 @@ export default function EvolucaoMedidasPage() {
                   const primeiro = [...pontos].reverse()[0][m.campo] as number | null
                   const totalDelta = atual != null && primeiro != null ? atual - primeiro : null
                   return (
-                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-0.5">{m.label}</p>
@@ -403,7 +403,7 @@ export default function EvolucaoMedidasPage() {
                   const atual = mais_recente?.[m.campo] as number | null
                   const prev = anterior?.[m.campo] as number | null
                   return (
-                    <div key={m.campo} className="rounded-2xl p-4 border border-white/[0.06] flex items-center gap-4" style={{ background: '#0f0f0f' }}>
+                    <div key={m.campo} className="rounded-2xl p-4 border border-white/[0.11] flex items-center gap-4" style={{ background: '#1a1a1a' }}>
                       <div className="flex-1 min-w-0">
                         <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-0.5">{m.label}</p>
                         <div className="flex items-baseline gap-2">
@@ -429,11 +429,11 @@ export default function EvolucaoMedidasPage() {
       {/* Modal nova medição */}
       {modalAberto && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.08] overflow-hidden" style={{ background: '#0f0f0f', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] overflow-hidden" style={{ background: '#1a1a1a', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
 
-            <div className="flex items-center justify-between p-5 border-b border-white/[0.06] shrink-0">
+            <div className="flex items-center justify-between p-5 border-b border-white/[0.11] shrink-0">
               <p className="text-white font-black text-lg">{editandoId ? 'Editar medidas' : 'Nova avaliação'}</p>
-              <button onClick={() => setModalAberto(false)} className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all">✕</button>
+              <button onClick={() => setModalAberto(false)} className="w-9 h-9 rounded-xl bg-white/[0.09] flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all">✕</button>
             </div>
 
             <div className="overflow-y-auto flex-1 p-5 space-y-5">
@@ -441,7 +441,7 @@ export default function EvolucaoMedidasPage() {
               <div>
                 <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Data da avaliação</label>
                 <input type="date" value={form.data} onChange={e => set('data', e.target.value)}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 transition-colors"
+                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 transition-colors"
                   style={{ colorScheme: 'dark' }} />
               </div>
 
@@ -493,11 +493,11 @@ export default function EvolucaoMedidasPage() {
                 <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Observações <span className="text-zinc-700 normal-case">(opcional)</span></label>
                 <textarea value={form.observacoes} onChange={e => set('observacoes', e.target.value)}
                   placeholder="Contexto desta avaliação, como o cliente está se sentindo..."
-                  rows={2} className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors resize-none" />
+                  rows={2} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors resize-none" />
               </div>
             </div>
 
-            <div className="p-5 border-t border-white/[0.06] shrink-0">
+            <div className="p-5 border-t border-white/[0.11] shrink-0">
               {erro && <p className="text-red-400 text-xs text-center mb-3 bg-red-500/10 rounded-xl py-2 px-3">{erro}</p>}
               <button onClick={salvar} disabled={salvando || !form.data}
                 className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-40 transition-all tracking-wide">

@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
         <!DOCTYPE html>
         <html>
         <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-        <body style="margin:0;padding:0;background:#080808;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#080808;min-height:100vh;">
+        <body style="margin:0;padding:0;background:#111111;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#111111;min-height:100vh;">
             <tr>
               <td align="center" style="padding:48px 24px;">
                 <table width="100%" style="max-width:480px;">

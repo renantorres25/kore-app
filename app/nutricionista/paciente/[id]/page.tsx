@@ -414,7 +414,7 @@ Responda APENAS JSON válido:
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -431,10 +431,10 @@ Responda APENAS JSON válido:
   const totalEdProt = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'proteina'), 0)
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
+    <main className="min-h-[100dvh] bg-[#111111] text-white flex flex-col">
 
       {/* ── HEADER FIXO ─────────────────────────────────────────────── */}
-      <div className="shrink-0 sticky top-0 z-20 bg-[#080808]/95 backdrop-blur-sm border-b border-white/[0.06]"
+      <div className="shrink-0 sticky top-0 z-20 bg-[#111111]/95 backdrop-blur-sm border-b border-white/[0.11]"
            style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
         <div className="px-4 md:px-8 pb-3">
           <button onClick={() => router.push('/nutricionista/pacientes')}
@@ -449,21 +449,21 @@ Responda APENAS JSON válido:
               <div className="min-w-0">
                 <h1 className="text-xl md:text-2xl font-black text-white tracking-tight truncate">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
                 <div className="flex flex-wrap gap-1.5 mt-0.5">
-                  {paciente?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
-                  {paciente?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {paciente?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
+                  {paciente?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
                   {paciente?.meta_peso && <span className="text-[10px] text-green-500/70 bg-green-500/5 border border-green-500/15 rounded-full px-2 py-0.5">Meta: {paciente.meta_peso}kg</span>}
-                  {metaCal && <span className="hidden md:inline text-[10px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{metaCal} kcal sugerido</span>}
+                  {metaCal && <span className="hidden md:inline text-[10px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{metaCal} kcal sugerido</span>}
                 </div>
               </div>
             </div>
             {/* Ações rápidas — desktop */}
             <div className="hidden md:flex items-center gap-2 shrink-0">
               <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-95 transition-all text-sm text-zinc-300 font-medium">
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-95 transition-all text-sm text-zinc-300 font-medium">
                 📋 Anamnese
               </button>
               <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-95 transition-all text-sm text-zinc-300 font-medium">
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-95 transition-all text-sm text-zinc-300 font-medium">
                 📏 Medidas
               </button>
             </div>
@@ -475,7 +475,7 @@ Responda APENAS JSON válido:
       <div className="flex-1 md:flex md:overflow-hidden">
 
         {/* ── PAINEL ESQUERDO — só desktop ──────────────────────────── */}
-        <div className="hidden md:flex md:flex-col md:w-[320px] md:shrink-0 md:overflow-y-auto md:border-r md:border-white/[0.05] px-6 py-5 gap-5">
+        <div className="hidden md:flex md:flex-col md:w-[320px] md:shrink-0 md:overflow-y-auto md:border-r md:border-white/[0.09] px-6 py-5 gap-5" style={{ background: '#161616' }}>
 
           {/* ── DADOS DO PACIENTE ─────────────────────────── */}
           <div>
@@ -487,7 +487,7 @@ Responda APENAS JSON válido:
               {paciente?.objetivo && <div><p className="text-zinc-600 text-xs mb-0.5">Objetivo</p><p className="text-white text-sm font-semibold">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</p></div>}
             </div>
             {(paciente?.meta_peso || paciente?.meta_data_limite) && (
-              <div className="mt-3 pt-3 border-t border-white/[0.05] flex items-center gap-4">
+              <div className="mt-3 pt-3 border-t border-white/[0.09] flex items-center gap-4">
                 {paciente.meta_peso && <div><p className="text-zinc-600 text-xs mb-0.5">Meta</p><p className="text-white text-sm font-semibold">{paciente.meta_peso} kg</p></div>}
                 {paciente.meta_data_limite && <div><p className="text-zinc-600 text-xs mb-0.5">Prazo</p><p className="text-white text-sm font-semibold">{new Date(paciente.meta_data_limite).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p></div>}
               </div>
@@ -501,17 +501,17 @@ Responda APENAS JSON válido:
               {editandoFicha ? '↑ Fechar edição' : '✎ Editar ficha'}
             </button>
             {editandoFicha && (
-              <div className="mt-3 space-y-3 pt-3 border-t border-white/[0.05]">
+              <div className="mt-3 space-y-3 pt-3 border-t border-white/[0.09]">
                 <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-zinc-600 text-xs mb-1">Peso (kg)</p><input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)} placeholder="65" className="w-full bg-white/[0.04] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.06]" /></div>
-                  <div><p className="text-zinc-600 text-xs mb-1">Altura (cm)</p><input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)} placeholder="165" className="w-full bg-white/[0.04] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.06]" /></div>
+                  <div><p className="text-zinc-600 text-xs mb-1">Peso (kg)</p><input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)} placeholder="65" className="w-full bg-white/[0.07] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11]" /></div>
+                  <div><p className="text-zinc-600 text-xs mb-1">Altura (cm)</p><input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)} placeholder="165" className="w-full bg-white/[0.07] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11]" /></div>
                 </div>
                 <div><p className="text-zinc-600 text-xs mb-1">Objetivo</p>
-                  <div className="flex flex-wrap gap-1.5">{[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde']].map(([v, l]) => (<button key={v} onClick={() => setFichaObjetivo(v)} className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>{l}</button>))}</div>
+                  <div className="flex flex-wrap gap-1.5">{[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde']].map(([v, l]) => (<button key={v} onClick={() => setFichaObjetivo(v)} className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>{l}</button>))}</div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-zinc-600 text-xs mb-1">Meta (kg)</p><input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)} placeholder="62" className="w-full bg-white/[0.04] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.06]" /></div>
-                  <div><p className="text-zinc-600 text-xs mb-1">Prazo</p><input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)} className="w-full bg-white/[0.04] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.06]" style={{ colorScheme: 'dark' }} /></div>
+                  <div><p className="text-zinc-600 text-xs mb-1">Meta (kg)</p><input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)} placeholder="62" className="w-full bg-white/[0.07] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11]" /></div>
+                  <div><p className="text-zinc-600 text-xs mb-1">Prazo</p><input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)} className="w-full bg-white/[0.07] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11]" style={{ colorScheme: 'dark' }} /></div>
                 </div>
                 {metaSemPrazoAviso && <p className="text-amber-400 text-xs px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">⚠️ Defina um prazo antes de salvar.</p>}
                 <button onClick={salvarFicha} disabled={salvandoFicha} className="w-full bg-white text-black font-semibold py-2 rounded-lg text-sm active:scale-95 transition-all disabled:opacity-40">{salvandoFicha ? 'Salvando...' : 'Salvar'}</button>
@@ -520,7 +520,7 @@ Responda APENAS JSON válido:
           </div>
 
           {/* ── SEPARADOR ────────────────────────────────── */}
-          <div className="border-t border-white/[0.05]" />
+          <div className="border-t border-white/[0.09]" />
 
           {/* ── ALERTAS — só aparece se houver dados reais ─ */}
           {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && (
@@ -558,7 +558,7 @@ Responda APENAS JSON válido:
           )}
 
           {/* ── SEPARADOR ────────────────────────────────── */}
-          {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && <div className="border-t border-white/[0.05]" />}
+          {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && <div className="border-t border-white/[0.09]" />}
 
           {/* ── COMPOSIÇÃO CORPORAL ───────────────────────── */}
           {medidasCP.length >= 2 && (() => {
@@ -601,7 +601,7 @@ Responda APENAS JSON válido:
           })()}
 
           {/* ── SEPARADOR ────────────────────────────────── */}
-          {medidasCP.length >= 2 && <div className="border-t border-white/[0.05]" />}
+          {medidasCP.length >= 2 && <div className="border-t border-white/[0.09]" />}
 
           {/* ── FASE DE TREINO ───────────────────────────── */}
           {periodizacaoFase && (
@@ -618,7 +618,7 @@ Responda APENAS JSON válido:
           {/* ── PERFIL ATLÉTICO ──────────────────────────── */}
           {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
             <div>
-              {periodizacaoFase && <div className="border-t border-white/[0.05] mb-5" />}
+              {periodizacaoFase && <div className="border-t border-white/[0.09] mb-5" />}
               <p className="text-xs text-zinc-500 uppercase tracking-[0.12em] mb-3">Perfil atlético</p>
               <div className="space-y-2">
                 {paciente?.nivel && <div className="flex justify-between"><p className="text-zinc-500 text-sm">Nível</p><p className="text-white text-sm font-semibold capitalize">{paciente.nivel}</p></div>}
@@ -633,7 +633,7 @@ Responda APENAS JSON válido:
         {/* ── FIM PAINEL ESQUERDO ───────────────────────────────────── */}
 
         {/* ── PAINEL DIREITO (conteúdo principal) ──────────────────── */}
-        <div className="flex-1 md:overflow-y-auto">
+        <div className="flex-1 md:overflow-y-auto" style={{ background: '#111111' }}>
 
           {/* Mobile-only: quick actions + ficha + composição + periodização */}
           <div className="md:hidden max-w-md mx-auto px-4 pt-5">
@@ -641,19 +641,19 @@ Responda APENAS JSON válido:
             {/* Quick actions */}
             <div className="grid grid-cols-2 gap-2 mb-4">
               <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-                className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+                className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
                 <span className="text-xl shrink-0">📋</span>
                 <div><p className="text-white text-sm font-bold">Anamnese</p><p className="text-zinc-600 text-[10px]">Ficha de saúde</p></div>
               </button>
               <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-                className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+                className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
                 <span className="text-xl shrink-0">📏</span>
                 <div><p className="text-white text-sm font-bold">Medidas</p><p className="text-zinc-600 text-[10px]">Evolução corporal</p></div>
               </button>
             </div>
 
         {/* Ficha do paciente */}
-        <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
+        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
           <button
             onClick={() => {
               if (!editandoFicha) {
@@ -672,9 +672,9 @@ Responda APENAS JSON válido:
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Ficha do paciente</p>
               {!editandoFicha && (
                 <>
-                  {paciente?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
-                  {paciente?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{paciente.altura}cm</span>}
-                  {paciente?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {paciente?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
+                  {paciente?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{paciente.altura}cm</span>}
+                  {paciente?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
                   {paciente?.meta_peso && <span className="text-[9px] text-emerald-600 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-full px-2 py-0.5">Meta: {paciente.meta_peso}kg</span>}
                   {!paciente?.peso && !paciente?.altura && !paciente?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
                 </>
@@ -683,19 +683,19 @@ Responda APENAS JSON válido:
             <span className={`text-zinc-600 text-xs transition-transform duration-200 ${editandoFicha ? 'rotate-180' : ''}`}>▼</span>
           </button>
           {editandoFicha && (
-            <div className="px-5 pb-5 space-y-3 border-t border-white/[0.04]">
+            <div className="px-5 pb-5 space-y-3 border-t border-white/[0.14]">
               <div className="grid grid-cols-2 gap-3 pt-4">
                 <div>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso (kg)</p>
                   <input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)}
                     placeholder="65.0"
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
                 </div>
                 <div>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Altura (cm)</p>
                   <input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)}
                     placeholder="165"
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
                 </div>
               </div>
               <div>
@@ -703,7 +703,7 @@ Responda APENAS JSON válido:
                 <div className="flex gap-2">
                   {['masculino', 'feminino', 'outro'].map(v => (
                     <button key={v} onClick={() => setFichaSexo(v)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaSexo === v ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaSexo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
                       {v.charAt(0).toUpperCase() + v.slice(1)}
                     </button>
                   ))}
@@ -712,32 +712,32 @@ Responda APENAS JSON válido:
               <div>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Data de nascimento</p>
                 <input type="date" value={fichaNascimento} onChange={e => setFichaNascimento(e.target.value)}
-                  className="w-full bg-white/[0.04] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                  className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
               </div>
               <div>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Objetivo</p>
                 <div className="flex flex-wrap gap-2">
                   {[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde geral']].map(([v, l]) => (
                     <button key={v} onClick={() => setFichaObjetivo(v)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
                       {l}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="border-t border-white/[0.04] pt-3">
+              <div className="border-t border-white/[0.14] pt-3">
                 <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2.5">Meta de peso</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso-alvo (kg)</p>
                     <input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)}
                       placeholder="Ex: 62"
-                      className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.06]" />
+                      className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
                   </div>
                   <div>
                     <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Prazo</p>
                     <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
-                      className="w-full bg-white/[0.04] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.06]"
+                      className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]"
                       style={{ colorScheme: 'dark' }} />
                   </div>
                 </div>
@@ -757,7 +757,7 @@ Responda APENAS JSON válido:
 
         {/* Composição Corporal — empty state */}
         {medidasCP.length === 0 && (
-          <div className="rounded-2xl border border-white/[0.06] mb-4 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#0f0f0f' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-4 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#1a1a1a' }}>
             <span className="text-3xl">📏</span>
             <div>
               <p className="text-white text-sm font-bold">Sem medidas corporais</p>
@@ -792,8 +792,8 @@ Responda APENAS JSON válido:
             return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
           }
           return (
-            <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
-              <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
+            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+              <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
                 <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
               </div>
@@ -864,7 +864,7 @@ Responda APENAS JSON válido:
                   <div className={`h-full rounded-full ${cfg.dot}`} style={{ width: `${pct}%` }} />
                 </div>
                 {delta !== null && (
-                  <div className="flex items-center gap-2 mt-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+                  <div className="flex items-center gap-2 mt-2 p-3 rounded-xl bg-white/[0.05] border border-white/[0.14]">
                     <span className={`text-sm font-black ${delta >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>{delta >= 0 ? '+' : ''}{delta} kcal</span>
                     <p className="text-zinc-500 text-[11px] flex-1">{ajuste?.label} · meta sugerida: <span className="text-white font-semibold">{(metaAtual! + delta).toLocaleString('pt-BR')} kcal</span></p>
                   </div>
@@ -899,7 +899,7 @@ Responda APENAS JSON válido:
 
             {/* Alertas clínicos — mobile only (desktop: já no painel esquerdo) */}
             {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && (
-              <div className="md:hidden rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#140a0a' }}>
+              <div className="md:hidden rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#201212' }}>
                 <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
                   <span className="text-red-400 text-sm">⚠</span>
                   <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
@@ -914,7 +914,7 @@ Responda APENAS JSON válido:
             )}
 
             {/* Recuperação */}
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">😴 Recuperação hoje</p>
               {sonoHoje?.score_recuperacao != null ? (
                 <div>
@@ -924,7 +924,7 @@ Responda APENAS JSON válido:
                     </span>
                     <span className="text-zinc-600 text-xl mb-1">/100</span>
                   </div>
-                  <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden mb-3">
+                  <div className="h-2 bg-white/[0.09] rounded-full overflow-hidden mb-3">
                     <div className={`h-full rounded-full transition-all ${sonoHoje.score_recuperacao >= 70 ? 'bg-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
                       style={{ width: `${sonoHoje.score_recuperacao}%` }} />
                   </div>
@@ -942,7 +942,7 @@ Responda APENAS JSON válido:
             </div>
 
             {/* Treino hoje */}
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">🏋️ Treino hoje</p>
               {treinoHoje ? (
                 <div>
@@ -956,7 +956,7 @@ Responda APENAS JSON válido:
                     </div>
                   </div>
                   {treinoHoje.calorias_estimadas != null && treinoHoje.calorias_estimadas > 0 && (
-                    <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] mt-3">
+                    <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14] mt-3">
                       <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-0.5">Gasto estimado</p>
                       <p className="text-orange-400 font-black text-base">{treinoHoje.calorias_estimadas} <span className="text-xs font-normal text-zinc-500">kcal</span></p>
                     </div>
@@ -964,7 +964,7 @@ Responda APENAS JSON válido:
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center shrink-0">
                     <span className="text-zinc-600 text-lg">—</span>
                   </div>
                   <p className="text-zinc-500 text-sm">Sem treino registrado hoje</p>
@@ -973,7 +973,7 @@ Responda APENAS JSON válido:
             </div>
 
             {/* Bem-estar */}
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">⚡ Bem-estar hoje</p>
               {bemEstar ? (
                 <div className="space-y-3">
@@ -1001,7 +1001,7 @@ Responda APENAS JSON válido:
             </div>
 
             {/* Treinos — 7 dias */}
-            <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Treinos — últimos 7 dias</p>
               <div className="flex gap-1.5">
                 {dias7d.map((dia) => {
@@ -1010,7 +1010,7 @@ Responda APENAS JSON válido:
                   const [,mm,dd] = dia.split('-')
                   return (
                     <div key={dia} className="flex-1 flex flex-col items-center gap-1.5">
-                      <div className={`w-full aspect-square rounded-xl flex items-center justify-center text-sm ${treinoNoDia ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' : 'bg-white/[0.04] border border-white/[0.06] text-zinc-700'}`}>
+                      <div className={`w-full aspect-square rounded-xl flex items-center justify-center text-sm ${treinoNoDia ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' : 'bg-white/[0.07] border border-white/[0.11] text-zinc-700'}`}>
                         {treinoNoDia ? '✓' : '·'}
                       </div>
                       <p className={`text-[8px] uppercase tracking-wider ${isHoje ? 'text-white' : 'text-zinc-700'}`}>{dd}/{mm}</p>
@@ -1018,7 +1018,7 @@ Responda APENAS JSON válido:
                   )
                 })}
               </div>
-              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.04]">
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.14]">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-md bg-blue-500/30 border border-blue-500/40" />
                   <span className="text-zinc-600 text-[9px]">Treinou</span>
@@ -1036,7 +1036,7 @@ Responda APENAS JSON válido:
 
             {/* Perfil atlético — mobile only (desktop: já no painel esquerdo) */}
             {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
-              <div className="md:hidden rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <div className="md:hidden rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Perfil atlético</p>
                 <div className="flex flex-wrap gap-2">
                   {paciente?.nivel && (
@@ -1055,7 +1055,7 @@ Responda APENAS JSON válido:
                     </span>
                   )}
                   {ultimaAvaliacao && (
-                    <span className="text-[10px] text-zinc-400 bg-white/[0.03] border border-white/[0.06] rounded-full px-2.5 py-0.5">
+                    <span className="text-[10px] text-zinc-400 bg-white/[0.05] border border-white/[0.11] rounded-full px-2.5 py-0.5">
                       Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
                     </span>
                   )}
@@ -1086,8 +1086,8 @@ Responda APENAS JSON válido:
               const primeiro = comCal[0], ultimo = comCal[comCal.length - 1]
               const deltaCal = (ultimo.calorias_meta ?? 0) - (primeiro.calorias_meta ?? 0)
               return (
-                <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
-                  <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
+                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+                  <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Evolução das metas nutricionais</p>
                     <p className="text-zinc-600 text-[9px]">{historicoMetas.length} planos</p>
                   </div>
@@ -1128,11 +1128,11 @@ Responda APENAS JSON válido:
             {editandoPlano ? (
               <>
                 {/* Nota clínica */}
-                <div className="rounded-2xl border border-green-500/20 px-4 py-3.5" style={{ background: '#0a0d14' }}>
+                <div className="rounded-2xl border border-green-500/20 px-4 py-3.5" style={{ background: '#111520' }}>
                   <p className="text-green-400 text-[9px] uppercase tracking-wider mb-2">Nota clínica</p>
                   <textarea value={notaEd} onChange={e => setNotaEd(e.target.value)}
                     placeholder="Orientação geral sobre o plano para o paciente..."
-                    rows={2} className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.06] resize-none" />
+                    rows={2} className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11] resize-none" />
                 </div>
 
                 {/* Refeições */}
@@ -1140,9 +1140,9 @@ Responda APENAS JSON válido:
                   const refCal = sumAl(ref.alimentos, 'calorias')
                   const refProt = sumAl(ref.alimentos, 'proteina')
                   return (
-                    <div key={rIdx} className="rounded-2xl border border-white/[0.08] overflow-hidden" style={{ background: '#0f0f0f' }}>
+                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#1a1a1a' }}>
                       {/* header refeição */}
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04]" style={{ background: '#111' }}>
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.14]" style={{ background: '#1c1c1c' }}>
                         <div className="flex items-center gap-2">
                           <span className="text-base">{EMOJIS_REFEICAO[rIdx] ?? '🥗'}</span>
                           <span className="text-zinc-400 text-[10px] uppercase tracking-wider font-semibold">Refeição {rIdx + 1}</span>
@@ -1159,27 +1159,27 @@ Responda APENAS JSON válido:
                         <div className="grid grid-cols-3 gap-2">
                           <input value={ref.nome} onChange={e => updateRefeicao(rIdx, 'nome', e.target.value)}
                             placeholder="Ex: Café da Manhã"
-                            className="col-span-2 bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" />
+                            className="col-span-2 bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
                           <input value={ref.horario} onChange={e => updateRefeicao(rIdx, 'horario', e.target.value)}
                             placeholder="07:00"
-                            className="bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06] text-center" />
+                            className="bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11] text-center" />
                         </div>
 
                         {/* alimentos */}
                         <div className="space-y-2">
                           <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimentos</p>
                           {ref.alimentos.map((al, aIdx) => (
-                            <div key={aIdx} className="rounded-xl border border-white/[0.05] p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                            <div key={aIdx} className="rounded-xl border border-white/[0.09] p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
                               <div className="flex items-center gap-2">
                                 <AlimentoBusca
                                   value={al.nome}
                                   onChange={v => updateAlimento(rIdx, aIdx, 'nome', v)}
                                   onSelect={taco => handleSelectTACO(rIdx, aIdx, taco)}
                                   placeholder="Buscar alimento (TACO) ou digitar..."
-                                  className="flex-1 bg-transparent text-white placeholder-zinc-600 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]"
+                                  className="flex-1 bg-transparent text-white placeholder-zinc-600 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.11]"
                                 />
                                 {ref.alimentos.length > 1 && (
-                                  <button onClick={() => removeAlimento(rIdx, aIdx)} className="text-zinc-700 hover:text-red-400 transition-colors text-sm shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.04]">✕</button>
+                                  <button onClick={() => removeAlimento(rIdx, aIdx)} className="text-zinc-700 hover:text-red-400 transition-colors text-sm shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.14]">✕</button>
                                 )}
                               </div>
                               {/* badge TACO + campos separados: exibição vs cálculo */}
@@ -1192,7 +1192,7 @@ Responda APENAS JSON válido:
                               {/* Quantidade para exibição no plano (ex: "2 ovos", "1 copo") */}
                               <input value={al.quantidade} onChange={e => updateAlimento(rIdx, aIdx, 'quantidade', e.target.value)}
                                 placeholder="Quantidade para exibir (ex: 2 ovos, 1 copo, 100g)"
-                                className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.06]" />
+                                className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15 border border-white/[0.11]" />
                               {/* Gramas para cálculo automático — só aparece quando TACO selecionado */}
                               {al.kcal_100g != null && (
                                 <div className="flex items-center gap-2">
@@ -1215,20 +1215,20 @@ Responda APENAS JSON válido:
                                 <div className="relative">
                                   <input type="number" value={al.calorias} onChange={e => updateAlimento(rIdx, aIdx, 'calorias', e.target.value)}
                                     placeholder="0"
-                                    className="w-full bg-transparent text-orange-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500/20 border border-white/[0.06] pr-12" />
+                                    className="w-full bg-transparent text-orange-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500/20 border border-white/[0.11] pr-12" />
                                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">kcal</span>
                                 </div>
                                 <div className="relative">
                                   <input type="number" value={al.proteina} onChange={e => updateAlimento(rIdx, aIdx, 'proteina', e.target.value)}
                                     placeholder="0"
-                                    className="w-full bg-transparent text-blue-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500/20 border border-white/[0.06] pr-10" />
+                                    className="w-full bg-transparent text-blue-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500/20 border border-white/[0.11] pr-10" />
                                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">g prot</span>
                                 </div>
                               </div>
                             </div>
                           ))}
                           <button onClick={() => addAlimento(rIdx)}
-                            className="w-full py-2 rounded-xl border border-dashed border-white/[0.08] text-zinc-600 text-xs hover:border-white/20 hover:text-zinc-400 transition-all active:scale-95">
+                            className="w-full py-2 rounded-xl border border-dashed border-white/[0.14] text-zinc-600 text-xs hover:border-white/20 hover:text-zinc-400 transition-all active:scale-95">
                             + adicionar alimento
                           </button>
                         </div>
@@ -1236,11 +1236,11 @@ Responda APENAS JSON válido:
                         {/* dica opcional */}
                         <input value={ref.dica} onChange={e => updateRefeicao(rIdx, 'dica', e.target.value)}
                           placeholder="💡 Dica para o paciente (opcional)"
-                          className="w-full bg-white/[0.02] text-zinc-400 placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/10 border border-white/[0.04]" />
+                          className="w-full bg-white/[0.02] text-zinc-400 placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/10 border border-white/[0.14]" />
 
                         {/* total refeição */}
                         {refCal > 0 && (
-                          <div className="flex items-center gap-3 pt-1 border-t border-white/[0.04]">
+                          <div className="flex items-center gap-3 pt-1 border-t border-white/[0.14]">
                             <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Total</span>
                             <span className="text-orange-400 text-xs font-bold">{refCal} kcal</span>
                             <span className="text-blue-400 text-xs font-bold">{refProt}g prot</span>
@@ -1258,7 +1258,7 @@ Responda APENAS JSON válido:
 
                 {/* total do dia */}
                 {totalEdCal > 0 && (
-                  <div className="rounded-2xl border border-white/[0.06] px-4 py-3 flex items-center justify-between" style={{ background: '#0a0a0a' }}>
+                  <div className="rounded-2xl border border-white/[0.11] px-4 py-3 flex items-center justify-between" style={{ background: '#141414' }}>
                     <div>
                       <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Total do dia</p>
                       <div className="flex items-center gap-4">
@@ -1278,32 +1278,32 @@ Responda APENAS JSON válido:
                 )}
 
                 {/* Seções extras opcionais */}
-                <div className="rounded-2xl border border-white/[0.06] p-4 space-y-3" style={{ background: '#0f0f0f' }}>
+                <div className="rounded-2xl border border-white/[0.11] p-4 space-y-3" style={{ background: '#1a1a1a' }}>
                   <p className="text-zinc-500 text-[9px] uppercase tracking-wider">Orientações complementares (opcional)</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
                       <input type="number" value={extrasEd.hidratacaoLitros} onChange={e => setExtrasEd(p => ({ ...p, hidratacaoLitros: e.target.value }))}
-                        placeholder="2.5" className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                        placeholder="2.5" className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.11]" />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">L/dia</span>
                     </div>
                     <input value={extrasEd.hidratacaoOri} onChange={e => setExtrasEd(p => ({ ...p, hidratacaoOri: e.target.value }))}
                       placeholder="💧 Orientação de hidratação"
-                      className="bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                      className="bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.11]" />
                   </div>
                   <input value={extrasEd.oriTreino} onChange={e => setExtrasEd(p => ({ ...p, oriTreino: e.target.value }))}
                     placeholder="⚡ Orientação pré/pós-treino"
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.11]" />
                   <input value={extrasEd.estrategia} onChange={e => setExtrasEd(p => ({ ...p, estrategia: e.target.value }))}
                     placeholder="🎯 Estratégia para o desafio principal"
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.11]" />
                   <input value={extrasEd.dicaFome} onChange={e => setExtrasEd(p => ({ ...p, dicaFome: e.target.value }))}
                     placeholder="💡 Dica de controle de fome"
-                    className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.06]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none border border-white/[0.11]" />
                 </div>
 
                 <div className="flex gap-2">
                   <button onClick={() => setEditandoPlano(false)}
-                    className="flex-1 py-3.5 rounded-2xl border border-white/[0.08] text-zinc-400 text-sm font-semibold active:scale-95 transition-all">
+                    className="flex-1 py-3.5 rounded-2xl border border-white/[0.14] text-zinc-400 text-sm font-semibold active:scale-95 transition-all">
                     Cancelar
                   </button>
                   <button onClick={salvarEdicao} disabled={salvandoEd || refeicoesEd.length === 0}
@@ -1314,7 +1314,7 @@ Responda APENAS JSON válido:
               </>
 
             ) : gerandoPlano ? (
-              <div className="rounded-2xl border border-green-500/20 p-6" style={{ background: '#0a0d14' }}>
+              <div className="rounded-2xl border border-green-500/20 p-6" style={{ background: '#111520' }}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
                     <div className="w-5 h-5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
@@ -1335,8 +1335,8 @@ Responda APENAS JSON válido:
             ) : planoAtivo && planoEstruturado ? (
               <>
                 {/* header plano ativo */}
-                <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
-                  <div className="px-5 py-4 border-b border-white/[0.04] flex items-center justify-between">
+                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+                  <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-[9px] uppercase tracking-[0.2em] text-green-400 font-semibold">✦ Plano Alimentar</span>
@@ -1346,7 +1346,7 @@ Responda APENAS JSON válido:
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => iniciarEdicao(false)} className="text-[10px] text-zinc-400 border border-white/[0.1] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✏️ Editar</button>
-                      <button onClick={() => setConfirmandoIA(true)} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✦ IA</button>
+                      <button onClick={() => setConfirmandoIA(true)} className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-2.5 py-1.5 hover:border-white/20 hover:text-white transition-all active:scale-95">✦ IA</button>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 divide-x divide-white/[0.05]">
@@ -1364,7 +1364,7 @@ Responda APENAS JSON válido:
                 </div>
 
                 {planoEstruturado.nota_nutri && (
-                  <div className="rounded-2xl border border-green-500/15 px-4 py-3.5" style={{ background: 'linear-gradient(135deg,#0a0d14,#080a10)' }}>
+                  <div className="rounded-2xl border border-green-500/15 px-4 py-3.5" style={{ background: 'linear-gradient(135deg,#111520,#10131a)' }}>
                     <p className="text-green-400 text-[9px] uppercase tracking-wider mb-1.5">📋 Nota clínica</p>
                     <p className="text-zinc-300 text-sm leading-relaxed">{planoEstruturado.nota_nutri}</p>
                   </div>
@@ -1413,7 +1413,7 @@ Responda APENAS JSON válido:
               </>
 
             ) : (
-              <div className="rounded-2xl border border-green-500/20 p-6 text-center" style={{ background: 'linear-gradient(145deg,#0a0d14,#080a10)' }}>
+              <div className="rounded-2xl border border-green-500/20 p-6 text-center" style={{ background: 'linear-gradient(145deg,#111520,#10131a)' }}>
                 <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4 text-3xl">🥗</div>
                 <p className="text-green-400 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">Plano alimentar</p>
                 <p className="text-white font-black text-xl mb-2">Criar dieta personalizada</p>
@@ -1440,7 +1440,7 @@ Responda APENAS JSON válido:
       {confirmandoIA && (
         <div className="fixed inset-0 z-[70] flex items-end" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
           onClick={e => { if (e.target === e.currentTarget) setConfirmandoIA(false) }}>
-          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.08] px-5 pt-6 pb-10 space-y-4" style={{ background: '#111' }}>
+          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.14] px-5 pt-6 pb-10 space-y-4" style={{ background: '#1c1c1c' }}>
             <div className="w-12 h-12 rounded-2xl bg-green-500/15 border border-green-500/25 flex items-center justify-center mx-auto mb-2 text-2xl">✦</div>
             <p className="text-white font-black text-xl text-center">Gerar plano com IA?</p>
             <p className="text-zinc-400 text-sm text-center leading-relaxed">
@@ -1467,14 +1467,14 @@ Responda APENAS JSON válido:
             <summary className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center cursor-pointer text-blue-300 text-xl list-none active:scale-95 transition-all">
               📝
             </summary>
-            <div className="absolute bottom-14 right-0 w-72 rounded-2xl border border-blue-500/20 p-4 space-y-3" style={{ background: '#0a0f18' }}>
+            <div className="absolute bottom-14 right-0 w-72 rounded-2xl border border-blue-500/20 p-4 space-y-3" style={{ background: '#101825' }}>
               <p className="text-blue-300 text-[10px] uppercase tracking-[0.15em] font-bold">Nota clínica</p>
               <textarea
                 value={notaAvulsa}
                 onChange={e => setNotaAvulsa(e.target.value)}
                 placeholder="Anotações sobre o paciente, observações da consulta..."
                 rows={5}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/30 resize-none"
+                className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/30 resize-none"
               />
               <button onClick={salvarNotaAvulsa} disabled={salvandoNota}
                 className="w-full bg-blue-500/20 border border-blue-500/30 text-blue-300 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition-all disabled:opacity-40">
@@ -1548,7 +1548,7 @@ function PlanoExtra({ icon, titulo, subtitulo, conteudo, cor }: {
         <span className={`text-zinc-600 text-xs transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`}>▼</span>
       </button>
       {aberto && (
-        <div className="px-4 pb-4 border-t border-white/[0.04]">
+        <div className="px-4 pb-4 border-t border-white/[0.14]">
           <p className="text-zinc-300 text-sm leading-relaxed pt-3">{conteudo}</p>
         </div>
       )}
@@ -1561,15 +1561,15 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const emojis = ['☀️','🍎','🍽️','⚡','💪','🌙','🥑','🫐']
   const alimentos: any[] = ref.alimentos ?? []
   return (
-    <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
+    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
       <button onClick={() => setAberta(p => !p)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.02] transition-colors">
-        <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-base shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-base shrink-0">
           {emojis[idx] ?? '🥗'}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-white font-bold text-sm">{ref.nome}</p>
-            {ref.horario && <span className="text-zinc-600 text-[10px] bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>}
+            {ref.horario && <span className="text-zinc-600 text-[10px] bg-white/[0.07] border border-white/[0.11] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>}
           </div>
           <div className="flex gap-3 mt-0.5">
             <span className="text-orange-400 text-[11px] font-semibold">{ref.calorias} kcal</span>
@@ -1581,7 +1581,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
       </button>
 
       {aberta && alimentos.length > 0 && (
-        <div className="border-t border-white/[0.04]">
+        <div className="border-t border-white/[0.14]">
           <div className="px-4 pt-3 pb-1">
             <div className="flex items-center justify-between mb-2">
               <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimento</p>
@@ -1601,7 +1601,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
                 </div>
               </div>
             ))}
-            <div className="flex items-center justify-between py-2.5 mt-1 border-t border-white/[0.06]">
+            <div className="flex items-center justify-between py-2.5 mt-1 border-t border-white/[0.11]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">Total</p>
               <div className="flex gap-4 shrink-0">
                 <span className="text-zinc-600 text-[10px]"></span>
@@ -1611,7 +1611,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
             </div>
           </div>
           {ref.dica && (
-            <div className="mx-4 mb-3 rounded-xl bg-white/[0.02] border border-white/[0.04] px-3 py-2">
+            <div className="mx-4 mb-3 rounded-xl bg-white/[0.02] border border-white/[0.14] px-3 py-2">
               <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">💡 Dica</p>
               <p className="text-zinc-400 text-xs leading-relaxed">{ref.dica}</p>
             </div>
