@@ -124,10 +124,11 @@ export async function POST(req: NextRequest) {
 
     if (emailError) {
       console.error('Resend error:', emailError)
-      return NextResponse.json({ erro: 'Erro ao enviar email. Tente novamente.' }, { status: 500 })
+      // Email falhou mas convite foi criado — retorna link para compartilhar manualmente
+      return NextResponse.json({ sucesso: true, link: linkConvite, emailFalhou: true })
     }
 
-    return NextResponse.json({ sucesso: true })
+    return NextResponse.json({ sucesso: true, link: linkConvite })
 
   } catch (err) {
     console.error('Erro ao enviar convite:', err)

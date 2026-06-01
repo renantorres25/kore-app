@@ -14,6 +14,9 @@ export default function ConvitePage() {
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [erro, setErro] = useState('')
+  const [linkConvite, setLinkConvite] = useState('')
+  const [emailFalhou, setEmailFalhou] = useState(false)
+  const [copiado, setCopiado] = useState(false)
   const [convitesPendentes, setConvitesPendentes] = useState<{ id: string; email_convidado: string; criado_em: string }[]>([])
   const [cancelando, setCancelando] = useState<string | null>(null)
 
@@ -127,6 +130,8 @@ export default function ConvitePage() {
       return
     }
 
+    if (data.link) setLinkConvite(data.link)
+    if (data.emailFalhou) setEmailFalhou(true)
     setEnviado(true)
     setEnviando(false)
   }
@@ -138,28 +143,53 @@ export default function ConvitePage() {
   // ── Estado: enviado ───────────────────────────────────────────────────────
 
   if (enviado) {
+    async function copiarLink() {
+      if (!linkConvite) return
+      try { await navigator.clipboard.writeText(linkConvite) } catch { }
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2500)
+    }
     return (
       <main className="min-h-[100dvh] bg-[#080808] text-white flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
-          <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-4xl mx-auto mb-6">
-            ✓
+          <div className={`w-20 h-20 rounded-3xl ${emailFalhou ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'} border flex items-center justify-center text-4xl mx-auto mb-6`}>
+            {emailFalhou ? '⚠️' : '✓'}
           </div>
-          <h2 className="text-2xl font-black mb-3">Convite enviado!</h2>
-          <p className="text-zinc-500 text-sm mb-8">
-            Um email foi enviado para <span className="text-white font-semibold">{email}</span> com o link de acesso ao KORE.
+          <h2 className="text-2xl font-black mb-2">
+            {emailFalhou ? 'Convite criado' : 'Convite enviado!'}
+          </h2>
+          <p className="text-zinc-500 text-sm mb-6">
+            {emailFalhou
+              ? 'O email não pôde ser enviado. Compartilhe o link abaixo diretamente com '
+              : 'Um email foi enviado para '}
+            <span className="text-white font-semibold">{email}</span>
+            {emailFalhou ? '.' : ' com o link de acesso ao KORE.'}
           </p>
-          <button
-            onClick={() => { setEnviado(false); setEmail('') }}
-            className="w-full border border-white/10 text-zinc-400 font-bold py-3 rounded-xl text-sm hover:border-white/30 hover:text-white transition-all active:scale-95 mb-3 uppercase tracking-wider"
-          >
-            Convidar outro
-          </button>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="w-full bg-white text-black font-bold py-3 rounded-xl text-sm hover:bg-zinc-100 transition-all active:scale-95 uppercase tracking-wider"
-          >
-            Voltar ao dashboard
-          </button>
+
+          {linkConvite && (
+            <div className="mb-6">
+              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-2">Link do convite</p>
+              <div className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.10] rounded-2xl px-4 py-3 mb-3">
+                <p className="flex-1 text-zinc-300 text-xs truncate text-left">{linkConvite}</p>
+              </div>
+              <button onClick={copiarLink}
+                className={`w-full font-bold py-4 rounded-2xl text-sm tracking-wider uppercase transition-all active:scale-95 ${copiado ? 'bg-emerald-500 text-white' : 'bg-white text-black'}`}>
+                {copiado ? '✓ Link copiado!' : 'Copiar link'}
+              </button>
+              <p className="text-zinc-600 text-[10px] mt-2">Envie pelo WhatsApp, email ou onde preferir · Válido por 7 dias</p>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button onClick={() => { setEnviado(false); setEmail(''); setLinkConvite(''); setEmailFalhou(false) }}
+              className="flex-1 border border-white/10 text-zinc-400 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all uppercase tracking-wider">
+              Convidar outro
+            </button>
+            <button onClick={() => router.push('/dashboard')}
+              className="flex-1 bg-white/[0.08] text-white font-bold py-3 rounded-xl text-sm active:scale-95 transition-all uppercase tracking-wider">
+              Dashboard
+            </button>
+          </div>
         </div>
       </main>
     )
