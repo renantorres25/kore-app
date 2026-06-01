@@ -18,7 +18,7 @@ export default function ConvitePage() {
   const [cancelando, setCancelando] = useState<string | null>(null)
 
   async function recarregarPendentes(userId: string) {
-    const { data } = await supabase.from('convites').select('id, email_convidado, criado_em').eq('convidado_por', userId).eq('status', 'pendente').order('criado_em', { ascending: false }).limit(10)
+    const { data } = await supabase.from('convites').select('id, email_convidado, criado_em').eq('profissional_id', userId).eq('status', 'pendente').order('criado_em', { ascending: false }).limit(10)
     setConvitesPendentes(data ?? [])
   }
 
@@ -29,7 +29,7 @@ export default function ConvitePage() {
 
       const [{ data: perfil }, { data: pendentes }] = await Promise.all([
         supabase.from('perfis').select('tipo').eq('id', session.user.id).single(),
-        supabase.from('convites').select('id, email_convidado, criado_em').eq('convidado_por', session.user.id).eq('status', 'pendente').order('criado_em', { ascending: false }).limit(10),
+        supabase.from('convites').select('id, email_convidado, criado_em').eq('profissional_id', session.user.id).eq('status', 'pendente').order('criado_em', { ascending: false }).limit(10),
       ])
 
       setTipoUsuario(perfil?.tipo ?? null)

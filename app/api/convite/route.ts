@@ -33,13 +33,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: 'Erro ao criar convite.' }, { status: 500 })
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://kore-app-blue.vercel.app'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kore-app-blue.vercel.app'
     const linkConvite = `${baseUrl}/convite/${convite.token}`
 
     const tipoProfissionalLabel = tipo_profissional === 'personal' ? 'Personal Trainer' : 'Nutricionista'
 
     // Envia o email
-    await resend.emails.send({
+    const { error: emailError } = await resend.emails.send({
       from: 'KORE <onboarding@resend.dev>',
       to: email_convidado,
       subject: `${nome_profissional} te convidou para o KORE`,
@@ -121,6 +121,11 @@ export async function POST(req: NextRequest) {
         </html>
       `,
     })
+
+    if (emailError) {
+      console.error('Resend error:', emailError)
+      return NextResponse.json({ erro: 'Erro ao enviar email. Tente novamente.' }, { status: 500 })
+    }
 
     return NextResponse.json({ sucesso: true })
 
