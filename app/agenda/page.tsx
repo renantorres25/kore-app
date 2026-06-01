@@ -47,6 +47,8 @@ export default function Agenda() {
   const [novaHora, setNovaHora] = useState('08:00')
   const [novoTipo, setNovoTipo] = useState('Consulta')
   const [novasNotas, setNovasNotas] = useState('')
+  const [recorrencia, setRecorrencia] = useState<'nenhuma' | 'semanal' | 'quinzenal'>('nenhuma')
+  const [recorrenciaSemanas, setRecorrenciaSemanas] = useState(8)
 
   const tiposOpcoes = tipo === 'nutricionista' ? TIPOS_NUTRI : TIPOS_PERSONAL
 
@@ -94,17 +96,26 @@ export default function Agenda() {
   async function criarAgendamento() {
     if (!novoClienteId || !novaData || !novaHora) return
     setSalvando(true)
-    const { data: novoAg } = await supabase.from('agendamentos').insert({
-      profissional_id: profId, cliente_id: novoClienteId,
-      data: novaData, hora: novaHora, tipo: novoTipo,
-      notas: novasNotas || null, status: 'agendado',
-    }).select('id,cliente_id,data,hora,tipo,notas,status').single()
-    if (novoAg) {
-      const c = clientes.find(x => x.id === novoClienteId)
-      setAgendamentos(prev => [...prev, { ...(novoAg as any), clienteNome: c?.nome ?? null, clienteEmail: c?.email ?? '' }]
-        .sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora)))
+    const c = clientes.find(x => x.id === novoClienteId)
+    const intervaloDias = recorrencia === 'semanal' ? 7 : recorrencia === 'quinzenal' ? 14 : 0
+    const total = intervaloDias > 0 ? recorrenciaSemanas : 1
+    const novosAgs: Agendamento[] = []
+    for (let i = 0; i < total; i++) {
+      const d = new Date(novaData + 'T12:00:00-03:00')
+      d.setDate(d.getDate() + i * intervaloDias)
+      const dataStr = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+      const { data: ag } = await supabase.from('agendamentos').insert({
+        profissional_id: profId, cliente_id: novoClienteId,
+        data: dataStr, hora: novaHora, tipo: novoTipo,
+        notas: novasNotas || null, status: 'agendado',
+      }).select('id,cliente_id,data,hora,tipo,notas,status').single()
+      if (ag) novosAgs.push({ ...(ag as any), clienteNome: c?.nome ?? null, clienteEmail: c?.email ?? '' })
+    }
+    if (novosAgs.length) {
+      setAgendamentos(prev => [...prev, ...novosAgs].sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora)))
     }
     setNovoClienteId(''); setNovasNotas(''); setNovaData(getTodayBR()); setNovaHora('08:00')
+    setRecorrencia('nenhuma'); setRecorrenciaSemanas(8)
     setShowModal(false); setSalvando(false)
   }
 
@@ -116,6 +127,11 @@ export default function Agenda() {
     await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', id)
     setAgendamentos(prev => prev.filter(a => a.id !== id))
   }
+
+  const [vistaCalendario, setVistaCalendario] = useState<'semana' | 'mes'>('semana')
+  const [mesAtual, setMesAtual] = useState(() => {
+    const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`
+  })
 
   const hoje = getTodayBR()
   // Semana atual: dom→sáb
@@ -159,7 +175,18 @@ export default function Agenda() {
           </button>
         </div>
 
-        {/* Mini calendário semanal */}
+        {/* Toggle semana / mês */}
+        <div className="flex gap-1 p-1 rounded-2xl mb-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          {(['semana', 'mes'] as const).map(v => (
+            <button key={v} onClick={() => setVistaCalendario(v)}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${vistaCalendario === v ? 'bg-white text-black' : 'text-zinc-500'}`}>
+              {v === 'semana' ? 'Semana' : 'Mês'}
+            </button>
+          ))}
+        </div>
+
+        {/* Calendário semanal */}
+        {vistaCalendario === 'semana' && (
         <div className="rounded-2xl border border-white/[0.06] p-4 mb-5" style={{ background: '#0f0f0f' }}>
           <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-3">Esta semana</p>
           <div className="grid grid-cols-7 gap-1">
@@ -185,6 +212,54 @@ export default function Agenda() {
             })}
           </div>
         </div>
+        )}
+
+        {/* Calendário mensal */}
+        {vistaCalendario === 'mes' && (() => {
+          const [mesY, mesM] = mesAtual.split('-').map(Number)
+          const primeiroDia = new Date(mesY, mesM - 1, 1)
+          const ultimoDia = new Date(mesY, mesM, 0)
+          const inicioGrid = primeiroDia.getDay()
+          const totalDias = ultimoDia.getDate()
+          const cells = Array.from({ length: inicioGrid + totalDias }, (_, i) => {
+            if (i < inicioGrid) return null
+            const d = i - inicioGrid + 1
+            return `${mesY}-${String(mesM).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+          })
+          const mesLabel = new Date(mesY, mesM - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+          return (
+            <div className="rounded-2xl border border-white/[0.06] p-4 mb-5" style={{ background: '#0f0f0f' }}>
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => { const d = new Date(mesY, mesM - 2, 1); setMesAtual(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`) }}
+                  className="w-8 h-8 rounded-xl bg-white/[0.06] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">‹</button>
+                <p className="text-white font-bold text-sm capitalize">{mesLabel}</p>
+                <button onClick={() => { const d = new Date(mesY, mesM, 1); setMesAtual(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`) }}
+                  className="w-8 h-8 rounded-xl bg-white/[0.06] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">›</button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['D','S','T','Q','Q','S','S'].map((l, i) => <p key={i} className="text-[9px] text-zinc-600 text-center font-semibold uppercase">{l}</p>)}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {cells.map((dia, i) => {
+                  if (!dia) return <div key={`e${i}`} />
+                  const temAg = (grupos[dia]?.length ?? 0) > 0
+                  const isHoje = dia === hoje
+                  const d = dia.split('-')[2]
+                  return (
+                    <div key={dia} className="flex flex-col items-center gap-0.5 py-0.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold relative
+                        ${isHoje ? 'bg-white text-black' : temAg ? 'bg-white/[0.08] text-white border border-white/[0.12]' : 'text-zinc-600'}`}>
+                        {d}
+                        {temAg && !isHoje && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-green-400" />}
+                      </div>
+                      {temAg && <p className="text-[7px] text-green-400 font-bold leading-none">{grupos[dia].length}x</p>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
 
         {Object.keys(grupos).length === 0 ? (
           <div className="rounded-2xl border border-white/[0.06] p-10 text-center" style={{ background: '#0f0f0f' }}>
@@ -310,6 +385,28 @@ export default function Agenda() {
               <input value={novasNotas} onChange={e => setNovasNotas(e.target.value)}
                 placeholder="Ex: Trazer exames, primeira consulta..."
                 className="w-full bg-white/[0.05] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.08]" />
+            </div>
+
+            <div>
+              <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">Recorrência</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(['nenhuma', 'semanal', 'quinzenal'] as const).map(r => (
+                  <button key={r} onClick={() => setRecorrencia(r)}
+                    className={`py-2.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 capitalize ${recorrencia === r ? 'bg-white/[0.1] border-white/30 text-white' : 'bg-white/[0.03] border-white/[0.06] text-zinc-500'}`}>
+                    {r === 'nenhuma' ? 'Não repetir' : r.charAt(0).toUpperCase() + r.slice(1)}
+                  </button>
+                ))}
+              </div>
+              {recorrencia !== 'nenhuma' && (
+                <div className="mt-3 flex items-center gap-3">
+                  <p className="text-zinc-500 text-xs flex-1">Repetir por quantas semanas?</p>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setRecorrenciaSemanas(s => Math.max(2, s - 1))} className="w-8 h-8 rounded-lg bg-white/[0.06] text-white text-sm font-bold active:scale-90 transition-all">−</button>
+                    <span className="text-white font-bold text-sm w-6 text-center">{recorrenciaSemanas}</span>
+                    <button onClick={() => setRecorrenciaSemanas(s => Math.min(26, s + 1))} className="w-8 h-8 rounded-lg bg-white/[0.06] text-white text-sm font-bold active:scale-90 transition-all">+</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <button onClick={criarAgendamento} disabled={!novoClienteId || !novaData || !novaHora || salvando}

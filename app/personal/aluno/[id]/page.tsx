@@ -16,7 +16,7 @@ type Monitor = {
   treinosSemana: number
   ultimoTreino: string | null
 }
-type Execucao = { id: string; nome: string; plano: string; data: string; volume: number; seriesFeitas: number }
+type Execucao = { id: string; nome: string; plano: string; data: string; volume: number; seriesFeitas: number; exercicios: { nome: string; maxCarga: number; series: number }[] }
 type CargaPonto = { data: string; carga: number }
 type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null }
 type PlanoNutri = { calorias_meta: number | null; proteina_meta: number | null; created_at: string }
@@ -62,6 +62,7 @@ export default function PersonalAluno() {
   const [erroSalvar, setErroSalvar] = useState('')
   const [modalAberto, setModalAberto] = useState(false)
   const [editandoTreino, setEditandoTreino] = useState<Treino | null>(null)
+  const [confirmaDeleteId, setConfirmaDeleteId] = useState<string | null>(null)
   const [personalNome, setPersonalNome] = useState('')
   const [execucoes, setExecucoes] = useState<Execucao[]>([])
   const [cargaEvolucao, setCargaEvolucao] = useState<Record<string, CargaPonto[]>>({})
@@ -168,7 +169,17 @@ export default function PersonalAluno() {
         const exsT = (exsHist ?? []).filter((e: any) => e.treino_id === t.id)
         const srsT = (seriesHist ?? []).filter((s: any) => exsT.some((e: any) => e.id === s.exercicio_id))
         const vol = srsT.reduce((acc: number, s: any) => acc + ((s.carga ?? 0) * (s.repeticoes ?? 0)), 0)
-        return { id: t.id, nome: t.nome, plano: t.plano, data: t.data, volume: Math.round(vol), seriesFeitas: srsT.length }
+        const exMap = new Map<string, { maxCarga: number; series: number }>()
+        for (const s of srsT as any[]) {
+          const ex = (exsHist ?? []).find((e: any) => e.id === s.exercicio_id)
+          if (!ex) continue
+          if (!exMap.has(ex.nome)) exMap.set(ex.nome, { maxCarga: 0, series: 0 })
+          const cur = exMap.get(ex.nome)!
+          if ((s.carga ?? 0) > cur.maxCarga) cur.maxCarga = s.carga ?? 0
+          cur.series++
+        }
+        const exerciciosExec = Array.from(exMap.entries()).map(([nome, v]) => ({ nome, maxCarga: v.maxCarga, series: v.series })).slice(0, 4)
+        return { id: t.id, nome: t.nome, plano: t.plano, data: t.data, volume: Math.round(vol), seriesFeitas: srsT.length, exercicios: exerciciosExec }
       })
       setExecucoes(execData)
       const cargaMap: Record<string, CargaPonto[]> = {}
@@ -691,9 +702,16 @@ export default function PersonalAluno() {
             const tem = treinos.some(t => t.plano === p)
             return (
               <button key={p} onClick={() => setPlanoAtivo(p)}
-                className={`flex-1 py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === p ? `${c.bg} ${c.border} ${c.text}` : 'bg-white/[0.03] border-white/[0.06] text-zinc-600'}`}>
+                className={`relative flex-1 py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === p ? `${c.bg} ${c.border} ${c.text}` : 'bg-white/[0.03] border-white/[0.06] text-zinc-600'}`}>
                 Plano {p}
-                {tem && <span className="block text-[9px] font-normal mt-0.5 opacity-70">{treinos.find(t => t.plano === p)?.exercicios.length ?? 0} exerc.</span>}
+                {tem ? (
+                  <>
+                    <span className="block text-[9px] font-normal mt-0.5 opacity-70">{treinos.find(t => t.plano === p)?.exercicios.length ?? 0} exerc.</span>
+                    {(treinos.find(t => t.plano === p)?.exercicios.length ?? 0) === 0 && (
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-orange-500 border-2 border-[#080808]" />
+                    )}
+                  </>
+                ) : null}
               </button>
             )
           })}
@@ -710,7 +728,7 @@ export default function PersonalAluno() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => abrirEditar(treinoDoPlano)} className="text-[10px] text-zinc-500 border border-white/[0.08] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">Editar</button>
-                  <button onClick={() => deletar(treinoDoPlano.id)} className="text-[10px] text-red-500/70 border border-red-500/20 rounded-lg px-3 py-1.5 hover:border-red-500/50 hover:text-red-400 active:scale-95 transition-all uppercase tracking-wider">✕</button>
+                  <button onClick={() => setConfirmaDeleteId(treinoDoPlano.id)} className="text-[10px] text-red-500/70 border border-red-500/20 rounded-lg px-3 py-1.5 hover:border-red-500/50 hover:text-red-400 active:scale-95 transition-all uppercase tracking-wider">✕</button>
                 </div>
               </div>
               <div className="space-y-2">
@@ -766,18 +784,29 @@ export default function PersonalAluno() {
               const c = CORES[ex.plano] ?? CORES.A
               const dataLabel = new Date(ex.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })
               return (
-                <div key={ex.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className={`w-8 h-8 rounded-xl ${c.bg} ${c.border} border flex items-center justify-center shrink-0`}>
-                    <span className={`text-[10px] font-black ${c.text}`}>{ex.plano}</span>
+                <div key={ex.id} className="px-5 py-3.5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-8 h-8 rounded-xl ${c.bg} ${c.border} border flex items-center justify-center shrink-0`}>
+                      <span className={`text-[10px] font-black ${c.text}`}>{ex.plano}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
+                      <p className="text-zinc-600 text-[10px]">
+                        {dataLabel}
+                        {ex.seriesFeitas > 0 && ` · ${ex.seriesFeitas} séries`}
+                        {ex.volume > 0 && ` · ${ex.volume >= 1000 ? `${(ex.volume / 1000).toFixed(1)}t` : `${ex.volume}kg`} vol.`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
-                    <p className="text-zinc-600 text-[10px]">{dataLabel}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    {ex.volume > 0 && <p className="text-orange-400 text-[11px] font-bold">{ex.volume >= 1000 ? `${(ex.volume / 1000).toFixed(1)}t` : `${ex.volume}kg`}</p>}
-                    {ex.seriesFeitas > 0 && <p className="text-zinc-600 text-[9px]">{ex.seriesFeitas} séries</p>}
-                  </div>
+                  {ex.exercicios.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pl-11">
+                      {ex.exercicios.map(e => (
+                        <span key={e.nome} className="text-[10px] text-zinc-400 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2 py-0.5">
+                          {e.nome}{e.maxCarga > 0 ? ` · ${e.maxCarga}kg` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -878,6 +907,21 @@ export default function PersonalAluno() {
                           <input type="number" value={ex.carga_sugerida ?? ''} onChange={e => updateEx(i, 'carga_sugerida', e.target.value ? parseFloat(e.target.value) : null)} placeholder="—" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition-colors text-center placeholder:text-zinc-700" />
                         </div>
                       </div>
+                      {(() => {
+                        const hist = ex.nome.trim() ? cargaEvolucao[ex.nome.trim()] : null
+                        if (!hist?.length) return null
+                        const ultima = hist[hist.length - 1]
+                        const sugestao = Math.round((ultima.carga + 2.5) * 2) / 2
+                        return (
+                          <div className="flex items-center gap-2 mb-3 px-1">
+                            <p className="text-zinc-600 text-[10px] flex-1">Última vez: <span className="text-zinc-400 font-semibold">{ultima.carga}kg</span> · {new Date(ultima.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}</p>
+                            <button onClick={() => updateEx(i, 'carga_sugerida', sugestao)}
+                              className="text-[9px] text-blue-400 border border-blue-500/20 bg-blue-500/10 rounded-lg px-2 py-1 active:scale-95 transition-all uppercase tracking-wider shrink-0">
+                              +2.5kg →
+                            </button>
+                          </div>
+                        )
+                      })()}
                       <input value={ex.observacoes} onChange={e => updateEx(i, 'observacoes', e.target.value)} placeholder="Observações (opcional)" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-zinc-400 text-sm placeholder:text-zinc-700 focus:outline-none focus:border-white/20 transition-colors" />
                     </div>
                   ))}
@@ -948,6 +992,33 @@ export default function PersonalAluno() {
           } : null,
           ultimaAvaliacao,
         }} />
+      )}
+
+      {/* Modal confirmação de delete */}
+      {confirmaDeleteId && (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setConfirmaDeleteId(null)}>
+          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.08] px-5 pt-6 pb-10 space-y-4"
+            style={{ background: '#111' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/25 flex items-center justify-center mx-auto mb-1 text-2xl">⚠️</div>
+            <p className="text-white font-black text-xl text-center">Excluir treino?</p>
+            <p className="text-zinc-400 text-sm text-center leading-relaxed">
+              Isso remove o treino e todos os exercícios permanentemente. Não é possível desfazer.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setConfirmaDeleteId(null)}
+                className="flex-1 border border-white/[0.12] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+                Cancelar
+              </button>
+              <button onClick={async () => { await deletar(confirmaDeleteId); setConfirmaDeleteId(null) }}
+                className="flex-1 bg-red-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   )

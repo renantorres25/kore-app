@@ -21,6 +21,23 @@ type Stats = {
   treinouHoje: boolean
 }
 
+type FaseCiclo = {
+  nomeCiclo: string
+  nomeBloco: string
+  tipoBloco: string
+  semanaBloco: number
+  totalSemanas: number
+}
+
+const TIPO_COR_LISTA: Record<string, string> = {
+  hipertrofia: 'text-blue-400 border-blue-500/20 bg-blue-500/10',
+  forca: 'text-orange-400 border-orange-500/20 bg-orange-500/10',
+  resistencia: 'text-green-400 border-green-500/20 bg-green-500/10',
+  deload: 'text-zinc-400 border-zinc-500/20 bg-zinc-500/10',
+  adaptacao: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+  potencia: 'text-yellow-400 border-yellow-500/20 bg-yellow-500/10',
+}
+
 function getInitials(nome: string | null, email: string): string {
   if (nome) {
     const parts = nome.trim().split(' ')
@@ -45,6 +62,7 @@ export default function PersonalAlunos() {
   const router = useRouter()
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [stats, setStats] = useState<Record<string, Stats>>({})
+  const [fases, setFases] = useState<Record<string, FaseCiclo | null>>({})
   const [carregando, setCarregando] = useState(true)
   const [totalTreinouHoje, setTotalTreinouHoje] = useState(0)
   const [mediaScore, setMediaScore] = useState<number | null>(null)
@@ -80,10 +98,13 @@ export default function PersonalAlunos() {
       let countTreinouHoje = 0
       let totalScores: number[] = []
 
+      const fasesMap: Record<string, FaseCiclo | null> = {}
+
       await Promise.all(alunosData.map(async (aluno) => {
-        const [{ data: treinos }, { data: sonoHoje }] = await Promise.all([
+        const [{ data: treinos }, { data: sonoHoje }, { data: periData }] = await Promise.all([
           supabase.from('treinos').select('data, concluido').eq('cliente_id', aluno.cliente_id).eq('concluido', true).order('data', { ascending: false }),
           supabase.from('sono').select('score_recuperacao').eq('usuario_id', aluno.cliente_id).eq('data', hoje).single(),
+          supabase.from('periodizacoes').select('id, nome, data_inicio').eq('cliente_id', aluno.cliente_id).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle(),
         ])
 
         const treinouHoje = treinos?.some(t => t.data === hoje) ?? false
@@ -97,9 +118,32 @@ export default function PersonalAlunos() {
           scoreHoje: sonoHoje?.score_recuperacao ?? null,
           treinouHoje,
         }
+
+        if (periData) {
+          const { data: blocos } = await supabase.from('blocos_periodizacao').select('*').eq('periodizacao_id', periData.id).order('ordem')
+          if (blocos?.length) {
+            const inicio = new Date(periData.data_inicio + 'T12:00:00-03:00')
+            const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+            const semanaTotal = Math.max(1, Math.floor(diasTotais / 7) + 1)
+            const totalSemanas = blocos.reduce((s: number, b: any) => s + b.semanas, 0)
+            let acum = 0, blocoIdx = blocos.length - 1
+            for (let i = 0; i < blocos.length; i++) {
+              if (semanaTotal <= acum + blocos[i].semanas) { blocoIdx = i; break }
+              acum += blocos[i].semanas
+            }
+            const b = blocos[blocoIdx]
+            const semanaNoBloco = Math.min(semanaTotal - acum, b.semanas)
+            fasesMap[aluno.cliente_id] = { nomeCiclo: periData.nome, nomeBloco: b.nome, tipoBloco: b.tipo, semanaBloco: semanaNoBloco, totalSemanas }
+          } else {
+            fasesMap[aluno.cliente_id] = null
+          }
+        } else {
+          fasesMap[aluno.cliente_id] = null
+        }
       }))
 
       setStats(statsMap)
+      setFases(fasesMap)
       setTotalTreinouHoje(countTreinouHoje)
       if (totalScores.length) setMediaScore(Math.round(totalScores.reduce((a, b) => a + b, 0) / totalScores.length))
       setCarregando(false)
@@ -196,6 +240,9 @@ export default function PersonalAlunos() {
                 const emRisco = dias >= 3
                 const treinouHoje = s?.treinouHoje ?? false
 
+                const fase = fases[aluno.cliente_id]
+                const faseCor = fase ? (TIPO_COR_LISTA[fase.tipoBloco] ?? TIPO_COR_LISTA.adaptacao) : ''
+
                 return (
                   <button key={aluno.id} onClick={() => router.push(`/personal/aluno/${aluno.cliente_id}`)}
                     className="w-full text-left rounded-2xl p-5 border border-white/[0.06] active:scale-[0.98] transition-all"
@@ -210,12 +257,18 @@ export default function PersonalAlunos() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-white font-bold text-base truncate">{aluno.nome ?? aluno.email}</p>
                           {treinouHoje && <span className="text-[9px] text-emerald-400 border border-emerald-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider shrink-0">Treinou hoje</span>}
                           {emRisco && !treinouHoje && <span className="text-[9px] text-orange-400 border border-orange-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider shrink-0">Atenção</span>}
                         </div>
-                        <p className="text-zinc-600 text-xs truncate">{aluno.email}</p>
+                        {fase ? (
+                          <p className={`text-[10px] font-semibold mt-0.5 ${faseCor.split(' ')[0]}`}>
+                            {fase.nomeBloco} · Sem. {fase.semanaBloco}
+                          </p>
+                        ) : (
+                          <p className="text-zinc-600 text-xs truncate mt-0.5">{aluno.email}</p>
+                        )}
                       </div>
                       <span className="text-zinc-700 text-lg shrink-0">→</span>
                     </div>

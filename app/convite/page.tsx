@@ -14,22 +14,36 @@ export default function ConvitePage() {
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [erro, setErro] = useState('')
+  const [convitesPendentes, setConvitesPendentes] = useState<{ id: string; email_convidado: string; criado_em: string }[]>([])
+  const [cancelando, setCancelando] = useState<string | null>(null)
+
+  async function recarregarPendentes(userId: string) {
+    const { data } = await supabase.from('convites').select('id, email_convidado, criado_em').eq('convidado_por', userId).eq('status', 'pendente').order('criado_em', { ascending: false }).limit(10)
+    setConvitesPendentes(data ?? [])
+  }
 
   useEffect(() => {
     async function detectarTipo() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
 
-      const { data: perfil } = await supabase
-        .from('perfis')
-        .select('tipo')
-        .eq('id', session.user.id)
-        .single()
+      const [{ data: perfil }, { data: pendentes }] = await Promise.all([
+        supabase.from('perfis').select('tipo').eq('id', session.user.id).single(),
+        supabase.from('convites').select('id, email_convidado, criado_em').eq('convidado_por', session.user.id).eq('status', 'pendente').order('criado_em', { ascending: false }).limit(10),
+      ])
 
       setTipoUsuario(perfil?.tipo ?? null)
+      setConvitesPendentes(pendentes ?? [])
     }
     detectarTipo()
   }, [router])
+
+  async function cancelarConvite(id: string) {
+    setCancelando(id)
+    await supabase.from('convites').update({ status: 'cancelado' }).eq('id', id)
+    setConvitesPendentes(prev => prev.filter(c => c.id !== id))
+    setCancelando(null)
+  }
 
   // ── Labels dinâmicos por tipo de usuário ──────────────────────────────────
 
@@ -244,6 +258,30 @@ export default function ConvitePage() {
         <p className="text-zinc-700 text-xs text-center mt-4">
           O convite expira em 7 dias
         </p>
+
+        {/* Convites pendentes */}
+        {convitesPendentes.length > 0 && (
+          <div className="mt-8">
+            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Aguardando resposta</p>
+            <div className="space-y-2">
+              {convitesPendentes.map(c => {
+                const diasRestantes = Math.max(0, 7 - Math.floor((Date.now() - new Date(c.criado_em).getTime()) / (1000 * 60 * 60 * 24)))
+                return (
+                  <div key={c.id} className="flex items-center gap-3 rounded-xl border border-white/[0.06] px-4 py-3" style={{ background: '#0f0f0f' }}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold truncate">{c.email_convidado}</p>
+                      <p className="text-zinc-600 text-[10px]">{diasRestantes > 0 ? `Expira em ${diasRestantes} dia${diasRestantes !== 1 ? 's' : ''}` : 'Expirado'}</p>
+                    </div>
+                    <button onClick={() => cancelarConvite(c.id)} disabled={cancelando === c.id}
+                      className="text-[10px] text-red-500/60 border border-red-500/20 rounded-lg px-2.5 py-1.5 active:scale-95 transition-all disabled:opacity-40 shrink-0">
+                      {cancelando === c.id ? '...' : 'Cancelar'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
       </div>
     </main>

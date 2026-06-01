@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
@@ -48,6 +48,7 @@ export default function PeriodizacaoPage() {
   const [carregando, setCarregando] = useState(true)
   const [criando, setCriando] = useState(false)
   const [salvando, setSalvando] = useState(false)
+  const formRef = useRef<HTMLDivElement>(null)
   const [verHistorico, setVerHistorico] = useState(false)
 
   const [nomeForm, setNomeForm] = useState('')
@@ -128,6 +129,13 @@ export default function PeriodizacaoPage() {
     setBlocosForm(n)
   }
 
+  async function arquivarCiclo() {
+    if (!periodizacao) return
+    await supabase.from('periodizacoes').update({ status: 'arquivado' }).eq('id', periodizacao.id)
+    setHistorico(prev => [{ ...periodizacao, blocos: periodizacao.blocos }, ...prev])
+    setPeriodizacao(null)
+  }
+
   const semanaAtual = periodizacao ? calcSemanaAtual(periodizacao.data_inicio, periodizacao.blocos) : null
   const totalSemanas = periodizacao?.blocos.reduce((s, b) => s + b.semanas, 0) ?? 0
 
@@ -151,7 +159,7 @@ export default function PeriodizacaoPage() {
               <h1 className="text-2xl font-black text-white tracking-tight">Periodização</h1>
               {periodizacao && <p className="text-zinc-500 text-sm mt-0.5">{periodizacao.nome}</p>}
             </div>
-            <button onClick={() => { setNomeForm(''); setDataInicioForm(getTodayBR()); setCriando(true) }}
+            <button onClick={() => { setNomeForm(''); setDataInicioForm(getTodayBR()); setCriando(true); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) }}
               className="bg-white text-black font-bold text-[11px] px-4 py-2 rounded-xl active:scale-95 transition-all tracking-wide">
               {periodizacao ? 'Novo ciclo' : '+ Criar'}
             </button>
@@ -226,10 +234,14 @@ export default function PeriodizacaoPage() {
                 )
               })}
             </div>
-            <div className="px-5 py-3 border-t border-white/[0.04]">
+            <div className="px-5 py-3 border-t border-white/[0.04] flex items-center justify-between">
               <p className="text-zinc-700 text-[9px]">
                 Início: {new Date(periodizacao.data_inicio + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
               </p>
+              <button onClick={arquivarCiclo}
+                className="text-[9px] text-zinc-500 border border-white/[0.08] rounded-lg px-2.5 py-1.5 active:scale-95 transition-all hover:text-zinc-300 uppercase tracking-wider">
+                Arquivar ciclo
+              </button>
             </div>
           </div>
         )}
@@ -283,7 +295,7 @@ export default function PeriodizacaoPage() {
 
         {/* Formulário */}
         {criando && (
-          <div className="rounded-2xl border border-white/[0.08] overflow-hidden" style={{ background: '#0f0f0f' }}>
+          <div ref={formRef} className="rounded-2xl border border-white/[0.08] overflow-hidden" style={{ background: '#0f0f0f' }}>
             <div className="px-5 py-4 border-b border-white/[0.04]">
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Novo ciclo de treinamento</p>
             </div>
