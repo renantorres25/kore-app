@@ -723,7 +723,6 @@ export default function PersonalAluno() {
             </div>
           )
         })()}
-        </div>
 
         {treinoDoPlano ? (
           <div>
