@@ -1490,6 +1490,10 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
   const [pacientesRecentes, setPacientesRecentes] = useState<{
     id: string; nome: string | null; email: string
     sonoScore: number | null; treinos7d: number; kcal7d: number
+    temPlano: boolean; diasDesdeUltimoPlano: number | null
+  }[]>([])
+  const [planosParaRevisar, setPlanosParaRevisar] = useState<{
+    pacienteId: string; nome: string | null; email: string; diasDesdeRevisao: number
   }[]>([])
 
   useEffect(() => {
@@ -1511,7 +1515,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         supabase.from('sono').select('usuario_id, score_recuperacao').in('usuario_id', ids).eq('data', hoje),
         supabase.from('treinos').select('cliente_id, calorias_estimadas').in('cliente_id', ids).gte('data', semStr).eq('concluido', true),
         supabase.from('atividades_livres').select('usuario_id, calorias_estimadas, calorias_wearable').in('usuario_id', ids).gte('data', semStr),
-        supabase.from('planos_nutricionais').select('usuario_id').in('usuario_id', ids).eq('ativo', true),
+        supabase.from('planos_nutricionais').select('usuario_id, created_at').in('usuario_id', ids).eq('ativo', true).order('created_at', { ascending: false }),
       ])
 
       const sonoMap = new Map(sonos?.map(s => [s.usuario_id, s.score_recuperacao]) ?? [])
@@ -1525,19 +1529,39 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         const kcal = a.calorias_wearable ?? a.calorias_estimadas ?? 0
         if (kcal) kcalMap.set(a.usuario_id, (kcalMap.get(a.usuario_id) ?? 0) + kcal)
       })
-      const planosSet = new Set(planos?.map(p => p.usuario_id) ?? [])
+
+      // Plano mais recente por paciente
+      const planoMaisRecenteMap = new Map<string, string>()
+      planos?.forEach(p => { if (!planoMaisRecenteMap.has(p.usuario_id)) planoMaisRecenteMap.set(p.usuario_id, p.created_at) })
+      const planosSet = new Set(planoMaisRecenteMap.keys())
+
+      // Planos para revisar (>30 dias sem atualização)
+      const hoje30 = Date.now()
+      const revisarList: typeof planosParaRevisar = []
+      planoMaisRecenteMap.forEach((createdAt, pacienteId) => {
+        const dias = Math.floor((hoje30 - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24))
+        if (dias >= 30) {
+          const p = perfis?.find((pf: any) => pf.id === pacienteId)
+          revisarList.push({ pacienteId, nome: p?.nome ?? null, email: p?.email ?? '', diasDesdeRevisao: dias })
+        }
+      })
+      setPlanosParaRevisar(revisarList.sort((a, b) => b.diasDesdeRevisao - a.diasDesdeRevisao))
 
       setBoaRecuperacao(ids.filter(id => (sonoMap.get(id) ?? 0) >= 60).length)
       setTreinaram7d(ids.filter(id => (treinos7dSet.get(id) ?? 0) > 0).length)
       setSemPlano(ids.filter(id => !planosSet.has(id)).length)
 
-      const recentes = (perfis ?? []).slice(0, 3).map(p => ({
+      const recentes = (perfis ?? []).map((p: any) => ({
         id: p.id,
         nome: p.nome,
         email: p.email,
         sonoScore: sonoMap.get(p.id) ?? null,
         treinos7d: treinos7dSet.get(p.id) ?? 0,
         kcal7d: kcalMap.get(p.id) ?? 0,
+        temPlano: planosSet.has(p.id),
+        diasDesdeUltimoPlano: planoMaisRecenteMap.has(p.id)
+          ? Math.floor((hoje30 - new Date(planoMaisRecenteMap.get(p.id)!).getTime()) / (1000 * 60 * 60 * 24))
+          : null,
       }))
       setPacientesRecentes(recentes)
       setLoadingStats(false)
@@ -1622,6 +1646,31 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         </div>
       )}
 
+      {/* Planos para revisar */}
+      {planosParaRevisar.length > 0 && (
+        <div className="rounded-2xl border border-green-500/20 mb-4 overflow-hidden" style={{ background: '#080e0a' }}>
+          <div className="px-5 py-3 border-b border-green-500/10 flex items-center gap-2">
+            <span className="text-green-400 text-sm">📋</span>
+            <p className="text-green-300 text-[10px] uppercase tracking-[0.15em] font-bold">Planos para revisar</p>
+          </div>
+          <div className="divide-y divide-green-500/[0.08]">
+            {planosParaRevisar.map((p, i) => (
+              <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.pacienteId}`)}
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-left active:scale-[0.98] transition-all">
+                <div className="w-8 h-8 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-green-400 text-xs font-black">{(p.nome ?? p.email)[0].toUpperCase()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
+                  <p className="text-zinc-500 text-[10px]">Plano sem revisão há <span className="text-amber-400 font-semibold">{p.diasDesdeRevisao} dias</span></p>
+                </div>
+                <span className="text-zinc-700 text-sm shrink-0">→</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {pacientesRecentes.length > 0 && (
         <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
@@ -1632,24 +1681,31 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
             {pacientesRecentes.map((p, i) => {
               const sonoOk = p.sonoScore != null && p.sonoScore >= 60
               const sonoBaixo = p.sonoScore != null && p.sonoScore < 50
+              const planoAntigo = p.diasDesdeUltimoPlano != null && p.diasDesdeUltimoPlano >= 30
               return (
                 <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 active:bg-white/[0.03] transition-colors">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${sonoOk ? 'bg-green-500/10 text-green-400' : sonoBaixo ? 'bg-red-500/10 text-red-400' : 'bg-white/[0.04] text-zinc-500'}`}>
+                  className="w-full flex items-center gap-3 px-5 py-3.5 active:bg-white/[0.03] transition-colors text-left">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${!p.temPlano ? 'bg-yellow-500/10 text-yellow-400' : sonoOk ? 'bg-green-500/10 text-green-400' : sonoBaixo ? 'bg-red-500/10 text-red-400' : 'bg-white/[0.04] text-zinc-500'}`}>
                     {(p.nome ?? p.email)[0].toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
+                      {!p.temPlano && <span className="text-[9px] text-yellow-400 border border-yellow-500/20 rounded-full px-1.5 py-0.5 shrink-0">Sem plano</span>}
+                      {planoAntigo && <span className="text-[9px] text-amber-400 border border-amber-500/20 rounded-full px-1.5 py-0.5 shrink-0">{p.diasDesdeUltimoPlano}d</span>}
+                    </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {p.sonoScore != null
                         ? <span className={`text-[10px] font-bold ${sonoOk ? 'text-green-400' : sonoBaixo ? 'text-red-400' : 'text-yellow-400'}`}>😴 {p.sonoScore}/100</span>
                         : <span className="text-zinc-600 text-[10px]">😴 —</span>}
                       <span className="text-zinc-700 text-[10px]">·</span>
                       <span className={`text-[10px] ${p.treinos7d > 0 ? 'text-blue-400' : 'text-zinc-600'}`}>🏋️ {p.treinos7d}x</span>
-                      {p.kcal7d > 0 && <>
-                        <span className="text-zinc-700 text-[10px]">·</span>
-                        <span className="text-[10px] text-orange-400">🔥 ~{p.kcal7d}kcal</span>
-                      </>}
+                      {p.kcal7d > 0 && (
+                        <>
+                          <span className="text-zinc-700 text-[10px]">·</span>
+                          <span className="text-[10px] text-orange-400">🔥 {p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <span className="text-zinc-700 text-sm shrink-0">→</span>
