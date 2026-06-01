@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase'
 import NavBar from '../../../components/NavBar'
 import AlimentoBusca, { type AlimentoTACO } from '../../../components/AlimentoBusca'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
+import SidebarProfissional from '../../../components/SidebarProfissional'
 
 type Paciente = {
   id: string; nome: string | null; email: string
@@ -431,11 +432,17 @@ Responda APENAS JSON válido:
   const totalEdProt = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'proteina'), 0)
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white flex flex-col">
+    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row" style={{ background: '#0d1117' }}>
+
+      {/* ── SIDEBAR — só desktop ─────────────────────────────────────── */}
+      <SidebarProfissional tipo="nutricionista" />
+
+      {/* ── CONTEÚDO PRINCIPAL ───────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 md:overflow-hidden md:h-screen">
 
       {/* ── HEADER FIXO ─────────────────────────────────────────────── */}
-      <div className="shrink-0 sticky top-0 z-20 bg-[#111111]/95 backdrop-blur-sm border-b border-white/[0.11]"
-           style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+      <div className="shrink-0 sticky top-0 z-20 backdrop-blur-sm border-b"
+           style={{ background: 'rgba(13,17,23,0.96)', borderColor: 'rgba(255,255,255,0.09)', paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
         <div className="px-4 md:px-8 pb-3">
           <button onClick={() => router.push('/nutricionista/pacientes')}
             className="text-zinc-600 text-[10px] uppercase tracking-widest mb-2 flex items-center gap-1 hover:text-zinc-400 transition-colors">
@@ -475,7 +482,7 @@ Responda APENAS JSON válido:
       <div className="flex-1 md:flex md:overflow-hidden">
 
         {/* ── PAINEL ESQUERDO — só desktop ──────────────────────────── */}
-        <div className="hidden md:flex md:flex-col md:w-[320px] md:shrink-0 md:overflow-y-auto md:border-r md:border-white/[0.09] px-6 py-5 gap-5" style={{ background: '#161616' }}>
+        <div className="hidden md:flex md:flex-col md:w-[300px] md:shrink-0 md:overflow-y-auto md:border-r px-5 py-5 gap-5" style={{ background: '#111520', borderColor: 'rgba(255,255,255,0.08)' }}>
 
           {/* ── DADOS DO PACIENTE ─────────────────────────── */}
           <div>
@@ -633,7 +640,7 @@ Responda APENAS JSON válido:
         {/* ── FIM PAINEL ESQUERDO ───────────────────────────────────── */}
 
         {/* ── PAINEL DIREITO (conteúdo principal) ──────────────────── */}
-        <div className="flex-1 md:overflow-y-auto" style={{ background: '#111111' }}>
+        <div className="flex-1 md:overflow-y-auto" style={{ background: '#0d1117' }}>
 
           {/* Mobile-only: quick actions + ficha + composição + periodização */}
           <div className="md:hidden max-w-md mx-auto px-4 pt-5">
@@ -1522,6 +1529,8 @@ Responda APENAS JSON válido:
           ultimaAvaliacao,
         }} pacienteId={clienteId} />
       )}
+      </div>
+      {/* ── FIM CONTEÚDO PRINCIPAL ─────────────────────────────────── */}
     </main>
   )
 }
