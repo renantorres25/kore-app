@@ -41,11 +41,13 @@ const OBJETIVO_LABEL: Record<string, string> = {
   melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
 }
 
-const PLANOS = ['A', 'B', 'C']
+const PLANOS_MAX = ['A', 'B', 'C', 'D', 'E']
 const CORES: Record<string, { text: string; bg: string; border: string }> = {
   A: { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
   B: { text: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20'    },
   C: { text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20'  },
+  D: { text: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20'  },
+  E: { text: 'text-pink-400',    bg: 'bg-pink-500/10',    border: 'border-pink-500/20'    },
 }
 
 export default function PersonalAluno() {
@@ -696,25 +698,31 @@ export default function PersonalAluno() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6">
-          {PLANOS.map(p => {
-            const c = CORES[p]
-            const tem = treinos.some(t => t.plano === p)
-            return (
-              <button key={p} onClick={() => setPlanoAtivo(p)}
-                className={`relative flex-1 py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === p ? `${c.bg} ${c.border} ${c.text}` : 'bg-white/[0.03] border-white/[0.06] text-zinc-600'}`}>
-                Plano {p}
-                {tem ? (
-                  <>
-                    <span className="block text-[9px] font-normal mt-0.5 opacity-70">{treinos.find(t => t.plano === p)?.exercicios.length ?? 0} exerc.</span>
-                    {(treinos.find(t => t.plano === p)?.exercicios.length ?? 0) === 0 && (
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-orange-500 border-2 border-[#080808]" />
+        {(() => {
+          // Mostrar planos criados + próximo disponível (até o máximo)
+          const planosComTreino = PLANOS_MAX.filter(p => treinos.some(t => t.plano === p))
+          const proximoPlano = PLANOS_MAX.find(p => !treinos.some(t => t.plano === p))
+          const planosVisiveis = proximoPlano ? [...planosComTreino, proximoPlano] : planosComTreino
+          return (
+            <div className="flex gap-2 mb-6 flex-wrap">
+              {planosVisiveis.map(p => {
+                const c = CORES[p] ?? CORES.A
+                const tem = treinos.some(t => t.plano === p)
+                return (
+                  <button key={p} onClick={() => setPlanoAtivo(p)}
+                    className={`relative flex-1 min-w-[4rem] py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === p ? `${c.bg} ${c.border} ${c.text}` : tem ? 'bg-white/[0.03] border-white/[0.06] text-zinc-400' : 'bg-white/[0.02] border-white/[0.04] text-zinc-600'}`}>
+                    {tem ? `Plano ${p}` : `+ Plano ${p}`}
+                    {tem && (
+                      <span className="block text-[9px] font-normal mt-0.5 opacity-70">
+                        {treinos.find(t => t.plano === p)?.exercicios.length ?? 0} exerc.
+                      </span>
                     )}
-                  </>
-                ) : null}
-              </button>
-            )
-          })}
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })()}
         </div>
 
         {treinoDoPlano ? (
