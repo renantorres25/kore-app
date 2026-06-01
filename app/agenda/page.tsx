@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import NavBar from '../components/NavBar'
+import SidebarProfissional from '../components/SidebarProfissional'
 
 type Agendamento = {
   id: string; cliente_id: string; data: string; hora: string
@@ -160,9 +161,13 @@ export default function Agenda() {
     </main>
   )
 
+  const tipoSidebar = tipo === 'personal' ? 'personal' : 'nutricionista'
+
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
-      <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0d1117' }}>
+      {(tipo === 'nutricionista' || tipo === 'personal') && <SidebarProfissional tipo={tipoSidebar} />}
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
+      <div className="max-w-md mx-auto px-4 pb-28 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -333,7 +338,7 @@ export default function Agenda() {
         )}
       </div>
 
-      <NavBar tipo={tipo || 'nutricionista'} ativa="agenda" />
+      <div className="md:hidden"><NavBar tipo={tipo || 'nutricionista'} ativa="agenda" /></div>
 
       {/* Modal */}
       {showModal && (
@@ -416,6 +421,7 @@ export default function Agenda() {
           </div>
         </div>
       )}
+      </div>
     </main>
   )
 }

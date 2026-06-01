@@ -46,6 +46,13 @@ const EXTRAS_VAZIO: ExtrasEd = { hidratacaoLitros: '', hidratacaoOri: '', oriTre
 function getTodayBR() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
+
+const TERMOS_VAZIOS = /^(nenhum[ao]?|nada|não|nao|sem|n\/a|-)$/i
+function limparAlerta(val: string | null): string | null {
+  if (!val) return null
+  const partes = val.split(/\s*[·,;]\s*/).map(v => v.trim()).filter(v => v.length > 2 && !TERMOS_VAZIOS.test(v))
+  return partes.length ? partes.join(' · ') : null
+}
 function getMetaCalorias(peso: number | null, objetivo: string | null) {
   if (!peso) return null
   const tdee = Math.round((10 * peso + 6.25 * 170 - 5 * 25 + 5) * 1.55)
@@ -529,43 +536,30 @@ Responda APENAS JSON válido:
           {/* ── SEPARADOR ────────────────────────────────── */}
           <div className="border-t border-white/[0.09]" />
 
-          {/* ── ALERTAS — só aparece se houver dados reais ─ */}
-          {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && (
-            <div>
-              <p className="text-xs text-red-400/80 uppercase tracking-[0.12em] mb-3 flex items-center gap-1.5">
-                <span>⚠</span> Alertas clínicos
-              </p>
-              <div className="space-y-3">
-                {anamneseLesoes && (
-                  <div>
-                    <p className="text-zinc-500 text-xs mb-1">Lesões</p>
-                    <p className="text-zinc-200 text-sm leading-relaxed">{anamneseLesoes}</p>
+          {/* ── ALERTAS — só aparece se houver dados reais (sem "nenhuma") ─ */}
+          {(() => {
+            const lesoesFilt = limparAlerta(anamneseLesoes)
+            const rfFilt = limparAlerta(anamneseRestricaoFisica)
+            const medsFilt = limparAlerta(anamneseMedicamentos)
+            const alergFilt = limparAlerta(anamneseAlergias)
+            if (!lesoesFilt && !rfFilt && !medsFilt && !alergFilt) return null
+            return (
+              <>
+                <div>
+                  <p className="text-xs text-red-400/70 uppercase tracking-[0.12em] mb-3 flex items-center gap-1.5">
+                    <span>⚠</span> Alertas clínicos
+                  </p>
+                  <div className="space-y-3">
+                    {lesoesFilt && <div><p className="text-zinc-500 text-xs mb-1">Lesões</p><p className="text-zinc-200 text-sm leading-relaxed">{lesoesFilt}</p></div>}
+                    {rfFilt && <div><p className="text-zinc-500 text-xs mb-1">Restrições físicas</p><p className="text-zinc-200 text-sm leading-relaxed">{rfFilt}</p></div>}
+                    {medsFilt && <div><p className="text-zinc-500 text-xs mb-1">Medicamentos</p><p className="text-zinc-200 text-sm leading-relaxed">{medsFilt}</p></div>}
+                    {alergFilt && <div><p className="text-zinc-500 text-xs mb-1">Alergias / Restrições</p><p className="text-zinc-200 text-sm leading-relaxed">{alergFilt}</p></div>}
                   </div>
-                )}
-                {anamneseRestricaoFisica && (
-                  <div>
-                    <p className="text-zinc-500 text-xs mb-1">Restrições físicas</p>
-                    <p className="text-zinc-200 text-sm leading-relaxed">{anamneseRestricaoFisica}</p>
-                  </div>
-                )}
-                {anamneseMedicamentos && (
-                  <div>
-                    <p className="text-zinc-500 text-xs mb-1">Medicamentos</p>
-                    <p className="text-zinc-200 text-sm leading-relaxed">{anamneseMedicamentos}</p>
-                  </div>
-                )}
-                {anamneseAlergias && (
-                  <div>
-                    <p className="text-zinc-500 text-xs mb-1">Alergias / Restrições alimentares</p>
-                    <p className="text-zinc-200 text-sm leading-relaxed">{anamneseAlergias}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ── SEPARADOR ────────────────────────────────── */}
-          {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && <div className="border-t border-white/[0.09]" />}
+                </div>
+                <div className="border-t border-white/[0.09]" />
+              </>
+            )
+          })()}
 
           {/* ── COMPOSIÇÃO CORPORAL ───────────────────────── */}
           {medidasCP.length >= 2 && (() => {
@@ -888,7 +882,7 @@ Responda APENAS JSON válido:
           {/* ── FIM mobile-only ───────────────────────────────────────── */}
 
           {/* ── TABS + CONTEÚDO — visível em mobile e desktop ─────────── */}
-          <div className="max-w-md md:max-w-none mx-auto px-4 md:px-8 pt-4 pb-28 md:pb-8">
+          <div className="max-w-md md:max-w-4xl mx-auto px-4 md:px-8 pt-4 pb-28 md:pb-8">
 
         {/* Abas */}
         <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
@@ -904,21 +898,26 @@ Responda APENAS JSON válido:
         {abaAtiva === 'hoje' && (
           <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
 
-            {/* Alertas clínicos — mobile only (desktop: já no painel esquerdo) */}
-            {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && (
-              <div className="md:hidden rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#201212' }}>
-                <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
-                  <span className="text-red-400 text-sm">⚠</span>
-                  <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
+            {/* Alertas clínicos — mobile only, filtrados */}
+            {(() => {
+              const l = limparAlerta(anamneseLesoes), r = limparAlerta(anamneseRestricaoFisica)
+              const m = limparAlerta(anamneseMedicamentos), a = limparAlerta(anamneseAlergias)
+              if (!l && !r && !m && !a) return null
+              return (
+                <div className="md:hidden rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#201212' }}>
+                  <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
+                    <span className="text-red-400 text-sm">⚠</span>
+                    <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
+                  </div>
+                  <div className="px-5 py-3 flex flex-col gap-2">
+                    {l && <div><p className="text-zinc-500 text-xs mb-0.5">Lesões</p><p className="text-zinc-200 text-sm leading-relaxed">{l}</p></div>}
+                    {r && <div><p className="text-zinc-500 text-xs mb-0.5">Restrições físicas</p><p className="text-zinc-200 text-sm leading-relaxed">{r}</p></div>}
+                    {m && <div><p className="text-zinc-500 text-xs mb-0.5">Medicamentos</p><p className="text-zinc-200 text-sm leading-relaxed">{m}</p></div>}
+                    {a && <div><p className="text-zinc-500 text-xs mb-0.5">Alergias / Restrições</p><p className="text-zinc-200 text-sm leading-relaxed">{a}</p></div>}
+                  </div>
                 </div>
-                <div className="px-5 py-3 flex flex-col gap-2">
-                  {anamneseLesoes && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p><p className="text-red-200/80 text-[11px] leading-relaxed">{anamneseLesoes}</p></div>}
-                  {anamneseRestricaoFisica && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p><p className="text-amber-200/80 text-[11px] leading-relaxed">{anamneseRestricaoFisica}</p></div>}
-                  {anamneseMedicamentos && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p><p className="text-zinc-300/80 text-[11px] leading-relaxed">{anamneseMedicamentos}</p></div>}
-                  {anamneseAlergias && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Alergias</p><p className="text-amber-300/80 text-[11px] leading-relaxed">{anamneseAlergias}</p></div>}
-                </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* Recuperação */}
             <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>

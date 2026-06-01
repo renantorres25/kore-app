@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import NavBar from '../components/NavBar'
+import SidebarProfissional from '../components/SidebarProfissional'
 
 const objetivos = [
   { valor: 'perder_peso',              emoji: '🔥', label: 'Perder peso' },
@@ -181,8 +182,10 @@ function PerfilConteudo() {
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
-      <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0d1117' }}>
+      {isProf && <SidebarProfissional tipo={tipo as 'nutricionista' | 'personal'} />}
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
+      <div className="max-w-md mx-auto px-4 pb-28 md:max-w-lg md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -485,7 +488,8 @@ function PerfilConteudo() {
         )}
       </div>
 
-      {!isNovo && <NavBar tipo={tipo || 'cliente'} ativa="perfil" />}
+      {!isNovo && <div className="md:hidden"><NavBar tipo={tipo || 'cliente'} ativa="perfil" /></div>}
+      </div>
     </main>
   )
 }
