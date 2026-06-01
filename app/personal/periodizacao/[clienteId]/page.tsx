@@ -9,13 +9,22 @@ type Bloco = { id: string; nome: string; tipo: string; semanas: number; ordem: n
 type Periodizacao = { id: string; nome: string; data_inicio: string; status: string; blocos: Bloco[] }
 type BlocoRascunho = { nome: string; tipo: string; semanas: number; descricao: string }
 
+const TIPO_DEF = { label: 'Custom', bg: 'bg-sky-500/15', border: 'border-sky-500/30', text: 'text-sky-400', dot: 'bg-sky-400' }
 const TIPO: Record<string, { label: string; bg: string; border: string; text: string; dot: string }> = {
   adaptacao:   { label: 'Adaptação',   bg: 'bg-teal-500/15',    border: 'border-teal-500/30',    text: 'text-teal-400',    dot: 'bg-teal-400'    },
+  adaptação:   { label: 'Adaptação',   bg: 'bg-teal-500/15',    border: 'border-teal-500/30',    text: 'text-teal-400',    dot: 'bg-teal-400'    },
   hipertrofia: { label: 'Hipertrofia', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', text: 'text-emerald-400', dot: 'bg-emerald-400' },
   forca:       { label: 'Força',       bg: 'bg-blue-500/15',    border: 'border-blue-500/30',    text: 'text-blue-400',    dot: 'bg-blue-400'    },
+  força:       { label: 'Força',       bg: 'bg-blue-500/15',    border: 'border-blue-500/30',    text: 'text-blue-400',    dot: 'bg-blue-400'    },
   deload:      { label: 'Deload',      bg: 'bg-zinc-500/15',    border: 'border-zinc-500/30',    text: 'text-zinc-400',    dot: 'bg-zinc-400'    },
   potencia:    { label: 'Potência',    bg: 'bg-orange-500/15',  border: 'border-orange-500/30',  text: 'text-orange-400',  dot: 'bg-orange-400'  },
+  potência:    { label: 'Potência',    bg: 'bg-orange-500/15',  border: 'border-orange-500/30',  text: 'text-orange-400',  dot: 'bg-orange-400'  },
   resistencia: { label: 'Resistência', bg: 'bg-purple-500/15',  border: 'border-purple-500/30',  text: 'text-purple-400',  dot: 'bg-purple-400'  },
+  resistência: { label: 'Resistência', bg: 'bg-purple-500/15',  border: 'border-purple-500/30',  text: 'text-purple-400',  dot: 'bg-purple-400'  },
+}
+
+function getTipoCfg(tipo: string) {
+  return TIPO[tipo.toLowerCase()] ?? TIPO_DEF
 }
 
 const BLOCO_VAZIO: BlocoRascunho = { nome: '', tipo: 'hipertrofia', semanas: 4, descricao: '' }
@@ -55,10 +64,10 @@ export default function PeriodizacaoPage() {
   const [nomeForm, setNomeForm] = useState('')
   const [dataInicioForm, setDataInicioForm] = useState(getTodayBR())
   const [blocosForm, setBlocosForm] = useState<BlocoRascunho[]>([
-    { nome: 'Adaptação',   tipo: 'adaptacao',   semanas: 3, descricao: 'Fase de adaptação neuromuscular. Foco em técnica, 3-4 séries, 12-15 reps, cargas moderadas.' },
-    { nome: 'Hipertrofia', tipo: 'hipertrofia', semanas: 4, descricao: 'Foco em volume. 4 séries, 8-12 reps, 65-75% 1RM. Progressão de carga semanal.' },
-    { nome: 'Força',       tipo: 'forca',       semanas: 3, descricao: 'Redução de volume, aumento de intensidade. 4-5 séries, 4-6 reps, 80-90% 1RM.' },
-    { nome: 'Deload',      tipo: 'deload',      semanas: 1, descricao: 'Semana de recuperação ativa. 50-60% do volume normal, cargas reduzidas.' },
+    { nome: 'Adaptação',   tipo: 'Adaptação',   semanas: 3, descricao: 'Fase de adaptação neuromuscular. Foco em técnica, 3-4 séries, 12-15 reps, cargas moderadas.' },
+    { nome: 'Hipertrofia', tipo: 'Hipertrofia', semanas: 4, descricao: 'Foco em volume. 4 séries, 8-12 reps, 65-75% 1RM. Progressão de carga semanal.' },
+    { nome: 'Força',       tipo: 'Força',       semanas: 3, descricao: 'Redução de volume, aumento de intensidade. 4-5 séries, 4-6 reps, 80-90% 1RM.' },
+    { nome: 'Deload',      tipo: 'Deload',      semanas: 1, descricao: 'Semana de recuperação ativa. 50-60% do volume normal, cargas reduzidas.' },
   ])
 
   useEffect(() => { carregar() }, [clienteId])
@@ -169,7 +178,7 @@ export default function PeriodizacaoPage() {
         {/* Fase atual */}
         {periodizacao && semanaAtual && semanaAtual.blocoIdx < periodizacao.blocos.length && (() => {
           const b = periodizacao.blocos[semanaAtual.blocoIdx]
-          const cfg = TIPO[b.tipo] ?? TIPO.hipertrofia
+          const cfg = getTipoCfg(b.tipo)
           const pct = Math.min(100, (semanaAtual.semanaTotal / totalSemanas) * 100)
           return (
             <div className={`rounded-2xl p-5 border ${cfg.border} mb-5`} style={{ background: '#0f0f0f' }}>
@@ -201,7 +210,7 @@ export default function PeriodizacaoPage() {
             <div className="px-5 pt-4 pb-3">
               <div className="flex rounded-lg overflow-hidden h-3 gap-px">
                 {periodizacao.blocos.map((b, i) => {
-                  const cfg = TIPO[b.tipo] ?? TIPO.hipertrofia
+                  const cfg = getTipoCfg(b.tipo)
                   const w = (b.semanas / totalSemanas) * 100
                   const isAtual = semanaAtual?.blocoIdx === i
                   return <div key={i} title={`${b.nome} (${b.semanas}s)`} style={{ width: `${w}%` }}
@@ -211,7 +220,7 @@ export default function PeriodizacaoPage() {
             </div>
             <div className="divide-y divide-white/[0.04]">
               {periodizacao.blocos.map((b, i) => {
-                const cfg = TIPO[b.tipo] ?? TIPO.hipertrofia
+                const cfg = getTipoCfg(b.tipo)
                 const isAtual = semanaAtual?.blocoIdx === i
                 let ini = 1
                 for (let j = 0; j < i; j++) ini += periodizacao.blocos[j].semanas
@@ -262,7 +271,7 @@ export default function PeriodizacaoPage() {
                       </div>
                       <div className="px-4 py-2 flex gap-px">
                         {p.blocos.map((b, i) => {
-                          const cfg = TIPO[b.tipo] ?? TIPO.hipertrofia
+                          const cfg = getTipoCfg(b.tipo)
                           return <div key={i} title={b.nome} style={{ width: `${(b.semanas / total) * 100}%` }}
                             className={`h-2 ${cfg.dot} opacity-40 rounded-sm`} />
                         })}
@@ -317,7 +326,7 @@ export default function PeriodizacaoPage() {
                 </div>
                 <div className="space-y-3">
                   {blocosForm.map((b, i) => {
-                    const cfg = TIPO[b.tipo] ?? TIPO.hipertrofia
+                    const cfg = getTipoCfg(b.tipo)
                     return (
                       <div key={i} className={`rounded-xl border ${cfg.border} overflow-hidden`} style={{ background: 'rgba(255,255,255,0.02)' }}>
                         <div className={`px-4 py-3 ${cfg.bg} flex items-center gap-2`}>
@@ -332,12 +341,14 @@ export default function PeriodizacaoPage() {
                         <div className="p-4 space-y-3">
                           <div className="flex gap-2">
                             <div className="flex-1">
-                              <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1">Tipo</label>
-                              <select value={b.tipo} onChange={e => updateBloco(i, 'tipo', e.target.value)}
-                                className="w-full border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20"
-                                style={{ colorScheme: 'dark', background: '#141414' }}>
-                                {Object.entries(TIPO).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                              </select>
+                              <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1">Tipo / Fase</label>
+                              <input value={b.tipo} onChange={e => updateBloco(i, 'tipo', e.target.value)}
+                                placeholder="Ex: Hipertrofia, Força, Peaking…"
+                                list={`tipos-bloco-${i}`}
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
+                              <datalist id={`tipos-bloco-${i}`}>
+                                {Object.values(TIPO).map(v => <option key={v.label} value={v.label} />)}
+                              </datalist>
                             </div>
                             <div className="w-20">
                               <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1">Semanas</label>
