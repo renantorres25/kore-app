@@ -1573,20 +1573,20 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
   }, [])
 
   return (
-    <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <div className="md:flex md:h-screen" style={{ background: '#0d1117' }}>
+      <SidebarProfissional tipo="nutricionista" />
+      <div className="flex-1 md:overflow-y-auto">
+    <div className="max-w-md mx-auto px-4 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
           <h1 className="text-[1.85rem] font-black tracking-tight text-white">{firstName}</h1>
           <p className="text-zinc-600 text-[11px] mt-1 capitalize tracking-wide">{getTodayString()}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:hidden">
           <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center text-sm active:scale-90 transition-all">
             🔔
             {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
-          </button>
-          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center active:scale-90 transition-all">
-            <span className="text-xs font-black text-white">{initials}</span>
           </button>
         </div>
       </div>
@@ -1722,7 +1722,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       <button onClick={() => router.push('/nutricionista/pacientes')} className="w-full border border-white/[0.14] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os pacientes</button>
       <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">+ Convidar paciente</button>
     </div>
-      </div>
+    </div>
     </div>
   )
 }
