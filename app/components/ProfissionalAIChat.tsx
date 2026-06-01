@@ -31,6 +31,8 @@ export type ContextoProfissional = {
     scoreRecuperacaoHoje: number | null
     sonoHorasHoje: number | null
     exerciciosMaxCarga: { nome: string; maxCarga: number; sessoes: number }[]
+    planos?: { plano: string; nome: string; exercicios: { nome: string; series: number; repeticoes: number; carga: number | null; observacoes: string }[] }[]
+    periodizacaoFase?: string | null
   } | null
   nutricao?: {
     caloriasPrescritas: number | null
@@ -48,17 +50,29 @@ export type ContextoProfissional = {
   ultimaAvaliacao: string | null
 }
 
+const TERMOS_IRRELEVANTES = /^(nenhum[ao]?|nada|não|nao|sem|ok|okay|oke?|n\/a|-)$/i
+function filtrarAlerta(val: string | null): string | null {
+  if (!val) return null
+  const partes = val.split(/\s*[·,]\s*/).map(v => v.trim()).filter(v => v && !TERMOS_IRRELEVANTES.test(v))
+  return partes.length ? partes.join(' · ') : null
+}
+
 function buildSystemPrompt(ctx: ContextoProfissional): string {
   const tipo = ctx.profissionalTipo === 'personal' ? 'Personal Trainer' : 'Nutricionista'
   const pacNome = ctx.paciente.nome ?? 'paciente'
   const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
 
+  const lesoesFiltradas = filtrarAlerta(ctx.alertasClinicos.lesoes)
+  const rfFiltradas = filtrarAlerta(ctx.alertasClinicos.restricoesFisicas)
+  const medsFiltrados = filtrarAlerta(ctx.alertasClinicos.medicamentos)
+  const alergiasFiltradas = filtrarAlerta(ctx.alertasClinicos.alergias ?? null)
+  const restAlimFiltradas = filtrarAlerta(ctx.alertasClinicos.restricoesAlimentares ?? null)
   const alertas = [
-    ctx.alertasClinicos.lesoes && `Lesões: ${ctx.alertasClinicos.lesoes}`,
-    ctx.alertasClinicos.restricoesFisicas && `Restrições físicas: ${ctx.alertasClinicos.restricoesFisicas}`,
-    ctx.alertasClinicos.medicamentos && `Medicamentos: ${ctx.alertasClinicos.medicamentos}`,
-    ctx.alertasClinicos.alergias && `Alergias: ${ctx.alertasClinicos.alergias}`,
-    ctx.alertasClinicos.restricoesAlimentares && `Restrições alimentares: ${ctx.alertasClinicos.restricoesAlimentares}`,
+    lesoesFiltradas && `Lesões: ${lesoesFiltradas}`,
+    rfFiltradas && `Restrições físicas: ${rfFiltradas}`,
+    medsFiltrados && `Medicamentos: ${medsFiltrados}`,
+    alergiasFiltradas && `Alergias: ${alergiasFiltradas}`,
+    restAlimFiltradas && `Restrições alimentares: ${restAlimFiltradas}`,
   ].filter(Boolean).join('\n') || 'Nenhum alerta clínico registrado'
 
   const composicao = ctx.composicao?.ultimoPeso
@@ -69,13 +83,25 @@ function buildSystemPrompt(ctx: ContextoProfissional): string {
   if (ctx.profissionalTipo === 'personal' && ctx.treinamento) {
     const ex = ctx.treinamento.exerciciosMaxCarga.slice(0, 6)
       .map(e => `${e.nome}(${e.sessoes}x, ${e.maxCarga}kg)`).join(', ') || 'sem dados'
+
+    let planosTexto = ''
+    if (ctx.treinamento.planos?.length) {
+      planosTexto = '\n\nPLANOS DE TREINO PRESCRITOS:\n' + ctx.treinamento.planos.map(p =>
+        `Plano ${p.plano} — ${p.nome}:\n` +
+        p.exercicios.map(e =>
+          `  • ${e.nome}: ${e.series}x${e.repeticoes}${e.carga ? ` @ ${e.carga}kg` : ''}${e.observacoes ? ` (${e.observacoes})` : ''}`
+        ).join('\n')
+      ).join('\n\n')
+    }
+
     dadosEspecificos = `
 DADOS DE TREINO:
 - Treinos esta semana: ${ctx.treinamento.treinosSemana}
 - Dias sem treinar: ${ctx.treinamento.diasSemTreinar ?? '?'}
 - Score de recuperação hoje: ${ctx.treinamento.scoreRecuperacaoHoje ? `${ctx.treinamento.scoreRecuperacaoHoje}/100` : 'não registrado'}
 - Sono hoje: ${ctx.treinamento.sonoHorasHoje ? `${ctx.treinamento.sonoHorasHoje}h` : 'não registrado'}
-- Principais exercícios (carga máx): ${ex}`
+- Principais cargas históricas: ${ex}
+- Fase de periodização atual: ${ctx.treinamento.periodizacaoFase ?? 'não configurada'}${planosTexto}`
   }
 
   if (ctx.profissionalTipo === 'nutricionista' && ctx.nutricao) {
@@ -245,14 +271,20 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
                 className="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all text-sm">✕</button>
             </div>
 
-            {(contexto.alertasClinicos.lesoes || contexto.alertasClinicos.restricoesFisicas || contexto.alertasClinicos.medicamentos) && (
-              <div className="mx-4 mt-3 px-3 py-2 rounded-xl border border-red-500/20 bg-red-500/5 shrink-0">
-                <p className="text-red-300 text-[10px] uppercase tracking-wider font-bold mb-1">⚠ Alertas ativos</p>
-                <p className="text-red-200/70 text-[10px] leading-relaxed line-clamp-2">
-                  {[contexto.alertasClinicos.lesoes, contexto.alertasClinicos.restricoesFisicas, contexto.alertasClinicos.medicamentos].filter(Boolean).join(' · ')}
-                </p>
-              </div>
-            )}
+            {(() => {
+              const alertasVisiveis = [
+                filtrarAlerta(contexto.alertasClinicos.lesoes),
+                filtrarAlerta(contexto.alertasClinicos.restricoesFisicas),
+                filtrarAlerta(contexto.alertasClinicos.medicamentos),
+              ].filter(Boolean)
+              if (!alertasVisiveis.length) return null
+              return (
+                <div className="mx-4 mt-3 px-3 py-2 rounded-xl border border-red-500/20 bg-red-500/5 shrink-0">
+                  <p className="text-red-300 text-[10px] uppercase tracking-wider font-bold mb-1">⚠ Alertas ativos</p>
+                  <p className="text-red-200/70 text-[10px] leading-relaxed line-clamp-2">{alertasVisiveis.join(' · ')}</p>
+                </div>
+              )
+            })()}
 
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {mensagens.map((msg, i) => (

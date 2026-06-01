@@ -76,6 +76,7 @@ export default function PersonalAluno() {
   const [restricaoFisica, setRestricaoFisica] = useState<string | null>(null)
   const [medicamentos, setMedicamentos] = useState<string | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
+  const [fasePeriodizacaoChat, setFasePeriodizacaoChat] = useState<string | null>(null)
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
   const [fichaPeso, setFichaPeso] = useState('')
@@ -198,6 +199,25 @@ export default function PersonalAluno() {
         }
       }
       setCargaEvolucao(cargaMap)
+    }
+
+    // Fase de periodização para o chat
+    const { data: periAtiva } = await supabase.from('periodizacoes').select('id,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (periAtiva) {
+      const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,ordem').eq('periodizacao_id', periAtiva.id).order('ordem')
+      if (blocos?.length) {
+        const inicio = new Date(periAtiva.data_inicio + 'T12:00:00-03:00')
+        const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+        const semanaTotal = Math.max(1, Math.floor(diasTotais / 7) + 1)
+        let acum = 0, blocoIdx = blocos.length - 1
+        for (let i = 0; i < blocos.length; i++) {
+          if (semanaTotal <= acum + (blocos[i] as any).semanas) { blocoIdx = i; break }
+          acum += (blocos[i] as any).semanas
+        }
+        const b = blocos[blocoIdx] as any
+        const semanaNoBloco = semanaTotal - acum
+        setFasePeriodizacaoChat(`${b.nome} (${b.tipo}) — semana ${semanaNoBloco} de ${b.semanas}`)
+      }
     }
 
     setCarregando(false)
@@ -983,13 +1003,25 @@ export default function PersonalAluno() {
               }))
               .sort((a, b) => b.sessoes - a.sessoes)
               .slice(0, 6),
+            periodizacaoFase: fasePeriodizacaoChat,
+            planos: treinos.map(t => ({
+              plano: t.plano,
+              nome: t.nome,
+              exercicios: t.exercicios.map(e => ({
+                nome: e.nome,
+                series: e.series,
+                repeticoes: e.repeticoes,
+                carga: e.carga_sugerida,
+                observacoes: e.observacoes ?? '',
+              })),
+            })),
           },
           nutricao: planoNutri ? {
             caloriasPrescritas: planoNutri.calorias_meta,
             proteinaPrescritas: planoNutri.proteina_meta,
             caloriasSemanaisGastas: null,
             treinosSemana: monitor?.treinosSemana ?? 0,
-            periodizacao: null,
+            periodizacao: fasePeriodizacaoChat,
           } : null,
           composicao: medidasCP.length > 0 ? {
             ultimoPeso: medidasCP[medidasCP.length - 1].peso,
