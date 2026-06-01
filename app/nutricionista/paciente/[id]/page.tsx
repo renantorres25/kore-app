@@ -1350,7 +1350,7 @@ Responda APENAS JSON válido:
             data: medidasCP[medidasCP.length - 1].data,
           } : null,
           ultimaAvaliacao,
-        }} />
+        }} pacienteId={clienteId} />
       )}
     </main>
   )

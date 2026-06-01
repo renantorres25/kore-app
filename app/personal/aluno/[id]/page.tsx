@@ -1030,7 +1030,7 @@ export default function PersonalAluno() {
             data: medidasCP[medidasCP.length - 1].data,
           } : null,
           ultimaAvaliacao,
-        }} />
+        }} pacienteId={clienteId} />
       )}
 
       {/* Modal confirmação de delete */}

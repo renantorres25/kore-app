@@ -166,15 +166,38 @@ const SUGESTOES: Record<'personal' | 'nutricionista', string[]> = {
   ],
 }
 
-export default function ProfissionalAIChat({ contexto }: { contexto: ContextoProfissional }) {
+export default function ProfissionalAIChat({ contexto, pacienteId }: { contexto: ContextoProfissional; pacienteId?: string }) {
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [profId, setProfId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isPersonal = contexto.profissionalTipo === 'personal'
+
+  // Chave única por profissional + paciente
+  const storageKey = profId && pacienteId ? `kore_chat_prof_${profId}_${pacienteId}` : null
+
+  // Carregar profId + histórico ao montar
+  useEffect(() => {
+    async function init() {
+      const { supabase } = await import('../lib/supabase')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      setProfId(session.user.id)
+      const key = `kore_chat_prof_${session.user.id}_${pacienteId}`
+      try {
+        const saved = localStorage.getItem(key)
+        if (saved) {
+          const hist: Mensagem[] = JSON.parse(saved)
+          if (hist.length > 0) setMensagens(hist)
+        }
+      } catch {}
+    }
+    if (pacienteId) init()
+  }, [pacienteId])
   const corClass = {
     btn: isPersonal ? 'bg-blue-500' : 'bg-emerald-500',
     shadow: isPersonal ? '0 4px 20px rgba(59,130,246,0.45)' : '0 4px 20px rgba(16,185,129,0.45)',
@@ -201,7 +224,9 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
       } else {
         boasVindas += `O que quer analisar sobre este ${tipoLabel}?`
       }
-      setMensagens([{ role: 'assistant', content: boasVindas }])
+      const inicial: Mensagem[] = [{ role: 'assistant', content: boasVindas }]
+      setMensagens(inicial)
+      if (storageKey) { try { localStorage.setItem(storageKey, JSON.stringify(inicial)) } catch {} }
     }
     if (aberto) setTimeout(() => inputRef.current?.focus(), 300)
   }, [aberto])
@@ -210,12 +235,23 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensagens])
 
+  function salvarHistorico(msgs: Mensagem[]) {
+    const key = storageKey
+    if (!key) return
+    try {
+      // Manter últimas 50 mensagens
+      const trimmed = msgs.slice(-50)
+      localStorage.setItem(key, JSON.stringify(trimmed))
+    } catch {}
+  }
+
   async function enviarMensagem(textoOverride?: string) {
     const texto = (textoOverride ?? input).trim()
     if (!texto || enviando) return
     const novaMensagem: Mensagem = { role: 'user', content: texto }
     const novasMensagens = [...mensagens, novaMensagem]
     setMensagens(novasMensagens)
+    salvarHistorico(novasMensagens)
     setInput('')
     setEnviando(true)
     try {
@@ -225,7 +261,10 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
         body: JSON.stringify({ mensagens: novasMensagens, systemPrompt: buildSystemPrompt(contexto) }),
       })
       const data = await res.json()
-      setMensagens(prev => [...prev, { role: 'assistant', content: data.resposta ?? 'Erro ao processar.' }])
+      const resposta = data.resposta ?? 'Erro ao processar.'
+      const comResposta = [...novasMensagens, { role: 'assistant' as const, content: resposta }]
+      setMensagens(comResposta)
+      salvarHistorico(comResposta)
     } catch {
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Erro ao conectar. Tente novamente.' }])
     }
@@ -267,8 +306,18 @@ export default function ProfissionalAIChat({ contexto }: { contexto: ContextoPro
                   </div>
                 </div>
               </div>
-              <button onClick={() => setAberto(false)}
-                className="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all text-sm">✕</button>
+              <div className="flex items-center gap-2">
+                {mensagens.length > 1 && (
+                  <button onClick={() => {
+                    setMensagens([])
+                    if (storageKey) { try { localStorage.removeItem(storageKey) } catch {} }
+                  }} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors px-2 py-1">
+                    Limpar
+                  </button>
+                )}
+                <button onClick={() => setAberto(false)}
+                  className="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all text-sm">✕</button>
+              </div>
             </div>
 
             {(() => {
