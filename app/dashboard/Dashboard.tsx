@@ -236,6 +236,7 @@ export default function Dashboard() {
   const [pesoAtual, setPesoAtual] = useState<number | null>(null)
   const [pesoDelta, setPesoDelta] = useState<number | null>(null)
   const [planoNutriRefeicoes, setPlanoNutriRefeicoes] = useState<{ nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]>([])
+  const [fasePeriodizacao, setFasePeriodizacao] = useState<{ nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null>(null)
 
   useEffect(() => {
     async function carregarDados() {
@@ -343,6 +344,26 @@ export default function Dashboard() {
             return { tipo: v.tipo, profissional_id: v.profissional_id, nome: p?.nome ?? null, email: p?.email ?? '' }
           })
           setVinculos(vinculosComPerfil)
+        }
+
+        // Fase de periodização do atleta
+        const { data: periAtiva } = await supabase.from('periodizacoes').select('id,data_inicio').eq('cliente_id', session.user.id).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
+        if (periAtiva) {
+          const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,descricao,ordem').eq('periodizacao_id', periAtiva.id).order('ordem')
+          if (blocos?.length) {
+            const inicio = new Date(periAtiva.data_inicio + 'T12:00:00-03:00')
+            const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+            const semanaTotal = Math.max(1, Math.floor(diasTotais / 7) + 1)
+            const totalSemanas = blocos.reduce((s: number, b: any) => s + b.semanas, 0)
+            let acum = 0, blocoIdx = blocos.length - 1
+            for (let i = 0; i < blocos.length; i++) {
+              if (semanaTotal <= acum + blocos[i].semanas) { blocoIdx = i; break }
+              acum += blocos[i].semanas
+            }
+            const b = blocos[blocoIdx] as any
+            const semanaNoBloco = Math.min(semanaTotal - acum, b.semanas)
+            setFasePeriodizacao({ nomeBloco: b.nome, tipoBloco: b.tipo, semanaBloco: semanaNoBloco, semanasBloco: b.semanas, semanaTotal, totalSemanas, descricao: b.descricao ?? null })
+          }
         }
       }
 
@@ -535,6 +556,7 @@ Responda APENAS em JSON válido, sem markdown:
             onOpenNotifs={() => setShowNotifs(true)}
             notifCount={notifs.length}
             planoNutriRefeicoes={planoNutriRefeicoes}
+            fasePeriodizacao={fasePeriodizacao}
           />
         )}
         {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} />}
@@ -972,7 +994,7 @@ function CardMeta({
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, recentDays, sonoHistorico, vinculos, treinoHoje, nutricaoHoje,
   decisaoDia, gerandoDecisao, temSonoHoje, userId, pesoAtual, pesoDelta, onSalvarMeta,
-  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes,
+  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
@@ -982,6 +1004,7 @@ function DashboardCliente({
   onSalvarMeta: (metaPeso: number, metaData: string) => Promise<void>
   onLogout: () => void; onOpenNotifs: () => void; notifCount: number
   planoNutriRefeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]
+  fasePeriodizacao: { nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null
 }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
@@ -1108,6 +1131,38 @@ function DashboardCliente({
         </button>
       )}
 
+      {/* Fase de periodização */}
+      {fasePeriodizacao && (() => {
+        const CORES_FASE: Record<string, { text: string; bar: string; border: string }> = {
+          adaptacao:   { text: 'text-teal-400',    bar: 'bg-teal-400',    border: 'border-teal-500/20'    },
+          hipertrofia: { text: 'text-emerald-400', bar: 'bg-emerald-400', border: 'border-emerald-500/20' },
+          forca:       { text: 'text-blue-400',    bar: 'bg-blue-400',    border: 'border-blue-500/20'    },
+          deload:      { text: 'text-zinc-400',    bar: 'bg-zinc-400',    border: 'border-zinc-500/20'    },
+          potencia:    { text: 'text-orange-400',  bar: 'bg-orange-400',  border: 'border-orange-500/20'  },
+          resistencia: { text: 'text-purple-400',  bar: 'bg-purple-400',  border: 'border-purple-500/20'  },
+        }
+        const c = CORES_FASE[fasePeriodizacao.tipoBloco] ?? CORES_FASE.hipertrofia
+        const pct = Math.min(100, (fasePeriodizacao.semanaBloco / fasePeriodizacao.semanasBloco) * 100)
+        return (
+          <div className={`rounded-2xl p-5 mb-3 border ${c.border}`} style={{ background: '#0f0f0f' }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Fase atual</p>
+              <span className={`text-[9px] font-bold uppercase tracking-wider ${c.text}`}>
+                Sem. {fasePeriodizacao.semanaBloco}/{fasePeriodizacao.semanasBloco}
+              </span>
+            </div>
+            <p className={`text-xl font-black mb-3 ${c.text}`}>{fasePeriodizacao.nomeBloco}</p>
+            <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden mb-2">
+              <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${pct}%` }} />
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-zinc-600 text-[10px]">Semana {fasePeriodizacao.semanaTotal} de {fasePeriodizacao.totalSemanas} no ciclo</p>
+              {fasePeriodizacao.descricao && <p className="text-zinc-500 text-[10px] max-w-[60%] text-right truncate">{fasePeriodizacao.descricao}</p>}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Treino de hoje */}
       <div className="rounded-2xl p-5 mb-3 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
         <div className="flex items-start justify-between mb-1">
@@ -1232,6 +1287,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
   const [treinaramHoje, setTreinaramHoje] = useState(0)
   const [alertas, setAlertas] = useState(0)
   const [alunosRecentes, setAlunosRecentes] = useState<{ nome: string | null; email: string; treinouHoje: boolean; score: number | null }[]>([])
+  const [notifBlocos, setNotifBlocos] = useState<{ clienteId: string; nome: string | null; email: string; blocoAtual: string; proximoBloco: string; diasRestantes: number }[]>([])
   const [loadingStats, setLoadingStats] = useState(true)
 
   useEffect(() => {
@@ -1259,6 +1315,38 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
       setTreinaramHoje(treinaramSet.size)
       setAlertas(alertasCount)
       setAlunosRecentes((perfis ?? []).map(p => ({ nome: p.nome, email: p.email, treinouHoje: treinaramSet.has(p.id), score: scoreMap.get(p.id) ?? null })).slice(0, 4))
+
+      // Notificações de fim de bloco
+      const { data: perisAtivas } = await supabase.from('periodizacoes').select('id,nome,data_inicio,cliente_id').in('cliente_id', ids).eq('personal_id', session.user.id).eq('status', 'ativo')
+      if (perisAtivas?.length) {
+        const notifs: typeof notifBlocos = []
+        for (const peri of perisAtivas) {
+          const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,ordem').eq('periodizacao_id', peri.id).order('ordem')
+          if (!blocos?.length) continue
+          const inicio = new Date(peri.data_inicio + 'T12:00:00-03:00')
+          const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+          if (diasTotais < 0) continue
+          const semanaTotal = Math.floor(diasTotais / 7) + 1
+          let acum = 0, blocoIdx = blocos.length - 1
+          for (let i = 0; i < blocos.length; i++) {
+            if (semanaTotal <= acum + blocos[i].semanas) { blocoIdx = i; break }
+            acum += blocos[i].semanas
+          }
+          if (blocoIdx >= blocos.length - 1) continue // já no último bloco
+          const b = blocos[blocoIdx]
+          const semanaNoBloco = semanaTotal - acum
+          const semanasRestantes = b.semanas - semanaNoBloco
+          const diasRestantes = semanasRestantes * 7
+          const threshold = Math.max(7, Math.round(b.semanas * 0.35) * 7)
+          if (diasRestantes <= threshold) {
+            const proximo = blocos[blocoIdx + 1]
+            const perfil = perfis?.find((p: any) => p.id === peri.cliente_id)
+            notifs.push({ clienteId: peri.cliente_id, nome: perfil?.nome ?? null, email: perfil?.email ?? '', blocoAtual: b.nome, proximoBloco: proximo.nome, diasRestantes })
+          }
+        }
+        setNotifBlocos(notifs)
+      }
+
       setLoadingStats(false)
     }
     carregarStats()
@@ -1349,6 +1437,29 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
                 </div>
                 {a.score && <div className={`text-xs font-bold shrink-0 ${a.score >= 70 ? 'text-emerald-400' : a.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{a.score}/100</div>}
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {notifBlocos.length > 0 && (
+        <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#080e14' }}>
+          <div className="px-5 py-3 border-b border-blue-500/10 flex items-center gap-2">
+            <span className="text-blue-400 text-sm">📅</span>
+            <p className="text-blue-300 text-[10px] uppercase tracking-[0.15em] font-bold">Prepare os próximos blocos</p>
+          </div>
+          <div className="divide-y divide-blue-500/[0.08]">
+            {notifBlocos.map((n, i) => (
+              <button key={i} onClick={() => router.push(`/personal/aluno/${n.clienteId}`)}
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-left active:scale-[0.98] transition-all">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-blue-400 text-xs font-black">{(n.nome ?? n.email)[0].toUpperCase()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-semibold truncate">{n.nome ?? n.email.split('@')[0]}</p>
+                  <p className="text-zinc-500 text-[10px]">{n.blocoAtual} → <span className="text-blue-300 font-semibold">{n.proximoBloco}</span> em {n.diasRestantes}d</p>
+                </div>
+                <span className="text-zinc-700 text-sm shrink-0">→</span>
+              </button>
             ))}
           </div>
         </div>

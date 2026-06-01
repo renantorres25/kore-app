@@ -5,11 +5,12 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
 type Aluno = { id: string; nome: string | null; email: string }
-type Bloco = { id: string; nome: string; tipo: string; semanas: number; ordem: number; descricao: string | null; plano_associado: string | null }
+type Bloco = { id: string; nome: string; tipo: string; semanas: number; ordem: number; descricao: string | null }
 type Periodizacao = { id: string; nome: string; data_inicio: string; status: string; blocos: Bloco[] }
-type BlocoRascunho = { nome: string; tipo: string; semanas: number; descricao: string; plano_associado: string }
+type BlocoRascunho = { nome: string; tipo: string; semanas: number; descricao: string }
 
 const TIPO: Record<string, { label: string; bg: string; border: string; text: string; dot: string }> = {
+  adaptacao:   { label: 'Adaptação',   bg: 'bg-teal-500/15',    border: 'border-teal-500/30',    text: 'text-teal-400',    dot: 'bg-teal-400'    },
   hipertrofia: { label: 'Hipertrofia', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', text: 'text-emerald-400', dot: 'bg-emerald-400' },
   forca:       { label: 'Força',       bg: 'bg-blue-500/15',    border: 'border-blue-500/30',    text: 'text-blue-400',    dot: 'bg-blue-400'    },
   deload:      { label: 'Deload',      bg: 'bg-zinc-500/15',    border: 'border-zinc-500/30',    text: 'text-zinc-400',    dot: 'bg-zinc-400'    },
@@ -17,7 +18,7 @@ const TIPO: Record<string, { label: string; bg: string; border: string; text: st
   resistencia: { label: 'Resistência', bg: 'bg-purple-500/15',  border: 'border-purple-500/30',  text: 'text-purple-400',  dot: 'bg-purple-400'  },
 }
 
-const BLOCO_VAZIO: BlocoRascunho = { nome: '', tipo: 'hipertrofia', semanas: 4, descricao: '', plano_associado: '' }
+const BLOCO_VAZIO: BlocoRascunho = { nome: '', tipo: 'hipertrofia', semanas: 4, descricao: '' }
 
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -54,10 +55,10 @@ export default function PeriodizacaoPage() {
   const [nomeForm, setNomeForm] = useState('')
   const [dataInicioForm, setDataInicioForm] = useState(getTodayBR())
   const [blocosForm, setBlocosForm] = useState<BlocoRascunho[]>([
-    { nome: 'Adaptação',   tipo: 'hipertrofia', semanas: 3, descricao: 'Fase de adaptação neuromuscular. Foco em técnica, 3-4 séries, 12-15 reps, cargas moderadas.', plano_associado: 'A' },
-    { nome: 'Hipertrofia', tipo: 'hipertrofia', semanas: 4, descricao: 'Foco em volume. 4 séries, 8-12 reps, 65-75% 1RM. Progressão de carga semanal.', plano_associado: 'A' },
-    { nome: 'Força',       tipo: 'forca',       semanas: 3, descricao: 'Redução de volume, aumento de intensidade. 4-5 séries, 4-6 reps, 80-90% 1RM.', plano_associado: 'B' },
-    { nome: 'Deload',      tipo: 'deload',      semanas: 1, descricao: 'Semana de recuperação ativa. 50-60% do volume normal, cargas reduzidas.', plano_associado: '' },
+    { nome: 'Adaptação',   tipo: 'adaptacao',   semanas: 3, descricao: 'Fase de adaptação neuromuscular. Foco em técnica, 3-4 séries, 12-15 reps, cargas moderadas.' },
+    { nome: 'Hipertrofia', tipo: 'hipertrofia', semanas: 4, descricao: 'Foco em volume. 4 séries, 8-12 reps, 65-75% 1RM. Progressão de carga semanal.' },
+    { nome: 'Força',       tipo: 'forca',       semanas: 3, descricao: 'Redução de volume, aumento de intensidade. 4-5 séries, 4-6 reps, 80-90% 1RM.' },
+    { nome: 'Deload',      tipo: 'deload',      semanas: 1, descricao: 'Semana de recuperação ativa. 50-60% do volume normal, cargas reduzidas.' },
   ])
 
   useEffect(() => { carregar() }, [clienteId])
@@ -105,7 +106,6 @@ export default function PeriodizacaoPage() {
           nome: b.nome.trim() || `Bloco ${i + 1}`,
           tipo: b.tipo, semanas: b.semanas, ordem: i + 1,
           descricao: b.descricao.trim() || null,
-          plano_associado: b.plano_associado || null,
         }))
       )
       const { data: blocos } = await supabase.from('blocos_periodizacao').select('*').eq('periodizacao_id', nova.id).order('ordem')
@@ -188,7 +188,6 @@ export default function PeriodizacaoPage() {
               </div>
               <p className="text-zinc-600 text-[9px]">Semana {semanaAtual.semanaTotal} de {totalSemanas} no ciclo</p>
               {b.descricao && <p className="text-zinc-400 text-xs mt-4 leading-relaxed border-t border-white/[0.04] pt-3">{b.descricao}</p>}
-              {b.plano_associado && <p className="text-zinc-600 text-[9px] mt-2">Plano de treino: <span className="text-zinc-300 font-bold">{b.plano_associado}</span></p>}
             </div>
           )
         })()}
@@ -224,9 +223,7 @@ export default function PeriodizacaoPage() {
                         <p className={`font-semibold text-sm ${isAtual ? 'text-white' : 'text-zinc-400'}`}>{b.nome}</p>
                         {isAtual && <span className="text-[8px] font-black text-black bg-white rounded-full px-1.5 py-0.5 leading-tight">AGORA</span>}
                       </div>
-                      <p className="text-zinc-600 text-[10px]">
-                        {cfg.label} · sem. {ini}–{ini + b.semanas - 1}{b.plano_associado ? ` · Plano ${b.plano_associado}` : ''}
-                      </p>
+                      <p className="text-zinc-600 text-[10px]">{cfg.label} · sem. {ini}–{ini + b.semanas - 1}</p>
                       {b.descricao && isAtual && <p className="text-zinc-500 text-[10px] mt-1">{b.descricao}</p>}
                     </div>
                     <span className={`text-xs font-bold shrink-0 ${isAtual ? cfg.text : 'text-zinc-600'}`}>{b.semanas}s</span>
@@ -347,17 +344,6 @@ export default function PeriodizacaoPage() {
                               <input type="number" min={1} max={16} value={b.semanas}
                                 onChange={e => updateBloco(i, 'semanas', Math.max(1, parseInt(e.target.value) || 1))}
                                 className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs text-center focus:outline-none focus:border-white/20" />
-                            </div>
-                            <div className="w-16">
-                              <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1">Plano</label>
-                              <select value={b.plano_associado} onChange={e => updateBloco(i, 'plano_associado', e.target.value)}
-                                className="w-full border border-white/[0.08] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-white/20"
-                                style={{ colorScheme: 'dark', background: '#141414' }}>
-                                <option value="">—</option>
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                                <option value="C">C</option>
-                              </select>
                             </div>
                           </div>
                           <div>

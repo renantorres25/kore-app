@@ -26,16 +26,18 @@ type FaseCiclo = {
   nomeBloco: string
   tipoBloco: string
   semanaBloco: number
+  semanasBloco: number
   totalSemanas: number
+  diasAteProximoBloco: number | null
 }
 
 const TIPO_COR_LISTA: Record<string, string> = {
-  hipertrofia: 'text-blue-400 border-blue-500/20 bg-blue-500/10',
-  forca: 'text-orange-400 border-orange-500/20 bg-orange-500/10',
-  resistencia: 'text-green-400 border-green-500/20 bg-green-500/10',
-  deload: 'text-zinc-400 border-zinc-500/20 bg-zinc-500/10',
-  adaptacao: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
-  potencia: 'text-yellow-400 border-yellow-500/20 bg-yellow-500/10',
+  adaptacao:   'text-teal-400 border-teal-500/20 bg-teal-500/10',
+  hipertrofia: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10',
+  forca:       'text-blue-400 border-blue-500/20 bg-blue-500/10',
+  resistencia: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+  deload:      'text-zinc-400 border-zinc-500/20 bg-zinc-500/10',
+  potencia:    'text-orange-400 border-orange-500/20 bg-orange-500/10',
 }
 
 function getInitials(nome: string | null, email: string): string {
@@ -133,7 +135,9 @@ export default function PersonalAlunos() {
             }
             const b = blocos[blocoIdx]
             const semanaNoBloco = Math.min(semanaTotal - acum, b.semanas)
-            fasesMap[aluno.cliente_id] = { nomeCiclo: periData.nome, nomeBloco: b.nome, tipoBloco: b.tipo, semanaBloco: semanaNoBloco, totalSemanas }
+            const semanasRestantesBloco = b.semanas - semanaNoBloco
+            const diasAteProximo = blocoIdx < blocos.length - 1 ? semanasRestantesBloco * 7 : null
+            fasesMap[aluno.cliente_id] = { nomeCiclo: periData.nome, nomeBloco: b.nome, tipoBloco: b.tipo, semanaBloco: semanaNoBloco, semanasBloco: b.semanas, totalSemanas, diasAteProximoBloco: diasAteProximo }
           } else {
             fasesMap[aluno.cliente_id] = null
           }
@@ -263,9 +267,18 @@ export default function PersonalAlunos() {
                           {emRisco && !treinouHoje && <span className="text-[9px] text-orange-400 border border-orange-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider shrink-0">Atenção</span>}
                         </div>
                         {fase ? (
-                          <p className={`text-[10px] font-semibold mt-0.5 ${faseCor.split(' ')[0]}`}>
-                            {fase.nomeBloco} · Sem. {fase.semanaBloco}
-                          </p>
+                          <div className="mt-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className={`text-[10px] font-semibold ${faseCor.split(' ')[0]}`}>
+                                {fase.nomeBloco}
+                              </p>
+                              <p className="text-zinc-600 text-[9px]">Sem. {fase.semanaBloco}/{fase.semanasBloco}</p>
+                            </div>
+                            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${faseCor.split(' ')[0].replace('text-', 'bg-')}`}
+                                style={{ width: `${Math.min(100, (fase.semanaBloco / fase.semanasBloco) * 100)}%` }} />
+                            </div>
+                          </div>
                         ) : (
                           <p className="text-zinc-600 text-xs truncate mt-0.5">{aluno.email}</p>
                         )}
