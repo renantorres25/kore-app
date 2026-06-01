@@ -220,7 +220,6 @@ export default function NutricionistaPacientes() {
 
       <div className="md:hidden"><NavBar tipo="nutricionista" ativa="pacientes" /></div>
       </div>
-      </div>
     </main>
   )
 }
