@@ -431,48 +431,223 @@ Responda APENAS JSON válido:
   const totalEdProt = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'proteina'), 0)
 
   return (
-    <main className="min-h-[100dvh] bg-[#080808] text-white">
-      <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <main className="min-h-[100dvh] bg-[#080808] text-white flex flex-col">
 
-        {/* Header */}
-        <div className="mb-5">
-          <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-600 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-1 hover:text-zinc-400 transition-colors">
+      {/* ── HEADER FIXO ─────────────────────────────────────────────── */}
+      <div className="shrink-0 sticky top-0 z-20 bg-[#080808]/95 backdrop-blur-sm border-b border-white/[0.06]"
+           style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+        <div className="px-4 md:px-8 pb-3">
+          <button onClick={() => router.push('/nutricionista/pacientes')}
+            className="text-zinc-600 text-[10px] uppercase tracking-widest mb-2 flex items-center gap-1 hover:text-zinc-400 transition-colors">
             ← Pacientes
           </button>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
-              <span className="text-green-400 font-black text-base">{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-black text-white tracking-tight truncate">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {paciente?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
-                {paciente?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
-                {metaCal && <span className="text-[10px] text-green-500/70 bg-green-500/5 border border-green-500/15 rounded-full px-2 py-0.5">Meta: {metaCal}kcal</span>}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
+                <span className="text-green-400 font-black text-sm">{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
               </div>
+              <div className="min-w-0">
+                <h1 className="text-xl md:text-2xl font-black text-white tracking-tight truncate">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
+                <div className="flex flex-wrap gap-1.5 mt-0.5">
+                  {paciente?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
+                  {paciente?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {paciente?.meta_peso && <span className="text-[10px] text-green-500/70 bg-green-500/5 border border-green-500/15 rounded-full px-2 py-0.5">Meta: {paciente.meta_peso}kg</span>}
+                  {metaCal && <span className="hidden md:inline text-[10px] text-zinc-600 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">{metaCal} kcal sugerido</span>}
+                </div>
+              </div>
+            </div>
+            {/* Ações rápidas — desktop */}
+            <div className="hidden md:flex items-center gap-2 shrink-0">
+              <button onClick={() => router.push(`/anamnese/${clienteId}`)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-95 transition-all text-sm text-zinc-300 font-medium">
+                📋 Anamnese
+              </button>
+              <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-95 transition-all text-sm text-zinc-300 font-medium">
+                📏 Medidas
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Quick actions */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-            className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left">
-            <span className="text-xl shrink-0">📋</span>
-            <div>
-              <p className="text-white text-sm font-bold">Anamnese</p>
-              <p className="text-zinc-600 text-[10px]">Ficha de saúde</p>
+      {/* ── BODY: 2 colunas no desktop ──────────────────────────────── */}
+      <div className="flex-1 md:flex md:overflow-hidden">
+
+        {/* ── PAINEL ESQUERDO — só desktop ──────────────────────────── */}
+        <div className="hidden md:flex md:flex-col md:w-[340px] md:shrink-0 md:overflow-y-auto md:border-r md:border-white/[0.06] p-5 gap-4">
+
+          {/* Ficha do paciente — sempre expandida no desktop */}
+          <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
+            <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Ficha</p>
+              <button onClick={() => {
+                setFichaPeso(String(paciente?.peso ?? ''))
+                setFichaAltura(String(paciente?.altura ?? ''))
+                setFichaSexo(paciente?.sexo ?? '')
+                setFichaNascimento(paciente?.data_nascimento ?? '')
+                setFichaObjetivo(paciente?.objetivo ?? '')
+                setFichaMetaPeso(String(paciente?.meta_peso ?? ''))
+                setFichaMetaData(paciente?.meta_data_limite ?? '')
+                setEditandoFicha(p => !p)
+              }} className="text-[10px] text-zinc-500 hover:text-zinc-300 border border-white/[0.08] rounded-lg px-2 py-1 transition-all">
+                {editandoFicha ? 'Fechar' : 'Editar'}
+              </button>
             </div>
-          </button>
-          <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-            className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left">
-            <span className="text-xl shrink-0">📏</span>
-            <div>
-              <p className="text-white text-sm font-bold">Medidas</p>
-              <p className="text-zinc-600 text-[10px]">Evolução corporal</p>
+            {!editandoFicha ? (
+              <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                {paciente?.peso && <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Peso</p><p className="text-white text-sm font-bold">{paciente.peso} kg</p></div>}
+                {paciente?.altura && <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Altura</p><p className="text-white text-sm font-bold">{paciente.altura} cm</p></div>}
+                {paciente?.sexo && <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Sexo</p><p className="text-white text-sm font-bold capitalize">{paciente.sexo}</p></div>}
+                {paciente?.objetivo && <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Objetivo</p><p className="text-white text-sm font-bold">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</p></div>}
+                {paciente?.meta_peso && <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Meta</p><p className="text-emerald-400 text-sm font-bold">{paciente.meta_peso} kg</p></div>}
+                {paciente?.meta_data_limite && <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Prazo</p><p className="text-white text-sm font-bold">{new Date(paciente.meta_data_limite).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p></div>}
+              </div>
+            ) : (
+              <div className="px-4 pb-4 pt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Peso (kg)</p><input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)} placeholder="65.0" className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" /></div>
+                  <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Altura (cm)</p><input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)} placeholder="165" className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.06]" /></div>
+                </div>
+                <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Objetivo</p>
+                  <div className="flex flex-wrap gap-1.5">{[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde geral']].map(([v, l]) => (<button key={v} onClick={() => setFichaObjetivo(v)} className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.03] text-zinc-400 border-white/[0.08]'}`}>{l}</button>))}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Meta (kg)</p><input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)} placeholder="62" className="w-full bg-white/[0.04] text-white placeholder-zinc-700 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.06]" /></div>
+                  <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Prazo</p><input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)} className="w-full bg-white/[0.04] text-white rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.06]" style={{ colorScheme: 'dark' }} /></div>
+                </div>
+                {metaSemPrazoAviso && <p className="text-amber-400 text-xs px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">⚠️ Defina um prazo antes de salvar.</p>}
+                <button onClick={salvarFicha} disabled={salvandoFicha} className="w-full bg-white text-black font-bold py-2.5 rounded-xl text-sm active:scale-95 transition-all disabled:opacity-40">{salvandoFicha ? 'Salvando...' : 'Salvar ficha'}</button>
+              </div>
+            )}
+          </div>
+
+          {/* Alertas clínicos */}
+          {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && (
+            <div className="rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#140a0a' }}>
+              <div className="px-4 py-3 flex items-center gap-2 border-b border-red-500/10">
+                <span className="text-red-400 text-sm">⚠</span>
+                <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
+              </div>
+              <div className="px-4 py-3 flex flex-col gap-2">
+                {anamneseLesoes && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p><p className="text-red-200/80 text-[11px] leading-relaxed">{anamneseLesoes}</p></div>}
+                {anamneseRestricaoFisica && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p><p className="text-amber-200/80 text-[11px] leading-relaxed">{anamneseRestricaoFisica}</p></div>}
+                {anamneseMedicamentos && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p><p className="text-zinc-300/80 text-[11px] leading-relaxed">{anamneseMedicamentos}</p></div>}
+                {anamneseAlergias && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Alergias / Restrições alimentares</p><p className="text-amber-300/80 text-[11px] leading-relaxed">{anamneseAlergias}</p></div>}
+              </div>
             </div>
-          </button>
+          )}
+
+          {/* Composição corporal */}
+          {medidasCP.length >= 2 && (() => {
+            const ultima = medidasCP[medidasCP.length - 1]
+            const primeira = medidasCP[0]
+            const metricas = [
+              { key: 'peso' as keyof MedidaCP, label: 'Peso', unit: 'kg', cor: '#94a3b8' },
+              { key: 'gordura_pct' as keyof MedidaCP, label: '% Gordura', unit: '%', cor: '#f97316', inverse: true },
+              { key: 'massa_muscular' as keyof MedidaCP, label: 'Massa musc.', unit: 'kg', cor: '#34d399' },
+              { key: 'cintura' as keyof MedidaCP, label: 'Cintura', unit: 'cm', cor: '#a78bfa', inverse: true },
+            ].filter(m => ultima[m.key] != null && primeira[m.key] != null)
+            if (!metricas.length) return null
+            return (
+              <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: '#0f0f0f' }}>
+                <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição corporal</p>
+                  <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
+                </div>
+                <div className="divide-y divide-white/[0.04]">
+                  {metricas.map(m => {
+                    const cur = ultima[m.key] as number
+                    const ini = primeira[m.key] as number
+                    const delta = Math.round((cur - ini) * 10) / 10
+                    const positivo = (m as any).inverse ? delta < 0 : delta > 0
+                    const deltaCor = delta === 0 ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
+                    return (
+                      <div key={m.key} className="flex items-center justify-between px-4 py-2.5">
+                        <div>
+                          <p className="text-zinc-500 text-[9px] uppercase tracking-wider">{m.label}</p>
+                          <div className="flex items-baseline gap-1.5 mt-0.5">
+                            <span className="text-white text-base font-bold">{cur}</span>
+                            <span className="text-zinc-600 text-[10px]">{m.unit}</span>
+                            {delta !== 0 && <span className={`text-[10px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}</span>}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-zinc-700 text-[9px]">início</p>
+                          <p className="text-zinc-400 text-xs font-semibold">{ini}{m.unit}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="px-4 py-2.5 border-t border-white/[0.04]">
+                  <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">Ver evolução completa →</button>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Fase de treino */}
+          {periodizacaoFase && (() => {
+            const TIPO_COR_D: Record<string, { text: string; dot: string; border: string }> = {
+              hipertrofia: { text: 'text-emerald-400', dot: 'bg-emerald-400', border: 'border-emerald-500/25' },
+              forca: { text: 'text-blue-400', dot: 'bg-blue-400', border: 'border-blue-500/25' },
+              adaptacao: { text: 'text-teal-400', dot: 'bg-teal-400', border: 'border-teal-500/25' },
+              deload: { text: 'text-zinc-400', dot: 'bg-zinc-400', border: 'border-zinc-500/25' },
+              potencia: { text: 'text-orange-400', dot: 'bg-orange-400', border: 'border-orange-500/25' },
+              resistencia: { text: 'text-purple-400', dot: 'bg-purple-400', border: 'border-purple-500/25' },
+            }
+            const cfg = TIPO_COR_D[periodizacaoFase.tipo_bloco] ?? TIPO_COR_D.hipertrofia
+            const pct = (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100
+            return (
+              <div className={`rounded-2xl p-4 border ${cfg.border}`} style={{ background: '#0f0f0f' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Fase de treino</p>
+                  <span className={`text-[10px] font-bold ${cfg.text}`}>Sem. {periodizacaoFase.semana_bloco}/{periodizacaoFase.total_semanas_bloco}</span>
+                </div>
+                <p className={`font-black text-base mb-2 ${cfg.text}`}>{periodizacaoFase.nome_bloco}</p>
+                <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${cfg.dot}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Perfil atlético */}
+          {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
+            <div className="rounded-2xl p-4 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Perfil atlético</p>
+              <div className="flex flex-wrap gap-1.5">
+                {paciente?.nivel && <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">Nível: {paciente.nivel}</span>}
+                {paciente?.fcmax && <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">FC máx: {paciente.fcmax} bpm</span>}
+                {paciente?.ftp && <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">FTP: {paciente.ftp}W</span>}
+                {ultimaAvaliacao && <span className="text-[10px] text-zinc-400 bg-white/[0.03] border border-white/[0.06] rounded-full px-2.5 py-0.5">Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</span>}
+              </div>
+            </div>
+          )}
+
         </div>
+        {/* ── FIM PAINEL ESQUERDO ───────────────────────────────────── */}
+
+        {/* ── PAINEL DIREITO (conteúdo principal) ──────────────────── */}
+        <div className="flex-1 md:overflow-y-auto">
+
+          {/* Mobile-only: quick actions + ficha + composição + periodização */}
+          <div className="md:hidden max-w-md mx-auto px-4 pt-5">
+
+            {/* Quick actions */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button onClick={() => router.push(`/anamnese/${clienteId}`)}
+                className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+                <span className="text-xl shrink-0">📋</span>
+                <div><p className="text-white text-sm font-bold">Anamnese</p><p className="text-zinc-600 text-[10px]">Ficha de saúde</p></div>
+              </button>
+              <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+                className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+                <span className="text-xl shrink-0">📏</span>
+                <div><p className="text-white text-sm font-bold">Medidas</p><p className="text-zinc-600 text-[10px]">Evolução corporal</p></div>
+              </button>
+            </div>
 
         {/* Ficha do paciente */}
         <div className="rounded-2xl border border-white/[0.06] mb-4 overflow-hidden" style={{ background: '#0f0f0f' }}>
@@ -699,6 +874,12 @@ Responda APENAS JSON válido:
           )
         })()}
 
+          </div>
+          {/* ── FIM mobile-only ───────────────────────────────────────── */}
+
+          {/* ── TABS + CONTEÚDO — visível em mobile e desktop ─────────── */}
+          <div className="max-w-md md:max-w-none mx-auto px-4 md:px-8 pt-4 pb-28 md:pb-8">
+
         {/* Abas */}
         <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
           {([['hoje', '📊 Hoje'], ['plano', '🥗 Plano']] as const).map(([id, label]) => (
@@ -711,40 +892,20 @@ Responda APENAS JSON válido:
 
         {/* ── ABA HOJE ─────────────────────────────────────────────────── */}
         {abaAtiva === 'hoje' && (
-          <div className="space-y-4">
+          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
 
-            {/* Alertas clínicos */}
+            {/* Alertas clínicos — mobile only (desktop: já no painel esquerdo) */}
             {(anamneseLesoes || anamneseRestricaoFisica || anamneseMedicamentos || anamneseAlergias) && (
-              <div className="rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#140a0a' }}>
+              <div className="md:hidden rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#140a0a' }}>
                 <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
                   <span className="text-red-400 text-sm">⚠</span>
                   <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
                 </div>
                 <div className="px-5 py-3 flex flex-col gap-2">
-                  {anamneseLesoes && (
-                    <div>
-                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p>
-                      <p className="text-red-200/80 text-[11px] leading-relaxed">{anamneseLesoes}</p>
-                    </div>
-                  )}
-                  {anamneseRestricaoFisica && (
-                    <div>
-                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p>
-                      <p className="text-amber-200/80 text-[11px] leading-relaxed">{anamneseRestricaoFisica}</p>
-                    </div>
-                  )}
-                  {anamneseMedicamentos && (
-                    <div>
-                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p>
-                      <p className="text-zinc-300/80 text-[11px] leading-relaxed">{anamneseMedicamentos}</p>
-                    </div>
-                  )}
-                  {anamneseAlergias && (
-                    <div>
-                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Alergias / Restrições alimentares</p>
-                      <p className="text-amber-300/80 text-[11px] leading-relaxed">{anamneseAlergias}</p>
-                    </div>
-                  )}
+                  {anamneseLesoes && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p><p className="text-red-200/80 text-[11px] leading-relaxed">{anamneseLesoes}</p></div>}
+                  {anamneseRestricaoFisica && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p><p className="text-amber-200/80 text-[11px] leading-relaxed">{anamneseRestricaoFisica}</p></div>}
+                  {anamneseMedicamentos && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p><p className="text-zinc-300/80 text-[11px] leading-relaxed">{anamneseMedicamentos}</p></div>}
+                  {anamneseAlergias && <div><p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Alergias</p><p className="text-amber-300/80 text-[11px] leading-relaxed">{anamneseAlergias}</p></div>}
                 </div>
               </div>
             )}
@@ -870,9 +1031,9 @@ Responda APENAS JSON válido:
               </div>
             </div>
 
-            {/* Perfil atlético */}
+            {/* Perfil atlético — mobile only (desktop: já no painel esquerdo) */}
             {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
-              <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
+              <div className="md:hidden rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0f0f0f' }}>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Perfil atlético</p>
                 <div className="flex flex-wrap gap-2">
                   {paciente?.nivel && (
@@ -1262,9 +1423,15 @@ Responda APENAS JSON válido:
             )}
           </div>
         )}
-      </div>
 
-      <NavBar tipo="nutricionista" ativa="pacientes" />
+          </div>
+          {/* ── FIM TABS WRAPPER ─────────────────────────────────────── */}
+        </div>
+        {/* ── FIM PAINEL DIREITO ───────────────────────────────────── */}
+      </div>
+      {/* ── FIM BODY ─────────────────────────────────────────────── */}
+
+      <div className="md:hidden"><NavBar tipo="nutricionista" ativa="pacientes" /></div>
 
       {/* Modal confirmação IA */}
       {confirmandoIA && (
