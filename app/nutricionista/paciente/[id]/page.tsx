@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import NavBar from '../../../components/NavBar'
 import AlimentoBusca, { type AlimentoTACO } from '../../../components/AlimentoBusca'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 import SidebarProfissional from '../../../components/SidebarProfissional'
+import { LayoutDashboard, Utensils, Dumbbell, Sparkles, ClipboardList, TrendingUp, ChevronRight } from 'lucide-react'
 
 type Paciente = {
   id: string; nome: string | null; email: string
@@ -611,13 +612,13 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
       <div className="shrink-0 border-b overflow-x-auto" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
         <div className="flex px-4 md:px-8 min-w-max">
           {([
-            { id: 'visao-geral', label: 'Visão Geral',   icon: '📊' },
-            { id: 'plano',       label: 'Plano',          icon: '🥗' },
-            { id: 'treino',      label: 'Treino',         icon: '🏋️' },
-            { id: 'ia',          label: 'IA Clínica',     icon: '✦' },
-            { id: 'anamnese',    label: 'Anamnese',       icon: '📋' },
-            { id: 'evolucao',    label: 'Evolução',       icon: '📈' },
-          ] as { id: string; label: string; icon: string; ext?: boolean }[]).map(tab => (
+            { id: 'visao-geral', label: 'Visão Geral',  Icon: LayoutDashboard },
+            { id: 'plano',       label: 'Plano',         Icon: Utensils },
+            { id: 'treino',      label: 'Treino',        Icon: Dumbbell },
+            { id: 'ia',          label: 'IA Clínica',    Icon: Sparkles },
+            { id: 'anamnese',    label: 'Anamnese',      Icon: ClipboardList },
+            { id: 'evolucao',    label: 'Evolução',      Icon: TrendingUp },
+          ] as { id: string; label: string; Icon: React.ComponentType<{size?: number; className?: string}> }[]).map(tab => (
             <button key={tab.id}
               onClick={() => {
                 if (tab.id === 'anamnese' && !anamneseCompleta && !loadingAnamnese) {
@@ -627,14 +628,13 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 }
                 setAbaAtiva(tab.id as any); setEditandoPlano(false)
               }}
-              className={`px-4 py-3.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-4 py-3.5 text-sm border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${
                 abaAtiva === tab.id
-                  ? 'border-[var(--accent)] text-white'
-                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                  ? 'border-[var(--accent)] text-white font-semibold'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300 font-normal'
               }`}>
-              <span>{tab.icon}</span>
+              <tab.Icon size={15} />
               {tab.label}
-              {tab.ext && <span className="text-zinc-600 text-xs">↗</span>}
             </button>
           ))}
         </div>
@@ -642,7 +642,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
       {/* ── CONTEÚDO SINGLE-COLUMN ───────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 pb-28 md:pb-10">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-6 pb-28 md:pb-10">
 
 
 

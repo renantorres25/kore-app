@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import NavBar from '../../components/NavBar'
 import SidebarProfissional from '../../components/SidebarProfissional'
+import { ChevronRight } from 'lucide-react'
 
 type Paciente = {
   id: string; cliente_id: string; nome: string | null; email: string
@@ -191,7 +192,7 @@ export default function NutricionistaPacientes() {
                           {(s?.kcal7d ?? 0) > 0 && <span>~{s!.kcal7d} kcal/sem.</span>}
                         </div>
                       </div>
-                      <span className="text-zinc-600 shrink-0">→</span>
+                      <ChevronRight size={16} className="text-zinc-600 shrink-0" />
                     </div>
                   </button>
                 )

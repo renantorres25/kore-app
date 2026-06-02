@@ -524,7 +524,7 @@ Responda APENAS em JSON válido, sem markdown:
                       <p className="text-white font-bold text-sm">{n.titulo}</p>
                       <p className="text-zinc-500 text-xs mt-0.5">{n.corpo}</p>
                     </div>
-                    {n.link && <span className="text-zinc-700 text-sm shrink-0">→</span>}
+                    {n.link && <span className="text-zinc-600 text-sm shrink-0">›</span>}
                   </button>
                 ))}
               </div>
@@ -1357,7 +1357,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
     <div className="md:flex md:h-screen" style={{ background: 'var(--bg-base)' }}>
       <SidebarProfissional tipo="personal" />
       <div className="flex-1 md:overflow-y-auto">
-    <div className="max-w-md mx-auto px-4 md:max-w-5xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
+    <div className="max-w-md mx-auto px-4 md:max-w-[1100px] md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
@@ -1459,7 +1459,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
                   <p className="text-white text-sm font-semibold truncate">{n.nome ?? n.email.split('@')[0]}</p>
                   <p className="text-zinc-500 text-[10px]">{n.blocoAtual} → <span className="text-blue-300 font-semibold">{n.proximoBloco}</span> em {n.diasRestantes}d</p>
                 </div>
-                <span className="text-zinc-700 text-sm shrink-0">→</span>
+                <span className="text-zinc-600 text-sm shrink-0">›</span>
               </button>
             ))}
           </div>
@@ -1738,7 +1738,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
                   <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
                   <p className="text-zinc-500 text-[10px]">Plano sem revisão há <span className="text-amber-400 font-semibold">{p.diasDesdeRevisao} dias</span></p>
                 </div>
-                <span className="text-zinc-700 text-sm shrink-0">→</span>
+                <span className="text-zinc-600 text-sm shrink-0">›</span>
               </button>
             ))}
           </div>
@@ -1772,7 +1772,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
                       {p.kcal7d > 0 && <span>{p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal/sem.</span>}
                     </div>
                   </div>
-                  <span className="text-zinc-600 text-sm shrink-0">→</span>
+                  <span className="text-zinc-600 text-sm shrink-0">›</span>
                 </button>
               )
             })}
