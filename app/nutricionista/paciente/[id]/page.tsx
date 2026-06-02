@@ -557,7 +557,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
+                  <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
                   {paciente?.data_nascimento && (() => {
                     const hoje2 = new Date()
                     const nasc = new Date(paciente.data_nascimento)
@@ -649,255 +649,206 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
         {/* ── ABA VISÃO GERAL ──────────────────────────────────────────── */}
         {abaAtiva === 'visao-geral' && (
-          <div className="space-y-5">
+          <div className="space-y-8">
 
-            {/* ── BRIEFING IA — compacto na Visão Geral ───────────────── */}
-            {briefingEstruturado ? (
-              <div className="rounded-2xl border border-emerald-500/20 p-5" style={{ background: '#0a1510' }}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-emerald-400 text-sm">✦</span>
-                    <p className="text-emerald-400/70 text-xs uppercase tracking-wider">Resumo IA</p>
+            {/* ── 1. SITUAÇÃO ATUAL — hero com números grandes ─────────── */}
+            {medidasCP.length >= 1 ? (() => {
+              const ultima = medidasCP[medidasCP.length - 1]
+              const primeira = medidasCP.length >= 2 ? medidasCP[0] : null
+              type MC = { label: string; val: number | null; unit: string; delta: number | null; inv: boolean; cor: string }
+              const metricas: MC[] = [
+                { label: 'Peso', val: ultima.peso, unit: 'kg', delta: primeira?.peso ? Math.round(((ultima.peso ?? 0) - primeira.peso) * 10) / 10 : null, inv: false, cor: '#94a3b8' },
+                { label: 'Gordura', val: ultima.gordura_pct, unit: '%', delta: primeira?.gordura_pct ? Math.round(((ultima.gordura_pct ?? 0) - primeira.gordura_pct) * 10) / 10 : null, inv: true, cor: '#f97316' },
+                { label: 'Massa musc.', val: ultima.massa_muscular, unit: 'kg', delta: primeira?.massa_muscular ? Math.round(((ultima.massa_muscular ?? 0) - primeira.massa_muscular) * 10) / 10 : null, inv: false, cor: '#34d399' },
+              ].filter(m => m.val != null)
+              return (
+                <div className="rounded-3xl p-8" style={{ background: '#161c2c' }}>
+                  <div className="flex items-center justify-between mb-8">
+                    <p className="text-[11px] text-zinc-500 uppercase tracking-[0.2em]">Situação atual</p>
+                    {ultimaAvaliacao && (
+                      <p className="text-zinc-600 text-xs">
+                        Avaliado em {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                      </p>
+                    )}
                   </div>
-                  <button onClick={() => setAbaAtiva('ia')} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">Ver análise completa →</button>
+                  <div className="grid grid-cols-3 gap-8 md:gap-12">
+                    {metricas.map(m => {
+                      const positivo = m.delta !== null && (m.inv ? m.delta < 0 : m.delta > 0)
+                      return (
+                        <div key={m.label}>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-5xl md:text-6xl font-black text-white tracking-tight leading-none">{m.val}</span>
+                            <span className="text-zinc-500 text-base font-normal">{m.unit}</span>
+                          </div>
+                          <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mt-2">{m.label}</p>
+                          {m.delta !== null && m.delta !== 0 && (
+                            <p className={`text-sm font-semibold mt-1 ${positivo ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                              {m.delta > 0 ? '+' : ''}{m.delta} total
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <button onClick={() => setAbaAtiva('evolucao')}
+                    className="mt-8 text-xs text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1">
+                    Ver evolução completa →
+                  </button>
                 </div>
-                <p className="text-zinc-200 text-base leading-relaxed mt-2">{briefingEstruturado.resumo}</p>
-              </div>
-            ) : (
-              <button onClick={() => setAbaAtiva('ia')}
-                className="w-full rounded-2xl border border-emerald-500/15 p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-all hover:border-emerald-500/25"
-                style={{ background: '#0a1510' }}>
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">✦</div>
+              )
+            })() : (
+              <div className="rounded-3xl p-8 flex items-center gap-5" style={{ background: '#161c2c' }}>
+                <div className="w-14 h-14 rounded-2xl bg-white/[0.05] flex items-center justify-center text-2xl shrink-0">📏</div>
                 <div>
-                  <p className="text-white text-sm font-semibold">Gerar análise IA deste paciente</p>
-                  <p className="text-zinc-500 text-xs">Evolução, riscos, recomendações — em segundos</p>
+                  <p className="text-white font-bold mb-1">Sem avaliações corporais</p>
+                  <p className="text-zinc-500 text-sm">Registre peso, gordura e massa muscular para acompanhar a evolução</p>
                 </div>
-                <span className="text-zinc-600 ml-auto">→</span>
-              </button>
+                <button onClick={() => setAbaAtiva('evolucao')} className="ml-auto text-sm text-white bg-white/[0.08] px-4 py-2 rounded-xl shrink-0 hover:bg-white/[0.12] transition-all">
+                  Adicionar →
+                </button>
+              </div>
             )}
 
-            {/* ── ALERTAS + INDICADORES (2 colunas) ──────────────────── */}
-            <div className="grid md:grid-cols-2 gap-5">
-
-              {/* Alertas como badges */}
-              {(() => {
-                const l = limparAlerta(anamneseLesoes), r = limparAlerta(anamneseRestricaoFisica)
-                const m = limparAlerta(anamneseMedicamentos), a = limparAlerta(anamneseAlergias)
-                if (!l && !r && !m && !a) return (
-                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
-                    <p className="text-zinc-600 text-xs uppercase tracking-wider mb-2">Alertas clínicos</p>
-                    <p className="text-zinc-600 text-sm">Nenhum alerta registrado</p>
+            {/* ── 2. ALERTAS CLÍNICOS — sem card, só badges ────────────── */}
+            {(() => {
+              const l = limparAlerta(anamneseLesoes), r = limparAlerta(anamneseRestricaoFisica)
+              const m = limparAlerta(anamneseMedicamentos), a = limparAlerta(anamneseAlergias)
+              if (!l && !r && !m && !a) return null
+              function badges(txt: string | null, cor: string) {
+                if (!txt) return null
+                return txt.split(/[·,;]/).map(s => s.trim()).filter(Boolean).map((item, i) => (
+                  <span key={i} className={`inline-flex text-sm px-3 py-1.5 rounded-xl border ${cor} leading-none`}>{item}</span>
+                ))
+              }
+              return (
+                <div>
+                  <p className="text-[11px] text-zinc-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <span className="text-red-500/70">⚠</span> Alertas clínicos
+                  </p>
+                  <div className="flex flex-wrap gap-2.5">
+                    {badges(l, 'text-red-300 bg-red-500/10 border-red-500/15')}
+                    {badges(r, 'text-amber-300 bg-amber-500/10 border-amber-500/15')}
+                    {badges(m, 'text-zinc-300 bg-white/[0.06] border-white/[0.10]')}
+                    {badges(a, 'text-orange-300 bg-orange-500/10 border-orange-500/15')}
                   </div>
-                )
-                function badges(txt: string | null, cor: string) {
-                  if (!txt) return null
-                  return txt.split(/[·,;]/).map(s => s.trim()).filter(Boolean).map((item, i) => (
-                    <span key={i} className={`inline-flex text-xs px-2.5 py-1 rounded-lg border ${cor}`}>{item}</span>
-                  ))
-                }
-                return (
-                  <div className="rounded-2xl border border-red-500/15 p-5" style={{ background: '#1a0f0f' }}>
-                    <p className="text-red-400/70 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5"><span>⚠</span> Alertas clínicos</p>
-                    <div className="flex flex-wrap gap-2">
-                      {badges(l, 'text-red-300 bg-red-500/10 border-red-500/20')}
-                      {badges(r, 'text-amber-300 bg-amber-500/10 border-amber-500/20')}
-                      {badges(m, 'text-zinc-300 bg-white/[0.07] border-white/[0.12]')}
-                      {badges(a, 'text-orange-300 bg-orange-500/10 border-orange-500/20')}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Indicadores de composição */}
-              {medidasCP.length >= 2 ? (() => {
-                const ultima = medidasCP[medidasCP.length - 1]
-                const primeira = medidasCP[0]
-                return (
-                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
-                    <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Composição corporal</p>
-                    <div className="space-y-2.5">
-                      {[
-                        { label: 'Peso', cur: ultima.peso, ini: primeira.peso, unit: 'kg', inv: false },
-                        { label: '% Gordura', cur: ultima.gordura_pct, ini: primeira.gordura_pct, unit: '%', inv: true },
-                        { label: 'Massa muscular', cur: ultima.massa_muscular, ini: primeira.massa_muscular, unit: 'kg', inv: false },
-                      ].filter(m => m.cur != null && m.ini != null).map(m => {
-                        const delta = Math.round(((m.cur ?? 0) - (m.ini ?? 0)) * 10) / 10
-                        const pos = m.inv ? delta < 0 : delta > 0
-                        return (
-                          <div key={m.label} className="flex items-center justify-between">
-                            <span className="text-zinc-500 text-sm">{m.label}</span>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-white text-sm font-semibold">{m.cur} {m.unit}</span>
-                              {delta !== 0 && <span className={`text-xs ${pos ? 'text-emerald-400' : 'text-zinc-500'}`}>{delta > 0 ? '+' : ''}{delta}</span>}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)} className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Ver evolução completa →</button>
-                  </div>
-                )
-              })() : (
-                <div className="rounded-2xl border border-white/[0.09] p-5 flex flex-col items-center justify-center gap-2 text-center" style={{ background: '#161c2c' }}>
-                  <p className="text-3xl">📏</p>
-                  <p className="text-zinc-500 text-sm">Sem medidas registradas</p>
-                  <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)} className="text-xs text-emerald-400 border border-emerald-500/20 rounded-lg px-3 py-1.5 mt-1 active:scale-95 transition-all">Adicionar medidas →</button>
                 </div>
-              )}
-            </div>
+              )
+            })()}
 
-            {/* Linha separadora da seção "hoje" */}
-            <p className="text-xs text-zinc-600 uppercase tracking-[0.15em]">Dados de hoje</p>
+            {/* ── 3. DADOS DE HOJE — 3 colunas, números grandes ────────── */}
+            <div>
+              <p className="text-[11px] text-zinc-600 uppercase tracking-[0.2em] mb-4">Dados de hoje</p>
+              <div className="grid grid-cols-3 gap-4">
 
             {/* Recuperação */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">😴 Recuperação hoje</p>
+            <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Recuperação</p>
               {sonoHoje?.score_recuperacao != null ? (
-                <div>
-                  <div className="flex items-end gap-3 mb-3">
-                    <span className={`text-5xl font-black leading-none ${sonoHoje.score_recuperacao >= 70 ? 'text-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <>
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className={`text-6xl font-black leading-none tracking-tight ${sonoHoje.score_recuperacao >= 70 ? 'text-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
                       {sonoHoje.score_recuperacao}
                     </span>
-                    <span className="text-zinc-600 text-xl mb-1">/100</span>
+                    <span className="text-zinc-600 text-xl">/100</span>
                   </div>
-                  <div className="h-2 bg-white/[0.09] rounded-full overflow-hidden mb-3">
-                    <div className={`h-full rounded-full transition-all ${sonoHoje.score_recuperacao >= 70 ? 'bg-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
-                      style={{ width: `${sonoHoje.score_recuperacao}%` }} />
+                  <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden mb-3">
+                    <div className={`h-full rounded-full ${sonoHoje.score_recuperacao >= 70 ? 'bg-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`} style={{ width: `${sonoHoje.score_recuperacao}%` }} />
                   </div>
-                  <p className={`text-sm font-semibold mb-1 ${sonoHoje.score_recuperacao >= 70 ? 'text-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {sonoHoje.score_recuperacao >= 85 ? 'Excelente recuperação' : sonoHoje.score_recuperacao >= 70 ? 'Boa recuperação' : sonoHoje.score_recuperacao >= 55 ? 'Recuperação moderada' : 'Recuperação baixa'}
+                  <p className={`text-sm font-medium ${sonoHoje.score_recuperacao >= 70 ? 'text-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {sonoHoje.score_recuperacao >= 85 ? 'Excelente' : sonoHoje.score_recuperacao >= 70 ? 'Boa' : sonoHoje.score_recuperacao >= 55 ? 'Moderada' : 'Baixa'}
                   </p>
-                  {sonoHoje.duracao && <p className="text-zinc-600 text-xs">Dormiu {sonoHoje.duracao}h esta noite</p>}
-                </div>
+                  {sonoHoje.duracao && <p className="text-zinc-600 text-xs mt-0.5">{sonoHoje.duracao}h de sono</p>}
+                </>
               ) : (
-                <div className="py-4 text-center">
-                  <p className="text-2xl mb-2">🌙</p>
-                  <p className="text-zinc-500 text-sm">Sem registro de sono hoje</p>
+                <div className="mt-4">
+                  <p className="text-5xl font-black text-zinc-700 leading-none">—</p>
+                  <p className="text-zinc-600 text-sm mt-3">Sem registro hoje</p>
                 </div>
               )}
             </div>
 
             {/* Treino hoje */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">🏋️ Treino hoje</p>
+            <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Treino hoje</p>
               {treinoHoje ? (
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                      <span className="text-emerald-400 text-base">✓</span>
-                    </div>
-                    <div>
-                      <p className="text-white font-bold text-sm">{treinoHoje.plano ?? 'Treino concluído'}</p>
-                      <p className="text-emerald-400 text-xs">Completou treino hoje</p>
-                    </div>
-                  </div>
+                <>
+                  <p className="text-5xl font-black text-emerald-400 leading-none mb-3">✓</p>
+                  <p className="text-white text-sm font-semibold">Plano {treinoHoje.plano}</p>
+                  <p className="text-emerald-400/70 text-xs mt-0.5">Treino concluído</p>
                   {treinoHoje.calorias_estimadas != null && treinoHoje.calorias_estimadas > 0 && (
-                    <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14] mt-3">
-                      <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-0.5">Gasto estimado</p>
-                      <p className="text-orange-400 font-black text-base">{treinoHoje.calorias_estimadas} <span className="text-xs font-normal text-zinc-500">kcal</span></p>
-                    </div>
+                    <p className="text-orange-400 text-2xl font-black mt-3 leading-none">{treinoHoje.calorias_estimadas}<span className="text-zinc-600 text-xs font-normal ml-1">kcal</span></p>
                   )}
-                </div>
+                </>
               ) : (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center shrink-0">
-                    <span className="text-zinc-600 text-lg">—</span>
-                  </div>
-                  <p className="text-zinc-500 text-sm">Sem treino registrado hoje</p>
+                <div className="mt-4">
+                  <p className="text-5xl font-black text-zinc-700 leading-none">—</p>
+                  <p className="text-zinc-600 text-sm mt-3">Sem treino hoje</p>
+                  <p className="text-zinc-700 text-xs mt-0.5">{treinos7dDatas.length > 0 ? `${treinos7dDatas.length} treinos essa semana` : 'Nenhum treino essa semana'}</p>
                 </div>
               )}
             </div>
 
             {/* Bem-estar */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">⚡ Bem-estar hoje</p>
+            <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Bem-estar</p>
               {bemEstar ? (
-                <div className="space-y-3">
-                  {([
-                    { label: 'Humor', val: bemEstar.humor },
-                    { label: 'Energia', val: bemEstar.energia },
-                    { label: 'Motivação', val: bemEstar.motivacao },
-                  ] as { label: string; val: number }[]).map(({ label, val }) => (
-                    <div key={label} className="flex items-center gap-3">
-                      <p className="text-zinc-500 text-xs w-16 shrink-0">{label}</p>
-                      <div className="flex gap-1.5 flex-1">
-                        {[1,2,3,4,5].map(i => (
-                          <div key={i} className={`flex-1 h-2.5 rounded-full ${i <= val ? (val >= 4 ? 'bg-green-400' : val >= 3 ? 'bg-yellow-400' : 'bg-red-400') : 'bg-white/[0.08]'}`} />
-                        ))}
-                      </div>
-                      <span className={`text-xs font-bold w-7 text-right shrink-0 ${val >= 4 ? 'text-green-400' : val >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>{val}/5</span>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  {(() => {
+                    const media = Math.round((bemEstar.humor + bemEstar.energia + bemEstar.motivacao) / 3 * 10) / 10
+                    return (
+                      <>
+                        <div className="flex items-baseline gap-1 mb-3">
+                          <span className={`text-6xl font-black leading-none tracking-tight ${media >= 4 ? 'text-emerald-400' : media >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>{media}</span>
+                          <span className="text-zinc-600 text-xl">/5</span>
+                        </div>
+                        <div className="space-y-1.5 mt-2">
+                          {[{l:'Humor',v:bemEstar.humor},{l:'Energia',v:bemEstar.energia},{l:'Motivação',v:bemEstar.motivacao}].map(({l,v}) => (
+                            <div key={l} className="flex items-center gap-2">
+                              <p className="text-zinc-600 text-xs w-16 shrink-0">{l}</p>
+                              <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${v>=4?'bg-emerald-400':v>=3?'bg-yellow-400':'bg-red-400'}`} style={{width:`${v/5*100}%`}}/>
+                              </div>
+                              <span className="text-zinc-500 text-xs w-5 text-right">{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )
+                  })()}
+                </>
               ) : (
-                <div className="py-4 text-center">
-                  <p className="text-zinc-600 text-sm">Sem registro de bem-estar hoje</p>
+                <div className="mt-4">
+                  <p className="text-5xl font-black text-zinc-700 leading-none">—</p>
+                  <p className="text-zinc-600 text-sm mt-3">Sem registro hoje</p>
                 </div>
               )}
             </div>
 
-            {/* Treinos — 7 dias */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Treinos — últimos 7 dias</p>
-              <div className="flex gap-1.5">
-                {dias7d.map((dia) => {
-                  const treinoNoDia = treinos7dDatas.includes(dia)
-                  const isHoje = dia === hoje
-                  const [,mm,dd] = dia.split('-')
-                  return (
-                    <div key={dia} className="flex-1 flex flex-col items-center gap-1.5">
-                      <div className={`w-full aspect-square rounded-xl flex items-center justify-center text-sm ${treinoNoDia ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' : 'bg-white/[0.07] border border-white/[0.11] text-zinc-700'}`}>
-                        {treinoNoDia ? '✓' : '·'}
-                      </div>
-                      <p className={`text-[8px] uppercase tracking-wider ${isHoje ? 'text-white' : 'text-zinc-700'}`}>{dd}/{mm}</p>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.14]">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-md bg-blue-500/30 border border-blue-500/40" />
-                  <span className="text-zinc-600 text-[9px]">Treinou</span>
-                </div>
-                <span className={`text-xs font-bold ml-auto ${treinos7dDatas.length >= 4 ? 'text-blue-400' : treinos7dDatas.length >= 2 ? 'text-yellow-400' : treinos7dDatas.length === 0 ? 'text-red-400' : 'text-zinc-500'}`}>
-                  {treinos7dDatas.length === 0 ? 'Nenhum treino esta semana' : `${treinos7dDatas.length}/7 dias`}
-                </span>
-                {caloriasSemanais != null && caloriasSemanais > 0 && (
-                  <span className="text-orange-400 text-[10px] font-bold">
-                    {caloriasSemanais.toLocaleString('pt-BR')} kcal gastos
-                  </span>
-                )}
-              </div>
-            </div>
+              </div>{/* end grid cols-3 */}
+            </div>{/* end dados de hoje */}
 
-            {/* Perfil atlético — mobile only (desktop: já no painel esquerdo) */}
-            {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
-              <div className="md:hidden rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Perfil atlético</p>
-                <div className="flex flex-wrap gap-2">
-                  {paciente?.nivel && (
-                    <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
-                      Nível: {paciente.nivel}
-                    </span>
-                  )}
-                  {paciente?.fcmax && (
-                    <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
-                      FC máx: {paciente.fcmax} bpm
-                    </span>
-                  )}
-                  {paciente?.ftp && (
-                    <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
-                      FTP: {paciente.ftp}W
-                    </span>
-                  )}
-                  {ultimaAvaliacao && (
-                    <span className="text-[10px] text-zinc-400 bg-white/[0.05] border border-white/[0.11] rounded-full px-2.5 py-0.5">
-                      Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
-                    </span>
-                  )}
+            {/* ── 4. ANÁLISE IA — chamada para ação ────────────────────── */}
+            {briefingEstruturado ? (
+              <div className="rounded-2xl p-6" style={{ background: '#0b1610' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] text-emerald-500/70 uppercase tracking-[0.2em] flex items-center gap-2"><span>✦</span> Análise IA</p>
+                  <button onClick={() => setAbaAtiva('ia')} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Ver completo →</button>
                 </div>
+                <p className="text-zinc-200 text-base leading-relaxed">{briefingEstruturado.resumo}</p>
               </div>
+            ) : (
+              <button onClick={() => setAbaAtiva('ia')}
+                className="w-full rounded-2xl p-6 flex items-center gap-4 text-left transition-all hover:opacity-90 active:scale-[0.99]"
+                style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.12)' }}>
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 text-xl">✦</div>
+                <div>
+                  <p className="text-white text-base font-bold">Gerar análise inteligente</p>
+                  <p className="text-zinc-500 text-sm mt-0.5">Evolução, riscos e recomendações — gerados pela IA em segundos</p>
+                </div>
+                <span className="text-emerald-500/50 text-xl ml-auto">→</span>
+              </button>
             )}
+
           </div>
         )}
 
