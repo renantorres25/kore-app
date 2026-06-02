@@ -61,6 +61,10 @@ function PerfilConteudo() {
   // Dados profissionais
   const [especialidade, setEspecialidade] = useState('')
   const [registroProfissional, setRegistroProfissional] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [instagram, setInstagram] = useState('')
+  const [valorConsulta, setValorConsulta] = useState('')
+  const [formacao, setFormacao] = useState('')
 
   useEffect(() => {
     async function carregar() {
@@ -84,6 +88,10 @@ function PerfilConteudo() {
         if (data.modalidades) setModalidades(data.modalidades)
         if (data.especialidade) setEspecialidade(data.especialidade)
         if (data.registro_profissional) setRegistroProfissional(data.registro_profissional)
+        if (data.whatsapp) setWhatsapp(data.whatsapp)
+        if (data.instagram) setInstagram(data.instagram)
+        if (data.valor_consulta) setValorConsulta(data.valor_consulta)
+        if (data.formacao) setFormacao(data.formacao)
       }
       setCarregando(false)
     }
@@ -159,6 +167,10 @@ function PerfilConteudo() {
       modalidades: modalidades.length > 0 ? modalidades : null,
       especialidade: especialidade.trim() || null,
       registro_profissional: registroProfissional.trim() || null,
+      whatsapp: whatsapp.trim() || null,
+      instagram: instagram.trim() || null,
+      valor_consulta: valorConsulta.trim() || null,
+      formacao: formacao.trim() || null,
     }).eq('id', userId)
 
     if (error) { setErro('Erro ao salvar. Tente novamente.'); setSalvando(false); return }
@@ -305,6 +317,34 @@ function PerfilConteudo() {
                   <input type="text"
                     placeholder={tipo === 'nutricionista' ? 'Ex: Nutrição esportiva, Emagrecimento' : 'Ex: Musculação, Funcional, Corrida'}
                     value={especialidade} onChange={e => setEspecialidade(e.target.value)}
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
+                </div>
+                <div>
+                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Formação</label>
+                  <input type="text"
+                    placeholder="Ex: Nutrição — USP 2018, Pós em Esportiva"
+                    value={formacao} onChange={e => setFormacao(e.target.value)}
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
+                </div>
+                <div>
+                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">WhatsApp</label>
+                  <input type="text"
+                    placeholder="Ex: (11) 99999-9999"
+                    value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
+                </div>
+                <div>
+                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Instagram</label>
+                  <input type="text"
+                    placeholder="@seu_perfil"
+                    value={instagram} onChange={e => setInstagram(e.target.value)}
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
+                </div>
+                <div>
+                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Valor da consulta</label>
+                  <input type="text"
+                    placeholder="Ex: R$ 150 / consulta"
+                    value={valorConsulta} onChange={e => setValorConsulta(e.target.value)}
                     className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
                 </div>
               </div>

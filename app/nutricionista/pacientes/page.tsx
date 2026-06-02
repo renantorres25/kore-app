@@ -33,6 +33,7 @@ export default function NutricionistaPacientes() {
   const router = useRouter()
   const [pacientes, setPacientes] = useState<Paciente[]>([])
   const [stats, setStats] = useState<Record<string, Stats>>({})
+  const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
@@ -115,12 +116,26 @@ export default function NutricionistaPacientes() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <button onClick={() => router.push('/dashboard')} className="text-zinc-600 text-[10px] uppercase tracking-widest mb-2 flex items-center gap-1 hover:text-zinc-400 transition-colors">← Dashboard</button>
-            <h1 className="text-2xl font-black text-white tracking-tight">Meus Pacientes</h1>
-            <p className="text-zinc-600 text-xs mt-1">{pacientes.length} paciente{pacientes.length !== 1 ? 's' : ''} vinculado{pacientes.length !== 1 ? 's' : ''}</p>
+            <button onClick={() => router.push('/dashboard')} className="text-zinc-500 text-xs uppercase tracking-widest mb-2 flex items-center gap-1 hover:text-zinc-300 transition-colors">← Dashboard</button>
+            <h1 className="text-3xl font-black text-white tracking-tight">Pacientes</h1>
+            <p className="text-zinc-500 text-sm mt-1">{pacientes.length} vinculado{pacientes.length !== 1 ? 's' : ''}</p>
           </div>
-          <button onClick={() => router.push('/convite')} className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center text-lg font-black active:scale-90 transition-all">+</button>
+          <button onClick={() => router.push('/convite')} className="flex items-center gap-2 bg-white text-black font-bold px-4 py-2.5 rounded-xl text-sm active:scale-95 transition-all">+ Convidar</button>
         </div>
+
+        {/* Busca */}
+        {pacientes.length > 0 && (
+          <div className="mb-5">
+            <input
+              type="text"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar por nome ou email..."
+              className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.09]"
+              style={{ background: '#161b22' }}
+            />
+          </div>
+        )}
 
         {pacientes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -149,70 +164,41 @@ export default function NutricionistaPacientes() {
             </div>
 
             {/* Lista de pacientes */}
-            <div className="space-y-3">
-              {pacientes.map((pac) => {
+            <div className="space-y-2">
+              {pacientes
+                .filter(pac => busca === '' || (pac.nome ?? pac.email).toLowerCase().includes(busca.toLowerCase()))
+                .map((pac) => {
                 const s = stats[pac.cliente_id]
                 const initials = getInitials(pac.nome, pac.email)
-                const sonoOk = s?.sonoScore != null && s.sonoScore >= 60
-                const sonoBaixo = s?.sonoScore != null && s.sonoScore < 50
-                const treinou = (s?.treinos7d ?? 0) > 0
 
                 return (
                   <button key={pac.id} onClick={() => router.push(`/nutricionista/paciente/${pac.cliente_id}`)}
-                    className="w-full text-left rounded-2xl p-5 border border-white/[0.11] active:scale-[0.98] transition-all"
-                    style={{ background: '#1a1a1a' }}>
-
+                    className="w-full text-left rounded-xl px-5 py-4 border border-white/[0.08] active:scale-[0.99] transition-all hover:border-white/[0.14]"
+                    style={{ background: '#161b22' }}>
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${sonoOk ? 'bg-green-500/10 border border-green-500/20' : sonoBaixo ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.09] border border-white/[0.14]'}`}>
-                        <span className={`font-black text-sm ${sonoOk ? 'text-green-400' : sonoBaixo ? 'text-red-400' : 'text-zinc-400'}`}>{initials}</span>
+                      <div className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/[0.09] flex items-center justify-center shrink-0">
+                        <span className="font-bold text-sm text-zinc-300">{initials}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-white font-bold text-base truncate">{pac.nome ?? pac.email}</p>
-                          {!s?.temPlano && (
-                            <span className="text-[9px] text-yellow-400 border border-yellow-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider shrink-0">Sem plano</span>
-                          )}
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-white font-semibold text-base truncate">{pac.nome ?? pac.email}</p>
+                          {!s?.temPlano && <span className="text-xs text-amber-400 border border-amber-500/20 rounded-full px-2 py-0.5 shrink-0">Sem plano</span>}
                         </div>
-                        <p className="text-zinc-600 text-xs truncate">{pac.email}</p>
-                        {pac.objetivo && <p className="text-zinc-700 text-[10px] mt-0.5">{OBJETIVO_LABEL[pac.objetivo] ?? pac.objetivo}</p>}
+                        <div className="flex items-center gap-4 text-zinc-500 text-xs">
+                          {pac.objetivo && <span>{OBJETIVO_LABEL[pac.objetivo] ?? pac.objetivo}</span>}
+                          {s?.sonoScore != null && <span>Recuperação: {s.sonoScore}/100</span>}
+                          {(s?.treinos7d ?? 0) > 0 && <span>{s!.treinos7d}x treinos</span>}
+                          {(s?.kcal7d ?? 0) > 0 && <span>~{s!.kcal7d} kcal/sem.</span>}
+                        </div>
                       </div>
-                      <span className="text-zinc-700 text-lg shrink-0">→</span>
-                    </div>
-
-                    {/* Métricas profissionais */}
-                    <div className="flex gap-0 mt-4 pt-4 border-t border-white/[0.14]">
-                      {/* Sono */}
-                      <div className="flex-1">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">😴 Sono</p>
-                        {s?.sonoScore != null ? (
-                          <div>
-                            <p className={`text-sm font-bold ${s.sonoScore >= 70 ? 'text-green-400' : s.sonoScore >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{s.sonoScore}<span className="text-zinc-600 text-[9px]">/100</span></p>
-                            {s.sonoHoras && <p className="text-zinc-700 text-[9px]">{s.sonoHoras}h</p>}
-                          </div>
-                        ) : <p className="text-zinc-700 text-sm">—</p>}
-                      </div>
-                      <div className="w-px bg-white/[0.05] mx-3" />
-                      {/* Treinos */}
-                      <div className="flex-1">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">🏋️ Treinos</p>
-                        <p className={`text-sm font-bold ${treinou ? 'text-blue-400' : 'text-zinc-600'}`}>{s?.treinos7d ?? 0}<span className="text-zinc-600 text-[9px]"> /7d</span></p>
-                        {s?.ultimoTreino && <p className="text-zinc-700 text-[9px]">Último: {s.ultimoTreino.slice(8,10)}/{s.ultimoTreino.slice(5,7)}</p>}
-                      </div>
-                      <div className="w-px bg-white/[0.05] mx-3" />
-                      {/* Kcal 7d */}
-                      <div className="flex-1">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">🔥 Kcal / 7d</p>
-                        {(s?.kcal7d ?? 0) > 0 ? (
-                          <div>
-                            <p className="text-sm font-bold text-orange-400">~{s!.kcal7d}<span className="text-zinc-600 text-[9px]"> kcal</span></p>
-                            {s!.treinos7d > 0 && <p className="text-zinc-700 text-[9px] mt-0.5">~{Math.round(s!.kcal7d / s!.treinos7d)}/sessão</p>}
-                          </div>
-                        ) : <p className="text-zinc-700 text-sm">—</p>}
-                      </div>
+                      <span className="text-zinc-600 shrink-0">→</span>
                     </div>
                   </button>
                 )
               })}
+              {busca && pacientes.filter(pac => (pac.nome ?? pac.email).toLowerCase().includes(busca.toLowerCase())).length === 0 && (
+                <p className="text-center text-zinc-500 text-sm py-8">Nenhum paciente encontrado para "{busca}"</p>
+              )}
             </div>
           </>
         )}

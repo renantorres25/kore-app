@@ -1498,6 +1498,10 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
   const [planosParaRevisar, setPlanosParaRevisar] = useState<{
     pacienteId: string; nome: string | null; email: string; diasDesdeRevisao: number
   }[]>([])
+  const [consultasHoje, setConsultasHoje] = useState<{
+    id: string; hora: string; tipo: string; clienteNome: string | null; clienteId: string
+  }[]>([])
+  const [semSono7d, setSemSono7d] = useState<{ id: string; nome: string | null; email: string }[]>([])
 
   useEffect(() => {
     async function carregarStats() {
@@ -1549,6 +1553,28 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         }
       })
       setPlanosParaRevisar(revisarList.sort((a, b) => b.diasDesdeRevisao - a.diasDesdeRevisao))
+
+      // Consultas de hoje
+      const { data: agendHoje } = await supabase.from('agendamentos')
+        .select('id, hora, tipo, cliente_id').eq('profissional_id', session.user.id)
+        .eq('data', hoje).eq('status', 'agendado').order('hora')
+      if (agendHoje?.length) {
+        const clienteIds = agendHoje.map((a: any) => a.cliente_id)
+        const { data: clientePerfs } = await supabase.from('perfis').select('id, nome').in('id', clienteIds)
+        setConsultasHoje(agendHoje.map((a: any) => ({
+          id: a.id, hora: a.hora?.substring(0,5) ?? '', tipo: a.tipo,
+          clienteId: a.cliente_id,
+          clienteNome: clientePerfs?.find((p: any) => p.id === a.cliente_id)?.nome ?? null,
+        })))
+      }
+
+      // Pacientes sem sono em 7 dias (risco)
+      const sete = new Date(); sete.setDate(sete.getDate() - 7)
+      const seteStr = sete.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+      const { data: somSono7d } = await supabase.from('sono').select('usuario_id').in('usuario_id', ids).gte('data', seteStr)
+      const temSonoSet = new Set(somSono7d?.map((s: any) => s.usuario_id) ?? [])
+      const semSonoList = (perfis ?? []).filter((p: any) => !temSonoSet.has(p.id)).slice(0, 3)
+      setSemSono7d(semSonoList.map((p: any) => ({ id: p.id, nome: p.nome, email: p.email })))
 
       setBoaRecuperacao(ids.filter(id => (sonoMap.get(id) ?? 0) >= 60).length)
       setTreinaram7d(ids.filter(id => (treinos7dSet.get(id) ?? 0) > 0).length)
@@ -1609,11 +1635,56 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         ))}
       </div>
 
+      {/* Consultas de hoje */}
+      {consultasHoje.length > 0 && (
+        <div className="rounded-2xl border border-white/[0.09] mb-4 overflow-hidden" style={{ background: '#161b22' }}>
+          <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
+            <p className="text-white font-semibold text-sm">Consultas de hoje</p>
+            <span className="text-zinc-500 text-xs">{consultasHoje.length} agendada{consultasHoje.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="divide-y divide-white/[0.05]">
+            {consultasHoje.map(c => (
+              <button key={c.id} onClick={() => router.push(`/nutricionista/paciente/${c.clienteId}`)}
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-white/[0.03] transition-all">
+                <span className="text-zinc-400 text-sm font-semibold w-10 shrink-0">{c.hora}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{c.clienteNome ?? 'Paciente'}</p>
+                  <p className="text-zinc-500 text-xs">{c.tipo}</p>
+                </div>
+                <span className="text-zinc-600 text-xs shrink-0">→</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pacientes em risco — sem registrar sono há 7d */}
+      {semSono7d.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/15 mb-4 overflow-hidden" style={{ background: '#1a1608' }}>
+          <div className="px-5 py-3 border-b border-amber-500/10 flex items-center gap-2">
+            <span className="text-amber-400 text-sm">⚠</span>
+            <p className="text-amber-300/80 text-xs uppercase tracking-[0.12em] font-semibold">Sem registro de sono — 7 dias</p>
+          </div>
+          <div className="divide-y divide-amber-500/[0.07]">
+            {semSono7d.map(p => (
+              <button key={p.id} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
+                className="w-full flex items-center gap-3 px-5 py-3 text-left">
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <span className="text-amber-400 text-xs font-bold">{(p.nome ?? p.email)[0].toUpperCase()}</span>
+                </div>
+                <p className="text-zinc-300 text-sm flex-1 truncate">{p.nome ?? p.email}</p>
+                <span className="text-zinc-600 text-xs shrink-0">→</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {semPlano > 0 && (
         <div className="rounded-2xl p-4 border border-yellow-500/20 bg-yellow-500/[0.05] mb-4">
-          <p className="text-yellow-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚡ {semPlano} paciente{semPlano > 1 ? 's' : ''} sem plano alimentar</p>
-          <p className="text-zinc-500 text-xs">Crie um plano personalizado para completar o acompanhamento.</p>
-          <button onClick={() => router.push('/nutricionista/pacientes')} className="mt-3 text-[11px] border border-yellow-500/30 text-yellow-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver pacientes →</button>
+          <p className="text-yellow-400 text-xs uppercase tracking-[0.12em] mb-1">{semPlano} paciente{semPlano > 1 ? 's' : ''} sem plano alimentar</p>
+          <p className="text-zinc-500 text-xs mt-1">Crie um plano personalizado para completar o acompanhamento.</p>
+          <button onClick={() => router.push('/nutricionista/pacientes')} className="mt-3 text-xs border border-yellow-500/30 text-yellow-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all">Ver pacientes →</button>
         </div>
       )}
 
@@ -1675,43 +1746,33 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       )}
 
       {pacientesRecentes.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Seus pacientes hoje</p>
-            <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
+        <div className="rounded-2xl border border-white/[0.09] mb-4 overflow-hidden" style={{ background: '#161b22' }}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
+            <p className="text-white font-semibold text-sm">Seus pacientes</p>
+            <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-500 text-xs hover:text-white transition-colors">Ver todos →</button>
           </div>
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-white/[0.05]">
             {pacientesRecentes.map((p, i) => {
-              const sonoOk = p.sonoScore != null && p.sonoScore >= 60
-              const sonoBaixo = p.sonoScore != null && p.sonoScore < 50
               const planoAntigo = p.diasDesdeUltimoPlano != null && p.diasDesdeUltimoPlano >= 30
               return (
                 <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 active:bg-white/[0.05] transition-colors text-left">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${!p.temPlano ? 'bg-yellow-500/10 text-yellow-400' : sonoOk ? 'bg-green-500/10 text-green-400' : sonoBaixo ? 'bg-red-500/10 text-red-400' : 'bg-white/[0.07] text-zinc-500'}`}>
-                    {(p.nome ?? p.email)[0].toUpperCase()}
+                  className="w-full flex items-center gap-4 px-5 py-3.5 text-left hover:bg-white/[0.03] transition-all">
+                  <div className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.09] flex items-center justify-center shrink-0">
+                    <span className="text-zinc-300 text-sm font-bold">{(p.nome ?? p.email)[0].toUpperCase()}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-0.5">
                       <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
-                      {!p.temPlano && <span className="text-[9px] text-yellow-400 border border-yellow-500/20 rounded-full px-1.5 py-0.5 shrink-0">Sem plano</span>}
-                      {planoAntigo && <span className="text-[9px] text-amber-400 border border-amber-500/20 rounded-full px-1.5 py-0.5 shrink-0">{p.diasDesdeUltimoPlano}d</span>}
+                      {!p.temPlano && <span className="text-xs text-amber-400 border border-amber-500/20 rounded-full px-2 py-0.5 shrink-0">Sem plano</span>}
+                      {planoAntigo && <span className="text-xs text-zinc-500 border border-white/[0.09] rounded-full px-2 py-0.5 shrink-0">{p.diasDesdeUltimoPlano}d sem revisão</span>}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {p.sonoScore != null
-                        ? <span className={`text-[10px] font-bold ${sonoOk ? 'text-green-400' : sonoBaixo ? 'text-red-400' : 'text-yellow-400'}`}>😴 {p.sonoScore}/100</span>
-                        : <span className="text-zinc-600 text-[10px]">😴 —</span>}
-                      <span className="text-zinc-700 text-[10px]">·</span>
-                      <span className={`text-[10px] ${p.treinos7d > 0 ? 'text-blue-400' : 'text-zinc-600'}`}>🏋️ {p.treinos7d}x</span>
-                      {p.kcal7d > 0 && (
-                        <>
-                          <span className="text-zinc-700 text-[10px]">·</span>
-                          <span className="text-[10px] text-orange-400">🔥 {p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal</span>
-                        </>
-                      )}
+                    <div className="flex items-center gap-3 text-zinc-500 text-xs">
+                      {p.sonoScore != null && <span>Recup.: {p.sonoScore}/100</span>}
+                      {p.treinos7d > 0 && <span>{p.treinos7d}x treinos</span>}
+                      {p.kcal7d > 0 && <span>{p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal/sem.</span>}
                     </div>
                   </div>
-                  <span className="text-zinc-700 text-sm shrink-0">→</span>
+                  <span className="text-zinc-600 text-sm shrink-0">→</span>
                 </button>
               )
             })}

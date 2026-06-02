@@ -272,7 +272,8 @@ export default function AnamnesePage() {
           )}
         </div>
 
-        <div className="space-y-5">
+        {/* 2 colunas no desktop */}
+        <div className="space-y-5 md:space-y-0 md:grid md:grid-cols-2 md:gap-5">
 
           <SectionCard icon="🏥" titulo="Saúde" subtitulo="Histórico médico e condições atuais">
             <Field label="Patologias / doenças diagnosticadas" optional>
@@ -387,7 +388,7 @@ export default function AnamnesePage() {
             </Field>
           </SectionCard>
 
-          <SectionCard icon="🎯" titulo="Objetivos" subtitulo="O que o cliente quer alcançar">
+          <div className="md:col-span-2"><SectionCard icon="🎯" titulo="Objetivos" subtitulo="O que o cliente quer alcançar">
             <Field label="Objetivo detalhado">
               <textarea value={form.objetivo_detalhado} onChange={e => set('objetivo_detalhado', e.target.value)}
                 placeholder="Ex: Perder 8kg em 4 meses, principalmente abdômen..." rows={3} className={TEXTAREA_CLASS} />
@@ -409,7 +410,7 @@ export default function AnamnesePage() {
               <textarea value={form.observacoes} onChange={e => set('observacoes', e.target.value)}
                 placeholder="Qualquer outra informação relevante..." rows={2} className={TEXTAREA_CLASS} />
             </Field>
-          </SectionCard>
+          </SectionCard></div>
 
           {/* ── Notas do outro profissional (read-only) ───────────────────── */}
           {outraAnamnese && (
