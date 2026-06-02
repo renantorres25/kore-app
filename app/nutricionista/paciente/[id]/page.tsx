@@ -99,7 +99,7 @@ export default function NutricionistaPaciente() {
   const [bemEstar, setBemEstar] = useState<BemEstar | null>(null)
   const [planoAtivo, setPlanoAtivo] = useState<PlanoNutricional | null>(null)
   const [gerandoPlano, setGerandoPlano] = useState(false)
-  const [abaAtiva, setAbaAtiva] = useState<'hoje' | 'plano'>('hoje')
+  const [abaAtiva, setAbaAtiva] = useState<'hoje' | 'plano' | 'treino'>('hoje')
   const [carregando, setCarregando] = useState(true)
 
   // editor
@@ -492,7 +492,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
   const totalEdProt = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'proteina'), 0)
 
   return (
-    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row" style={{ background: '#0d1117' }}>
+    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row" style={{ background: '#0f172a' }}>
 
       {/* ── SIDEBAR — só desktop ─────────────────────────────────────── */}
       <SidebarProfissional tipo="nutricionista" />
@@ -542,7 +542,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
       <div className="flex-1 md:flex md:overflow-hidden">
 
         {/* ── PAINEL ESQUERDO — só desktop ──────────────────────────── */}
-        <div className="hidden md:flex md:flex-col md:w-[300px] md:shrink-0 md:overflow-y-auto md:border-r px-5 py-5 gap-5" style={{ background: '#111520', borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="hidden md:flex md:flex-col md:w-[300px] md:shrink-0 md:overflow-y-auto md:border-r px-5 py-5 gap-5" style={{ background: '#0c1220', borderColor: 'rgba(255,255,255,0.08)' }}>
 
           {/* ── DADOS DO PACIENTE ─────────────────────────── */}
           <div>
@@ -686,8 +686,24 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
           {/* ── SEPARADOR ────────────────────────────────── */}
           {medidasCP.length >= 2 && <div className="border-t border-white/[0.09]" />}
 
-          {/* ── INTEGRAÇÃO COM PERSONAL TRAINER ──────────── */}
-          {(periodizacaoFase || personalNome || caloriasSemanais || treinos7dDatas.length > 0) && (() => {
+          {/* ── LINK PARA ABA TREINO ────────────────────── */}
+          {(periodizacaoFase || personalNome || caloriasSemanais || treinos7dDatas.length > 0) && (
+            <button onClick={() => setAbaAtiva('treino')}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-white/[0.08] text-left hover:border-white/[0.14] transition-all"
+              style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🏋️</span>
+                <div>
+                  <p className="text-zinc-300 text-sm font-medium">Treino & Periodização</p>
+                  {periodizacaoFase && <p className="text-zinc-600 text-xs">{periodizacaoFase.nome_bloco} · Sem. {periodizacaoFase.semana_bloco}/{periodizacaoFase.total_semanas_bloco}</p>}
+                </div>
+              </div>
+              <span className="text-zinc-600 text-xs">→</span>
+            </button>
+          )}
+
+          {/* ── PLACEHOLDER PARA REMOVER INTEGRAÇÃO ────── */}
+          {false && (periodizacaoFase || personalNome || caloriasSemanais || treinos7dDatas.length > 0) && (() => {
             const AJUSTE_FASE: Record<string, { pct: number; label: string }> = {
               hipertrofia: { pct: 0.10, label: 'Superávit para hipertrofia' },
               adaptacao:   { pct: 0.05, label: 'Leve superávit para adaptação' },
@@ -774,26 +790,17 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             )
           })()}
 
-          {/* ── ACESSO RÁPIDO ─────────────────────────────── */}
-          <div className="border-t border-white/[0.09] pt-4 space-y-2">
-            <p className="text-xs text-zinc-600 uppercase tracking-[0.12em] mb-2">Acesso rápido</p>
+          {/* ── LINKS RÁPIDOS ─────────────────────────────── */}
+          <div className="flex flex-col gap-1.5 pt-2 border-t border-white/[0.07]">
             <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all hover:bg-white/[0.05] active:scale-[0.98]">
-              <span className="text-base">📋</span>
-              <div>
-                <p className="text-zinc-300 text-sm font-medium">Anamnese</p>
-                <p className="text-zinc-600 text-xs">Histórico clínico e restrições</p>
-              </div>
-              <span className="text-zinc-600 text-xs ml-auto">→</span>
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-white/[0.04] transition-all">
+              <span className="text-sm text-zinc-500">📋</span>
+              <p className="text-zinc-400 text-xs">Anamnese completa →</p>
             </button>
             <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all hover:bg-white/[0.05] active:scale-[0.98]">
-              <span className="text-base">📏</span>
-              <div>
-                <p className="text-zinc-300 text-sm font-medium">Medidas corporais</p>
-                <p className="text-zinc-600 text-xs">Histórico de avaliações</p>
-              </div>
-              <span className="text-zinc-600 text-xs ml-auto">→</span>
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-white/[0.04] transition-all">
+              <span className="text-sm text-zinc-500">📏</span>
+              <p className="text-zinc-400 text-xs">Medidas corporais →</p>
             </button>
           </div>
 
@@ -801,7 +808,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
         {/* ── FIM PAINEL ESQUERDO ───────────────────────────────────── */}
 
         {/* ── PAINEL DIREITO (conteúdo principal) ──────────────────── */}
-        <div className="flex-1 md:overflow-y-auto" style={{ background: '#0d1117' }}>
+        <div className="flex-1 md:overflow-y-auto" style={{ background: '#0f172a' }}>
 
           {/* Mobile-only: quick actions + ficha + composição + periodização */}
           <div className="md:hidden max-w-md mx-auto px-4 pt-5">
@@ -821,7 +828,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             </div>
 
         {/* Ficha do paciente */}
-        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
+        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1e293b' }}>
           <button
             onClick={() => {
               if (!editandoFicha) {
@@ -925,7 +932,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
 
         {/* Composição Corporal — empty state */}
         {medidasCP.length === 0 && (
-          <div className="rounded-2xl border border-white/[0.11] mb-4 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#131b2e' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-4 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#1e293b' }}>
             <span className="text-3xl">📏</span>
             <div>
               <p className="text-white text-sm font-bold">Sem medidas corporais</p>
@@ -960,7 +967,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
           }
           return (
-            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
+            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1e293b' }}>
               <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
                 <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
@@ -1053,7 +1060,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
 
         {/* Abas */}
         <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          {([['hoje', '📊 Hoje'], ['plano', '🥗 Plano']] as const).map(([id, label]) => (
+          {([['hoje', '📊 Visão Geral'], ['plano', '🥗 Plano'], ['treino', '🏋️ Treino']] as const).map(([id, label]) => (
             <button key={id} onClick={() => { setAbaAtiva(id); setEditandoPlano(false) }}
               className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
               {label}
@@ -1087,7 +1094,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             })()}
 
             {/* Recuperação */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">😴 Recuperação hoje</p>
               {sonoHoje?.score_recuperacao != null ? (
                 <div>
@@ -1115,7 +1122,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             </div>
 
             {/* Treino hoje */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">🏋️ Treino hoje</p>
               {treinoHoje ? (
                 <div>
@@ -1146,7 +1153,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             </div>
 
             {/* Bem-estar */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">⚡ Bem-estar hoje</p>
               {bemEstar ? (
                 <div className="space-y-3">
@@ -1174,7 +1181,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             </div>
 
             {/* Treinos — 7 dias */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Treinos — últimos 7 dias</p>
               <div className="flex gap-1.5">
                 {dias7d.map((dia) => {
@@ -1209,7 +1216,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
 
             {/* Perfil atlético — mobile only (desktop: já no painel esquerdo) */}
             {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
-              <div className="md:hidden rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
+              <div className="md:hidden rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Perfil atlético</p>
                 <div className="flex flex-wrap gap-2">
                   {paciente?.nivel && (
@@ -1259,7 +1266,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
               const primeiro = comCal[0], ultimo = comCal[comCal.length - 1]
               const deltaCal = (ultimo.calorias_meta ?? 0) - (primeiro.calorias_meta ?? 0)
               return (
-                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#131b2e' }}>
+                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1e293b' }}>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Evolução das metas nutricionais</p>
                     <p className="text-zinc-600 text-[9px]">{historicoMetas.length} planos</p>
@@ -1301,7 +1308,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             {editandoPlano ? (
               <>
                 {/* Nota clínica */}
-                <div className="rounded-2xl border border-green-500/20 px-4 py-3.5" style={{ background: '#111520' }}>
+                <div className="rounded-2xl border border-green-500/20 px-4 py-3.5" style={{ background: '#0c1220' }}>
                   <p className="text-green-400 text-[9px] uppercase tracking-wider mb-2">Nota clínica</p>
                   <textarea value={notaEd} onChange={e => setNotaEd(e.target.value)}
                     placeholder="Orientação geral sobre o plano para o paciente..."
@@ -1313,7 +1320,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                   const refCal = sumAl(ref.alimentos, 'calorias')
                   const refProt = sumAl(ref.alimentos, 'proteina')
                   return (
-                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#131b2e' }}>
+                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#1e293b' }}>
                       {/* header refeição */}
                       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.14]" style={{ background: '#1c1c1c' }}>
                         <div className="flex items-center gap-2">
@@ -1451,7 +1458,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                 )}
 
                 {/* Seções extras opcionais */}
-                <div className="rounded-2xl border border-white/[0.11] p-4 space-y-3" style={{ background: '#131b2e' }}>
+                <div className="rounded-2xl border border-white/[0.11] p-4 space-y-3" style={{ background: '#1e293b' }}>
                   <p className="text-zinc-500 text-[9px] uppercase tracking-wider">Orientações complementares (opcional)</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
@@ -1487,7 +1494,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
               </>
 
             ) : gerandoPlano ? (
-              <div className="rounded-2xl border border-green-500/20 p-6" style={{ background: '#111520' }}>
+              <div className="rounded-2xl border border-green-500/20 p-6" style={{ background: '#0c1220' }}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
                     <div className="w-5 h-5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
@@ -1508,7 +1515,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             ) : planoAtivo && planoEstruturado ? (
               <>
                 {/* header plano ativo */}
-                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#131b2e' }}>
+                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1e293b' }}>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
@@ -1595,6 +1602,93 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                   <button onClick={() => iniciarEdicao(true)} className="flex-1 border border-white/[0.12] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all hover:border-white/25">✏️ Manual</button>
                   <button onClick={() => setConfirmandoIA(true)} className="flex-1 bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">✦ Gerar IA</button>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── ABA TREINO ────────────────────────────────────────────── */}
+        {abaAtiva === 'treino' && (
+          <div className="space-y-4">
+            {(periodizacaoFase || personalNome || caloriasSemanais || treinos7dDatas.length > 0) ? (() => {
+              const AJUSTE_FASE: Record<string, { pct: number; label: string }> = {
+                hipertrofia: { pct: 0.10, label: 'Superávit para hipertrofia' },
+                adaptacao: { pct: 0.05, label: 'Leve superávit para adaptação' }, adaptação: { pct: 0.05, label: 'Leve superávit para adaptação' },
+                forca: { pct: 0.05, label: 'Leve superávit para força' }, força: { pct: 0.05, label: 'Leve superávit para força' },
+                deload: { pct: -0.08, label: 'Reduzir no deload' },
+                potencia: { pct: 0.07, label: 'Combustível para potência' }, potência: { pct: 0.07, label: 'Combustível para potência' },
+                resistencia: { pct: 0.05, label: 'Suporte energético' }, resistência: { pct: 0.05, label: 'Suporte energético' },
+              }
+              const tipoFase = periodizacaoFase?.tipo_bloco?.toLowerCase() ?? ''
+              const ajuste = AJUSTE_FASE[tipoFase]
+              const caloriasBase = planoAtivo?.calorias_meta
+              const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
+              const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
+              return (
+                <div className="rounded-2xl border border-white/[0.09] overflow-hidden" style={{ background: '#1e293b' }}>
+                  <div className="px-5 py-4 border-b border-white/[0.07] flex items-center gap-2">
+                    <span>🔗</span>
+                    <p className="text-white font-semibold text-sm">Integração com Personal Trainer</p>
+                    {personalNome && <span className="text-zinc-500 text-sm">— {personalNome}</span>}
+                  </div>
+                  <div className="px-5 py-4 space-y-4">
+                    {periodizacaoFase && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-white text-base font-bold">{periodizacaoFase.nome_bloco}</p>
+                            <p className="text-zinc-500 text-sm">Semana {periodizacaoFase.semana_bloco} de {periodizacaoFase.total_semanas_bloco} · {Math.round(pct)}% concluído</p>
+                          </div>
+                        </div>
+                        <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500/60 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <p className="text-white text-xl font-black">{treinos7dDatas.length}</p>
+                        <p className="text-zinc-500 text-xs mt-1">Treinos/sem.</p>
+                      </div>
+                      <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <p className="text-white text-xl font-black">{caloriasSemanais && caloriasSemanais > 0 ? `${(caloriasSemanais / 1000).toFixed(1)}k` : '—'}</p>
+                        <p className="text-zinc-500 text-xs mt-1">Kcal gastos</p>
+                      </div>
+                      <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <p className="text-white text-xl font-black capitalize">{paciente?.nivel?.charAt(0).toUpperCase() ?? '—'}</p>
+                        <p className="text-zinc-500 text-xs mt-1">Nível</p>
+                      </div>
+                    </div>
+                    {ajuste && caloriasBase && (
+                      <div className="rounded-xl px-4 py-3 border border-emerald-500/20" style={{ background: 'rgba(16,185,129,0.05)' }}>
+                        <p className="text-zinc-500 text-xs mb-1 uppercase tracking-wider">Ajuste calórico sugerido · {periodizacaoFase?.nome_bloco}</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-emerald-400 text-xl font-black">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
+                          <span className="text-zinc-500 text-sm">({ajuste.pct > 0 ? '+' : ''}{Math.round(ajuste.pct * 100)}%)</span>
+                        </div>
+                        <p className="text-zinc-600 text-xs mt-0.5">{ajuste.label}</p>
+                      </div>
+                    )}
+                    {proximaFase && diasAteProximaFase !== null && (
+                      <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-blue-500/15" style={{ background: 'rgba(59,130,246,0.05)' }}>
+                        <span className="text-zinc-400 text-sm">Próxima fase:</span>
+                        <span className="text-blue-300 font-semibold text-sm">{proximaFase} <span className="text-zinc-600 font-normal">em {diasAteProximaFase}d</span></span>
+                      </div>
+                    )}
+                    {(paciente?.fcmax || ultimaAvaliacao) && (
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/[0.07]">
+                        {paciente?.fcmax && <div><p className="text-zinc-600 text-xs mb-0.5">FC máx</p><p className="text-white text-sm font-semibold">{paciente.fcmax} bpm</p></div>}
+                        {ultimaAvaliacao && <div><p className="text-zinc-600 text-xs mb-0.5">Última aval.</p><p className="text-white text-sm font-semibold">{new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p></div>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })() : (
+              <div className="rounded-2xl border border-white/[0.09] p-10 text-center" style={{ background: '#1e293b' }}>
+                <p className="text-4xl mb-3">🏋️</p>
+                <p className="text-white font-semibold mb-1">Sem dados de treino</p>
+                <p className="text-zinc-500 text-sm">Paciente sem personal trainer vinculado ou sem periodização ativa.</p>
               </div>
             )}
           </div>
@@ -1736,7 +1830,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const emojis = ['☀️','🍎','🍽️','⚡','💪','🌙','🥑','🫐']
   const alimentos: any[] = ref.alimentos ?? []
   return (
-    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#131b2e' }}>
+    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1e293b' }}>
       <button onClick={() => setAberta(p => !p)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.02] transition-colors">
         <div className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-base shrink-0">
           {emojis[idx] ?? '🥗'}

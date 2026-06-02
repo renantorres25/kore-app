@@ -108,7 +108,7 @@ export default function NutricionistaPacientes() {
   const treinaram = pacientes.filter(p => (stats[p.cliente_id]?.treinos7d ?? 0) > 0).length
 
   return (
-    <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0d1117' }}>
+    <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0f172a' }}>
       <SidebarProfissional tipo="nutricionista" />
       <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8 md:max-w-3xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -132,7 +132,7 @@ export default function NutricionistaPacientes() {
               onChange={e => setBusca(e.target.value)}
               placeholder="Buscar por nome ou email..."
               className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.09]"
-              style={{ background: '#131b2e' }}
+              style={{ background: '#1e293b' }}
             />
           </div>
         )}
@@ -155,7 +155,7 @@ export default function NutricionistaPacientes() {
                 { val: treinaram,           label: 'Treinaram',     sub: 'essa semana', icon: '🏋️' },
                 { val: comBoaSono,          label: 'Boa recuperação', sub: 'hoje', icon: '😴' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#131b2e' }}>
+                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1e293b' }}>
                   <p className="text-lg mb-1">{s.icon}</p>
                   <p className="text-white text-2xl font-black">{s.val}</p>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5 leading-tight">{s.label}</p>
@@ -174,7 +174,7 @@ export default function NutricionistaPacientes() {
                 return (
                   <button key={pac.id} onClick={() => router.push(`/nutricionista/paciente/${pac.cliente_id}`)}
                     className="w-full text-left rounded-xl px-5 py-4 border border-white/[0.08] active:scale-[0.99] transition-all hover:border-white/[0.14]"
-                    style={{ background: '#131b2e' }}>
+                    style={{ background: '#1e293b' }}>
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/[0.09] flex items-center justify-center shrink-0">
                         <span className="font-bold text-sm text-zinc-300">{initials}</span>

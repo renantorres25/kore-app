@@ -516,7 +516,7 @@ Responda APENAS em JSON válido, sem markdown:
                 {notifs.map(n => (
                   <button key={n.id} onClick={() => { setShowNotifs(false); if (n.link) router.push(n.link) }}
                     className="w-full text-left rounded-2xl p-4 border border-white/[0.11] active:scale-[0.98] transition-all flex items-center gap-3"
-                    style={{ background: '#131b2e' }}>
+                    style={{ background: '#1e293b' }}>
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${n.tipo === 'agendamento' ? 'bg-blue-500/10' : n.tipo === 'alerta' ? 'bg-red-500/10' : 'bg-zinc-800'}`}>
                       {n.icon}
                     </div>
@@ -837,7 +837,7 @@ function CardMeta({
     return (
       <button onClick={() => setEditando(true)}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-dashed border-white/[0.15] active:scale-[0.98] transition-all"
-        style={{ background: '#131b2e' }}>
+        style={{ background: '#1e293b' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meta pessoal</p>
         <p className="text-white font-black text-xl mb-1.5">Definir minha meta →</p>
         <p className="text-zinc-600 text-sm leading-relaxed">Onde você quer chegar? Defina seu peso-alvo e acompanhe cada kg de progresso.</p>
@@ -847,7 +847,7 @@ function CardMeta({
 
   if (editando) {
     return (
-      <div className="rounded-2xl p-5 mb-3 border border-emerald-500/20" style={{ background: '#131b2e' }}>
+      <div className="rounded-2xl p-5 mb-3 border border-emerald-500/20" style={{ background: '#1e293b' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meta pessoal</p>
         <div className="space-y-3">
           <div>
@@ -881,7 +881,7 @@ function CardMeta({
   const C = 2 * Math.PI * 30 // circumference r=30 → ~188.5
 
   return (
-    <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#131b2e' }}>
+    <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#1e293b' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -1145,7 +1145,7 @@ function DashboardCliente({
         const c = CORES_FASE[fasePeriodizacao.tipoBloco] ?? CORES_FASE.hipertrofia
         const pct = Math.min(100, (fasePeriodizacao.semanaBloco / fasePeriodizacao.semanasBloco) * 100)
         return (
-          <div className={`rounded-2xl p-5 mb-3 border ${c.border}`} style={{ background: '#131b2e' }}>
+          <div className={`rounded-2xl p-5 mb-3 border ${c.border}`} style={{ background: '#1e293b' }}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Fase atual</p>
               <span className={`text-[9px] font-bold uppercase tracking-wider ${c.text}`}>
@@ -1165,7 +1165,7 @@ function DashboardCliente({
       })()}
 
       {/* Treino de hoje */}
-      <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#131b2e' }}>
+      <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#1e293b' }}>
         <div className="flex items-start justify-between mb-1">
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Treino de hoje</p>
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${treinoHoje?.concluido ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
@@ -1193,7 +1193,7 @@ function DashboardCliente({
       {/* Nutrição */}
       <button onClick={() => router.push('/nutricao')}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-white/[0.11] active:scale-[0.98] transition-all"
-        style={{ background: '#131b2e' }}>
+        style={{ background: '#1e293b' }}>
         <div className="flex items-start justify-between mb-1">
           <div>
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Minha nutrição</p>
@@ -1244,7 +1244,7 @@ function DashboardCliente({
       </button>
 
       {/* Meu time */}
-      <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#131b2e' }}>
+      <div className="rounded-2xl p-5 mb-3 border border-white/[0.11]" style={{ background: '#1e293b' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meu time</p>
         <div className="space-y-3">
           {[
@@ -1354,7 +1354,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
   }, [])
 
   return (
-    <div className="md:flex md:h-screen" style={{ background: '#0d1117' }}>
+    <div className="md:flex md:h-screen" style={{ background: '#0f172a' }}>
       <SidebarProfissional tipo="personal" />
       <div className="flex-1 md:overflow-y-auto">
     <div className="max-w-md mx-auto px-4 md:max-w-5xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
@@ -1381,7 +1381,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
           { valor: loadingStats ? '—' : String(treinaramHoje), label: 'Treinaram', sub: 'hoje',           cor: treinaramHoje > 0 ? 'text-emerald-400' : 'text-white' },
           { valor: loadingStats ? '—' : String(alertas),       label: 'Alertas',   sub: 'sem treinar 7d', cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#131b2e' }}>
+          <div key={m.label} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1e293b' }}>
             <p className={`text-2xl font-black ${m.cor}`}>{m.valor}</p>
             <p className="text-zinc-500 text-[10px] mt-0.5 leading-tight">{m.label}</p>
             <p className="text-zinc-700 text-[9px]">{m.sub}</p>
@@ -1421,7 +1421,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
       )}
 
       {alunosRecentes.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
+        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1e293b' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Seus alunos hoje</p>
             <button onClick={() => router.push('/personal')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
@@ -1599,7 +1599,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
   }, [])
 
   return (
-    <div className="md:flex md:h-screen" style={{ background: '#0d1117' }}>
+    <div className="md:flex md:h-screen" style={{ background: '#0f172a' }}>
       <SidebarProfissional tipo="nutricionista" />
       <div className="flex-1 md:overflow-y-auto">
     <div className="max-w-md mx-auto px-4 md:max-w-3xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
@@ -1627,7 +1627,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
           { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Boa recuperação', sub: 'hoje' },
           { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',     sub: 'essa semana' },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-5 border border-white/[0.09] text-center" style={{ background: '#131b2e' }}>
+          <div key={m.label} className="rounded-2xl p-5 border border-white/[0.09] text-center" style={{ background: '#1e293b' }}>
             <p className="text-white text-4xl font-black leading-none">{m.valor}</p>
             <p className="text-zinc-400 text-sm mt-2 font-medium">{m.label}</p>
             <p className="text-zinc-600 text-xs mt-0.5">{m.sub}</p>
@@ -1637,7 +1637,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
 
       {/* Consultas de hoje */}
       {consultasHoje.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.09] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
+        <div className="rounded-2xl border border-white/[0.09] mb-4 overflow-hidden" style={{ background: '#1e293b' }}>
           <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
             <p className="text-white font-semibold text-sm">Consultas de hoje</p>
             <span className="text-zinc-500 text-xs">{consultasHoje.length} agendada{consultasHoje.length !== 1 ? 's' : ''}</span>
@@ -1746,7 +1746,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       )}
 
       {pacientesRecentes.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.09] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
+        <div className="rounded-2xl border border-white/[0.09] mb-4 overflow-hidden" style={{ background: '#1e293b' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
             <p className="text-white font-semibold text-sm">Seus pacientes</p>
             <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-500 text-xs hover:text-white transition-colors">Ver todos →</button>

@@ -389,7 +389,7 @@ export default function PersonalAluno() {
 
         {/* Monitoramento de hoje */}
         {monitor && (
-          <div className="rounded-2xl p-4 border border-white/[0.11] mb-5" style={{ background: '#131b2e' }}>
+          <div className="rounded-2xl p-4 border border-white/[0.11] mb-5" style={{ background: '#1e293b' }}>
             <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Monitoramento hoje</p>
             <div className="grid grid-cols-2 gap-3 mb-3">
               {/* Score de recuperação */}
@@ -521,7 +521,7 @@ export default function PersonalAluno() {
         </div>
 
         {/* Ficha do aluno */}
-        <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#131b2e' }}>
+        <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#1e293b' }}>
           <button
             onClick={() => {
               if (!editandoFicha) {
@@ -620,7 +620,7 @@ export default function PersonalAluno() {
 
         {/* Composição Corporal — empty state */}
         {medidasCP.length === 0 && (
-          <div className="rounded-2xl border border-white/[0.11] mb-5 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#131b2e' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-5 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#1e293b' }}>
             <span className="text-3xl">📏</span>
             <div>
               <p className="text-white text-sm font-bold">Sem medidas corporais</p>
@@ -659,7 +659,7 @@ export default function PersonalAluno() {
             return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
           }
           return (
-            <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#131b2e' }}>
+            <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#1e293b' }}>
               <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
                 <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
@@ -691,7 +691,7 @@ export default function PersonalAluno() {
         })()}
 
         {/* Calendário de aderência - 28 dias */}
-        <div className="rounded-2xl p-5 border border-white/[0.11] mb-5" style={{ background: '#131b2e' }}>
+        <div className="rounded-2xl p-5 border border-white/[0.11] mb-5" style={{ background: '#1e293b' }}>
           <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Calendário de aderência · 28 dias</p>
           <div className="grid grid-cols-7 gap-1.5">
             {Array.from({ length: 28 }, (_, i) => {
@@ -746,7 +746,7 @@ export default function PersonalAluno() {
 
         {treinoDoPlano ? (
           <div>
-            <div className={`rounded-2xl p-5 border ${cores.border} mb-4`} style={{ background: '#131b2e' }}>
+            <div className={`rounded-2xl p-5 border ${cores.border} mb-4`} style={{ background: '#1e293b' }}>
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <p className={`text-[10px] uppercase tracking-[0.2em] mb-1 ${cores.text}`}>Plano {planoAtivo}</p>
@@ -802,7 +802,7 @@ export default function PersonalAluno() {
 
       {/* Últimas execuções */}
       {execucoes.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#131b2e' }}>
+        <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#1e293b' }}>
           <div className="px-5 py-4 border-b border-white/[0.14]">
             <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Últimas execuções</p>
           </div>
@@ -846,7 +846,7 @@ export default function PersonalAluno() {
         const exsComDados = treinoDoPlano.exercicios.filter(ex => (cargaEvolucao[ex.nome]?.length ?? 0) >= 2)
         if (!exsComDados.length) return null
         return (
-          <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#131b2e' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#1e293b' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Evolução de carga · Plano {planoAtivo}</p>
             </div>
@@ -888,7 +888,7 @@ export default function PersonalAluno() {
 
       {modalAberto && editandoTreino && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] overflow-hidden" style={{ background: '#131b2e', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] overflow-hidden" style={{ background: '#1e293b', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
 
             <div className="flex items-center justify-between p-5 border-b border-white/[0.11] shrink-0">
               <div>

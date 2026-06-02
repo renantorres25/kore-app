@@ -200,7 +200,7 @@ export default function PersonalAlunos() {
                 { val: totalTreinouHoje, label: 'Treinaram', sub: 'hoje', icon: '💪' },
                 { val: mediaScore ? `${mediaScore}` : '—', label: 'Recup. média', sub: '/100', icon: '⚡' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#131b2e' }}>
+                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1e293b' }}>
                   <p className="text-lg mb-1">{s.icon}</p>
                   <p className="text-white text-2xl font-black">{s.val}</p>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5">{s.label}</p>
@@ -250,7 +250,7 @@ export default function PersonalAlunos() {
                 return (
                   <button key={aluno.id} onClick={() => router.push(`/personal/aluno/${aluno.cliente_id}`)}
                     className="w-full text-left rounded-2xl p-5 border border-white/[0.11] active:scale-[0.98] transition-all"
-                    style={{ background: '#131b2e' }}>
+                    style={{ background: '#1e293b' }}>
                     <div className="flex items-center gap-4">
                       <div className="relative">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${treinouHoje ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-white/[0.09] border border-white/[0.14]'}`}>
