@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -88,13 +88,13 @@ export default function BemEstar() {
   const total = getTotalPreenchido()
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   if (sucesso) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="text-6xl">✅</div>
         <p className="text-white font-bold text-lg">Registrado!</p>
@@ -104,7 +104,7 @@ export default function BemEstar() {
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
+    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => router.push('/dashboard')} className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95">←</button>
@@ -115,7 +115,7 @@ export default function BemEstar() {
         </div>
 
         {media && (
-          <div className="rounded-2xl p-5 border border-white/[0.11] mb-6" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl p-5 border border-white/[0.11] mb-6" style={{ background: '#131b2e' }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Seu estado geral hoje</p>
@@ -134,7 +134,7 @@ export default function BemEstar() {
 
         <div className="space-y-5 mb-6">
           {indicadores.map((ind) => (
-            <div key={ind.id} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div key={ind.id} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-white font-bold text-sm mb-0.5">{ind.label}</p>
               <p className="text-zinc-500 text-xs mb-4">{ind.descricao}</p>
               <div className="flex justify-between gap-1">

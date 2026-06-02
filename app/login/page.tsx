@@ -71,7 +71,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-[#111111] text-white flex lg:flex-row flex-col">
+    <main className="min-h-screen bg-[#0d1117] text-white flex lg:flex-row flex-col">
 
       {/* ═══════════════════════════════════════
           PAINEL ESQUERDO — desktop only
@@ -141,13 +141,13 @@ function LoginForm() {
 
         {/* ── HERO MOBILE (escondido no desktop) ─────────── */}
         <div className="lg:hidden relative overflow-hidden flex flex-col items-center justify-end pb-8 pt-16"
-          style={{ minHeight: '32vh', background: 'linear-gradient(175deg, #040c06 0%, #060e08 60%, #111111 100%)' }}>
+          style={{ minHeight: '32vh', background: 'linear-gradient(175deg, #040c06 0%, #060e08 60%, #0d1117 100%)' }}>
 
           {/* glows mobile */}
           <div className="pointer-events-none absolute top-[-60px] left-1/2 -translate-x-1/2 w-[340px] h-[280px] rounded-full blur-[80px] opacity-30"
             style={{ background: 'radial-gradient(ellipse, #10b981 0%, transparent 65%)' }} />
           <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-16"
-            style={{ background: 'linear-gradient(to bottom, transparent, #111111)' }} />
+            style={{ background: 'linear-gradient(to bottom, transparent, #0d1117)' }} />
 
           {/* grid mobile */}
           <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -285,7 +285,7 @@ function LoginForm() {
 export default function Login() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+      <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
       </main>
     }>

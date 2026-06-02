@@ -149,13 +149,13 @@ export default function PeriodizacaoPage() {
   const totalSemanas = periodizacao?.blocos.reduce((s, b) => s + b.semanas, 0) ?? 0
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
+    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
@@ -181,7 +181,7 @@ export default function PeriodizacaoPage() {
           const cfg = getTipoCfg(b.tipo)
           const pct = Math.min(100, (semanaAtual.semanaTotal / totalSemanas) * 100)
           return (
-            <div className={`rounded-2xl p-5 border ${cfg.border} mb-5`} style={{ background: '#1a1a1a' }}>
+            <div className={`rounded-2xl p-5 border ${cfg.border} mb-5`} style={{ background: '#131b2e' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Fase atual</p>
               <div className="flex items-center gap-3 mb-4">
                 <div className={`w-12 h-12 rounded-2xl ${cfg.bg} ${cfg.border} border flex items-center justify-center`}>
@@ -203,7 +203,7 @@ export default function PeriodizacaoPage() {
 
         {/* Timeline */}
         {periodizacao && periodizacao.blocos.length > 0 && (
-          <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#131b2e' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Linha do tempo · {totalSemanas} semanas</p>
             </div>
@@ -301,7 +301,7 @@ export default function PeriodizacaoPage() {
 
         {/* Formulário */}
         {criando && (
-          <div ref={formRef} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div ref={formRef} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#131b2e' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Novo ciclo de treinamento</p>
             </div>

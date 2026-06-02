@@ -235,7 +235,7 @@ export default function EvolucaoMedidasPage() {
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -297,7 +297,7 @@ export default function EvolucaoMedidasPage() {
           <>
             {/* Snapshot atual */}
             {mais_recente && (
-              <div className="rounded-2xl p-5 border border-white/[0.11] mb-5" style={{ background: '#1a1a1a' }}>
+              <div className="rounded-2xl p-5 border border-white/[0.11] mb-5" style={{ background: '#131b2e' }}>
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Último registro</p>
                   <span className="text-zinc-600 text-xs">{new Date(mais_recente.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
@@ -336,7 +336,7 @@ export default function EvolucaoMedidasPage() {
             {abaAtiva === 'historico' && (
               <div className="space-y-2">
                 {medicoes.map((m, idx) => (
-                  <div key={m.id} className="rounded-2xl p-4 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+                  <div key={m.id} className="rounded-2xl p-4 border border-white/[0.11]" style={{ background: '#131b2e' }}>
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="text-white font-bold text-sm">{new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
@@ -368,7 +368,7 @@ export default function EvolucaoMedidasPage() {
                 {METRICAS_COMPOSICAO.map(m => {
                   const pontos = medicoes.filter(d => d[m.campo] != null)
                   if (pontos.length === 0) return (
-                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
                       <p className="text-zinc-500 text-sm">{m.label} — sem dados</p>
                     </div>
                   )
@@ -377,7 +377,7 @@ export default function EvolucaoMedidasPage() {
                   const primeiro = [...pontos].reverse()[0][m.campo] as number | null
                   const totalDelta = atual != null && primeiro != null ? atual - primeiro : null
                   return (
-                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-0.5">{m.label}</p>
@@ -408,7 +408,7 @@ export default function EvolucaoMedidasPage() {
                   const atual = mais_recente?.[m.campo] as number | null
                   const prev = anterior?.[m.campo] as number | null
                   return (
-                    <div key={m.campo} className="rounded-2xl p-4 border border-white/[0.11] flex items-center gap-4" style={{ background: '#1a1a1a' }}>
+                    <div key={m.campo} className="rounded-2xl p-4 border border-white/[0.11] flex items-center gap-4" style={{ background: '#131b2e' }}>
                       <div className="flex-1 min-w-0">
                         <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-0.5">{m.label}</p>
                         <div className="flex items-baseline gap-2">
@@ -434,7 +434,7 @@ export default function EvolucaoMedidasPage() {
       {/* Modal nova medição */}
       {modalAberto && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] overflow-hidden" style={{ background: '#1a1a1a', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] overflow-hidden" style={{ background: '#131b2e', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
 
             <div className="flex items-center justify-between p-5 border-b border-white/[0.11] shrink-0">
               <p className="text-white font-black text-lg">{editandoId ? 'Editar medidas' : 'Nova avaliação'}</p>

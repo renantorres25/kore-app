@@ -404,7 +404,7 @@ export default function QuizIA({ tipo, onConcluir, onCancelar }: Props) {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white flex flex-col">
+    <main className="min-h-[100dvh] bg-[#0d1117] text-white flex flex-col">
 
       {/* Header */}
       <div className="shrink-0 px-4 pt-12 pb-4" style={{ background: 'rgba(8,8,8,0.97)' }}>

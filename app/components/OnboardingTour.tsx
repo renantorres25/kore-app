@@ -101,7 +101,7 @@ export default function OnboardingTour() {
       <div
         className="w-full max-w-md rounded-3xl border border-white/[0.14] p-6 mb-8"
         style={{
-          background: 'linear-gradient(145deg, #141414 0%, #1a1a1a 100%)',
+          background: 'linear-gradient(145deg, #141414 0%, #131b2e 100%)',
           transform: animating ? 'translateY(8px)' : 'translateY(0)',
           opacity: animating ? 0 : 1,
           transition: 'all 0.2s ease',

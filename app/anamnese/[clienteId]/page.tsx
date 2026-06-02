@@ -44,7 +44,7 @@ const ALCOOL_LABEL: Record<string, string> = {
 
 function SectionCard({ icon, titulo, subtitulo, badge, children }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#131b2e' }}>
       <div className="px-5 py-4 border-b border-white/[0.14]" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="flex items-center gap-2.5">
           <span className="text-xl">{icon}</span>
@@ -231,13 +231,13 @@ export default function AnamnesePage() {
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   if (sucesso) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="text-6xl">✅</div>
         <p className="text-white font-bold text-lg">Anamnese salva!</p>

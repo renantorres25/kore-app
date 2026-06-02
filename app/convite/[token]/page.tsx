@@ -176,7 +176,7 @@ export default function AceitarConvite() {
   ]
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white flex items-center justify-center px-4">
+    <main className="min-h-[100dvh] bg-[#0d1117] text-white flex items-center justify-center px-4">
       <div className="max-w-md w-full">
 
         {/* Logo */}
@@ -195,7 +195,7 @@ export default function AceitarConvite() {
 
         {/* Expirado */}
         {estado === 'expirado' && (
-          <div className="rounded-2xl p-8 border border-yellow-500/20 text-center" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl p-8 border border-yellow-500/20 text-center" style={{ background: '#131b2e' }}>
             <div className="text-4xl mb-4">⏰</div>
             <h2 className="text-xl font-black mb-2">Convite expirado</h2>
             {convite?.remetente?.nome && (
@@ -214,7 +214,7 @@ export default function AceitarConvite() {
 
         {/* Inválido */}
         {estado === 'invalido' && (
-          <div className="rounded-2xl p-8 border border-white/[0.11] text-center" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl p-8 border border-white/[0.11] text-center" style={{ background: '#131b2e' }}>
             <div className="text-4xl mb-4">⚠️</div>
             <h2 className="text-xl font-black mb-3">Convite inválido</h2>
             <p className="text-zinc-500 text-sm mb-6">Este link de convite não é válido ou já foi utilizado.</p>
@@ -226,7 +226,7 @@ export default function AceitarConvite() {
 
         {/* Válido */}
         {estado === 'valido' && (
-          <div className="rounded-2xl p-8 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl p-8 border border-white/[0.11]" style={{ background: '#131b2e' }}>
             <div className="flex items-center gap-4 mb-6">
               <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center text-lg font-black shrink-0 ${corRemetente}`}>
                 {siglaRemetente}
@@ -273,7 +273,7 @@ export default function AceitarConvite() {
 
         {/* Erro */}
         {estado === 'erro' && (
-          <div className="rounded-2xl p-8 border border-red-500/20 text-center" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl p-8 border border-red-500/20 text-center" style={{ background: '#131b2e' }}>
             <div className="text-4xl mb-4">❌</div>
             <h2 className="text-xl font-black mb-3">Erro ao conectar</h2>
             <p className="text-zinc-500 text-sm mb-6">{erroMsg || 'Tente novamente ou entre em contato.'}</p>

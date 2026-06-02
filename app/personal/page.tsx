@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -156,7 +156,7 @@ export default function PersonalAlunos() {
   }, [router])
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -167,8 +167,8 @@ export default function PersonalAlunos() {
   })
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
-      <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
+      <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -200,7 +200,7 @@ export default function PersonalAlunos() {
                 { val: totalTreinouHoje, label: 'Treinaram', sub: 'hoje', icon: '💪' },
                 { val: mediaScore ? `${mediaScore}` : '—', label: 'Recup. média', sub: '/100', icon: '⚡' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1a1a1a' }}>
+                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#131b2e' }}>
                   <p className="text-lg mb-1">{s.icon}</p>
                   <p className="text-white text-2xl font-black">{s.val}</p>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5">{s.label}</p>
@@ -250,14 +250,14 @@ export default function PersonalAlunos() {
                 return (
                   <button key={aluno.id} onClick={() => router.push(`/personal/aluno/${aluno.cliente_id}`)}
                     className="w-full text-left rounded-2xl p-5 border border-white/[0.11] active:scale-[0.98] transition-all"
-                    style={{ background: '#1a1a1a' }}>
+                    style={{ background: '#131b2e' }}>
                     <div className="flex items-center gap-4">
                       <div className="relative">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${treinouHoje ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-white/[0.09] border border-white/[0.14]'}`}>
                           <span className={`font-black text-sm ${treinouHoje ? 'text-emerald-400' : 'text-zinc-400'}`}>{initials}</span>
                         </div>
                         {treinouHoje && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#1a1a1a]" />
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#131b2e]" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">

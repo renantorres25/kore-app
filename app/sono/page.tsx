@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -230,13 +230,13 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
   const duracaoRef = sono.duracao_minutos ?? totalEstagio
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
+    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
       <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         <div className="flex items-center justify-between mb-6">
@@ -272,7 +272,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {temDadosSono && !editando && (
-          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Dados da noite</p>
             </div>
@@ -287,7 +287,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {temDadosSono && !editando && (sono.sono_leve || sono.sono_profundo || sono.sono_rem) && (
-          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Estágios do sono</p>
             </div>
@@ -321,7 +321,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {bemEstar && !editando && (
-          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Cruzamento com bem-estar</p>
             </div>
@@ -344,7 +344,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {temDadosSono && !editando && (
-          <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #1a1a1a 0%, #141414 100%)' }}>
+          <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #131b2e 0%, #141414 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
               <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
                 <span className="text-[11px] font-black text-emerald-400">✦</span>
@@ -374,7 +374,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {historico.length > 0 && !editando && (
-          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Últimos 7 dias</p>
               <p className="text-zinc-700 text-[10px]">score de recuperação</p>
@@ -425,7 +425,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
 
         {editando && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Duração do sono</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -439,7 +439,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Qualidade do sono</p>
               <div className="flex gap-2">
                 {[{v:1,emoji:'😫',label:'Péssimo'},{v:2,emoji:'😪',label:'Ruim'},{v:3,emoji:'😐',label:'Regular'},{v:4,emoji:'😴',label:'Bom'},{v:5,emoji:'🌙',label:'Ótimo'}].map((q) => (
@@ -452,7 +452,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            <div className="rounded-2xl border border-indigo-500/20 p-5" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl border border-indigo-500/20 p-5" style={{ background: '#131b2e' }}>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-indigo-400 text-[10px] uppercase tracking-[0.15em]">🌙 Estágios do sono</p>
                 <span className="text-[9px] text-indigo-400/60 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider">Opcional</span>
@@ -504,7 +504,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#131b2e' }}>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">⌚ Dados do wearable</p>
                 <span className="text-[9px] text-zinc-600 border border-white/[0.14] rounded-full px-2 py-0.5 uppercase tracking-wider">Opcional</span>
@@ -536,7 +536,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
 
         {!editando && (
-          <div className="rounded-2xl border border-white/[0.11] p-5 mt-4" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl border border-white/[0.11] p-5 mt-4" style={{ background: '#131b2e' }}>
             <div className="flex items-center gap-3 mb-3">
               <span className="text-2xl">⌚</span>
               <div>

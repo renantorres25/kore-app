@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -150,7 +150,7 @@ export default function ConvitePage() {
       setTimeout(() => setCopiado(false), 2500)
     }
     return (
-      <main className="min-h-[100dvh] bg-[#111111] text-white flex items-center justify-center px-4">
+      <main className="min-h-[100dvh] bg-[#0d1117] text-white flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
           <div className={`w-20 h-20 rounded-3xl ${emailFalhou ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'} border flex items-center justify-center text-4xl mx-auto mb-6`}>
             {emailFalhou ? '⚠️' : '✓'}
@@ -198,7 +198,7 @@ export default function ConvitePage() {
   // ── Tela principal ────────────────────────────────────────────────────────
 
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
+    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
       <div className="max-w-md mx-auto px-4 py-8">
 
         {/* Header */}
@@ -246,7 +246,7 @@ export default function ConvitePage() {
         )}
 
         {/* O que o convidado vai ter acesso */}
-        <div className="rounded-2xl p-5 border border-white/[0.11] mb-6" style={{ background: '#1a1a1a' }}>
+        <div className="rounded-2xl p-5 border border-white/[0.11] mb-6" style={{ background: '#131b2e' }}>
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">
             {tipoUsuario === 'cliente' ? 'O que ele vai ver no KORE' : 'O que você vai acompanhar'}
           </p>
@@ -297,7 +297,7 @@ export default function ConvitePage() {
               {convitesPendentes.map(c => {
                 const diasRestantes = Math.max(0, 7 - Math.floor((Date.now() - new Date(c.criado_em).getTime()) / (1000 * 60 * 60 * 24)))
                 return (
-                  <div key={c.id} className="flex items-center gap-3 rounded-xl border border-white/[0.11] px-4 py-3" style={{ background: '#1a1a1a' }}>
+                  <div key={c.id} className="flex items-center gap-3 rounded-xl border border-white/[0.11] px-4 py-3" style={{ background: '#131b2e' }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">{c.email_convidado}</p>
                       <p className="text-zinc-600 text-[10px]">{diasRestantes > 0 ? `Expira em ${diasRestantes} dia${diasRestantes !== 1 ? 's' : ''}` : 'Expirado'}</p>

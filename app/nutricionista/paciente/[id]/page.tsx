@@ -446,7 +446,7 @@ Responda APENAS JSON válido:
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -763,7 +763,7 @@ Responda APENAS JSON válido:
             </div>
 
         {/* Ficha do paciente */}
-        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
           <button
             onClick={() => {
               if (!editandoFicha) {
@@ -867,7 +867,7 @@ Responda APENAS JSON válido:
 
         {/* Composição Corporal — empty state */}
         {medidasCP.length === 0 && (
-          <div className="rounded-2xl border border-white/[0.11] mb-4 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl border border-white/[0.11] mb-4 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#131b2e' }}>
             <span className="text-3xl">📏</span>
             <div>
               <p className="text-white text-sm font-bold">Sem medidas corporais</p>
@@ -902,7 +902,7 @@ Responda APENAS JSON válido:
             return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
           }
           return (
-            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#131b2e' }}>
               <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
                 <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
@@ -1029,7 +1029,7 @@ Responda APENAS JSON válido:
             })()}
 
             {/* Recuperação */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">😴 Recuperação hoje</p>
               {sonoHoje?.score_recuperacao != null ? (
                 <div>
@@ -1057,7 +1057,7 @@ Responda APENAS JSON válido:
             </div>
 
             {/* Treino hoje */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">🏋️ Treino hoje</p>
               {treinoHoje ? (
                 <div>
@@ -1088,7 +1088,7 @@ Responda APENAS JSON válido:
             </div>
 
             {/* Bem-estar */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">⚡ Bem-estar hoje</p>
               {bemEstar ? (
                 <div className="space-y-3">
@@ -1116,7 +1116,7 @@ Responda APENAS JSON válido:
             </div>
 
             {/* Treinos — 7 dias */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Treinos — últimos 7 dias</p>
               <div className="flex gap-1.5">
                 {dias7d.map((dia) => {
@@ -1151,7 +1151,7 @@ Responda APENAS JSON válido:
 
             {/* Perfil atlético — mobile only (desktop: já no painel esquerdo) */}
             {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
-              <div className="md:hidden rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+              <div className="md:hidden rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Perfil atlético</p>
                 <div className="flex flex-wrap gap-2">
                   {paciente?.nivel && (
@@ -1201,7 +1201,7 @@ Responda APENAS JSON válido:
               const primeiro = comCal[0], ultimo = comCal[comCal.length - 1]
               const deltaCal = (ultimo.calorias_meta ?? 0) - (primeiro.calorias_meta ?? 0)
               return (
-                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#131b2e' }}>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Evolução das metas nutricionais</p>
                     <p className="text-zinc-600 text-[9px]">{historicoMetas.length} planos</p>
@@ -1255,7 +1255,7 @@ Responda APENAS JSON válido:
                   const refCal = sumAl(ref.alimentos, 'calorias')
                   const refProt = sumAl(ref.alimentos, 'proteina')
                   return (
-                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#1a1a1a' }}>
+                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#131b2e' }}>
                       {/* header refeição */}
                       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.14]" style={{ background: '#1c1c1c' }}>
                         <div className="flex items-center gap-2">
@@ -1393,7 +1393,7 @@ Responda APENAS JSON válido:
                 )}
 
                 {/* Seções extras opcionais */}
-                <div className="rounded-2xl border border-white/[0.11] p-4 space-y-3" style={{ background: '#1a1a1a' }}>
+                <div className="rounded-2xl border border-white/[0.11] p-4 space-y-3" style={{ background: '#131b2e' }}>
                   <p className="text-zinc-500 text-[9px] uppercase tracking-wider">Orientações complementares (opcional)</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
@@ -1450,7 +1450,7 @@ Responda APENAS JSON válido:
             ) : planoAtivo && planoEstruturado ? (
               <>
                 {/* header plano ativo */}
-                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#131b2e' }}>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
@@ -1678,7 +1678,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const emojis = ['☀️','🍎','🍽️','⚡','💪','🌙','🥑','🫐']
   const alimentos: any[] = ref.alimentos ?? []
   return (
-    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1a1a1a' }}>
+    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#131b2e' }}>
       <button onClick={() => setAberta(p => !p)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.02] transition-colors">
         <div className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-base shrink-0">
           {emojis[idx] ?? '🥗'}

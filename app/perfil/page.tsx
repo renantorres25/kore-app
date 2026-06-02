@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -196,7 +196,7 @@ function PerfilConteudo() {
   const progresso = [dataNascimento, sexo, peso, altura, objetivo, nivel].filter(Boolean).length
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -205,7 +205,7 @@ function PerfilConteudo() {
     <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0d1117' }}>
       {isProf && <SidebarProfissional tipo={tipo as 'nutricionista' | 'personal'} />}
       <div className="flex-1 md:overflow-y-auto md:h-screen">
-      <div className="max-w-md mx-auto px-4 pb-28 md:max-w-lg md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+      <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8 md:max-w-lg md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -241,7 +241,7 @@ function PerfilConteudo() {
         )}
 
         {/* Card identidade */}
-        <div className="rounded-2xl p-5 border border-white/[0.11] mb-4" style={{ background: '#1a1a1a' }}>
+        <div className="rounded-2xl p-5 border border-white/[0.11] mb-4" style={{ background: '#131b2e' }}>
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-white/[0.09] border border-white/[0.14] flex items-center justify-center shrink-0">
               <span className="text-xl font-black text-white">{(nome || email)[0]?.toUpperCase()}</span>
@@ -259,7 +259,7 @@ function PerfilConteudo() {
 
         {/* Stats */}
         {imc && (
-          <div className="rounded-2xl p-5 border border-white/[0.11] mb-4" style={{ background: '#1a1a1a' }}>
+          <div className="rounded-2xl p-5 border border-white/[0.11] mb-4" style={{ background: '#131b2e' }}>
             <div className="grid grid-cols-4 gap-3 text-center">
               <div>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">Idade</p>
@@ -300,7 +300,7 @@ function PerfilConteudo() {
         {/* PERFIL PROFISSIONAL — campos diferentes para nutri/personal */}
         {isProf && (
           <div className="space-y-4 mb-4">
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-4">Informações profissionais</p>
               <div className="space-y-4">
                 <div>
@@ -356,13 +356,13 @@ function PerfilConteudo() {
         {/* ABA BÁSICO — só para clientes */}
         {abaAtiva === 'basico' && !isProf && (
           <div className="space-y-4">
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Data de nascimento</p>
               <input type="date" value={dataNascimento} onChange={e => setDataNascimento(e.target.value)}
                 className="w-full bg-white/[0.07] text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
             </div>
 
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Sexo</p>
               <div className="grid grid-cols-3 gap-2">
                 {[{ valor: 'masculino', label: 'Masculino', emoji: '♂️' }, { valor: 'feminino', label: 'Feminino', emoji: '♀️' }, { valor: 'outro', label: 'Outro', emoji: '⚧' }].map(s => (
@@ -375,7 +375,7 @@ function PerfilConteudo() {
               </div>
             </div>
 
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Medidas</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -392,7 +392,7 @@ function PerfilConteudo() {
             </div>
 
             {!isProf && (
-              <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+              <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Objetivo principal</p>
                 <div className="grid grid-cols-2 gap-2">
                   {objetivos.map(o => (
@@ -407,7 +407,7 @@ function PerfilConteudo() {
             )}
 
             {!isProf && (
-              <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+              <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Nível de experiência</p>
                 <div className="space-y-2">
                   {niveis.map(n => (
@@ -436,7 +436,7 @@ function PerfilConteudo() {
             </div>
 
             {/* Modalidades */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Modalidades que pratica</p>
               <p className="text-zinc-600 text-xs mb-4">Selecione todas que fazem parte da sua rotina</p>
               <div className="grid grid-cols-4 gap-2">
@@ -454,7 +454,7 @@ function PerfilConteudo() {
             </div>
 
             {/* FCmax */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">❤️ Frequência cardíaca máxima (FCmax)</p>
               <p className="text-zinc-600 text-xs mb-4 leading-relaxed">O dado mais importante para análise de zonas. Faça um teste de FCmax ou use o valor do seu Garmin/Apple Watch. Sem isso, estimamos pela fórmula 220-idade.</p>
               <div className="flex items-center gap-3">
@@ -487,7 +487,7 @@ function PerfilConteudo() {
             </div>
 
             {/* FTP bike */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#131b2e' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">🚴 FTP — Limiar de Potência Funcional</p>
               <p className="text-zinc-600 text-xs mb-4 leading-relaxed">Para ciclistas com medidor de potência. É a maior potência que você sustenta por 1 hora. Usado para calcular zonas de potência no bike.</p>
               <div className="flex items-center gap-3">
@@ -573,7 +573,7 @@ function PerfilConteudo() {
 export default function Perfil() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-[#111111] flex items-center justify-center">
+      <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
       </main>
     }>
