@@ -1576,15 +1576,15 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
     <div className="md:flex md:h-screen" style={{ background: '#0d1117' }}>
       <SidebarProfissional tipo="nutricionista" />
       <div className="flex-1 md:overflow-y-auto">
-    <div className="max-w-md mx-auto px-4 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-md mx-auto px-4 md:max-w-3xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
-          <h1 className="text-[1.85rem] font-black tracking-tight text-white">{firstName}</h1>
-          <p className="text-zinc-600 text-[11px] mt-1 capitalize tracking-wide">{getTodayString()}</p>
+          <p className="text-zinc-500 text-xs tracking-[0.2em] uppercase mb-1">{getGreeting()}</p>
+          <h1 className="text-4xl font-black tracking-tight text-white leading-none">{firstName}</h1>
+          <p className="text-zinc-500 text-sm mt-1.5 capitalize">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2 md:hidden">
-          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 border border-white/[0.11] flex items-center justify-center text-sm active:scale-90 transition-all">
+          <button onClick={onOpenNotifs} className="relative w-10 h-10 rounded-2xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-sm active:scale-90 transition-all">
             🔔
             {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
@@ -1592,19 +1592,19 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       </div>
       <div className="md:hidden inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 border border-green-500/20 bg-green-500/[0.07]">
         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-        <span className="text-green-400 text-[10px] uppercase tracking-[0.15em] font-semibold">Nutricionista</span>
+        <span className="text-green-400 text-xs uppercase tracking-[0.15em] font-semibold">Nutricionista</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { valor: loadingStats ? '—' : String(totalPacientes),  label: 'Pacientes',     sub: 'ativos',          cor: 'text-white' },
-          { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Recuperados',   sub: 'hoje',            cor: boaRecuperacao > 0 ? 'text-green-400' : 'text-white' },
-          { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',     sub: 'essa semana',     cor: treinaram7d > 0 ? 'text-blue-400' : 'text-white' },
+          { valor: loadingStats ? '—' : String(totalPacientes),  label: 'Pacientes',     sub: 'ativos' },
+          { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Boa recuperação', sub: 'hoje' },
+          { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',     sub: 'essa semana' },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#1a1a1a' }}>
-            <p className={`text-2xl font-black ${m.cor}`}>{m.valor}</p>
-            <p className="text-zinc-500 text-[10px] mt-0.5 leading-tight">{m.label}</p>
-            <p className="text-zinc-700 text-[9px]">{m.sub}</p>
+          <div key={m.label} className="rounded-2xl p-5 border border-white/[0.09] text-center" style={{ background: '#161b22' }}>
+            <p className="text-white text-4xl font-black leading-none">{m.valor}</p>
+            <p className="text-zinc-400 text-sm mt-2 font-medium">{m.label}</p>
+            <p className="text-zinc-600 text-xs mt-0.5">{m.sub}</p>
           </div>
         ))}
       </div>

@@ -50,9 +50,9 @@ function SectionCard({ icon, titulo, subtitulo, badge, children }: { icon: strin
           <span className="text-xl">{icon}</span>
           <div className="flex-1">
             <p className="text-white font-bold text-sm">{titulo}</p>
-            {subtitulo && <p className="text-zinc-600 text-[11px] mt-0.5">{subtitulo}</p>}
+            {subtitulo && <p className="text-zinc-600 text-sm mt-0.5">{subtitulo}</p>}
           </div>
-          {badge && <span className="text-[9px] uppercase tracking-wider text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{badge}</span>}
+          {badge && <span className="text-xs uppercase tracking-wider text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{badge}</span>}
         </div>
       </div>
       <div className="p-5 space-y-4">{children}</div>
@@ -63,7 +63,7 @@ function SectionCard({ icon, titulo, subtitulo, badge, children }: { icon: strin
 function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">
+      <label className="text-zinc-500 text-xs uppercase tracking-widest block mb-2">
         {label}{optional && <span className="text-zinc-700 normal-case tracking-normal ml-1">(opcional)</span>}
       </label>
       {children}
@@ -76,7 +76,7 @@ function ReadRow({ label, value }: { label: string; value: string | number | boo
   const display = typeof value === 'boolean' ? (value ? 'Sim' : 'Não') : String(value)
   return (
     <div className="flex gap-3 py-2 border-b border-white/[0.03] last:border-0">
-      <span className="text-zinc-600 text-[10px] uppercase tracking-wider w-32 shrink-0 pt-0.5">{label}</span>
+      <span className="text-zinc-600 text-xs uppercase tracking-wider w-32 shrink-0 pt-0.5">{label}</span>
       <span className="text-zinc-300 text-sm flex-1">{display}</span>
     </div>
   )
@@ -256,19 +256,19 @@ export default function AnamnesePage() {
     <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0d1117' }}>
       {isProfissional && <SidebarProfissional tipo={tipoSidebar} />}
       <div className="flex-1 md:overflow-y-auto md:h-screen">
-      <div className="max-w-md mx-auto px-4 pb-32 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+      <div className="max-w-md mx-auto px-4 pb-32 md:max-w-3xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-7">
-          <button onClick={() => router.push(backUrl)} className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shrink-0">←</button>
+        <div className="flex items-center gap-4 mb-8">
+          <button onClick={() => router.push(backUrl)} className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shrink-0 text-lg">←</button>
           <div>
-            <h1 className="text-xl font-black tracking-tight">Anamnese</h1>
-            <p className="text-zinc-500 text-xs mt-0.5">
-              {isProfissional && clienteNome ? clienteNome : (anamneseId ? 'Atualizar ficha' : 'Ficha de saúde completa')}
+            <h1 className="text-2xl font-black tracking-tight">Anamnese</h1>
+            <p className="text-zinc-500 text-sm mt-0.5">
+              {isProfissional && clienteNome ? clienteNome : (anamneseId ? 'Atualizar ficha de saúde' : 'Ficha de saúde completa')}
             </p>
           </div>
           {anamneseId && (
-            <span className="ml-auto text-[9px] uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 shrink-0">Preenchida</span>
+            <span className="ml-auto text-xs uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 shrink-0">Preenchida</span>
           )}
         </div>
 
@@ -308,7 +308,7 @@ export default function AnamnesePage() {
                     <div className={`w-2 h-2 rounded-full shrink-0 ${form.nivel_atividade === n.val ? 'bg-black' : 'bg-white/20'}`} />
                     <div>
                       <p className={`text-sm font-bold ${form.nivel_atividade === n.val ? 'text-black' : 'text-white'}`}>{n.label}</p>
-                      <p className={`text-[11px] ${form.nivel_atividade === n.val ? 'text-black/60' : 'text-zinc-500'}`}>{n.sub}</p>
+                      <p className={`text-sm ${form.nivel_atividade === n.val ? 'text-black/60' : 'text-zinc-500'}`}>{n.sub}</p>
                     </div>
                   </button>
                 ))}
@@ -319,14 +319,14 @@ export default function AnamnesePage() {
                 <div className="relative">
                   <input type="number" value={form.horas_sono} onChange={e => set('horas_sono', e.target.value)}
                     placeholder="7" min={0} max={24} step={0.5} className={INPUT_CLASS + " pr-10"} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[11px]">h</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">h</span>
                 </div>
               </Field>
               <Field label="Nível de estresse (1–10)" optional>
                 <div className="relative">
                   <input type="number" value={form.nivel_estresse || ''} onChange={e => set('nivel_estresse', parseInt(e.target.value) || 0)}
                     placeholder="5" min={1} max={10} className={INPUT_CLASS + " pr-10"} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[11px]">/10</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">/10</span>
                 </div>
               </Field>
             </div>
@@ -401,7 +401,7 @@ export default function AnamnesePage() {
                 <div className="relative">
                   <input type="number" value={form.prazo_semanas} onChange={e => set('prazo_semanas', e.target.value)}
                     placeholder="16" min={1} className={INPUT_CLASS + " pr-16"} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-[11px]">sem.</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">sem.</span>
                 </div>
               </Field>
             </div>
@@ -421,7 +421,7 @@ export default function AnamnesePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-blue-300 font-bold text-sm">Notas de {outraNome}</p>
-                  <p className="text-zinc-500 text-[10px]">{outraTipoLabel} · somente leitura</p>
+                  <p className="text-zinc-500 text-xs">{outraTipoLabel} · somente leitura</p>
                 </div>
                 <span className="text-zinc-600 text-xs">{verOutra ? '▲' : '▼'}</span>
               </button>
@@ -431,7 +431,7 @@ export default function AnamnesePage() {
                   {/* Saúde */}
                   {(outraAnamnese.patologias || outraAnamnese.medicamentos || outraAnamnese.alergias || outraAnamnese.cirurgias || outraAnamnese.historico_familiar) && (
                     <div className="pt-4">
-                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Saúde</p>
+                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Saúde</p>
                       <ReadRow label="Patologias" value={outraAnamnese.patologias} />
                       <ReadRow label="Medicamentos" value={outraAnamnese.medicamentos} />
                       <ReadRow label="Alergias" value={outraAnamnese.alergias} />
@@ -442,7 +442,7 @@ export default function AnamnesePage() {
                   {/* Estilo de vida */}
                   {(outraAnamnese.nivel_atividade || outraAnamnese.horas_sono || outraAnamnese.nivel_estresse || outraAnamnese.alcool) && (
                     <div>
-                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Estilo de vida</p>
+                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Estilo de vida</p>
                       <ReadRow label="Atividade" value={outraAnamnese.nivel_atividade ? NIVEL_ATIVIDADE_LABEL[outraAnamnese.nivel_atividade] : null} />
                       <ReadRow label="Sono" value={outraAnamnese.horas_sono ? `${outraAnamnese.horas_sono}h/noite` : null} />
                       <ReadRow label="Estresse" value={outraAnamnese.nivel_estresse ? `${outraAnamnese.nivel_estresse}/10` : null} />
@@ -453,7 +453,7 @@ export default function AnamnesePage() {
                   {/* Esportivo */}
                   {(outraAnamnese.historico_esportivo || outraAnamnese.lesoes || outraAnamnese.restricoes_fisicas) && (
                     <div>
-                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Histórico esportivo</p>
+                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Histórico esportivo</p>
                       <ReadRow label="Histórico" value={outraAnamnese.historico_esportivo} />
                       <ReadRow label="Lesões" value={outraAnamnese.lesoes} />
                       <ReadRow label="Restrições" value={outraAnamnese.restricoes_fisicas} />
@@ -462,7 +462,7 @@ export default function AnamnesePage() {
                   {/* Nutrição */}
                   {(outraAnamnese.restricoes_alimentares || outraAnamnese.suplementos || outraAnamnese.habitos_alimentares || outraAnamnese.refeicoes_por_dia) && (
                     <div>
-                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Nutrição</p>
+                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Nutrição</p>
                       <ReadRow label="Restrições" value={outraAnamnese.restricoes_alimentares} />
                       <ReadRow label="Suplementos" value={outraAnamnese.suplementos} />
                       <ReadRow label="Refeições/dia" value={outraAnamnese.refeicoes_por_dia} />
@@ -472,7 +472,7 @@ export default function AnamnesePage() {
                   {/* Objetivos */}
                   {(outraAnamnese.objetivo_detalhado || outraAnamnese.motivacao || outraAnamnese.observacoes) && (
                     <div>
-                      <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Objetivos</p>
+                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Objetivos</p>
                       <ReadRow label="Objetivo" value={outraAnamnese.objetivo_detalhado} />
                       <ReadRow label="Motivação" value={outraAnamnese.motivacao} />
                       <ReadRow label="Prazo" value={outraAnamnese.prazo_semanas ? `${outraAnamnese.prazo_semanas} semanas` : null} />

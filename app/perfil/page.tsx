@@ -44,7 +44,7 @@ function PerfilConteudo() {
   const [email, setEmail] = useState('')
   const [tipo, setTipo] = useState('')
 
-  // Dados básicos
+  // Dados básicos (clientes)
   const [dataNascimento, setDataNascimento] = useState('')
   const [sexo, setSexo] = useState('')
   const [peso, setPeso] = useState('')
@@ -52,11 +52,15 @@ function PerfilConteudo() {
   const [objetivo, setObjetivo] = useState('')
   const [nivel, setNivel] = useState('')
 
-  // Dados atléticos
+  // Dados atléticos (clientes)
   const [fcmax, setFcmax] = useState('')
-  const [ftp, setFtp] = useState('')           // FTP bike (watts)
+  const [ftp, setFtp] = useState('')
   const [modalidades, setModalidades] = useState<string[]>([])
   const [abaAtiva, setAbaAtiva] = useState<'basico' | 'atletico'>('basico')
+
+  // Dados profissionais
+  const [especialidade, setEspecialidade] = useState('')
+  const [registroProfissional, setRegistroProfissional] = useState('')
 
   useEffect(() => {
     async function carregar() {
@@ -78,6 +82,8 @@ function PerfilConteudo() {
         if (data.fcmax) setFcmax(String(data.fcmax))
         if (data.ftp) setFtp(String(data.ftp))
         if (data.modalidades) setModalidades(data.modalidades)
+        if (data.especialidade) setEspecialidade(data.especialidade)
+        if (data.registro_profissional) setRegistroProfissional(data.registro_profissional)
       }
       setCarregando(false)
     }
@@ -151,6 +157,8 @@ function PerfilConteudo() {
       fcmax: fcmax ? parseInt(fcmax) : null,
       ftp: ftp ? parseInt(ftp) : null,
       modalidades: modalidades.length > 0 ? modalidades : null,
+      especialidade: especialidade.trim() || null,
+      registro_profissional: registroProfissional.trim() || null,
     }).eq('id', userId)
 
     if (error) { setErro('Erro ao salvar. Tente novamente.'); setSalvando(false); return }
@@ -277,38 +285,66 @@ function PerfilConteudo() {
           </div>
         )}
 
-        {/* ABA BÁSICO */}
-        {abaAtiva === 'basico' && (
+        {/* PERFIL PROFISSIONAL — campos diferentes para nutri/personal */}
+        {isProf && (
+          <div className="space-y-4 mb-4">
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
+              <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-4">Informações profissionais</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">
+                    {tipo === 'nutricionista' ? 'CRN' : 'CREF'} — Registro profissional
+                  </label>
+                  <input type="text"
+                    placeholder={tipo === 'nutricionista' ? 'Ex: CRN 12345' : 'Ex: CREF 123456-G/SP'}
+                    value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)}
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
+                </div>
+                <div>
+                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Especialidade</label>
+                  <input type="text"
+                    placeholder={tipo === 'nutricionista' ? 'Ex: Nutrição esportiva, Emagrecimento' : 'Ex: Musculação, Funcional, Corrida'}
+                    value={especialidade} onChange={e => setEspecialidade(e.target.value)}
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
+                </div>
+              </div>
+            </div>
+            <p className="text-zinc-600 text-xs px-1">Estes dados aparecem para seus pacientes/alunos quando eles visualizam o time deles.</p>
+          </div>
+        )}
+
+        {/* ABA BÁSICO — só para clientes */}
+        {abaAtiva === 'basico' && !isProf && (
           <div className="space-y-4">
             <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Data de nascimento</p>
+              <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Data de nascimento</p>
               <input type="date" value={dataNascimento} onChange={e => setDataNascimento(e.target.value)}
                 className="w-full bg-white/[0.07] text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
             </div>
 
             <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Sexo</p>
+              <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Sexo</p>
               <div className="grid grid-cols-3 gap-2">
                 {[{ valor: 'masculino', label: 'Masculino', emoji: '♂️' }, { valor: 'feminino', label: 'Feminino', emoji: '♀️' }, { valor: 'outro', label: 'Outro', emoji: '⚧' }].map(s => (
                   <button key={s.valor} onClick={() => setSexo(s.valor)}
                     className={`py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${sexo === s.valor ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
                     <div className="text-lg mb-0.5">{s.emoji}</div>
-                    <div className="text-[10px]">{s.label}</div>
+                    <div className="text-xs">{s.label}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1a1a1a' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Medidas</p>
+              <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Medidas</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-zinc-600 text-[10px] mb-1 block">Peso (kg)</label>
+                  <label className="text-zinc-600 text-xs mb-1.5 block">Peso (kg)</label>
                   <input type="number" placeholder="75" value={peso} onChange={e => setPeso(e.target.value)}
                     className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
                 </div>
                 <div>
-                  <label className="text-zinc-600 text-[10px] mb-1 block">Altura (cm)</label>
+                  <label className="text-zinc-600 text-xs mb-1.5 block">Altura (cm)</label>
                   <input type="number" placeholder="175" value={altura} onChange={e => setAltura(e.target.value)}
                     className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
                 </div>
