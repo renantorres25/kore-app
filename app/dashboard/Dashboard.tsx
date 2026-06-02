@@ -564,8 +564,8 @@ Responda APENAS em JSON válido, sem markdown:
         {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} />}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.14]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.14] ${(perfil?.tipo === 'nutricionista' || perfil?.tipo === 'personal') ? 'md:hidden' : ''}`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(13,17,23,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
         <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
           {getNavItems(perfil?.tipo).map((item) => {
             const active = activeTab === item.id

@@ -108,8 +108,11 @@ export default function NutricionistaPaciente() {
   const [historicoMetas, setHistoricoMetas] = useState<MetaHistorico[]>([])
 
   const [nutriNome, setNutriNome] = useState<string | null>(null)
+  const [personalNome, setPersonalNome] = useState<string | null>(null)
   const [caloriasSemanais, setCaloriasSemanais] = useState<number | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
+  const [proximaFase, setProximaFase] = useState<string | null>(null)
+  const [diasAteProximaFase, setDiasAteProximaFase] = useState<number | null>(null)
   const [anamneseLesoes, setAnamneseLesoes] = useState<string | null>(null)
   const [anamneseRestricaoFisica, setAnamneseRestricaoFisica] = useState<string | null>(null)
   const [anamneseMedicamentos, setAnamneseMedicamentos] = useState<string | null>(null)
@@ -211,6 +214,26 @@ export default function NutricionistaPaciente() {
           const b = blocos[blocoIdx]
           const semanaNoBloco = Math.min(semanaTotal - acum, b.semanas)
           setPeriodizacaoFase({ nome_ciclo: periAtiva.nome, nome_bloco: b.nome, tipo_bloco: b.tipo, semana_bloco: semanaNoBloco, total_semanas_bloco: b.semanas, semana_total: semanaTotal, total_semanas: totalSemanas, descricao: b.descricao ?? null, plano_associado: b.plano_associado ?? null })
+          // Próxima fase
+          if (blocoIdx < blocos.length - 1) {
+            const prox = blocos[blocoIdx + 1]
+            const semanasRestantes = b.semanas - semanaNoBloco
+            setProximaFase(prox.nome)
+            setDiasAteProximaFase(semanasRestantes * 7)
+          }
+        }
+        // Personal trainer vinculado a este paciente
+        const { data: personalLink } = await supabase.from('vinculos').select('profissional_id').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle()
+        if (personalLink) {
+          const { data: pp } = await supabase.from('perfis').select('nome, email').eq('id', personalLink.profissional_id).single()
+          if (pp) setPersonalNome(pp.nome ?? pp.email)
+        }
+      } else {
+        // Tenta carregar personal mesmo sem periodização
+        const { data: personalLink } = await supabase.from('vinculos').select('profissional_id').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle()
+        if (personalLink) {
+          const { data: pp } = await supabase.from('perfis').select('nome, email').eq('id', personalLink.profissional_id).single()
+          if (pp) setPersonalNome(pp.nome ?? pp.email)
         }
       }
 
@@ -605,31 +628,116 @@ Responda APENAS JSON válido:
           {/* ── SEPARADOR ────────────────────────────────── */}
           {medidasCP.length >= 2 && <div className="border-t border-white/[0.09]" />}
 
-          {/* ── FASE DE TREINO ───────────────────────────── */}
-          {periodizacaoFase && (
-            <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-[0.12em] mb-3">Fase de treino</p>
-              <p className="text-white text-sm font-semibold mb-1">{periodizacaoFase.nome_bloco}</p>
-              <p className="text-zinc-500 text-xs mb-2">Semana {periodizacaoFase.semana_bloco} de {periodizacaoFase.total_semanas_bloco}</p>
-              <div className="h-1 bg-white/[0.08] rounded-full overflow-hidden">
-                <div className="h-full bg-green-500/60 rounded-full" style={{ width: `${(periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100}%` }} />
-              </div>
-            </div>
-          )}
+          {/* ── INTEGRAÇÃO COM PERSONAL TRAINER ──────────── */}
+          {(periodizacaoFase || personalNome || caloriasSemanais || treinos7dDatas.length > 0) && (() => {
+            const AJUSTE_FASE: Record<string, { pct: number; label: string }> = {
+              hipertrofia: { pct: 0.10, label: 'Superávit para hipertrofia' },
+              adaptacao:   { pct: 0.05, label: 'Leve superávit para adaptação' },
+              adaptação:   { pct: 0.05, label: 'Leve superávit para adaptação' },
+              forca:       { pct: 0.05, label: 'Leve superávit para força' },
+              força:       { pct: 0.05, label: 'Leve superávit para força' },
+              deload:      { pct: -0.08, label: 'Reduzir no deload' },
+              potencia:    { pct: 0.07, label: 'Combustível para potência' },
+              potência:    { pct: 0.07, label: 'Combustível para potência' },
+              resistencia: { pct: 0.05, label: 'Suporte energético' },
+              resistência: { pct: 0.05, label: 'Suporte energético' },
+            }
+            const tipoFase = periodizacaoFase?.tipo_bloco?.toLowerCase() ?? ''
+            const ajuste = AJUSTE_FASE[tipoFase]
+            const caloriasBase = planoAtivo?.calorias_meta
+            const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
+            const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
+            return (
+              <div className="space-y-3">
+                <p className="text-xs text-zinc-500 uppercase tracking-[0.12em] flex items-center gap-2">
+                  <span>🔗</span> Integração com personal
+                </p>
+                {personalNome && (
+                  <p className="text-zinc-300 text-sm font-medium">{personalNome}</p>
+                )}
+                {periodizacaoFase && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white text-sm font-semibold">{periodizacaoFase.nome_bloco}</p>
+                        <p className="text-zinc-500 text-xs">Semana {periodizacaoFase.semana_bloco} de {periodizacaoFase.total_semanas_bloco}</p>
+                      </div>
+                      <span className="text-zinc-400 text-xs">{Math.round(pct)}%</span>
+                    </div>
+                    <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500/50 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )}
 
-          {/* ── PERFIL ATLÉTICO ──────────────────────────── */}
-          {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
-            <div>
-              {periodizacaoFase && <div className="border-t border-white/[0.09] mb-5" />}
-              <p className="text-xs text-zinc-500 uppercase tracking-[0.12em] mb-3">Perfil atlético</p>
-              <div className="space-y-2">
-                {paciente?.nivel && <div className="flex justify-between"><p className="text-zinc-500 text-sm">Nível</p><p className="text-white text-sm font-semibold capitalize">{paciente.nivel}</p></div>}
-                {paciente?.fcmax && <div className="flex justify-between"><p className="text-zinc-500 text-sm">FC máx</p><p className="text-white text-sm font-semibold">{paciente.fcmax} bpm</p></div>}
-                {paciente?.ftp && <div className="flex justify-between"><p className="text-zinc-500 text-sm">FTP</p><p className="text-white text-sm font-semibold">{paciente.ftp} W</p></div>}
-                {ultimaAvaliacao && <div className="flex justify-between"><p className="text-zinc-500 text-sm">Última avaliação</p><p className="text-white text-sm font-semibold">{new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p></div>}
+                {/* Treinos e gasto energético */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Treinos/semana</p>
+                    <p className="text-white text-base font-bold mt-0.5">{treinos7dDatas.length}<span className="text-zinc-500 text-xs font-normal">x</span></p>
+                  </div>
+                  <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Gasto semanal</p>
+                    <p className="text-white text-base font-bold mt-0.5">
+                      {caloriasSemanais && caloriasSemanais > 0 ? `${(caloriasSemanais / 1000).toFixed(1)}k` : '—'}<span className="text-zinc-500 text-xs font-normal"> kcal</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Ajuste calórico sugerido pela fase */}
+                {ajuste && caloriasBase && (
+                  <div className="rounded-lg px-3 py-2.5 border border-emerald-500/15" style={{ background: 'rgba(16,185,129,0.05)' }}>
+                    <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Ajuste sugerido — {periodizacaoFase?.nome_bloco}</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-emerald-400 text-sm font-bold">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
+                      <span className="text-zinc-500 text-xs">({ajuste.pct > 0 ? '+' : ''}{Math.round(ajuste.pct * 100)}%)</span>
+                    </div>
+                    <p className="text-zinc-600 text-[10px] mt-0.5">{ajuste.label}</p>
+                  </div>
+                )}
+
+                {/* Próxima fase */}
+                {proximaFase && diasAteProximaFase !== null && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-zinc-500">Próxima fase:</span>
+                    <span className="text-zinc-300 font-medium">{proximaFase} <span className="text-zinc-600">em {diasAteProximaFase}d</span></span>
+                  </div>
+                )}
+
+                {/* Perfil atlético */}
+                {(paciente?.nivel || paciente?.fcmax || ultimaAvaliacao) && (
+                  <div className="pt-2 border-t border-white/[0.07] space-y-1.5">
+                    {paciente?.nivel && <div className="flex justify-between"><span className="text-zinc-500 text-xs">Nível</span><span className="text-zinc-300 text-xs font-medium capitalize">{paciente.nivel}</span></div>}
+                    {paciente?.fcmax && <div className="flex justify-between"><span className="text-zinc-500 text-xs">FC máx</span><span className="text-zinc-300 text-xs font-medium">{paciente.fcmax} bpm</span></div>}
+                    {ultimaAvaliacao && <div className="flex justify-between"><span className="text-zinc-500 text-xs">Última aval.</span><span className="text-zinc-300 text-xs font-medium">{new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</span></div>}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )
+          })()}
+
+          {/* ── ACESSO RÁPIDO ─────────────────────────────── */}
+          <div className="border-t border-white/[0.09] pt-4 space-y-2">
+            <p className="text-xs text-zinc-600 uppercase tracking-[0.12em] mb-2">Acesso rápido</p>
+            <button onClick={() => router.push(`/anamnese/${clienteId}`)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all hover:bg-white/[0.05] active:scale-[0.98]">
+              <span className="text-base">📋</span>
+              <div>
+                <p className="text-zinc-300 text-sm font-medium">Anamnese</p>
+                <p className="text-zinc-600 text-xs">Histórico clínico e restrições</p>
+              </div>
+              <span className="text-zinc-600 text-xs ml-auto">→</span>
+            </button>
+            <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all hover:bg-white/[0.05] active:scale-[0.98]">
+              <span className="text-base">📏</span>
+              <div>
+                <p className="text-zinc-300 text-sm font-medium">Medidas corporais</p>
+                <p className="text-zinc-600 text-xs">Histórico de avaliações</p>
+              </div>
+              <span className="text-zinc-600 text-xs ml-auto">→</span>
+            </button>
+          </div>
 
         </div>
         {/* ── FIM PAINEL ESQUERDO ───────────────────────────────────── */}
@@ -1371,9 +1479,9 @@ Responda APENAS JSON válido:
                 </div>
 
                 {planoEstruturado.nota_nutri && (
-                  <div className="rounded-2xl border border-green-500/15 px-4 py-3.5" style={{ background: 'linear-gradient(135deg,#111520,#10131a)' }}>
-                    <p className="text-green-400 text-[9px] uppercase tracking-wider mb-1.5">📋 Nota clínica</p>
-                    <p className="text-zinc-300 text-sm leading-relaxed">{planoEstruturado.nota_nutri}</p>
+                  <div className="rounded-2xl border border-white/[0.09] px-5 py-4 max-w-2xl" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Nota clínica</p>
+                    <p className="text-zinc-200 text-sm leading-relaxed" style={{ maxWidth: '65ch' }}>{planoEstruturado.nota_nutri}</p>
                   </div>
                 )}
 
@@ -1593,36 +1701,36 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
         <div className="border-t border-white/[0.14]">
           <div className="px-4 pt-3 pb-1">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimento</p>
-              <div className="flex gap-4">
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Qtd.</p>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider w-10 text-right">Kcal</p>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider w-8 text-right">Prot</p>
+              <p className="text-zinc-500 text-xs uppercase tracking-wider">Alimento</p>
+              <div className="flex gap-5">
+                <p className="text-zinc-500 text-xs uppercase tracking-wider">Qtd.</p>
+                <p className="text-zinc-500 text-xs uppercase tracking-wider w-12 text-right">Kcal</p>
+                <p className="text-zinc-500 text-xs uppercase tracking-wider w-10 text-right">Prot.</p>
               </div>
             </div>
             {alimentos.map((al: any, i: number) => (
-              <div key={i} className="flex items-center justify-between py-2.5 border-b border-white/[0.03] last:border-0">
-                <p className="text-white text-xs font-medium flex-1 pr-2">{al.nome}</p>
-                <div className="flex gap-4 items-center shrink-0">
-                  <p className="text-zinc-500 text-[10px]">{al.quantidade}</p>
-                  <p className="text-orange-400 text-xs font-semibold w-10 text-right">{al.calorias}</p>
-                  <p className="text-blue-400 text-xs w-8 text-right">{al.proteina}g</p>
+              <div key={i} className="flex items-center justify-between py-2.5 border-b border-white/[0.05] last:border-0">
+                <p className="text-white text-sm flex-1 pr-3">{al.nome}</p>
+                <div className="flex gap-5 items-center shrink-0">
+                  <p className="text-zinc-500 text-xs">{al.quantidade}</p>
+                  <p className="text-zinc-200 text-sm font-semibold w-12 text-right">{al.calorias}</p>
+                  <p className="text-zinc-200 text-sm w-10 text-right">{al.proteina}g</p>
                 </div>
               </div>
             ))}
-            <div className="flex items-center justify-between py-2.5 mt-1 border-t border-white/[0.11]">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">Total</p>
-              <div className="flex gap-4 shrink-0">
-                <span className="text-zinc-600 text-[10px]"></span>
-                <p className="text-orange-400 text-xs font-black w-10 text-right">{ref.calorias}</p>
-                <p className="text-blue-400 text-xs font-black w-8 text-right">{ref.proteina}g</p>
+            <div className="flex items-center justify-between py-3 mt-1 border-t border-white/[0.11]">
+              <p className="text-zinc-500 text-xs uppercase tracking-wider font-semibold">Total</p>
+              <div className="flex gap-5 shrink-0">
+                <span className="text-zinc-600 text-xs"></span>
+                <p className="text-white text-sm font-bold w-12 text-right">{ref.calorias}</p>
+                <p className="text-white text-sm font-bold w-10 text-right">{ref.proteina}g</p>
               </div>
             </div>
           </div>
           {ref.dica && (
-            <div className="mx-4 mb-3 rounded-xl bg-white/[0.02] border border-white/[0.14] px-3 py-2">
-              <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">💡 Dica</p>
-              <p className="text-zinc-400 text-xs leading-relaxed">{ref.dica}</p>
+            <div className="mx-4 mb-3 rounded-xl bg-white/[0.02] border border-white/[0.14] px-3 py-2.5">
+              <p className="text-zinc-600 text-xs uppercase tracking-wider mb-1">💡 Dica</p>
+              <p className="text-zinc-300 text-sm leading-relaxed">{ref.dica}</p>
             </div>
           )}
         </div>
