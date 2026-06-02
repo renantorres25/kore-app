@@ -42,20 +42,23 @@ const ALCOOL_LABEL: Record<string, string> = {
   nao: 'Não bebe', social: 'Social', moderado: 'Moderado', frequente: 'Frequente',
 }
 
-function SectionCard({ icon, titulo, subtitulo, badge, children }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode }) {
+function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = true }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [aberto, setAberto] = useState(defaultOpen)
   return (
     <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#131b2e' }}>
-      <div className="px-5 py-4 border-b border-white/[0.14]" style={{ background: 'rgba(255,255,255,0.02)' }}>
+      <button onClick={() => setAberto(p => !p)} className="w-full px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
+        style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.08)' : 'none', background: 'rgba(255,255,255,0.02)' }}>
         <div className="flex items-center gap-2.5">
           <span className="text-xl">{icon}</span>
           <div className="flex-1">
             <p className="text-white font-bold text-sm">{titulo}</p>
-            {subtitulo && <p className="text-zinc-600 text-sm mt-0.5">{subtitulo}</p>}
+            {subtitulo && !aberto && <p className="text-zinc-600 text-xs mt-0.5">{subtitulo}</p>}
           </div>
           {badge && <span className="text-xs uppercase tracking-wider text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{badge}</span>}
+          <span className={`text-zinc-600 text-xs ml-2 transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`}>▼</span>
         </div>
-      </div>
-      <div className="p-5 space-y-4">{children}</div>
+      </button>
+      {aberto && <div className="p-5 space-y-4">{children}</div>}
     </div>
   )
 }

@@ -117,6 +117,8 @@ export default function NutricionistaPaciente() {
   const [anamneseRestricaoFisica, setAnamneseRestricaoFisica] = useState<string | null>(null)
   const [anamneseMedicamentos, setAnamneseMedicamentos] = useState<string | null>(null)
   const [anamneseAlergias, setAnamneseAlergias] = useState<string | null>(null)
+  const [briefingIA, setBriefingIA] = useState<string | null>(null)
+  const [gerandoBriefing, setGerandoBriefing] = useState(false)
 
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
@@ -445,6 +447,33 @@ Responda APENAS JSON válido:
     } catch (e) { console.error(e) } finally { setGerandoPlano(false) }
   }
 
+  async function gerarBriefing() {
+    if (gerandoBriefing || !paciente) return
+    setGerandoBriefing(true)
+    const lesoesFilt = limparAlerta(anamneseLesoes)
+    const rfFilt = limparAlerta(anamneseRestricaoFisica)
+    const medsFilt = limparAlerta(anamneseMedicamentos)
+    const alergFilt = limparAlerta(anamneseAlergias)
+    const prompt = `Gere um briefing clínico conciso para o nutricionista sobre este paciente. Máximo 5 linhas. Sem markdown, sem bullet points, parágrafos curtos.
+
+PACIENTE: ${paciente.nome}, ${paciente.peso ? `${paciente.peso}kg` : '?'}/${paciente.altura ? `${paciente.altura}cm` : '?'}, objetivo: ${paciente.objetivo ?? '?'}
+META: ${paciente.meta_peso ? `${paciente.meta_peso}kg` : 'não definida'}
+COMPOSIÇÃO: ${medidasCP.length >= 2 ? `Peso ${medidasCP[medidasCP.length-1].peso}kg (${medidasCP[0].peso ? ((medidasCP[medidasCP.length-1].peso ?? 0) - medidasCP[0].peso!).toFixed(1) : '?'} total), gordura ${medidasCP[medidasCP.length-1].gordura_pct ?? '?'}%` : 'sem medidas'}
+PLANO ATUAL: ${planoAtivo ? `${planoAtivo.calorias_meta} kcal, ${planoAtivo.proteina_meta}g proteína` : 'nenhum'}
+ALERTAS: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).join('; ') || 'nenhum'}
+TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fase ${periodizacaoFase.nome_bloco}` : ''}`
+
+    try {
+      const res = await fetch('/api/kore-chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensagens: [{ role: 'user', content: prompt }], systemPrompt: 'Você é um assistente clínico de nutrição. Gere briefings objetivos e diretos ao ponto para uso em consultas.' })
+      })
+      const data = await res.json()
+      setBriefingIA(data.resposta ?? null)
+    } catch { setBriefingIA('Erro ao gerar briefing.') }
+    setGerandoBriefing(false)
+  }
+
   if (carregando) return (
     <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
@@ -560,24 +589,53 @@ Responda APENAS JSON válido:
           {/* ── SEPARADOR ────────────────────────────────── */}
           <div className="border-t border-white/[0.09]" />
 
-          {/* ── ALERTAS — só aparece se houver dados reais (sem "nenhuma") ─ */}
+          {/* ── BRIEFING IA ──────────────────────────────── */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-zinc-500 uppercase tracking-[0.12em]">Briefing do paciente</p>
+              <button onClick={gerarBriefing} disabled={gerandoBriefing}
+                className="text-xs text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 rounded-lg px-2.5 py-1 active:scale-95 transition-all disabled:opacity-50">
+                {gerandoBriefing ? '...' : briefingIA ? '↻ Atualizar' : '✦ Gerar IA'}
+              </button>
+            </div>
+            {briefingIA ? (
+              <p className="text-zinc-300 text-sm leading-relaxed">{briefingIA}</p>
+            ) : (
+              <p className="text-zinc-600 text-xs">Clique em "Gerar IA" para um resumo clínico do paciente antes da consulta.</p>
+            )}
+          </div>
+
+          <div className="border-t border-white/[0.09]" />
+
+          {/* ── ALERTAS — badges escaneáveis ─────────────── */}
           {(() => {
             const lesoesFilt = limparAlerta(anamneseLesoes)
             const rfFilt = limparAlerta(anamneseRestricaoFisica)
             const medsFilt = limparAlerta(anamneseMedicamentos)
             const alergFilt = limparAlerta(anamneseAlergias)
             if (!lesoesFilt && !rfFilt && !medsFilt && !alergFilt) return null
+
+            // Transforma strings longas em badges individuais
+            function parseBadges(texto: string | null, cor: string) {
+              if (!texto) return null
+              return texto.split(/[·,;]/).map(s => s.trim()).filter(Boolean).map((item, i) => (
+                <span key={i} className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border ${cor} max-w-full`}>
+                  <span className="truncate">{item}</span>
+                </span>
+              ))
+            }
+
             return (
               <>
                 <div>
-                  <p className="text-xs text-red-400/70 uppercase tracking-[0.12em] mb-3 flex items-center gap-1.5">
+                  <p className="text-xs text-red-400/70 uppercase tracking-[0.12em] mb-2.5 flex items-center gap-1.5">
                     <span>⚠</span> Alertas clínicos
                   </p>
-                  <div className="space-y-3">
-                    {lesoesFilt && <div><p className="text-zinc-500 text-xs mb-1">Lesões</p><p className="text-zinc-200 text-sm leading-relaxed">{lesoesFilt}</p></div>}
-                    {rfFilt && <div><p className="text-zinc-500 text-xs mb-1">Restrições físicas</p><p className="text-zinc-200 text-sm leading-relaxed">{rfFilt}</p></div>}
-                    {medsFilt && <div><p className="text-zinc-500 text-xs mb-1">Medicamentos</p><p className="text-zinc-200 text-sm leading-relaxed">{medsFilt}</p></div>}
-                    {alergFilt && <div><p className="text-zinc-500 text-xs mb-1">Alergias / Restrições</p><p className="text-zinc-200 text-sm leading-relaxed">{alergFilt}</p></div>}
+                  <div className="flex flex-wrap gap-1.5">
+                    {parseBadges(lesoesFilt, 'text-red-300 bg-red-500/10 border-red-500/20')}
+                    {parseBadges(rfFilt, 'text-amber-300 bg-amber-500/10 border-amber-500/20')}
+                    {parseBadges(medsFilt, 'text-zinc-300 bg-white/[0.06] border-white/[0.12]')}
+                    {parseBadges(alergFilt, 'text-orange-300 bg-orange-500/10 border-orange-500/20')}
                   </div>
                 </div>
                 <div className="border-t border-white/[0.09]" />
