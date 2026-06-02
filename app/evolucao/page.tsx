@@ -38,7 +38,13 @@ type AtividadeDia = {
 }
 
 type VolumeExercicio = { nome: string; sessoesCount: number; maxCarga: number; evolucao: number }
-type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null }
+type MedidaCP = {
+  data: string
+  peso: number | null; gordura_pct: number | null; massa_muscular: number | null
+  cintura: number | null; quadril: number | null; abdomen: number | null
+  braco_dir: number | null; coxa_dir: number | null; panturrilha_dir: number | null
+  altura: number | null; imc_calculado: number | null
+}
 type PlanoNutriHist = { calorias_meta: number; proteina_meta: number; created_at: string; observacoes: string | null }
 
 const MOD_CONFIG: Record<string, { icon: string; cor: string; corText: string; corBorder: string; hex: string; calHex: string }> = {
@@ -250,7 +256,7 @@ export default function Evolucao() {
       supabase.from('treinos').select('id, data, plano, nome, calorias_estimadas').eq('cliente_id', session.user.id).eq('concluido', true).gte('data', dataInicio).order('data', { ascending: false }),
       supabase.from('atividades_livres').select('data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable').eq('usuario_id', session.user.id).gte('data', dataInicio).order('data', { ascending: false }),
       supabase.from('treinos').select('id, nome, plano').eq('cliente_id', session.user.id).eq('concluido', true),
-      supabase.from('evolucao_medidas').select('data, peso, gordura_pct, massa_muscular').eq('cliente_id', session.user.id).order('data'),
+      supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,braco_dir,coxa_dir,panturrilha_dir,altura,imc_calculado').eq('cliente_id', session.user.id).order('data'),
       supabase.from('planos_nutricionais').select('calorias_meta, proteina_meta, created_at, observacoes').eq('cliente_id', session.user.id).order('created_at'),
     ])
 
@@ -583,6 +589,58 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                     <div className="flex justify-between mt-3">
                       <p className="text-zinc-700 text-[9px]">{formatDate(medidasCP[0].data)}</p>
                       <p className="text-zinc-700 text-[9px]">{formatDate(medidasCP[medidasCP.length - 1].data)}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* CIRCUNFERÊNCIAS */}
+            {medidasCP.length >= 1 && (() => {
+              const last = medidasCP[medidasCP.length - 1]
+              const first = medidasCP[0]
+              const circ = [
+                { label: 'Cintura', key: 'cintura' as const, cor: '#A78BFA', unit: 'cm', inv: true },
+                { label: 'Quadril', key: 'quadril' as const, cor: '#60A5FA', unit: 'cm', inv: false },
+                { label: 'Abdômen', key: 'abdomen' as const, cor: '#F97316', unit: 'cm', inv: true },
+                { label: 'Braço', key: 'braco_dir' as const, cor: '#34D399', unit: 'cm', inv: false },
+                { label: 'Coxa', key: 'coxa_dir' as const, cor: '#F472B6', unit: 'cm', inv: false },
+                { label: 'Panturrilha', key: 'panturrilha_dir' as const, cor: '#FBBF24', unit: 'cm', inv: false },
+              ].filter(c => last[c.key] != null)
+              if (!circ.length) return null
+              const imc = last.imc_calculado ?? (last.peso && last.altura ? Math.round(last.peso / Math.pow(last.altura / 100, 2) * 10) / 10 : null)
+              return (
+                <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                  <div className="px-5 pt-5 pb-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Circunferências</p>
+                      {imc && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-600 text-[10px]">IMC</span>
+                          <span className={`text-sm font-black mono ${imc < 18.5 ? 'text-blue-400' : imc < 25 ? 'text-emerald-400' : imc < 30 ? 'text-yellow-400' : 'text-red-400'}`}>{imc}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {circ.map(c => {
+                        const cur = last[c.key] as number
+                        const ini = first[c.key] as number | null
+                        const delta = ini ? Math.round((cur - ini) * 10) / 10 : null
+                        const melhor = delta !== null && (c.inv ? delta < 0 : delta > 0)
+                        return (
+                          <div key={c.label} className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                            <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-1">{c.label}</p>
+                            <p className="text-white text-lg font-black mono">{cur} <span className="text-zinc-600 text-xs font-normal">{c.unit}</span></p>
+                            {delta !== null && delta !== 0 && (
+                              <p className={`text-[10px] font-semibold mt-0.5 ${melhor ? 'text-emerald-400' : 'text-red-400'}`}>{delta > 0 ? '+' : ''}{delta}</p>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="flex justify-between mt-3">
+                      <p className="text-zinc-700 text-[9px]">{formatDate(medidasCP[0].data)}</p>
+                      <p className="text-zinc-700 text-[9px]">último: {formatDate(last.data)}</p>
                     </div>
                   </div>
                 </div>
