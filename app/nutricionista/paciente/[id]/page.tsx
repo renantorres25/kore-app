@@ -7,6 +7,7 @@ import NavBar from '../../../components/NavBar'
 import AlimentoBusca, { type AlimentoTACO } from '../../../components/AlimentoBusca'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 import SidebarProfissional from '../../../components/SidebarProfissional'
+import ModalAvaliacaoCompleta from '../../../components/ModalAvaliacaoCompleta'
 import { LayoutDashboard, Utensils, Dumbbell, Sparkles, ClipboardList, TrendingUp, ChevronRight, Sun, Apple, UtensilsCrossed, Zap, Moon, Salad, Coffee, ChevronDown } from 'lucide-react'
 
 type Paciente = {
@@ -1717,103 +1718,21 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
       <div className="md:hidden"><NavBar tipo="nutricionista" ativa="pacientes" /></div>
 
-      {/* ── MODAL NOVA AVALIAÇÃO ─────────────────────────────────────── */}
-      {modalAvaliacao && (
-        <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center px-0 md:px-4"
-          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setModalAvaliacao(false) }}>
-          <div className="w-full md:max-w-2xl rounded-t-3xl md:rounded-3xl overflow-hidden"
-            style={{ background: 'var(--surface-1)', maxHeight: '90dvh', overflowY: 'auto' }}>
-
-            {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b border-white/[0.08]"
-              style={{ background: 'var(--surface-1)' }}>
-              <div>
-                <p className="text-white font-black text-lg leading-tight">Nova Avaliação</p>
-                <p className="text-zinc-500 text-sm mt-0.5">{paciente?.nome}</p>
-              </div>
-              <button onClick={() => setModalAvaliacao(false)}
-                className="w-8 h-8 rounded-xl bg-white/[0.07] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-90 text-sm">✕</button>
-            </div>
-
-            <div className="px-6 py-5 space-y-5">
-              {/* Data */}
-              <div>
-                <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Data da avaliação</label>
-                <input type="date" value={formAvaliacao.data}
-                  onChange={e => setFormAvaliacao(p => ({ ...p, data: e.target.value }))}
-                  className="w-full rounded-lg px-4 py-3 text-white text-sm outline-none"
-                  style={{ background: 'var(--surface-2)', colorScheme: 'dark' }} />
-              </div>
-
-              {/* Composição corporal */}
-              <div>
-                <p className="text-zinc-400 text-[12px] font-medium mb-3 uppercase tracking-wider">Composição corporal</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { key: 'peso', label: 'Peso (kg)', placeholder: '84.5' },
-                    { key: 'gordura_pct', label: 'Gordura (%)', placeholder: '19.0' },
-                    { key: 'massa_muscular', label: 'Massa musc. (kg)', placeholder: '70.0' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="text-zinc-500 text-[11px] block mb-1">{f.label}</label>
-                      <input type="number" step="0.1" placeholder={f.placeholder}
-                        value={(formAvaliacao as any)[f.key]}
-                        onChange={e => setFormAvaliacao(p => ({ ...p, [f.key]: e.target.value }))}
-                        className="w-full rounded-lg px-3 py-2.5 text-white text-sm outline-none mono"
-                        style={{ background: 'var(--surface-2)' }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Circunferências */}
-              <div>
-                <p className="text-zinc-400 text-[12px] font-medium mb-3 uppercase tracking-wider">Circunferências (cm)</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { key: 'cintura', label: 'Cintura' },
-                    { key: 'quadril', label: 'Quadril' },
-                    { key: 'braco_dir', label: 'Braço Dir.' },
-                    { key: 'coxa_dir', label: 'Coxa Dir.' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="text-zinc-500 text-[11px] block mb-1">{f.label}</label>
-                      <input type="number" step="0.1" placeholder="—"
-                        value={(formAvaliacao as any)[f.key]}
-                        onChange={e => setFormAvaliacao(p => ({ ...p, [f.key]: e.target.value }))}
-                        className="w-full rounded-lg px-3 py-2.5 text-white text-sm outline-none mono"
-                        style={{ background: 'var(--surface-2)' }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Observações */}
-              <div>
-                <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Observações (opcional)</label>
-                <textarea value={formAvaliacao.observacoes} rows={2}
-                  onChange={e => setFormAvaliacao(p => ({ ...p, observacoes: e.target.value }))}
-                  placeholder="Notas clínicas sobre esta avaliação..."
-                  className="w-full rounded-lg px-4 py-3 text-white text-sm outline-none resize-none"
-                  style={{ background: 'var(--surface-2)' }} />
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-2 pb-2">
-                <button onClick={() => setModalAvaliacao(false)}
-                  className="flex-1 border border-white/[0.12] text-zinc-300 font-semibold py-3.5 rounded-2xl text-sm active:scale-95 transition-all">
-                  Cancelar
-                </button>
-                <button onClick={salvarAvaliacao} disabled={salvandoAvaliacao || !formAvaliacao.peso}
-                  className="flex-1 text-black font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-40"
-                  style={{ background: 'var(--accent)' }}>
-                  {salvandoAvaliacao ? 'Salvando...' : 'Salvar avaliação'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* ── MODAL AVALIAÇÃO COMPLETA ─────────────────────────────────── */}
+      {modalAvaliacao && paciente && (
+        <ModalAvaliacaoCompleta
+          clienteId={clienteId}
+          paciente={paciente}
+          onClose={() => setModalAvaliacao(false)}
+          onSaved={async () => {
+            const { data: novas } = await supabase.from('evolucao_medidas')
+              .select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes')
+              .eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20)
+            if (novas) setMedidasCP(novas as MedidaCP[])
+            setModalAvaliacao(false)
+            setAbaAtiva('evolucao')
+          }}
+        />
       )}
 
       {/* Modal confirmação IA */}
