@@ -350,8 +350,8 @@ export default function PersonalAluno() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-black text-white tracking-tight truncate">{aluno?.nome ?? aluno?.email ?? 'Aluno'}</h1>
               <div className="flex flex-wrap gap-2 mt-1">
-                {aluno?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
-                {aluno?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
+                {aluno?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.07] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
+                {aluno?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.07] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
               </div>
             </div>
           </div>
@@ -389,8 +389,8 @@ export default function PersonalAluno() {
 
         {/* Monitoramento de hoje */}
         {monitor && (
-          <div className="rounded-2xl p-4 border border-white/[0.11] mb-5" style={{ background: '#161c2c' }}>
-            <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Monitoramento hoje</p>
+          <div className="rounded-2xl p-4 mb-5" style={{ background: '#161c2c' }}>
+            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Monitoramento hoje</p>
             <div className="grid grid-cols-2 gap-3 mb-3">
               {/* Score de recuperação */}
               <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
@@ -452,7 +452,7 @@ export default function PersonalAluno() {
                   </span>
                 )}
                 {ultimaAvaliacao && (
-                  <span className="text-[10px] text-zinc-400 bg-white/[0.05] border border-white/[0.11] rounded-full px-2.5 py-0.5">
+                  <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
                     Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
                   </span>
                 )}
@@ -521,7 +521,7 @@ export default function PersonalAluno() {
         </div>
 
         {/* Ficha do aluno */}
-        <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
+        <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
           <button
             onClick={() => {
               if (!editandoFicha) {
@@ -537,12 +537,12 @@ export default function PersonalAluno() {
             }}
             className="w-full flex items-center justify-between px-5 py-4 text-left active:opacity-80">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Ficha do aluno</p>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Ficha do aluno</p>
               {!editandoFicha && (
                 <>
-                  {aluno?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
-                  {aluno?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{aluno.altura}cm</span>}
-                  {aluno?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
+                  {aluno?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
+                  {aluno?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{aluno.altura}cm</span>}
+                  {aluno?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
                   {aluno?.meta_peso && <span className="text-[9px] text-emerald-600 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-full px-2 py-0.5">Meta: {aluno.meta_peso}kg</span>}
                   {!aluno?.peso && !aluno?.altura && !aluno?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
                 </>
@@ -557,13 +557,13 @@ export default function PersonalAluno() {
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso (kg)</p>
                   <input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)}
                     placeholder="75.5"
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
                 </div>
                 <div>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Altura (cm)</p>
                   <input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)}
                     placeholder="175"
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
                 </div>
               </div>
               <div>
@@ -580,7 +580,7 @@ export default function PersonalAluno() {
               <div>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Data de nascimento</p>
                 <input type="date" value={fichaNascimento} onChange={e => setFichaNascimento(e.target.value)}
-                  className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
+                  className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
               </div>
               <div>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Objetivo</p>
@@ -600,12 +600,12 @@ export default function PersonalAluno() {
                     <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso-alvo (kg)</p>
                     <input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)}
                       placeholder="Ex: 78"
-                      className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
+                      className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
                   </div>
                   <div>
                     <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Prazo</p>
                     <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
-                      className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]"
+                      className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30"
                       style={{ colorScheme: 'dark' }} />
                   </div>
                 </div>
@@ -620,7 +620,7 @@ export default function PersonalAluno() {
 
         {/* Composição Corporal — empty state */}
         {medidasCP.length === 0 && (
-          <div className="rounded-2xl border border-white/[0.11] mb-5 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#161c2c' }}>
+          <div className="rounded-2xl mb-5 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#161c2c' }}>
             <span className="text-3xl">📏</span>
             <div>
               <p className="text-white text-sm font-bold">Sem medidas corporais</p>
@@ -659,9 +659,9 @@ export default function PersonalAluno() {
             return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
           }
           return (
-            <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
               <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
+                <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
                 <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
               </div>
               <div className="divide-y divide-white/[0.04]">
@@ -691,8 +691,8 @@ export default function PersonalAluno() {
         })()}
 
         {/* Calendário de aderência - 28 dias */}
-        <div className="rounded-2xl p-5 border border-white/[0.11] mb-5" style={{ background: '#161c2c' }}>
-          <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Calendário de aderência · 28 dias</p>
+        <div className="rounded-2xl p-5 mb-5" style={{ background: '#161c2c' }}>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Calendário de aderência · 28 dias</p>
           <div className="grid grid-cols-7 gap-1.5">
             {Array.from({ length: 28 }, (_, i) => {
               const d = new Date(getTodayBR() + 'T12:00:00-03:00')
@@ -802,9 +802,9 @@ export default function PersonalAluno() {
 
       {/* Últimas execuções */}
       {execucoes.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
+        <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
           <div className="px-5 py-4 border-b border-white/[0.14]">
-            <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Últimas execuções</p>
+            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Últimas execuções</p>
           </div>
           <div className="divide-y divide-white/[0.04]">
             {execucoes.map((ex) => {
@@ -828,7 +828,7 @@ export default function PersonalAluno() {
                   {ex.exercicios.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pl-11">
                       {ex.exercicios.map(e => (
-                        <span key={e.nome} className="text-[10px] text-zinc-400 bg-white/[0.05] border border-white/[0.11] rounded-lg px-2 py-0.5">
+                        <span key={e.nome} className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-lg px-2 py-0.5">
                           {e.nome}{e.maxCarga > 0 ? ` · ${e.maxCarga}kg` : ''}
                         </span>
                       ))}
@@ -846,9 +846,9 @@ export default function PersonalAluno() {
         const exsComDados = treinoDoPlano.exercicios.filter(ex => (cargaEvolucao[ex.nome]?.length ?? 0) >= 2)
         if (!exsComDados.length) return null
         return (
-          <div className="rounded-2xl border border-white/[0.11] mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
+          <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Evolução de carga · Plano {planoAtivo}</p>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Evolução de carga · Plano {planoAtivo}</p>
             </div>
             <div className="divide-y divide-white/[0.04]">
               {exsComDados.map((ex, i) => {
@@ -914,7 +914,7 @@ export default function PersonalAluno() {
                 </div>
                 <div className="space-y-3">
                   {editandoTreino.exercicios.map((ex, i) => (
-                    <div key={i} className="bg-white/[0.05] rounded-2xl p-4 border border-white/[0.09]">
+                    <div key={i} className="bg-white/[0.05] rounded-2xl p-4">
                       <div className="flex items-center justify-between mb-3">
                         <span className={`text-[10px] font-black uppercase tracking-widest ${CORES[editandoTreino.plano].text}`}>Exercício {i + 1}</span>
                         {editandoTreino.exercicios.length > 1 && <button onClick={() => removerExercicio(i)} className="text-red-500/50 hover:text-red-400 text-xs active:scale-90 transition-all">remover</button>}

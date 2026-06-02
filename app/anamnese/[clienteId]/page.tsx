@@ -45,7 +45,7 @@ const ALCOOL_LABEL: Record<string, string> = {
 function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = true }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [aberto, setAberto] = useState(defaultOpen)
   return (
-    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: '#161c2c' }}>
       <button onClick={() => setAberto(p => !p)} className="w-full px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
         style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.08)' : 'none', background: 'rgba(255,255,255,0.02)' }}>
         <div className="flex items-center gap-2.5">
@@ -54,7 +54,7 @@ function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = t
             <p className="text-white font-bold text-sm">{titulo}</p>
             {subtitulo && !aberto && <p className="text-zinc-600 text-xs mt-0.5">{subtitulo}</p>}
           </div>
-          {badge && <span className="text-xs uppercase tracking-wider text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{badge}</span>}
+          {badge && <span className="text-xs uppercase tracking-wider text-zinc-500 bg-white/[0.07] rounded-full px-2 py-0.5">{badge}</span>}
           <span className={`text-zinc-600 text-xs ml-2 transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`}>▼</span>
         </div>
       </button>
@@ -263,7 +263,7 @@ export default function AnamnesePage() {
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => router.push(backUrl)} className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shrink-0 text-lg">←</button>
+          <button onClick={() => router.push(backUrl)} className="w-10 h-10 rounded-xl bg-white/[0.07] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shrink-0 text-lg">←</button>
           <div>
             <h1 className="text-2xl font-black tracking-tight">Anamnese</h1>
             <p className="text-zinc-500 text-sm mt-0.5">

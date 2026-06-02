@@ -192,7 +192,7 @@ export default function Agenda() {
 
         {/* Calendário semanal */}
         {vistaCalendario === 'semana' && (
-        <div className="rounded-2xl border border-white/[0.11] p-4 mb-5" style={{ background: '#161c2c' }}>
+        <div className="rounded-2xl p-4 mb-5" style={{ background: '#161c2c' }}>
           <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-3">Esta semana</p>
           <div className="grid grid-cols-7 gap-1">
             {semana7.map((dia, i) => {
@@ -233,7 +233,7 @@ export default function Agenda() {
           })
           const mesLabel = new Date(mesY, mesM - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
           return (
-            <div className="rounded-2xl border border-white/[0.11] p-4 mb-5" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-4 mb-5" style={{ background: '#161c2c' }}>
               <div className="flex items-center justify-between mb-4">
                 <button onClick={() => { const d = new Date(mesY, mesM - 2, 1); setMesAtual(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`) }}
                   className="w-8 h-8 rounded-xl bg-white/[0.09] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">‹</button>
@@ -267,7 +267,7 @@ export default function Agenda() {
         })()}
 
         {Object.keys(grupos).length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.11] p-10 text-center" style={{ background: '#161c2c' }}>
+          <div className="rounded-2xl p-10 text-center" style={{ background: '#161c2c' }}>
             <p className="text-3xl mb-3">📅</p>
             <p className="text-white font-bold mb-1">Agenda vazia</p>
             <p className="text-zinc-500 text-sm">Toque em + para agendar uma consulta ou treino.</p>

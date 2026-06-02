@@ -81,7 +81,7 @@ function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
   const pace = calcularPace(duracaoAtual, parseFloat(form.distancia_km ?? '0'))
   return (
     <>
-      <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📍 Percurso</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -91,7 +91,7 @@ function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
           {pace && <div className="flex items-center gap-2 bg-blue-500/5 border border-blue-500/20 rounded-xl px-4 py-3"><span className="text-blue-400 text-sm">⚡</span><p className="text-blue-400 text-sm font-bold">Pace: {pace} min/km</p><p className="text-zinc-600 text-xs ml-auto">calculado automaticamente</p></div>}
         </div>
       </div>
-      <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-1 ${mod.corText}`}>❤️ Zona de frequência cardíaca</p>
         <p className="text-zinc-600 text-xs mb-4">Zona predominante do treino — fundamental para análise da carga</p>
         <div className="grid grid-cols-2 gap-2">
@@ -104,7 +104,7 @@ function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
           ))}
         </div>
       </div>
-      <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -126,7 +126,7 @@ function FormBike({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
   const velMedia = form.distancia_km && duracaoAtual ? Math.round((parseFloat(form.distancia_km) / (duracaoAtual / 60)) * 10) / 10 : null
   return (
     <>
-      <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📍 Percurso</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -136,7 +136,7 @@ function FormBike({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
           {velMedia && <div className="flex items-center gap-2 bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3"><span className="text-orange-400 text-sm">⚡</span><p className="text-orange-400 text-sm font-bold">Velocidade média: {velMedia} km/h</p></div>}
         </div>
       </div>
-      <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-1 ${mod.corText}`}>❤️ Zona de frequência cardíaca</p>
         <p className="text-zinc-600 text-xs mb-4">Zona predominante — define se foi treino base ou intenso</p>
         <div className="grid grid-cols-2 gap-2">
@@ -149,7 +149,7 @@ function FormBike({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
           ))}
         </div>
       </div>
-      <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -172,7 +172,7 @@ function FormNatacao({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
   const paceNat = calcularPaceNatacao(duracaoAtual, parseInt(form.distancia_m ?? '0'))
   return (
     <>
-      <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>🏊 Volume</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -191,7 +191,7 @@ function FormNatacao({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
           </div>
         </div>
       </div>
-      <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
         <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
         <div className="grid grid-cols-2 gap-3">
           <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC pós-treino (bpm)</label><input type="number" placeholder="Ex: 145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
@@ -205,7 +205,7 @@ function FormNatacao({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
 
 function FormCrossfit({ form, setForm, mod, calsPreview }: any) {
   return (
-    <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+    <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
       <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>⚡ WOD</p>
       <div className="space-y-3">
         <div>
@@ -523,7 +523,7 @@ Responda APENAS JSON válido:
               { label: 'Calorias est.', val: caloriasEstimadas ? `~${caloriasEstimadas}` : '—', sub: 'kcal gastas' },
               { label: 'Recuperação', val: score ? `${score}` : '—', sub: score ? '/100' : 'não registrado' },
             ].map((s, i) => (
-              <div key={i} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
+              <div key={i} className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
                 <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">{s.label}</p>
                 <p className={`text-3xl font-black tabular-nums ${c.text}`}>{s.val}{(s as any).extra && <span className="text-zinc-600 text-lg font-light">{(s as any).extra}</span>}</p>
                 {(s as any).subEl ?? <p className="text-zinc-600 text-xs mt-1">{s.sub}</p>}
@@ -562,17 +562,17 @@ Responda APENAS JSON válido:
             <h1 className="text-3xl font-black text-white mb-1">{mod.label}</h1>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Duração</p>
               <p className={`text-3xl font-black ${mod.corText}`}>{duracaoMin}<span className="text-zinc-600 text-lg font-light">min</span></p>
             </div>
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
               <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Calorias</p>
               <p className={`text-3xl font-black ${mod.corText}`}>~{caloriasEstimadas ?? '—'}<span className="text-zinc-600 text-lg font-light">kcal</span></p>
             </div>
-            {form.distancia_km && <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p><p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_km}<span className="text-zinc-600 text-lg font-light">km</span></p></div>}
-            {form.distancia_m && <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p><p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_m}<span className="text-zinc-600 text-lg font-light">m</span></p></div>}
-            {form.potencia_media && <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Potência média</p><p className={`text-3xl font-black ${mod.corText}`}>{form.potencia_media}<span className="text-zinc-600 text-lg font-light">W</span></p></div>}
+            {form.distancia_km && <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p><p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_km}<span className="text-zinc-600 text-lg font-light">km</span></p></div>}
+            {form.distancia_m && <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p><p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_m}<span className="text-zinc-600 text-lg font-light">m</span></p></div>}
+            {form.potencia_media && <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Potência média</p><p className={`text-3xl font-black ${mod.corText}`}>{form.potencia_media}<span className="text-zinc-600 text-lg font-light">W</span></p></div>}
           </div>
           <div className={`rounded-2xl border mb-4 overflow-hidden ${mod.corBorder}`} style={{ background: 'linear-gradient(145deg, #131b2e 0%, #141414 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
@@ -638,7 +638,7 @@ Responda APENAS JSON válido:
                 </div>
               )
             })}
-            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração do treino</p>
               <div className="flex items-center gap-3">
                 <input type="number" placeholder="60" value={form.duracao_musculacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_musculacao: e.target.value }))} className="flex-1 bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
@@ -673,11 +673,11 @@ Responda APENAS JSON válido:
         </div>
         <div className="flex-1 overflow-y-auto pb-32">
           <div className="max-w-md mx-auto px-4 py-5 space-y-4">
-            <div className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.11] rounded-2xl px-4 py-3">
+            <div className="flex items-start gap-3 bg-white/[0.02] rounded-2xl px-4 py-3">
               <span className="text-lg shrink-0">💡</span>
               <p className="text-zinc-500 text-xs leading-relaxed">Quanto mais dados você preencher, mais precisa será a análise da IA. Todos os campos são opcionais exceto a duração.</p>
             </div>
-            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">⏱ Duração <span className={mod.corText}>*</span></p>
               <div className="flex items-center gap-3">
                 <input type="number" placeholder="45" value={form.duracao_min ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))} className="flex-1 bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-lg text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
@@ -695,7 +695,7 @@ Responda APENAS JSON válido:
             {modalidade === 'natacao' && <FormNatacao form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} duracaoAtual={duracaoAtual} />}
             {modalidade === 'crossfit' && <FormCrossfit form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} />}
             {modalidade === 'outro' && (
-              <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
                 <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Dados gerais</p>
                 <div className="space-y-3">
                   <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label><input type="number" placeholder="Ex: 140" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" /></div>
@@ -704,7 +704,7 @@ Responda APENAS JSON válido:
                 </div>
               </div>
             )}
-            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">😤 Intensidade percebida (PSE)</p>
               <div className="flex gap-2">
                 {[{ v: 1, l: 'Leve', e: '😌' }, { v: 2, l: 'Moderado', e: '🙂' }, { v: 3, l: 'Forte', e: '😤' }, { v: 4, l: 'Muito forte', e: '😰' }, { v: 5, l: 'Máximo', e: '🔥' }].map(i => (
@@ -714,7 +714,7 @@ Responda APENAS JSON válido:
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">📝 Observações <span className="text-zinc-700 normal-case">(opcional)</span></p>
               <textarea placeholder="Como você se sentiu? Alguma dor, sensação especial, estratégia de pace..." value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
             </div>
@@ -745,8 +745,8 @@ Responda APENAS JSON válido:
           const tb = TIPO_BLOCO[blocoAtual.tipo] ?? TIPO_BLOCO.adaptacao
           const pct = Math.round((blocoAtual.semanaGlobal / blocoAtual.totalSemanasCiclo) * 100)
           return (
-            <div className="rounded-2xl p-4 border border-white/[0.11] mb-5" style={{ background: '#161c2c' }}>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">📅 {blocoAtual.ciclonome}</p>
+            <div className="rounded-2xl p-4 mb-5" style={{ background: '#161c2c' }}>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-3">📅 {blocoAtual.ciclonome}</p>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tb.bg}`}>
@@ -805,7 +805,7 @@ Responda APENAS JSON válido:
                     </div>
                   </div>
                   {score && (
-                    <div className="rounded-2xl p-4 border border-white/[0.11] mb-4" style={{ background: '#161c2c' }}>
+                    <div className="rounded-2xl p-4 mb-4" style={{ background: '#161c2c' }}>
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                         <p className="text-zinc-400 text-[11px]">Recuperação: <span className="text-white font-bold">{score}/100</span> {score >= 70 ? '— ótimo para treinar forte!' : score >= 50 ? '— moderação.' : '— leve hoje.'}</p>

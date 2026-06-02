@@ -131,7 +131,7 @@ export default function NutricionistaPacientes() {
               value={busca}
               onChange={e => setBusca(e.target.value)}
               placeholder="Buscar por nome ou email..."
-              className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.09]"
+              className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-white/20"
               style={{ background: '#161c2c' }}
             />
           </div>
@@ -139,7 +139,7 @@ export default function NutricionistaPacientes() {
 
         {pacientes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] border border-white/[0.11] flex items-center justify-center text-3xl opacity-40">🥗</div>
+            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] flex items-center justify-center text-3xl opacity-40">🥗</div>
             <div className="text-center">
               <p className="text-white font-bold mb-1">Nenhum paciente ainda</p>
               <p className="text-zinc-600 text-sm">Convide seu primeiro paciente para começar</p>
@@ -155,10 +155,10 @@ export default function NutricionistaPacientes() {
                 { val: treinaram,           label: 'Treinaram',     sub: 'essa semana', icon: '🏋️' },
                 { val: comBoaSono,          label: 'Boa recuperação', sub: 'hoje', icon: '😴' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#161c2c' }}>
-                  <p className="text-lg mb-1">{s.icon}</p>
-                  <p className="text-white text-2xl font-black">{s.val}</p>
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5 leading-tight">{s.label}</p>
+                <div key={i} className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-3">{s.label}</p>
+                  <p className="text-white text-5xl font-black leading-none tracking-tight">{s.val}</p>
+                  <p className="text-zinc-600 text-xs mt-2">{s.sub}</p>
                 </div>
               ))}
             </div>
@@ -173,10 +173,10 @@ export default function NutricionistaPacientes() {
 
                 return (
                   <button key={pac.id} onClick={() => router.push(`/nutricionista/paciente/${pac.cliente_id}`)}
-                    className="w-full text-left rounded-xl px-5 py-4 border border-white/[0.08] active:scale-[0.99] transition-all hover:border-white/[0.14]"
+                    className="w-full text-left rounded-xl px-5 py-4 active:scale-[0.99] transition-all hover:border-white/[0.14]"
                     style={{ background: '#161c2c' }}>
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/[0.09] flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-white/[0.07] flex items-center justify-center shrink-0">
                         <span className="font-bold text-sm text-zinc-300">{initials}</span>
                       </div>
                       <div className="flex-1 min-w-0">

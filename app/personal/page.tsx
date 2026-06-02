@@ -184,7 +184,7 @@ export default function PersonalAlunos() {
 
         {alunos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] border border-white/[0.11] flex items-center justify-center text-3xl opacity-40">👥</div>
+            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] flex items-center justify-center text-3xl opacity-40">👥</div>
             <div className="text-center">
               <p className="text-white font-bold mb-1">Nenhum aluno ainda</p>
               <p className="text-zinc-600 text-sm">Convide seu primeiro aluno para começar</p>
@@ -200,7 +200,7 @@ export default function PersonalAlunos() {
                 { val: totalTreinouHoje, label: 'Treinaram', sub: 'hoje', icon: '💪' },
                 { val: mediaScore ? `${mediaScore}` : '—', label: 'Recup. média', sub: '/100', icon: '⚡' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-4 border border-white/[0.11] text-center" style={{ background: '#161c2c' }}>
+                <div key={i} className="rounded-2xl p-4 text-center" style={{ background: '#161c2c' }}>
                   <p className="text-lg mb-1">{s.icon}</p>
                   <p className="text-white text-2xl font-black">{s.val}</p>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5">{s.label}</p>
@@ -249,7 +249,7 @@ export default function PersonalAlunos() {
 
                 return (
                   <button key={aluno.id} onClick={() => router.push(`/personal/aluno/${aluno.cliente_id}`)}
-                    className="w-full text-left rounded-2xl p-5 border border-white/[0.11] active:scale-[0.98] transition-all"
+                    className="w-full text-left rounded-2xl p-5 active:scale-[0.98] transition-all"
                     style={{ background: '#161c2c' }}>
                     <div className="flex items-center gap-4">
                       <div className="relative">

@@ -284,7 +284,7 @@ export default function EvolucaoMedidasPage() {
 
         {medicoes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] border border-white/[0.11] flex items-center justify-center text-3xl opacity-40">📏</div>
+            <div className="w-16 h-16 rounded-3xl bg-white/[0.05] flex items-center justify-center text-3xl opacity-40">📏</div>
             <div className="text-center">
               <p className="text-white font-bold mb-1">Sem medidas registradas</p>
               <p className="text-zinc-600 text-sm">{isProfissional ? 'Registre a primeira avaliação corporal' : 'Seu profissional ainda não registrou medidas'}</p>
@@ -297,9 +297,9 @@ export default function EvolucaoMedidasPage() {
           <>
             {/* Snapshot atual */}
             {mais_recente && (
-              <div className="rounded-2xl p-5 border border-white/[0.11] mb-5" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl p-5 mb-5" style={{ background: '#161c2c' }}>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Último registro</p>
+                  <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Último registro</p>
                   <span className="text-zinc-600 text-xs">{new Date(mais_recente.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -336,7 +336,7 @@ export default function EvolucaoMedidasPage() {
             {abaAtiva === 'historico' && (
               <div className="space-y-2">
                 {medicoes.map((m, idx) => (
-                  <div key={m.id} className="rounded-2xl p-4 border border-white/[0.11]" style={{ background: '#161c2c' }}>
+                  <div key={m.id} className="rounded-2xl p-4" style={{ background: '#161c2c' }}>
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="text-white font-bold text-sm">{new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
@@ -350,7 +350,7 @@ export default function EvolucaoMedidasPage() {
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {m.peso != null && <span className="text-xs text-zinc-300 bg-white/[0.05] border border-white/[0.11] rounded-lg px-2.5 py-1">{m.peso}kg</span>}
+                      {m.peso != null && <span className="text-xs text-zinc-300 bg-white/[0.05] rounded-lg px-2.5 py-1">{m.peso}kg</span>}
                       {m.gordura_pct != null && <span className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-2.5 py-1">{m.gordura_pct}% gord.</span>}
                       {m.massa_muscular != null && <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1">{m.massa_muscular}kg musc.</span>}
                       {m.cintura != null && <span className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-2.5 py-1">{m.cintura}cm cin.</span>}
@@ -368,7 +368,7 @@ export default function EvolucaoMedidasPage() {
                 {METRICAS_COMPOSICAO.map(m => {
                   const pontos = medicoes.filter(d => d[m.campo] != null)
                   if (pontos.length === 0) return (
-                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
+                    <div key={m.campo} className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
                       <p className="text-zinc-500 text-sm">{m.label} — sem dados</p>
                     </div>
                   )
@@ -377,7 +377,7 @@ export default function EvolucaoMedidasPage() {
                   const primeiro = [...pontos].reverse()[0][m.campo] as number | null
                   const totalDelta = atual != null && primeiro != null ? atual - primeiro : null
                   return (
-                    <div key={m.campo} className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
+                    <div key={m.campo} className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-0.5">{m.label}</p>
@@ -408,7 +408,7 @@ export default function EvolucaoMedidasPage() {
                   const atual = mais_recente?.[m.campo] as number | null
                   const prev = anterior?.[m.campo] as number | null
                   return (
-                    <div key={m.campo} className="rounded-2xl p-4 border border-white/[0.11] flex items-center gap-4" style={{ background: '#161c2c' }}>
+                    <div key={m.campo} className="rounded-2xl p-4 flex items-center gap-4" style={{ background: '#161c2c' }}>
                       <div className="flex-1 min-w-0">
                         <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-0.5">{m.label}</p>
                         <div className="flex items-baseline gap-2">
