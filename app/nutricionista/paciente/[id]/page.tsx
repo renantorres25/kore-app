@@ -23,7 +23,7 @@ type PlanoNutricional = {
   id: string; conteudo: string; calorias_meta: number | null
   proteina_meta: number | null; created_at: string
 }
-type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null }
+type MedidaCP = { id?: string; data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null; abdomen?: number | null; peitoral?: number | null; braco_esq?: number | null; coxa_esq?: number | null; panturrilha_dir?: number | null; panturrilha_esq?: number | null; observacoes?: string | null }
 type PeriodizacaoFase = { nome_ciclo: string; nome_bloco: string; tipo_bloco: string; semana_bloco: number; total_semanas_bloco: number; semana_total: number; total_semanas: number; descricao: string | null; plano_associado: string | null }
 type MetaHistorico = { calorias_meta: number | null; proteina_meta: number | null; created_at: string }
 type AlimentoEd = {
@@ -126,6 +126,14 @@ export default function NutricionistaPaciente() {
   const [gerandoBriefing, setGerandoBriefing] = useState(false)
   const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
   const [loadingAnamnese, setLoadingAnamnese] = useState(false)
+  const [modalAvaliacao, setModalAvaliacao] = useState(false)
+  const [avaliacaoExpandida, setAvaliacaoExpandida] = useState<string | null>(null)
+  const [salvandoAvaliacao, setSalvandoAvaliacao] = useState(false)
+  const [formAvaliacao, setFormAvaliacao] = useState({
+    data: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
+    peso: '', gordura_pct: '', massa_muscular: '',
+    cintura: '', quadril: '', braco_dir: '', coxa_dir: '', observacoes: ''
+  })
 
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
@@ -169,7 +177,7 @@ export default function NutricionistaPaciente() {
         supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
         supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
-        supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
+        supabase.from('evolucao_medidas').select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20),
         supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
         supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1),
         supabase.from('anamneses').select('lesoes,restricoes_fisicas,medicamentos,alergias,restricoes_alimentares').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
@@ -514,6 +522,33 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
       }
     } catch { setBriefingIA('Erro ao gerar briefing.') }
     setGerandoBriefing(false)
+  }
+
+  async function salvarAvaliacao() {
+    setSalvandoAvaliacao(true)
+    const { error } = await supabase.from('evolucao_medidas').insert({
+      cliente_id: clienteId,
+      data: formAvaliacao.data,
+      peso: formAvaliacao.peso ? parseFloat(formAvaliacao.peso) : null,
+      gordura_pct: formAvaliacao.gordura_pct ? parseFloat(formAvaliacao.gordura_pct) : null,
+      massa_muscular: formAvaliacao.massa_muscular ? parseFloat(formAvaliacao.massa_muscular) : null,
+      cintura: formAvaliacao.cintura ? parseFloat(formAvaliacao.cintura) : null,
+      quadril: formAvaliacao.quadril ? parseFloat(formAvaliacao.quadril) : null,
+      braco_dir: formAvaliacao.braco_dir ? parseFloat(formAvaliacao.braco_dir) : null,
+      coxa_dir: formAvaliacao.coxa_dir ? parseFloat(formAvaliacao.coxa_dir) : null,
+      observacoes: formAvaliacao.observacoes || null,
+    })
+    if (!error) {
+      // Reload medidasCP
+      const { data: novas } = await supabase.from('evolucao_medidas')
+        .select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes')
+        .eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20)
+      if (novas) setMedidasCP(novas as MedidaCP[])
+      setModalAvaliacao(false)
+      setFormAvaliacao({ data: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }), peso: '', gordura_pct: '', massa_muscular: '', cintura: '', quadril: '', braco_dir: '', coxa_dir: '', observacoes: '' })
+      setAbaAtiva('evolucao')
+    }
+    setSalvandoAvaliacao(false)
   }
 
   if (carregando) return (
@@ -1499,8 +1534,8 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 <h2 className="text-white font-black text-xl">Evolução Corporal</h2>
                 <p className="text-zinc-500 text-sm">{medidasCP.length} avaliações registradas</p>
               </div>
-              <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-                className="text-sm text-zinc-300 rounded-xl px-4 py-2 hover:border-white/20 transition-all">
+              <button onClick={() => setModalAvaliacao(true)}
+                className="flex items-center gap-1.5 text-sm text-[var(--accent)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 rounded-xl px-4 py-2 active:scale-95 transition-all font-medium">
                 + Nova avaliação
               </button>
             </div>
@@ -1510,8 +1545,8 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 <p className="text-3xl mb-3">📏</p>
                 <p className="text-white font-semibold mb-1">Sem avaliações registradas</p>
                 <p className="text-zinc-500 text-sm mb-4">Adicione a primeira avaliação corporal do paciente</p>
-                <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-                  className="bg-white text-black font-bold px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-all">
+                <button onClick={() => setModalAvaliacao(true)}
+                  className="bg-[var(--accent)] text-black font-bold px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-all">
                   Registrar primeira avaliação
                 </button>
               </div>
@@ -1606,23 +1641,66 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                     }).filter(Boolean)}
                   </div>
 
-                  {/* Histórico de avaliações */}
+                  {/* Histórico de avaliações — accordion clicável */}
                   <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-                    <div className="px-5 py-4 border-b border-white/[0.07]">
+                    <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
                       <p className="text-zinc-400 text-xs uppercase tracking-wider">Histórico de avaliações</p>
+                      <button onClick={() => setModalAvaliacao(true)}
+                        className="flex items-center gap-1.5 text-xs text-[var(--accent)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 rounded-xl px-3 py-1.5 active:scale-95 transition-all font-medium">
+                        + Nova avaliação
+                      </button>
                     </div>
                     <div className="divide-y divide-white/[0.05]">
-                      {[...medidasCP].reverse().map((m, i) => (
-                        <div key={i} className="flex items-center gap-4 px-5 py-3.5">
-                          <p className="text-zinc-500 text-sm w-28 shrink-0">{new Date(m.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</p>
-                          <div className="flex-1 flex flex-wrap gap-2">
-                            {m.peso && <span className="text-xs text-zinc-300 bg-white/[0.05] rounded-full px-2.5 py-0.5">{String(m.peso).replace(".", ",")} kg</span>}
-                            {m.gordura_pct && <span className="text-xs text-orange-300 bg-orange-500/10 border border-orange-500/20 rounded-full px-2.5 py-0.5">{m.gordura_pct}% gord.</span>}
-                            {m.massa_muscular && <span className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-0.5">{m.massa_muscular}kg musc.</span>}
-                            {m.cintura && <span className="text-xs text-zinc-400 bg-white/[0.04] border border-white/[0.07] rounded-full px-2.5 py-0.5">{m.cintura}cm cin.</span>}
+                      {[...medidasCP].reverse().map((m, i) => {
+                        const key = m.data + (m.id ?? i)
+                        const aberto = avaliacaoExpandida === key
+                        const campos: { label: string; val: number | null | undefined; unit: string; cor: string }[] = [
+                          { label: 'Peso', val: m.peso, unit: 'kg', cor: 'text-zinc-300' },
+                          { label: '% Gordura', val: m.gordura_pct, unit: '%', cor: 'text-orange-300' },
+                          { label: 'Massa muscular', val: m.massa_muscular, unit: 'kg', cor: 'text-emerald-300' },
+                          { label: 'Cintura', val: m.cintura, unit: 'cm', cor: 'text-violet-300' },
+                          { label: 'Quadril', val: m.quadril, unit: 'cm', cor: 'text-blue-300' },
+                          { label: 'Braço Dir.', val: m.braco_dir, unit: 'cm', cor: 'text-zinc-400' },
+                          { label: 'Coxa Dir.', val: m.coxa_dir, unit: 'cm', cor: 'text-zinc-400' },
+                          { label: 'Abdômen', val: (m as any).abdomen, unit: 'cm', cor: 'text-zinc-400' },
+                          { label: 'Peitoral', val: (m as any).peitoral, unit: 'cm', cor: 'text-zinc-400' },
+                        ].filter(c => c.val != null)
+                        return (
+                          <div key={key}>
+                            <button onClick={() => setAvaliacaoExpandida(aberto ? null : key)}
+                              className="w-full flex items-center gap-4 px-5 py-3.5 text-left hover:bg-white/[0.03] transition-all">
+                              <div className="flex-1 flex items-center gap-3 flex-wrap">
+                                <p className="text-zinc-300 text-sm font-medium w-32 shrink-0">
+                                  {new Date(m.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}
+                                </p>
+                                <div className="flex gap-2 flex-wrap">
+                                  {m.peso && <span className="text-xs text-zinc-300 bg-white/[0.06] rounded-full px-2.5 py-0.5 mono">{String(m.peso).replace(".", ",")} kg</span>}
+                                  {m.gordura_pct && <span className="text-xs text-orange-300 bg-orange-500/10 border border-orange-500/15 rounded-full px-2.5 py-0.5 mono">{m.gordura_pct}%</span>}
+                                  {m.massa_muscular && <span className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/15 rounded-full px-2.5 py-0.5 mono">{m.massa_muscular}kg</span>}
+                                  {!aberto && m.cintura && <span className="text-xs text-zinc-500 bg-white/[0.03] rounded-full px-2.5 py-0.5 mono">{m.cintura}cm cin.</span>}
+                                </div>
+                              </div>
+                              <ChevronDown size={15} className={`text-zinc-600 shrink-0 transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {aberto && (
+                              <div className="px-5 pb-4 pt-1 bg-white/[0.02]">
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                  {campos.map(c => (
+                                    <div key={c.label} className="rounded-xl px-3 py-2.5" style={{ background: 'var(--surface-2)' }}>
+                                      <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-1">{c.label}</p>
+                                      <p className={`text-base font-bold mono ${c.cor}`}>{String(c.val).replace('.', ',')} <span className="text-zinc-600 text-xs font-normal">{c.unit}</span></p>
+                                    </div>
+                                  ))}
+                                </div>
+                                {(m as any).observacoes && (
+                                  <p className="mt-3 text-zinc-400 text-sm italic border-l-2 border-white/[0.10] pl-3">{(m as any).observacoes}</p>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 </>
@@ -1638,6 +1716,105 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
       {/* ── FIM CONTEÚDO PRINCIPAL ───────────────────────────────────── */}
 
       <div className="md:hidden"><NavBar tipo="nutricionista" ativa="pacientes" /></div>
+
+      {/* ── MODAL NOVA AVALIAÇÃO ─────────────────────────────────────── */}
+      {modalAvaliacao && (
+        <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center px-0 md:px-4"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setModalAvaliacao(false) }}>
+          <div className="w-full md:max-w-2xl rounded-t-3xl md:rounded-3xl overflow-hidden"
+            style={{ background: 'var(--surface-1)', maxHeight: '90dvh', overflowY: 'auto' }}>
+
+            {/* Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b border-white/[0.08]"
+              style={{ background: 'var(--surface-1)' }}>
+              <div>
+                <p className="text-white font-black text-lg leading-tight">Nova Avaliação</p>
+                <p className="text-zinc-500 text-sm mt-0.5">{paciente?.nome}</p>
+              </div>
+              <button onClick={() => setModalAvaliacao(false)}
+                className="w-8 h-8 rounded-xl bg-white/[0.07] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-90 text-sm">✕</button>
+            </div>
+
+            <div className="px-6 py-5 space-y-5">
+              {/* Data */}
+              <div>
+                <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Data da avaliação</label>
+                <input type="date" value={formAvaliacao.data}
+                  onChange={e => setFormAvaliacao(p => ({ ...p, data: e.target.value }))}
+                  className="w-full rounded-lg px-4 py-3 text-white text-sm outline-none"
+                  style={{ background: 'var(--surface-2)', colorScheme: 'dark' }} />
+              </div>
+
+              {/* Composição corporal */}
+              <div>
+                <p className="text-zinc-400 text-[12px] font-medium mb-3 uppercase tracking-wider">Composição corporal</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { key: 'peso', label: 'Peso (kg)', placeholder: '84.5' },
+                    { key: 'gordura_pct', label: 'Gordura (%)', placeholder: '19.0' },
+                    { key: 'massa_muscular', label: 'Massa musc. (kg)', placeholder: '70.0' },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <label className="text-zinc-500 text-[11px] block mb-1">{f.label}</label>
+                      <input type="number" step="0.1" placeholder={f.placeholder}
+                        value={(formAvaliacao as any)[f.key]}
+                        onChange={e => setFormAvaliacao(p => ({ ...p, [f.key]: e.target.value }))}
+                        className="w-full rounded-lg px-3 py-2.5 text-white text-sm outline-none mono"
+                        style={{ background: 'var(--surface-2)' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Circunferências */}
+              <div>
+                <p className="text-zinc-400 text-[12px] font-medium mb-3 uppercase tracking-wider">Circunferências (cm)</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { key: 'cintura', label: 'Cintura' },
+                    { key: 'quadril', label: 'Quadril' },
+                    { key: 'braco_dir', label: 'Braço Dir.' },
+                    { key: 'coxa_dir', label: 'Coxa Dir.' },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <label className="text-zinc-500 text-[11px] block mb-1">{f.label}</label>
+                      <input type="number" step="0.1" placeholder="—"
+                        value={(formAvaliacao as any)[f.key]}
+                        onChange={e => setFormAvaliacao(p => ({ ...p, [f.key]: e.target.value }))}
+                        className="w-full rounded-lg px-3 py-2.5 text-white text-sm outline-none mono"
+                        style={{ background: 'var(--surface-2)' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Observações */}
+              <div>
+                <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Observações (opcional)</label>
+                <textarea value={formAvaliacao.observacoes} rows={2}
+                  onChange={e => setFormAvaliacao(p => ({ ...p, observacoes: e.target.value }))}
+                  placeholder="Notas clínicas sobre esta avaliação..."
+                  className="w-full rounded-lg px-4 py-3 text-white text-sm outline-none resize-none"
+                  style={{ background: 'var(--surface-2)' }} />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2 pb-2">
+                <button onClick={() => setModalAvaliacao(false)}
+                  className="flex-1 border border-white/[0.12] text-zinc-300 font-semibold py-3.5 rounded-2xl text-sm active:scale-95 transition-all">
+                  Cancelar
+                </button>
+                <button onClick={salvarAvaliacao} disabled={salvandoAvaliacao || !formAvaliacao.peso}
+                  className="flex-1 text-black font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-40"
+                  style={{ background: 'var(--accent)' }}>
+                  {salvandoAvaliacao ? 'Salvando...' : 'Salvar avaliação'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal confirmação IA */}
       {confirmandoIA && (
