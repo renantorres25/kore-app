@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import SidebarProfissional from '../../components/SidebarProfissional'
+import { HeartPulse, Leaf, Dumbbell, Salad, Target } from 'lucide-react'
 
 type AnamneseForm = {
   patologias: string; medicamentos: string; alergias: string; cirurgias: string
@@ -42,20 +43,20 @@ const ALCOOL_LABEL: Record<string, string> = {
   nao: 'Não bebe', social: 'Social', moderado: 'Moderado', frequente: 'Frequente',
 }
 
-function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = true }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = true }: { icon: React.ReactNode; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [aberto, setAberto] = useState(defaultOpen)
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-      <button onClick={() => setAberto(p => !p)} className="w-full px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
-        style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.08)' : 'none', background: 'rgba(255,255,255,0.02)' }}>
-        <div className="flex items-center gap-2.5">
-          <span className="text-xl">{icon}</span>
+      <button onClick={() => setAberto(p => !p)} className="w-full px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
+        style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.07)' : 'none' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg bg-white/[0.07] flex items-center justify-center text-zinc-400 shrink-0">{icon}</div>
           <div className="flex-1">
-            <p className="text-white font-bold text-sm">{titulo}</p>
+            <p className="text-white font-semibold text-sm">{titulo}</p>
             {subtitulo && !aberto && <p className="text-zinc-600 text-xs mt-0.5">{subtitulo}</p>}
           </div>
-          {badge && <span className="text-xs uppercase tracking-wider text-zinc-500 bg-white/[0.07] rounded-full px-2 py-0.5">{badge}</span>}
-          <span className={`text-zinc-600 text-xs ml-2 transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`}>▼</span>
+          {badge && <span className="text-[11px] font-medium text-zinc-400 bg-white/[0.06] rounded-full px-2.5 py-0.5">{badge}</span>}
+          <span className={`text-zinc-600 text-xs ml-1 transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`}>▼</span>
         </div>
       </button>
       {aberto && <div className="p-5 space-y-4">{children}</div>}
@@ -66,7 +67,7 @@ function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = t
 function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-zinc-500 text-xs uppercase tracking-widest block mb-2">
+      <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">
         {label}{optional && <span className="text-zinc-700 normal-case tracking-normal ml-1">(opcional)</span>}
       </label>
       {children}
@@ -79,7 +80,7 @@ function ReadRow({ label, value }: { label: string; value: string | number | boo
   const display = typeof value === 'boolean' ? (value ? 'Sim' : 'Não') : String(value)
   return (
     <div className="flex gap-3 py-2 border-b border-white/[0.03] last:border-0">
-      <span className="text-zinc-600 text-xs uppercase tracking-wider w-32 shrink-0 pt-0.5">{label}</span>
+      <span className="text-zinc-500 text-[11px] font-medium w-32 shrink-0 pt-0.5">{label}</span>
       <span className="text-zinc-300 text-sm flex-1">{display}</span>
     </div>
   )
@@ -278,7 +279,7 @@ export default function AnamnesePage() {
         {/* 2 colunas no desktop */}
         <div className="space-y-5 md:space-y-0 md:grid md:grid-cols-2 md:gap-5">
 
-          <SectionCard icon="🏥" titulo="Saúde" subtitulo="Histórico médico e condições atuais">
+          <SectionCard icon={<HeartPulse size={14} />} titulo="Saúde" subtitulo="Histórico médico e condições atuais">
             <Field label="Patologias / doenças diagnosticadas" optional>
               <textarea value={form.patologias} onChange={e => set('patologias', e.target.value)}
                 placeholder="Ex: Hipertensão, diabetes tipo 2, hipotireoidismo..." rows={2} className={TEXTAREA_CLASS} />
@@ -303,7 +304,7 @@ export default function AnamnesePage() {
             </Field>
           </SectionCard>
 
-          <SectionCard icon="🌿" titulo="Estilo de vida" subtitulo="Rotina, hábitos e bem-estar geral">
+          <SectionCard icon={<Leaf size={14} />} titulo="Estilo de vida" subtitulo="Rotina, hábitos e bem-estar geral">
             <Field label="Nível de atividade física atual">
               <div className="grid grid-cols-1 gap-1.5">
                 {NIVEL_ATIVIDADE.map(n => (
@@ -355,7 +356,7 @@ export default function AnamnesePage() {
             </div>
           </SectionCard>
 
-          <SectionCard icon="🏋️" titulo="Histórico esportivo" subtitulo="Experiência, lesões e limitações físicas">
+          <SectionCard icon={<Dumbbell size={14} />} titulo="Histórico esportivo" subtitulo="Experiência, lesões e limitações físicas">
             <Field label="Histórico esportivo" optional>
               <textarea value={form.historico_esportivo} onChange={e => set('historico_esportivo', e.target.value)}
                 placeholder="Ex: 3 anos musculação, praticou natação na infância..." rows={3} className={TEXTAREA_CLASS} />
@@ -370,7 +371,7 @@ export default function AnamnesePage() {
             </Field>
           </SectionCard>
 
-          <SectionCard icon="🥗" titulo="Nutrição" subtitulo="Alimentação, restrições e suplementação">
+          <SectionCard icon={<Salad size={14} />} titulo="Nutrição" subtitulo="Alimentação, restrições e suplementação">
             <Field label="Restrições alimentares" optional>
               <input value={form.restricoes_alimentares} onChange={e => set('restricoes_alimentares', e.target.value)}
                 placeholder="Ex: Intolerância a lactose, vegetariano, sem glúten..." className={INPUT_CLASS} />
@@ -391,7 +392,7 @@ export default function AnamnesePage() {
             </Field>
           </SectionCard>
 
-          <div className="md:col-span-2"><SectionCard icon="🎯" titulo="Objetivos" subtitulo="O que o cliente quer alcançar">
+          <div className="md:col-span-2"><SectionCard icon={<Target size={14} />} titulo="Objetivos" subtitulo="O que o cliente quer alcançar">
             <Field label="Objetivo detalhado">
               <textarea value={form.objetivo_detalhado} onChange={e => set('objetivo_detalhado', e.target.value)}
                 placeholder="Ex: Perder 8kg em 4 meses, principalmente abdômen..." rows={3} className={TEXTAREA_CLASS} />

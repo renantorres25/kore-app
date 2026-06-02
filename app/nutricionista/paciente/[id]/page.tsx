@@ -7,7 +7,7 @@ import NavBar from '../../../components/NavBar'
 import AlimentoBusca, { type AlimentoTACO } from '../../../components/AlimentoBusca'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 import SidebarProfissional from '../../../components/SidebarProfissional'
-import { LayoutDashboard, Utensils, Dumbbell, Sparkles, ClipboardList, TrendingUp, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Utensils, Dumbbell, Sparkles, ClipboardList, TrendingUp, ChevronRight, Sun, Apple, UtensilsCrossed, Zap, Moon, Salad, Coffee, ChevronDown } from 'lucide-react'
 
 type Paciente = {
   id: string; nome: string | null; email: string
@@ -709,27 +709,39 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               </div>
             )}
 
-            {/* ── 2. ALERTAS CLÍNICOS — sem card, só badges ────────────── */}
+            {/* ── 2. ALERTAS CLÍNICOS — linhas hierarquizadas ──────────── */}
             {(() => {
               const l = limparAlerta(anamneseLesoes), r = limparAlerta(anamneseRestricaoFisica)
               const m = limparAlerta(anamneseMedicamentos), a = limparAlerta(anamneseAlergias)
               if (!l && !r && !m && !a) return null
-              function badges(txt: string | null, cor: string) {
-                if (!txt) return null
-                return txt.split(/[·,;]/).map(s => s.trim()).filter(Boolean).map((item, i) => (
-                  <span key={i} className={`inline-flex text-sm px-3 py-1.5 rounded-xl border ${cor} leading-none`}>{item}</span>
-                ))
-              }
+
+              type AlertRow = { icon: string; cat: string; txt: string; level: 'danger' | 'warning' | 'info' }
+              const rows: AlertRow[] = [
+                ...(l ? l.split(/[·;]/).map(s => s.trim()).filter(Boolean).map(t => ({ icon: '🔴', cat: 'Lesão', txt: t, level: 'danger' as const })) : []),
+                ...(r ? r.split(/[·;]/).map(s => s.trim()).filter(Boolean).map(t => ({ icon: '🟠', cat: 'Restrição física', txt: t, level: 'warning' as const })) : []),
+                ...(m ? m.split(/[·;]/).map(s => s.trim()).filter(Boolean).map(t => ({ icon: '⚪', cat: 'Medicamento', txt: t, level: 'info' as const })) : []),
+                ...(a ? a.split(/[·,;]/).map(s => s.trim()).filter(Boolean).map(t => ({ icon: '🟡', cat: 'Alergia', txt: t, level: 'warning' as const })) : []),
+              ]
+              const colors = { danger: 'border-red-500/20 bg-red-500/5', warning: 'border-amber-500/20 bg-amber-500/5', info: 'border-white/[0.08] bg-white/[0.03]' }
+              const textColors = { danger: 'text-red-300', warning: 'text-amber-300', info: 'text-zinc-300' }
+
               return (
-                <div>
-                  <p className="text-[11px] text-zinc-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                    <span className="text-red-500/70">⚠</span> Alertas clínicos
-                  </p>
-                  <div className="flex flex-wrap gap-2.5">
-                    {badges(l, 'text-red-300 bg-red-500/10 border-red-500/15')}
-                    {badges(r, 'text-amber-300 bg-amber-500/10 border-amber-500/15')}
-                    {badges(m, 'text-zinc-300 bg-white/[0.06] border-white/[0.10]')}
-                    {badges(a, 'text-orange-300 bg-orange-500/10 border-orange-500/15')}
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                  <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                    <span className="text-red-400 text-xs">⚠</span>
+                    <p className="text-xs font-semibold text-zinc-300 tracking-wide">Alertas clínicos</p>
+                    <span className="ml-auto text-xs text-zinc-600 bg-white/[0.05] px-2 py-0.5 rounded-full">{rows.length}</span>
+                  </div>
+                  <div className="divide-y divide-white/[0.04]">
+                    {rows.map((row, i) => (
+                      <div key={i} className={`flex items-start gap-3 px-5 py-3 ${colors[row.level]}`}>
+                        <span className="text-sm shrink-0 mt-0.5">{row.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-zinc-500 text-[10px] uppercase tracking-wider">{row.cat}</p>
+                          <p className={`text-sm leading-snug mt-0.5 ${textColors[row.level]}`}>{row.txt}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )
@@ -761,7 +773,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 </>
               ) : (
                 <div className="mt-4">
-                  <p className="text-5xl font-black text-zinc-700 leading-none">—</p>
+                  <p className="text-5xl font-black text-zinc-700 leading-none">–</p>
                   <p className="text-zinc-600 text-sm mt-3">Sem registro hoje</p>
                 </div>
               )}
@@ -781,7 +793,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 </>
               ) : (
                 <div className="mt-4">
-                  <p className="text-5xl font-black text-zinc-700 leading-none">—</p>
+                  <p className="text-5xl font-black text-zinc-700 leading-none">–</p>
                   <p className="text-zinc-600 text-sm mt-3">Sem treino hoje</p>
                   <p className="text-zinc-700 text-xs mt-0.5">{treinos7dDatas.length > 0 ? `${treinos7dDatas.length} treinos essa semana` : 'Nenhum treino essa semana'}</p>
                 </div>
@@ -818,7 +830,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 </>
               ) : (
                 <div className="mt-4">
-                  <p className="text-5xl font-black text-zinc-700 leading-none">—</p>
+                  <p className="text-5xl font-black text-zinc-700 leading-none">–</p>
                   <p className="text-zinc-600 text-sm mt-3">Sem registro hoje</p>
                 </div>
               )}
@@ -1244,7 +1256,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                         <div className="flex items-center justify-between mb-2">
                           <div>
                             <p className="text-white text-base font-bold">{periodizacaoFase.nome_bloco}</p>
-                            <p className="text-zinc-500 text-sm">Semana {periodizacaoFase.semana_bloco} de {periodizacaoFase.total_semanas_bloco} · {Math.round(pct)}% concluído</p>
+                            <p className="text-zinc-500 text-sm">Semana {periodizacaoFase.semana_bloco}/{periodizacaoFase.total_semanas_bloco} · <span className="text-[var(--accent)] font-semibold">{Math.round(pct)}%</span> concluído</p>
                           </div>
                         </div>
                         <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden">
@@ -1279,7 +1291,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                     {proximaFase && diasAteProximaFase !== null && (
                       <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-blue-500/15" style={{ background: 'rgba(59,130,246,0.05)' }}>
                         <span className="text-zinc-400 text-sm">Próxima fase:</span>
-                        <span className="text-blue-300 font-semibold text-sm">{proximaFase} <span className="text-zinc-600 font-normal">em {diasAteProximaFase}d</span></span>
+                        <span className="text-[var(--accent)] font-semibold text-sm">{proximaFase} <span className="text-zinc-600 font-normal">em {diasAteProximaFase}d</span></span>
                       </div>
                     )}
                     {(paciente?.fcmax || ultimaAvaliacao) && (
@@ -1573,7 +1585,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                                 {(() => {
                                   const delta = primeira[m.key] && ultima[m.key] ? Math.round(((ultima[m.key] as number) - (primeira[m.key] as number)) * 10) / 10 : null
                                   const pos = delta !== null && (m.inv ? delta < 0 : delta > 0)
-                                  return delta !== null && delta !== 0 ? <span className={`text-sm font-semibold ${pos ? 'text-emerald-400' : 'text-zinc-500'}`}>{delta > 0 ? '+' : ''}{delta} total</span> : null
+                                  return delta !== null && delta !== 0 ? <span className={`text-sm font-semibold ${pos ? 'text-emerald-400' : 'text-zinc-500'}`}>{delta > 0 ? '+' : ''}{String(delta).replace(".", ",")} {m.unit} total</span> : null
                                 })()}
                               </div>
                             </div>
@@ -1593,9 +1605,9 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                     <div className="divide-y divide-white/[0.05]">
                       {[...medidasCP].reverse().map((m, i) => (
                         <div key={i} className="flex items-center gap-4 px-5 py-3.5">
-                          <p className="text-zinc-500 text-sm w-28 shrink-0">{new Date(m.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>
+                          <p className="text-zinc-500 text-sm w-28 shrink-0">{new Date(m.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</p>
                           <div className="flex-1 flex flex-wrap gap-2">
-                            {m.peso && <span className="text-xs text-zinc-300 bg-white/[0.05] rounded-full px-2.5 py-0.5">{m.peso}kg</span>}
+                            {m.peso && <span className="text-xs text-zinc-300 bg-white/[0.05] rounded-full px-2.5 py-0.5">{String(m.peso).replace(".", ",")} kg</span>}
                             {m.gordura_pct && <span className="text-xs text-orange-300 bg-orange-500/10 border border-orange-500/20 rounded-full px-2.5 py-0.5">{m.gordura_pct}% gord.</span>}
                             {m.massa_muscular && <span className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-0.5">{m.massa_muscular}kg musc.</span>}
                             {m.cintura && <span className="text-xs text-zinc-400 bg-white/[0.04] border border-white/[0.07] rounded-full px-2.5 py-0.5">{m.cintura}cm cin.</span>}
@@ -1738,28 +1750,39 @@ function PlanoExtra({ icon, titulo, subtitulo, conteudo, cor }: {
   )
 }
 
+const MEAL_ICONS = [Sun, Apple, UtensilsCrossed, Zap, Dumbbell, Moon, Salad, Coffee]
+
 function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const [aberta, setAberta] = useState(false)
-  const emojis = ['☀️','🍎','🍽️','⚡','💪','🌙','🥑','🫐']
+  const MealIcon = MEAL_ICONS[idx % MEAL_ICONS.length] ?? UtensilsCrossed
   const alimentos: any[] = ref.alimentos ?? []
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-      <button onClick={() => setAberta(p => !p)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.02] transition-colors">
-        <div className="w-9 h-9 rounded-xl bg-white/[0.07] flex items-center justify-center text-base shrink-0">
-          {emojis[idx] ?? '🥗'}
+      <button onClick={() => setAberta(p => !p)}
+        className="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-white/[0.03] active:bg-white/[0.02] transition-colors min-h-[56px]">
+        <div className="w-9 h-9 rounded-xl bg-white/[0.07] flex items-center justify-center shrink-0">
+          <MealIcon size={16} className="text-zinc-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-white font-bold text-sm">{ref.nome}</p>
-            {ref.horario && <span className="text-zinc-600 text-[10px] bg-white/[0.07] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>}
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-white font-semibold text-sm">{ref.nome}</p>
+            {ref.horario && (
+              <span className="text-zinc-300 text-[11px] font-medium bg-white/[0.10] px-2 py-0.5 rounded-md shrink-0 mono">
+                {ref.horario}
+              </span>
+            )}
           </div>
           <div className="flex gap-3 mt-0.5">
-            <span className="text-orange-400 text-[11px] font-semibold">{ref.calorias} kcal</span>
-            <span className="text-blue-400 text-[11px]">{ref.proteina}g prot</span>
-            {alimentos.length > 0 && <span className="text-zinc-600 text-[11px]">{alimentos.length} alimento{alimentos.length > 1 ? 's' : ''}</span>}
+            <span className="text-[var(--data-energy)] text-xs font-semibold mono">{ref.calorias} kcal</span>
+            <span className="text-[var(--accent)] text-xs mono">{ref.proteina}g prot</span>
+            {alimentos.length > 0 && (
+              <span className="text-zinc-500 text-xs bg-white/[0.05] px-1.5 rounded">
+                {alimentos.length} item{alimentos.length > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
         </div>
-        <span className={`text-zinc-600 text-xs transition-transform duration-200 ${aberta ? 'rotate-180' : ''}`}>▼</span>
+        <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-200 shrink-0 ${aberta ? 'rotate-180' : ''}`} />
       </button>
 
       {aberta && alimentos.length > 0 && (

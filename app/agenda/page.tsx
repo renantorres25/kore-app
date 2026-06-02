@@ -142,7 +142,7 @@ export default function Agenda() {
     d.setDate(d.getDate() - dow + i)
     return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
   })
-  const DIAS_LABEL = ['D','S','T','Q','Q','S','S']
+  const DIAS_LABEL = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
 
   const grupos = agendamentos.reduce<Record<string, Agendamento[]>>((acc, a) => {
     if (!acc[a.data]) acc[a.data] = []; acc[a.data].push(a); return acc
@@ -184,7 +184,7 @@ export default function Agenda() {
         <div className="flex gap-1 p-1 rounded-2xl mb-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
           {(['semana', 'mes'] as const).map(v => (
             <button key={v} onClick={() => setVistaCalendario(v)}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${vistaCalendario === v ? 'bg-white text-black' : 'text-zinc-500'}`}>
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${vistaCalendario === v ? 'bg-white/90 text-black font-semibold' : 'text-zinc-400'}`}>
               {v === 'semana' ? 'Semana' : 'Mês'}
             </button>
           ))}
@@ -201,7 +201,7 @@ export default function Agenda() {
               const [,,dd] = dia.split('-')
               return (
                 <div key={dia} className="flex flex-col items-center gap-1">
-                  <p className={`text-[9px] uppercase font-semibold ${isHoje ? 'text-white' : 'text-zinc-600'}`}>{DIAS_LABEL[i]}</p>
+                  <p className={`text-[10px] font-medium ${isHoje ? 'text-white' : 'text-zinc-500'}`}>{DIAS_LABEL[i]}</p>
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold relative
                     ${isHoje ? 'bg-white text-black' : temAg ? 'bg-white/[0.08] text-white border border-white/[0.12]' : 'text-zinc-700'}`}>
                     {dd}
@@ -268,9 +268,9 @@ export default function Agenda() {
 
         {Object.keys(grupos).length === 0 ? (
           <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
-            <p className="text-3xl mb-3">📅</p>
+            <div className="w-12 h-12 rounded-2xl bg-white/[0.05] flex items-center justify-center mb-3 mx-auto"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
             <p className="text-white font-bold mb-1">Agenda vazia</p>
-            <p className="text-zinc-500 text-sm">Toque em + para agendar uma consulta ou treino.</p>
+            <p className="text-zinc-500 text-sm">Clique em + para criar um agendamento.</p>
           </div>
         ) : (
           <div className="space-y-6">

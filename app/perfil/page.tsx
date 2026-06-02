@@ -249,8 +249,7 @@ function PerfilConteudo() {
             <div className="flex-1 min-w-0">
               <p className="text-white font-black text-lg leading-tight truncate">{nome || 'Sem nome'}</p>
               <p className="text-zinc-500 text-xs truncate">{email}</p>
-              <div className={`inline-flex items-center gap-1.5 mt-1.5 rounded-full px-2.5 py-1 border text-[10px] font-semibold uppercase tracking-wider ${tipoColor}`}>
-                <span className="w-1 h-1 rounded-full bg-current" />
+              <div className={`inline-flex items-center mt-1.5 rounded-full px-3 py-1 border text-[11px] font-medium ${tipoColor}`}>
                 {tipoLabel}
               </div>
             </div>
@@ -304,48 +303,48 @@ function PerfilConteudo() {
               <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-4">Informações profissionais</p>
               <div className="space-y-4">
                 <div>
-                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">
+                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">
                     {tipo === 'nutricionista' ? 'CRN' : 'CREF'} — Registro profissional
                   </label>
                   <input type="text"
                     placeholder={tipo === 'nutricionista' ? 'Ex: CRN 12345' : 'Ex: CREF 123456-G/SP'}
                     value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
                 </div>
                 <div>
-                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Especialidade</label>
+                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Especialidade</label>
                   <input type="text"
                     placeholder={tipo === 'nutricionista' ? 'Ex: Nutrição esportiva, Emagrecimento' : 'Ex: Musculação, Funcional, Corrida'}
                     value={especialidade} onChange={e => setEspecialidade(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
                 </div>
                 <div>
-                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Formação</label>
+                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Formação</label>
                   <input type="text"
                     placeholder="Ex: Nutrição — USP 2018, Pós em Esportiva"
                     value={formacao} onChange={e => setFormacao(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
                 </div>
                 <div>
-                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">WhatsApp</label>
+                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">WhatsApp</label>
                   <input type="text"
                     placeholder="Ex: (11) 99999-9999"
                     value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
                 </div>
                 <div>
-                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Instagram</label>
+                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Instagram</label>
                   <input type="text"
                     placeholder="@seu_perfil"
                     value={instagram} onChange={e => setInstagram(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
                 </div>
                 <div>
-                  <label className="text-zinc-500 text-xs uppercase tracking-wider block mb-2">Valor da consulta</label>
+                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Valor da consulta</label>
                   <input type="text"
                     placeholder="Ex: R$ 150 / consulta"
                     value={valorConsulta} onChange={e => setValorConsulta(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
                 </div>
               </div>
             </div>

@@ -70,9 +70,12 @@ function getGreeting(): string {
 }
 
 function getTodayString(): string {
-  return new Date().toLocaleDateString('pt-BR', {
+  // lowercase-first to avoid "Terça-Feira, 2 De Junho" capitalization bug
+  const raw = new Date().toLocaleDateString('pt-BR', {
     timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long',
   })
+  // Only capitalize the first letter, rest stays lowercase
+  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
 }
 
 function getFirstName(nome: string | null, email: string): string {
@@ -1034,9 +1037,9 @@ function DashboardCliente({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
+          <p className="text-zinc-400 text-sm font-medium mb-1">{getGreeting()}</p>
           <h1 className="text-[1.85rem] font-black tracking-tight leading-none text-white">{firstName}</h1>
-          <p className="text-zinc-600 text-[11px] mt-1.5 capitalize tracking-wide">{getTodayString()}</p>
+          <p className="text-zinc-600 text-[11px] mt-1.5">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center text-sm active:scale-90 transition-all">
@@ -1360,9 +1363,9 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
     <div className="max-w-md mx-auto px-4 md:max-w-[1100px] md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">{getGreeting()}</p>
+          <p className="text-zinc-400 text-sm font-medium mb-1">{getGreeting()}</p>
           <h1 className="text-[1.85rem] font-black tracking-tight text-white">{firstName}</h1>
-          <p className="text-zinc-600 text-[11px] mt-1 capitalize tracking-wide">{getTodayString()}</p>
+          <p className="text-zinc-600 text-[11px] mt-1">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2 md:hidden">
           <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center text-sm active:scale-90 transition-all">
@@ -1472,8 +1475,8 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
           <button onClick={() => router.push('/personal')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver alunos →</button>
         </div>
       )}
-      <button onClick={() => router.push('/personal')} className="w-full border border-white/[0.14] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os alunos</button>
-      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">+ Convidar aluno</button>
+      <button onClick={() => router.push('/personal')} className="w-full bg-white/[0.06] border border-white/[0.15] text-zinc-300 font-semibold py-3.5 rounded-2xl hover:bg-white/[0.09] active:scale-95 transition-all text-sm mb-3">Ver todos os alunos</button>
+      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm">+ Convidar aluno</button>
     </div>
       </div>
     </div>
@@ -1605,9 +1608,9 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
     <div className="max-w-md mx-auto px-4 md:max-w-3xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <p className="text-zinc-500 text-xs tracking-[0.2em] uppercase mb-1">{getGreeting()}</p>
+          <p className="text-zinc-400 text-sm font-medium mb-1">{getGreeting()}</p>
           <h1 className="text-4xl font-black tracking-tight text-white leading-none">{firstName}</h1>
-          <p className="text-zinc-500 text-sm mt-1.5 capitalize">{getTodayString()}</p>
+          <p className="text-zinc-500 text-sm mt-1.5">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2 md:hidden">
           <button onClick={onOpenNotifs} className="relative w-10 h-10 rounded-2xl bg-white/[0.07] flex items-center justify-center text-sm active:scale-90 transition-all">
@@ -1660,10 +1663,10 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
 
       {/* Pacientes em risco — sem registrar sono há 7d */}
       {semSono7d.length > 0 && (
-        <div className="rounded-2xl border border-amber-500/15 mb-4 overflow-hidden" style={{ background: '#1a1608' }}>
+        <div className="rounded-2xl border border-amber-500/15 mb-4 overflow-hidden" style={{ background: '#1c1605' }}>
           <div className="px-5 py-3 border-b border-amber-500/10 flex items-center gap-2">
-            <span className="text-amber-400 text-sm">⚠</span>
-            <p className="text-amber-300/80 text-xs uppercase tracking-[0.12em] font-semibold">Sem registro de sono — 7 dias</p>
+            <span className="text-amber-300 text-sm">⚠</span>
+              <p className="text-amber-200 text-xs font-semibold tracking-wide">Sem registro de sono — 7 dias</p>
           </div>
           <div className="divide-y divide-amber-500/[0.07]">
             {semSono7d.map(p => (
@@ -1780,8 +1783,8 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         </div>
       )}
 
-      <button onClick={() => router.push('/nutricionista/pacientes')} className="w-full border border-white/[0.14] text-zinc-300 font-bold py-3.5 rounded-2xl hover:bg-white/[0.05] active:scale-95 transition-all text-sm tracking-[0.1em] uppercase mb-3">Ver todos os pacientes</button>
-      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-[0.1em] uppercase">+ Convidar paciente</button>
+      <button onClick={() => router.push('/nutricionista/pacientes')} className="w-full bg-white/[0.06] border border-white/[0.15] text-zinc-300 font-semibold py-3.5 rounded-2xl hover:bg-white/[0.09] active:scale-95 transition-all text-sm mb-3">Ver todos os pacientes</button>
+      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm">+ Convidar paciente</button>
     </div>
     </div>
     </div>
