@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import SidebarProfissional from '../../components/SidebarProfissional'
 
 type Medicao = {
   id: string
@@ -259,9 +260,13 @@ export default function EvolucaoMedidasPage() {
     { campo: 'panturrilha_dir' as keyof Medicao,  label: 'Panturrilha', cor: '#fb923c' },
   ]
 
+  const tipoSidebar = meuperfil?.tipo === 'personal' ? 'personal' : 'nutricionista'
+
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
-      <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0d1117' }}>
+      {isProfissional && <SidebarProfissional tipo={tipoSidebar} />}
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
+      <div className="max-w-md mx-auto px-4 pb-12 md:max-w-3xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -507,6 +512,7 @@ export default function EvolucaoMedidasPage() {
           </div>
         </div>
       )}
+      </div>
     </main>
   )
 }

@@ -47,10 +47,11 @@ function getTodayBR() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
-const TERMOS_VAZIOS = /^(nenhum[ao]?|nada|não|nao|sem|n\/a|-)$/i
+const TERMOS_VAZIOS = /^(nenhum|nada|não|nao|sem\s|n\/a|ok\b)/i
 function limparAlerta(val: string | null): string | null {
   if (!val) return null
-  const partes = val.split(/\s*[·,;]\s*/).map(v => v.trim()).filter(v => v.length > 2 && !TERMOS_VAZIOS.test(v))
+  const partes = val.split(/\s*[·,;]\s*/).map(v => v.trim())
+    .filter(v => v.length > 1 && !TERMOS_VAZIOS.test(v))
   return partes.length ? partes.join(' · ') : null
 }
 function getMetaCalorias(peso: number | null, objetivo: string | null) {
@@ -463,10 +464,10 @@ Responda APENAS JSON válido:
               <div className="min-w-0">
                 <h1 className="text-xl md:text-2xl font-black text-white tracking-tight truncate">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
                 <div className="flex flex-wrap gap-1.5 mt-0.5">
-                  {paciente?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
-                  {paciente?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.07] border border-white/[0.11] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
-                  {paciente?.meta_peso && <span className="text-[10px] text-green-500/70 bg-green-500/5 border border-green-500/15 rounded-full px-2 py-0.5">Meta: {paciente.meta_peso}kg</span>}
-                  {metaCal && <span className="hidden md:inline text-[10px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{metaCal} kcal sugerido</span>}
+                  {paciente?.peso && <span className="text-xs text-zinc-400 bg-white/[0.06] border border-white/[0.09] rounded-full px-2.5 py-0.5">{paciente.peso} kg</span>}
+                  {paciente?.objetivo && <span className="text-xs text-zinc-400 bg-white/[0.06] border border-white/[0.09] rounded-full px-2.5 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {paciente?.meta_peso && <span className="text-xs text-zinc-400 bg-white/[0.06] border border-white/[0.09] rounded-full px-2.5 py-0.5">Meta: {paciente.meta_peso} kg</span>}
+                  {metaCal && <span className="hidden md:inline text-xs text-zinc-400 bg-white/[0.06] border border-white/[0.09] rounded-full px-2.5 py-0.5">{metaCal} kcal/dia estimado</span>}
                 </div>
               </div>
             </div>
@@ -1357,13 +1358,13 @@ Responda APENAS JSON válido:
                   </div>
                   <div className="grid grid-cols-3 divide-x divide-white/[0.05]">
                     {[
-                      { label: 'Kcal/dia', val: planoAtivo.calorias_meta ?? '—', cor: 'text-orange-400' },
-                      { label: 'Proteína', val: planoAtivo.proteina_meta ? `${planoAtivo.proteina_meta}g` : '—', cor: 'text-blue-400' },
-                      { label: 'Refeições', val: planoEstruturado.refeicoes.length, cor: 'text-green-400' },
+                      { label: 'Kcal/dia', val: planoAtivo.calorias_meta ?? '—' },
+                      { label: 'Proteína', val: planoAtivo.proteina_meta ? `${planoAtivo.proteina_meta}g` : '—' },
+                      { label: 'Refeições', val: planoEstruturado.refeicoes.length },
                     ].map((m, i) => (
                       <div key={i} className="py-3 text-center">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-0.5">{m.label}</p>
-                        <p className={`text-sm font-black ${m.cor}`}>{m.val}</p>
+                        <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-0.5">{m.label}</p>
+                        <p className="text-white text-base font-bold">{m.val}</p>
                       </div>
                     ))}
                   </div>

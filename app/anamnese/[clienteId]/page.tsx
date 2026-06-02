@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import SidebarProfissional from '../../components/SidebarProfissional'
 
 type AnamneseForm = {
   patologias: string; medicamentos: string; alergias: string; cirurgias: string
@@ -249,9 +250,13 @@ export default function AnamnesePage() {
   const outraTipoLabel = outraAnamnese?.profissional_tipo === 'personal' ? 'Personal' : outraAnamnese?.profissional_tipo === 'nutricionista' ? 'Nutricionista' : 'Profissional'
   const outraNome = outraAnamnese?.profissional_nome ?? outraTipoLabel
 
+  const tipoSidebar = meuperfil?.tipo === 'personal' ? 'personal' : 'nutricionista'
+
   return (
-    <main className="min-h-[100dvh] bg-[#111111] text-white">
-      <div className="max-w-md mx-auto px-4 pb-32" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0d1117' }}>
+      {isProfissional && <SidebarProfissional tipo={tipoSidebar} />}
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
+      <div className="max-w-md mx-auto px-4 pb-32 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-7">
@@ -487,6 +492,7 @@ export default function AnamnesePage() {
           className="w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-30 text-sm tracking-widest uppercase">
           {salvando ? 'Salvando...' : anamneseId ? 'Atualizar anamnese' : 'Salvar anamnese'}
         </button>
+      </div>
       </div>
     </main>
   )
