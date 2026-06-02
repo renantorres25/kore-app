@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import SidebarProfissional from '../../components/SidebarProfissional'
+import { History, Scale, Ruler } from 'lucide-react'
 
 type Medicao = {
   id: string
@@ -22,6 +23,28 @@ type Medicao = {
   panturrilha_dir: number | null
   panturrilha_esq: number | null
   observacoes: string | null
+  // novos campos avaliação completa
+  altura: number | null
+  pescoco: number | null
+  ombro: number | null
+  torax: number | null
+  abdomen_circ: number | null
+  antebraco_dir: number | null
+  antebraco_esq: number | null
+  braco_dir_contraido: number | null
+  dobra_triceps: number | null
+  dobra_subescapular: number | null
+  dobra_suprailiaca: number | null
+  dobra_abdominal: number | null
+  dobra_coxa: number | null
+  dobra_peitoral: number | null
+  pa_sistolica: number | null
+  pa_diastolica: number | null
+  fc_repouso: number | null
+  imc_calculado: number | null
+  tmb_calculada: number | null
+  gordura_pct_calculada: number | null
+  peso_ideal_calculado: number | null
 }
 
 type FormMedicao = {
@@ -251,14 +274,35 @@ export default function EvolucaoMedidasPage() {
   ]
 
   const METRICAS_CIRC = [
-    { campo: 'cintura' as keyof Medicao,         label: 'Cintura',      cor: '#facc15' },
-    { campo: 'quadril' as keyof Medicao,          label: 'Quadril',     cor: '#a78bfa' },
-    { campo: 'abdomen' as keyof Medicao,          label: 'Abdômen',     cor: '#f97316' },
-    { campo: 'peitoral' as keyof Medicao,         label: 'Peitoral',    cor: '#60a5fa' },
-    { campo: 'braco_dir' as keyof Medicao,        label: 'Braço dir.',  cor: '#34d399' },
-    { campo: 'coxa_dir' as keyof Medicao,         label: 'Coxa dir.',   cor: '#e879f9' },
-    { campo: 'panturrilha_dir' as keyof Medicao,  label: 'Panturrilha', cor: '#fb923c' },
-  ]
+    { campo: 'pescoco' as keyof Medicao,           label: 'Pescoço',        cor: '#94a3b8', inv: true  },
+    { campo: 'ombro' as keyof Medicao,             label: 'Ombro',          cor: '#60a5fa', inv: false },
+    { campo: 'torax' as keyof Medicao,             label: 'Tórax',          cor: '#60a5fa', inv: false },
+    { campo: 'cintura' as keyof Medicao,           label: 'Cintura',        cor: '#facc15', inv: true  },
+    { campo: 'abdomen_circ' as keyof Medicao,      label: 'Abdômen',        cor: '#f97316', inv: true  },
+    { campo: 'abdomen' as keyof Medicao,           label: 'Abdômen (ant.)', cor: '#f97316', inv: true  },
+    { campo: 'quadril' as keyof Medicao,           label: 'Quadril',        cor: '#a78bfa', inv: false },
+    { campo: 'braco_dir' as keyof Medicao,         label: 'Braço Dir.',     cor: '#34d399', inv: false },
+    { campo: 'braco_dir_contraido' as keyof Medicao, label: 'Braço Dir. (contr.)', cor: '#34d399', inv: false },
+    { campo: 'braco_esq' as keyof Medicao,         label: 'Braço Esq.',     cor: '#34d399', inv: false },
+    { campo: 'antebraco_dir' as keyof Medicao,     label: 'Antebraço Dir.', cor: '#6ee7b7', inv: false },
+    { campo: 'coxa_dir' as keyof Medicao,          label: 'Coxa Dir.',      cor: '#e879f9', inv: false },
+    { campo: 'coxa_esq' as keyof Medicao,          label: 'Coxa Esq.',      cor: '#e879f9', inv: false },
+    { campo: 'panturrilha_dir' as keyof Medicao,   label: 'Panturrilha Dir.', cor: '#fb923c', inv: false },
+    { campo: 'panturrilha_esq' as keyof Medicao,   label: 'Panturrilha Esq.', cor: '#fb923c', inv: false },
+    { campo: 'peitoral' as keyof Medicao,          label: 'Peitoral',       cor: '#60a5fa', inv: false },
+  ].filter(m => mais_recente?.[m.campo] != null)
+
+  // Métricas calculadas da avaliação mais recente
+  const metricasCalc = mais_recente ? {
+    imc: mais_recente.imc_calculado ?? (mais_recente.peso && mais_recente.altura ? Math.round(mais_recente.peso / Math.pow(mais_recente.altura / 100, 2) * 10) / 10 : null),
+    tmb: mais_recente.tmb_calculada,
+    rcq: mais_recente.cintura && mais_recente.quadril ? Math.round((mais_recente.cintura / mais_recente.quadril) * 100) / 100 : null,
+    pesoIdeal: mais_recente.peso_ideal_calculado,
+    pa: mais_recente.pa_sistolica && mais_recente.pa_diastolica ? `${mais_recente.pa_sistolica}/${mais_recente.pa_diastolica}` : null,
+    fc: mais_recente.fc_repouso,
+  } : null
+
+  const METRICAS_CIRC_FILTERED = METRICAS_CIRC
 
   const tipoSidebar = meuperfil?.tipo === 'personal' ? 'personal' : 'nutricionista'
 
@@ -324,9 +368,14 @@ export default function EvolucaoMedidasPage() {
 
             {/* Abas */}
             <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              {([['historico', '📅 Histórico'], ['composicao', '⚖️ Composição'], ['circunferencias', '📐 Circunf.']] as const).map(([id, label]) => (
+              {([
+                { id: 'historico', label: 'Histórico', Icon: History },
+                { id: 'composicao', label: 'Composição', Icon: Scale },
+                { id: 'circunferencias', label: 'Circunf.', Icon: Ruler },
+              ] as { id: 'historico' | 'composicao' | 'circunferencias'; label: string; Icon: React.ComponentType<{size?: number}> }[]).map(({ id, label, Icon }) => (
                 <button key={id} onClick={() => setAbaAtiva(id)}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
+                  <Icon size={12} />
                   {label}
                 </button>
               ))}
@@ -402,29 +451,77 @@ export default function EvolucaoMedidasPage() {
 
             {/* ABA CIRCUNFERÊNCIAS */}
             {abaAtiva === 'circunferencias' && (
-              <div className="space-y-3">
-                {METRICAS_CIRC.map(m => {
-                  const pontos = medicoes.filter(d => d[m.campo] != null)
-                  const atual = mais_recente?.[m.campo] as number | null
-                  const prev = anterior?.[m.campo] as number | null
-                  return (
-                    <div key={m.campo} className="rounded-2xl p-4 flex items-center gap-4" style={{ background: 'var(--surface-1)' }}>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-0.5">{m.label}</p>
-                        <div className="flex items-baseline gap-2">
-                          <p className="text-white font-black text-lg">{atual != null ? `${atual}cm` : '—'}</p>
-                          {atual != null && prev != null && <DeltaBadge atual={atual} anterior={prev} unidade="cm" inverso={m.campo !== 'peitoral' && m.campo !== 'massa_muscular' && m.campo !== 'braco_dir' && m.campo !== 'braco_esq' && m.campo !== 'coxa_dir' && m.campo !== 'coxa_esq' && m.campo !== 'panturrilha_dir'} />}
+              <div className="space-y-4">
+
+                {/* Métricas calculadas */}
+                {metricasCalc && (metricasCalc.imc || metricasCalc.tmb || metricasCalc.rcq || metricasCalc.pa) && (
+                  <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
+                    <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Métricas da última avaliação</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {metricasCalc.imc && (
+                        <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-1">IMC</p>
+                          <p className={`text-xl font-black mono ${metricasCalc.imc < 18.5 ? 'text-blue-400' : metricasCalc.imc < 25 ? 'text-[var(--accent)]' : metricasCalc.imc < 30 ? 'text-yellow-400' : 'text-red-400'}`}>{metricasCalc.imc}</p>
+                          <p className={`text-[10px] ${metricasCalc.imc < 18.5 ? 'text-blue-400' : metricasCalc.imc < 25 ? 'text-zinc-500' : metricasCalc.imc < 30 ? 'text-yellow-400' : 'text-red-400'}`}>{metricasCalc.imc < 18.5 ? 'Abaixo peso' : metricasCalc.imc < 25 ? 'Normal' : metricasCalc.imc < 30 ? 'Sobrepeso' : 'Obesidade'}</p>
                         </div>
-                        {pontos.length === 0 && <p className="text-zinc-700 text-[10px]">sem dados</p>}
-                      </div>
-                      {pontos.length >= 2 && (
-                        <div className="shrink-0">
-                          <MiniChart dados={medicoes} campo={m.campo} cor={m.cor} />
+                      )}
+                      {metricasCalc.tmb && (
+                        <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-1">TMB</p>
+                          <p className="text-xl font-black mono text-[var(--accent)]">{metricasCalc.tmb}</p>
+                          <p className="text-[10px] text-zinc-500">kcal/dia</p>
+                        </div>
+                      )}
+                      {metricasCalc.rcq && (
+                        <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-1">RCQ</p>
+                          <p className={`text-xl font-black mono ${metricasCalc.rcq > 0.9 ? 'text-red-400' : 'text-[var(--accent)]'}`}>{metricasCalc.rcq}</p>
+                          <p className={`text-[10px] ${metricasCalc.rcq > 0.9 ? 'text-red-400' : 'text-zinc-500'}`}>{metricasCalc.rcq > 0.9 ? '⚠ risco' : 'normal'}</p>
+                        </div>
+                      )}
+                      {metricasCalc.pa && (
+                        <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-1">P. Arterial</p>
+                          <p className="text-xl font-black mono text-zinc-300">{metricasCalc.pa}</p>
+                          <p className="text-[10px] text-zinc-500">mmHg {metricasCalc.fc ? `· ${metricasCalc.fc}bpm` : ''}</p>
                         </div>
                       )}
                     </div>
-                  )
-                })}
+                  </div>
+                )}
+
+                {/* Circunferências */}
+                {METRICAS_CIRC_FILTERED.length > 0 ? (
+                  <div className="space-y-2">
+                    {METRICAS_CIRC_FILTERED.map(m => {
+                      const pontos = medicoes.filter(d => d[m.campo] != null)
+                      const atual = mais_recente?.[m.campo] as number | null
+                      const prev = anterior?.[m.campo] as number | null
+                      return (
+                        <div key={m.campo} className="rounded-2xl p-4 flex items-center gap-4" style={{ background: 'var(--surface-1)' }}>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-zinc-500 text-[11px] font-medium mb-0.5">{m.label}</p>
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-white font-black text-lg mono">{atual != null ? `${atual}` : '—'}<span className="text-zinc-600 text-xs font-normal ml-0.5">cm</span></p>
+                              {atual != null && prev != null && <DeltaBadge atual={atual} anterior={prev} unidade="cm" inverso={m.inv} />}
+                            </div>
+                          </div>
+                          {pontos.length >= 2 && (
+                            <div className="shrink-0">
+                              <MiniChart dados={medicoes} campo={m.campo} cor={m.cor} />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--surface-1)' }}>
+                    <p className="text-3xl mb-2">📏</p>
+                    <p className="text-zinc-400 text-sm font-semibold">Sem circunferências registradas</p>
+                    <p className="text-zinc-600 text-xs mt-1">O profissional ainda não registrou medidas de circunferências</p>
+                  </div>
+                )}
               </div>
             )}
           </>
