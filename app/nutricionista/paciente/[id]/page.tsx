@@ -99,7 +99,7 @@ export default function NutricionistaPaciente() {
   const [bemEstar, setBemEstar] = useState<BemEstar | null>(null)
   const [planoAtivo, setPlanoAtivo] = useState<PlanoNutricional | null>(null)
   const [gerandoPlano, setGerandoPlano] = useState(false)
-  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'plano' | 'treino' | 'ia'>('visao-geral')
+  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'plano' | 'treino' | 'ia' | 'anamnese' | 'evolucao'>('visao-geral')
   const [carregando, setCarregando] = useState(true)
 
   // editor
@@ -123,6 +123,8 @@ export default function NutricionistaPaciente() {
     resumo: string; evolucao: string[]; alertas: string[]; recomendacoes: string[]
   } | null>(null)
   const [gerandoBriefing, setGerandoBriefing] = useState(false)
+  const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
+  const [loadingAnamnese, setLoadingAnamnese] = useState(false)
 
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
@@ -613,14 +615,17 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
             { id: 'plano',       label: 'Plano',          icon: '🥗' },
             { id: 'treino',      label: 'Treino',         icon: '🏋️' },
             { id: 'ia',          label: 'IA Clínica',     icon: '✦' },
-            { id: 'anamnese',    label: 'Anamnese',       icon: '📋', ext: true },
-            { id: 'evolucao',    label: 'Evolução',       icon: '📈', ext: true },
+            { id: 'anamnese',    label: 'Anamnese',       icon: '📋' },
+            { id: 'evolucao',    label: 'Evolução',       icon: '📈' },
           ] as { id: string; label: string; icon: string; ext?: boolean }[]).map(tab => (
             <button key={tab.id}
               onClick={() => {
-                if (tab.id === 'anamnese') router.push(`/anamnese/${clienteId}`)
-                else if (tab.id === 'evolucao') router.push(`/evolucao-medidas/${clienteId}`)
-                else { setAbaAtiva(tab.id as any); setEditandoPlano(false) }
+                if (tab.id === 'anamnese' && !anamneseCompleta && !loadingAnamnese) {
+                  setLoadingAnamnese(true)
+                  supabase.from('anamneses').select('*').eq('cliente_id', clienteId).order('atualizado_em', { ascending: false }).limit(1).maybeSingle()
+                    .then(({ data }) => { setAnamneseCompleta(data); setLoadingAnamnese(false) })
+                }
+                setAbaAtiva(tab.id as any); setEditandoPlano(false)
               }}
               className={`px-4 py-3.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${
                 abaAtiva === tab.id
@@ -1430,6 +1435,227 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 <p className="text-zinc-500 text-xs mt-0.5">Use o botão <span className="text-emerald-400">✦</span> no canto inferior direito para perguntas específicas sobre {paciente?.nome?.split(' ')[0] ?? 'este paciente'}</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── ABA ANAMNESE ─────────────────────────────────────────────── */}
+        {abaAtiva === 'anamnese' && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-white font-black text-xl">Anamnese</h2>
+                <p className="text-zinc-500 text-sm">Histórico clínico e restrições do paciente</p>
+              </div>
+              <button onClick={() => router.push(`/anamnese/${clienteId}`)}
+                className="text-sm border border-white/[0.11] text-zinc-300 rounded-xl px-4 py-2 hover:border-white/20 transition-all">
+                ✏️ Editar anamnese
+              </button>
+            </div>
+
+            {loadingAnamnese ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="w-7 h-7 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : !anamneseCompleta ? (
+              <div className="rounded-2xl border border-white/[0.09] p-10 text-center" style={{ background: '#161c2c' }}>
+                <p className="text-3xl mb-3">📋</p>
+                <p className="text-white font-semibold mb-1">Anamnese não preenchida</p>
+                <p className="text-zinc-500 text-sm mb-4">Preencha a anamnese do paciente para registrar histórico clínico</p>
+                <button onClick={() => router.push(`/anamnese/${clienteId}`)}
+                  className="bg-white text-black font-bold px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-all">
+                  Preencher anamnese
+                </button>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Saúde */}
+                {(anamneseCompleta.patologias || anamneseCompleta.medicamentos || anamneseCompleta.alergias || anamneseCompleta.historico_familiar) && (
+                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
+                    <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🏥 Saúde</p>
+                    <div className="space-y-3">
+                      {anamneseCompleta.patologias && <div><p className="text-zinc-600 text-xs mb-1">Patologias</p><p className="text-zinc-200 text-sm">{anamneseCompleta.patologias}</p></div>}
+                      {anamneseCompleta.medicamentos && <div><p className="text-zinc-600 text-xs mb-1">Medicamentos</p><p className="text-zinc-200 text-sm">{anamneseCompleta.medicamentos}</p></div>}
+                      {anamneseCompleta.alergias && <div><p className="text-zinc-600 text-xs mb-1">Alergias</p><p className="text-amber-300 text-sm">{anamneseCompleta.alergias}</p></div>}
+                      {anamneseCompleta.historico_familiar && <div><p className="text-zinc-600 text-xs mb-1">Histórico familiar</p><p className="text-zinc-200 text-sm">{anamneseCompleta.historico_familiar}</p></div>}
+                    </div>
+                  </div>
+                )}
+                {/* Estilo de vida */}
+                {(anamneseCompleta.nivel_atividade || anamneseCompleta.horas_sono || anamneseCompleta.nivel_estresse) && (
+                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
+                    <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🌿 Estilo de vida</p>
+                    <div className="space-y-3">
+                      {anamneseCompleta.nivel_atividade && <div><p className="text-zinc-600 text-xs mb-1">Atividade física</p><p className="text-zinc-200 text-sm capitalize">{anamneseCompleta.nivel_atividade.replace('_', ' ')}</p></div>}
+                      {anamneseCompleta.horas_sono && <div><p className="text-zinc-600 text-xs mb-1">Horas de sono</p><p className="text-zinc-200 text-sm">{anamneseCompleta.horas_sono}h/noite</p></div>}
+                      {anamneseCompleta.nivel_estresse && <div><p className="text-zinc-600 text-xs mb-1">Estresse</p><p className="text-zinc-200 text-sm">{anamneseCompleta.nivel_estresse}/10</p></div>}
+                      {anamneseCompleta.alcool && <div><p className="text-zinc-600 text-xs mb-1">Álcool</p><p className="text-zinc-200 text-sm capitalize">{anamneseCompleta.alcool}</p></div>}
+                    </div>
+                  </div>
+                )}
+                {/* Histórico esportivo */}
+                {(anamneseCompleta.lesoes || anamneseCompleta.restricoes_fisicas || anamneseCompleta.historico_esportivo) && (
+                  <div className="rounded-2xl border border-red-500/15 p-5" style={{ background: '#1a0f0f' }}>
+                    <p className="text-red-400/80 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">⚠ Histórico esportivo</p>
+                    <div className="space-y-3">
+                      {anamneseCompleta.lesoes && <div><p className="text-zinc-600 text-xs mb-1">Lesões</p><p className="text-red-200 text-sm">{anamneseCompleta.lesoes}</p></div>}
+                      {anamneseCompleta.restricoes_fisicas && <div><p className="text-zinc-600 text-xs mb-1">Restrições físicas</p><p className="text-amber-200 text-sm">{anamneseCompleta.restricoes_fisicas}</p></div>}
+                      {anamneseCompleta.historico_esportivo && <div><p className="text-zinc-600 text-xs mb-1">Histórico</p><p className="text-zinc-200 text-sm">{anamneseCompleta.historico_esportivo}</p></div>}
+                    </div>
+                  </div>
+                )}
+                {/* Nutrição */}
+                {(anamneseCompleta.restricoes_alimentares || anamneseCompleta.suplementos || anamneseCompleta.habitos_alimentares) && (
+                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
+                    <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🥗 Nutrição</p>
+                    <div className="space-y-3">
+                      {anamneseCompleta.restricoes_alimentares && <div><p className="text-zinc-600 text-xs mb-1">Restrições alimentares</p><p className="text-amber-300 text-sm">{anamneseCompleta.restricoes_alimentares}</p></div>}
+                      {anamneseCompleta.suplementos && <div><p className="text-zinc-600 text-xs mb-1">Suplementos</p><p className="text-zinc-200 text-sm">{anamneseCompleta.suplementos}</p></div>}
+                      {anamneseCompleta.refeicoes_por_dia && <div><p className="text-zinc-600 text-xs mb-1">Refeições/dia</p><p className="text-zinc-200 text-sm">{anamneseCompleta.refeicoes_por_dia}x</p></div>}
+                      {anamneseCompleta.habitos_alimentares && <div><p className="text-zinc-600 text-xs mb-1">Hábitos</p><p className="text-zinc-200 text-sm">{anamneseCompleta.habitos_alimentares}</p></div>}
+                    </div>
+                  </div>
+                )}
+                {/* Objetivos */}
+                {anamneseCompleta.objetivo_detalhado && (
+                  <div className="md:col-span-2 rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
+                    <p className="text-zinc-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">🎯 Objetivos</p>
+                    <p className="text-zinc-200 text-sm leading-relaxed">{anamneseCompleta.objetivo_detalhado}</p>
+                    {anamneseCompleta.motivacao && <p className="text-zinc-500 text-xs mt-2">Motivação: {anamneseCompleta.motivacao}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── ABA EVOLUÇÃO ─────────────────────────────────────────────── */}
+        {abaAtiva === 'evolucao' && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-white font-black text-xl">Evolução Corporal</h2>
+                <p className="text-zinc-500 text-sm">{medidasCP.length} avaliações registradas</p>
+              </div>
+              <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+                className="text-sm border border-white/[0.11] text-zinc-300 rounded-xl px-4 py-2 hover:border-white/20 transition-all">
+                + Nova avaliação
+              </button>
+            </div>
+
+            {medidasCP.length === 0 ? (
+              <div className="rounded-2xl border border-white/[0.09] p-10 text-center" style={{ background: '#161c2c' }}>
+                <p className="text-3xl mb-3">📏</p>
+                <p className="text-white font-semibold mb-1">Sem avaliações registradas</p>
+                <p className="text-zinc-500 text-sm mb-4">Adicione a primeira avaliação corporal do paciente</p>
+                <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+                  className="bg-white text-black font-bold px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-all">
+                  Registrar primeira avaliação
+                </button>
+              </div>
+            ) : (() => {
+              const ultima = medidasCP[medidasCP.length - 1]
+              const primeira = medidasCP[0]
+              type MetricaEv = { label: string; key: 'peso' | 'gordura_pct' | 'massa_muscular' | 'cintura' | 'quadril'; unit: string; cor: string; inv: boolean }
+              const metricas: MetricaEv[] = ([
+                { label: 'Peso', key: 'peso' as const, unit: 'kg', cor: '#94a3b8', inv: false },
+                { label: '% Gordura', key: 'gordura_pct' as const, unit: '%', cor: '#f97316', inv: true },
+                { label: 'Massa muscular', key: 'massa_muscular' as const, unit: 'kg', cor: '#34d399', inv: false },
+                { label: 'Cintura', key: 'cintura' as const, unit: 'cm', cor: '#a78bfa', inv: true },
+                { label: 'Quadril', key: 'quadril' as const, unit: 'cm', cor: '#60a5fa', inv: false },
+              ] as MetricaEv[]).filter(m => ultima[m.key] != null)
+
+              function sparkline(key: keyof typeof ultima, cor: string) {
+                const pts = medidasCP.filter(m => m[key] != null)
+                if (pts.length < 2) return null
+                const vals = pts.map(m => m[key] as number)
+                const W = 120, H = 36, max = Math.max(...vals), min = Math.min(...vals), range = max - min || 1
+                const xStep = W / Math.max(pts.length - 1, 1)
+                const toY = (v: number) => H - 4 - ((v - min) / range) * (H - 8)
+                const d = vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
+                return (
+                  <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0">
+                    <path d={d} fill="none" stroke={cor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )
+              }
+
+              return (
+                <>
+                  {/* Resumo da última avaliação */}
+                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-zinc-400 text-xs uppercase tracking-wider">Última avaliação</p>
+                      <p className="text-zinc-500 text-xs">{new Date(ultima.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</p>
+                    </div>
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
+                      {metricas.map(m => {
+                        const cur = ultima[m.key] as number
+                        const ini = primeira[m.key] as number | null
+                        const delta = ini !== null ? Math.round((cur - ini) * 10) / 10 : null
+                        const pos = delta !== null && (m.inv ? delta < 0 : delta > 0)
+                        return (
+                          <div key={m.label} className="text-center">
+                            <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-1">{m.label}</p>
+                            <p className="text-white text-xl font-black">{cur}<span className="text-zinc-600 text-xs font-normal ml-0.5">{m.unit}</span></p>
+                            {delta !== null && delta !== 0 && (
+                              <p className={`text-xs mt-0.5 ${pos ? 'text-emerald-400' : 'text-zinc-500'}`}>{delta > 0 ? '+' : ''}{delta}</p>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Gráficos de evolução */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {metricas.slice(0, 4).map(m => {
+                      const pts = medidasCP.filter(d => d[m.key] != null)
+                      if (pts.length < 2) return null
+                      return (
+                        <div key={m.label} className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="text-zinc-400 text-xs uppercase tracking-wider">{m.label}</p>
+                              <div className="flex items-baseline gap-2 mt-0.5">
+                                <span className="text-white text-2xl font-black">{ultima[m.key]}</span>
+                                <span className="text-zinc-600 text-xs">{m.unit}</span>
+                                {(() => {
+                                  const delta = primeira[m.key] && ultima[m.key] ? Math.round(((ultima[m.key] as number) - (primeira[m.key] as number)) * 10) / 10 : null
+                                  const pos = delta !== null && (m.inv ? delta < 0 : delta > 0)
+                                  return delta !== null && delta !== 0 ? <span className={`text-sm font-semibold ${pos ? 'text-emerald-400' : 'text-zinc-500'}`}>{delta > 0 ? '+' : ''}{delta} total</span> : null
+                                })()}
+                              </div>
+                            </div>
+                            <p className="text-zinc-600 text-xs">{pts.length} medições</p>
+                          </div>
+                          {sparkline(m.key, m.cor)}
+                        </div>
+                      )
+                    }).filter(Boolean)}
+                  </div>
+
+                  {/* Histórico de avaliações */}
+                  <div className="rounded-2xl border border-white/[0.09] overflow-hidden" style={{ background: '#161c2c' }}>
+                    <div className="px-5 py-4 border-b border-white/[0.07]">
+                      <p className="text-zinc-400 text-xs uppercase tracking-wider">Histórico de avaliações</p>
+                    </div>
+                    <div className="divide-y divide-white/[0.05]">
+                      {[...medidasCP].reverse().map((m, i) => (
+                        <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+                          <p className="text-zinc-500 text-sm w-28 shrink-0">{new Date(m.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>
+                          <div className="flex-1 flex flex-wrap gap-2">
+                            {m.peso && <span className="text-xs text-zinc-300 bg-white/[0.05] border border-white/[0.08] rounded-full px-2.5 py-0.5">{m.peso}kg</span>}
+                            {m.gordura_pct && <span className="text-xs text-orange-300 bg-orange-500/10 border border-orange-500/20 rounded-full px-2.5 py-0.5">{m.gordura_pct}% gord.</span>}
+                            {m.massa_muscular && <span className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-0.5">{m.massa_muscular}kg musc.</span>}
+                            {m.cintura && <span className="text-xs text-zinc-400 bg-white/[0.04] border border-white/[0.07] rounded-full px-2.5 py-0.5">{m.cintura}cm cin.</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
           </div>
         )}
 
