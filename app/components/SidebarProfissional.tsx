@@ -99,7 +99,7 @@ export default function SidebarProfissional({ tipo }: Props) {
   return (
     <aside
       className="hidden md:flex md:flex-col md:w-[220px] md:shrink-0 md:h-screen md:sticky md:top-0 border-r"
-      style={{ background: '#08101d', borderColor: 'rgba(255,255,255,0.08)' }}
+      style={{ background: 'var(--bg-base)', borderColor: 'rgba(255,255,255,0.10)' }}
     >
       {/* Logo */}
       <div className="px-5 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>

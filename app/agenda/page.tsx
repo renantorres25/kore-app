@@ -164,7 +164,7 @@ export default function Agenda() {
   const tipoSidebar = tipo === 'personal' ? 'personal' : 'nutricionista'
 
   return (
-    <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0f172a' }}>
+    <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
       {(tipo === 'nutricionista' || tipo === 'personal') && <SidebarProfissional tipo={tipoSidebar} />}
       <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -192,7 +192,7 @@ export default function Agenda() {
 
         {/* Calendário semanal */}
         {vistaCalendario === 'semana' && (
-        <div className="rounded-2xl p-4 mb-5" style={{ background: '#161c2c' }}>
+        <div className="rounded-2xl p-4 mb-5" style={{ background: 'var(--surface-1)' }}>
           <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-3">Esta semana</p>
           <div className="grid grid-cols-7 gap-1">
             {semana7.map((dia, i) => {
@@ -233,7 +233,7 @@ export default function Agenda() {
           })
           const mesLabel = new Date(mesY, mesM - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
           return (
-            <div className="rounded-2xl p-4 mb-5" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-4 mb-5" style={{ background: 'var(--surface-1)' }}>
               <div className="flex items-center justify-between mb-4">
                 <button onClick={() => { const d = new Date(mesY, mesM - 2, 1); setMesAtual(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`) }}
                   className="w-8 h-8 rounded-xl bg-white/[0.09] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">‹</button>
@@ -267,7 +267,7 @@ export default function Agenda() {
         })()}
 
         {Object.keys(grupos).length === 0 ? (
-          <div className="rounded-2xl p-10 text-center" style={{ background: '#161c2c' }}>
+          <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
             <p className="text-3xl mb-3">📅</p>
             <p className="text-white font-bold mb-1">Agenda vazia</p>
             <p className="text-zinc-500 text-sm">Toque em + para agendar uma consulta ou treino.</p>
@@ -283,7 +283,7 @@ export default function Agenda() {
                 </div>
                 <div className="space-y-2">
                   {ags.map(ag => (
-                    <div key={ag.id} className={`rounded-2xl border overflow-hidden ${ag.status === 'realizado' ? 'border-white/[0.14] opacity-60' : 'border-white/[0.14]'}`} style={{ background: '#161c2c' }}>
+                    <div key={ag.id} className={`rounded-2xl border overflow-hidden ${ag.status === 'realizado' ? 'border-white/[0.14] opacity-60' : 'border-white/[0.14]'}`} style={{ background: 'var(--surface-1)' }}>
                       <div className="flex items-center gap-3 px-4 py-3.5">
                         <div className="text-center shrink-0 w-12">
                           <p className="text-white font-black text-base leading-none">{formatHora(ag.hora)}</p>

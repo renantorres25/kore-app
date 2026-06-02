@@ -152,7 +152,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
           </div>
         )}
 
-        <div className="mx-4 mb-4 rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
+        <div className="mx-4 mb-4 rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
           <div className="px-4 py-3 border-b border-white/[0.14]">
             <p className="text-zinc-500 text-[10px] uppercase tracking-wider">Resumo diário</p>
           </div>
@@ -188,7 +188,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
               const pctDia = totalCalDia > 0 ? Math.round((totalCal / totalCalDia) * 100) : 0
 
               return (
-                <div key={i} className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
+                <div key={i} className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                   <button onClick={() => setRefeicaoAberta(aberta ? null : i)}
                     className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
                     <div className="relative shrink-0">
@@ -256,7 +256,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
             })}
 
             {e.suplementos && e.suplementos.length > 0 && (
-              <div className="rounded-2xl border border-purple-500/20 overflow-hidden" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl border border-purple-500/20 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === 'suplementos' ? null : 'suplementos')}
                   className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
                   <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-xl shrink-0">💊</div>
@@ -281,7 +281,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
             )}
 
             {e.hidratacao && (
-              <div className="rounded-2xl border border-cyan-500/20 overflow-hidden" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl border border-cyan-500/20 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === 'hidratacao' ? null : 'hidratacao')}
                   className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
                   <div className="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-xl shrink-0">💧</div>
@@ -322,7 +322,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
             ))}
           </div>
         ) : (
-          <div className="mx-4 rounded-2xl border border-white/[0.11] p-5" style={{ background: '#161c2c' }}>
+          <div className="mx-4 rounded-2xl border border-white/[0.11] p-5" style={{ background: 'var(--surface-1)' }}>
             <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-line">{plano.conteudo}</p>
             <button onClick={onIniciarConsulta} className="mt-4 w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">✦ Gerar novo plano detalhado →</button>
           </div>
@@ -333,7 +333,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
   return (
     <div className="px-4 pt-4">
-      <div className="rounded-2xl border border-emerald-500/20 p-5" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl border border-emerald-500/20 p-5" style={{ background: 'var(--surface-1)' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-xs font-black text-green-400 shrink-0">NU</div>
           <div>
@@ -426,7 +426,7 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         ))}
       </div>
 
-      <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
         <div className="px-5 pt-4 pb-3 border-b border-white/[0.14]">
           <p className="text-white font-bold text-sm">Como foi hoje?</p>
           <p className="text-zinc-600 text-[11px]">Avalie e registre em 30 segundos</p>
@@ -480,7 +480,7 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
         <div className="px-5 py-4 border-b border-white/[0.14]">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -506,7 +506,7 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         </div>
       </div>
 
-      <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
           <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0"><span className="text-[11px] font-black text-emerald-400">✦</span></div>
           <div className="flex-1">
@@ -532,7 +532,7 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.11] p-4" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl border border-white/[0.11] p-4" style={{ background: 'var(--surface-1)' }}>
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.07] text-zinc-500 border-white/[0.14]'}`}>NU</div>
           <div className="flex-1 min-w-0">

@@ -45,7 +45,7 @@ const ALCOOL_LABEL: Record<string, string> = {
 function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = true }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [aberto, setAberto] = useState(defaultOpen)
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: '#161c2c' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
       <button onClick={() => setAberto(p => !p)} className="w-full px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
         style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.08)' : 'none', background: 'rgba(255,255,255,0.02)' }}>
         <div className="flex items-center gap-2.5">
@@ -256,7 +256,7 @@ export default function AnamnesePage() {
   const tipoSidebar = meuperfil?.tipo === 'personal' ? 'personal' : 'nutricionista'
 
   return (
-    <main className="min-h-[100dvh] text-white md:flex" style={{ background: '#0f172a' }}>
+    <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
       {isProfissional && <SidebarProfissional tipo={tipoSidebar} />}
       <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-32 md:max-w-3xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>

@@ -484,7 +484,7 @@ Responda APENAS em JSON válido, sem markdown:
     return (
       <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-600 text-[10px] tracking-[0.25em] uppercase">Carregando</p>
         </div>
       </main>
@@ -516,7 +516,7 @@ Responda APENAS em JSON válido, sem markdown:
                 {notifs.map(n => (
                   <button key={n.id} onClick={() => { setShowNotifs(false); if (n.link) router.push(n.link) }}
                     className="w-full text-left rounded-2xl p-4 active:scale-[0.98] transition-all flex items-center gap-3"
-                    style={{ background: '#161c2c' }}>
+                    style={{ background: 'var(--surface-1)' }}>
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${n.tipo === 'agendamento' ? 'bg-blue-500/10' : n.tipo === 'alerta' ? 'bg-red-500/10' : 'bg-zinc-800'}`}>
                       {n.icon}
                     </div>
@@ -644,7 +644,7 @@ function CardDecisaoDia({
       <div className="rounded-3xl p-5 mb-3 border border-emerald-500/20 relative overflow-hidden"
         style={{ background: 'linear-gradient(145deg, #0a1410 0%, #080d0a 100%)' }}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />
+          <div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin shrink-0" />
           <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">✦ Gerando decisão do dia...</p>
         </div>
         <div className="space-y-2">
@@ -837,7 +837,7 @@ function CardMeta({
     return (
       <button onClick={() => setEditando(true)}
         className="w-full text-left rounded-2xl p-5 mb-3 border border-dashed border-white/[0.15] active:scale-[0.98] transition-all"
-        style={{ background: '#161c2c' }}>
+        style={{ background: 'var(--surface-1)' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meta pessoal</p>
         <p className="text-white font-black text-xl mb-1.5">Definir minha meta →</p>
         <p className="text-zinc-600 text-sm leading-relaxed">Onde você quer chegar? Defina seu peso-alvo e acompanhe cada kg de progresso.</p>
@@ -847,7 +847,7 @@ function CardMeta({
 
   if (editando) {
     return (
-      <div className="rounded-2xl p-5 mb-3 border border-emerald-500/20" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5 mb-3 border border-emerald-500/20" style={{ background: 'var(--surface-1)' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meta pessoal</p>
         <div className="space-y-3">
           <div>
@@ -881,7 +881,7 @@ function CardMeta({
   const C = 2 * Math.PI * 30 // circumference r=30 → ~188.5
 
   return (
-    <div className="rounded-2xl p-5 mb-3" style={{ background: '#161c2c' }}>
+    <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface-1)' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -895,7 +895,7 @@ function CardMeta({
       </div>
 
       {atingiu ? (
-        <p className="text-emerald-400 font-black text-3xl mb-4">Meta atingida! 🎉</p>
+        <p className="text-[var(--accent)] font-black text-3xl mb-4">Meta atingida! 🎉</p>
       ) : (
         <div className="flex items-center gap-5 mb-4">
           {/* Gauge circular */}
@@ -919,7 +919,7 @@ function CardMeta({
           <div className="flex-1 min-w-0">
             {ehSugestao ? (
               <>
-                <p className="text-emerald-400 font-black text-2xl leading-tight mb-0.5">
+                <p className="text-[var(--accent)] font-black text-2xl leading-tight mb-0.5">
                   {totalGoal != null ? `${perder ? '-' : '+'}${totalGoal.toFixed(1)} kg` : '—'}
                 </p>
                 <p className="text-zinc-500 text-xs mb-3">objetivo sugerido pela IA</p>
@@ -951,7 +951,7 @@ function CardMeta({
               </div>
               <span className="text-zinc-700 text-[10px]">→</span>
               <div>
-                <p className="text-emerald-400 text-xs font-bold leading-tight">{metaEfetiva} kg</p>
+                <p className="text-[var(--accent)] text-xs font-bold leading-tight">{metaEfetiva} kg</p>
                 <p className="text-zinc-600 text-[8px] uppercase tracking-wider">meta</p>
               </div>
             </div>
@@ -970,7 +970,7 @@ function CardMeta({
       {/* Rodapé */}
       {ehSugestao ? (
         <button onClick={() => setEditando(true)}
-          className="w-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all tracking-[0.04em]">
+          className="w-full bg-emerald-500/10 border border-emerald-500/20 text-[var(--accent)] font-bold py-3 rounded-xl text-sm active:scale-95 transition-all tracking-[0.04em]">
           Confirmar esta meta →
         </button>
       ) : (
@@ -1118,7 +1118,7 @@ function DashboardCliente({
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-base font-black leading-tight mb-1 text-emerald-400">Boa recuperação</p>
+              <p className="text-base font-black leading-tight mb-1 text-[var(--accent)]">Boa recuperação</p>
               <div className="flex gap-4 mt-2">
                 <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Energia</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
                 <div className="w-px bg-white/[0.09]" />
@@ -1145,7 +1145,7 @@ function DashboardCliente({
         const c = CORES_FASE[fasePeriodizacao.tipoBloco] ?? CORES_FASE.hipertrofia
         const pct = Math.min(100, (fasePeriodizacao.semanaBloco / fasePeriodizacao.semanasBloco) * 100)
         return (
-          <div className={`rounded-2xl p-5 mb-3 border ${c.border}`} style={{ background: '#161c2c' }}>
+          <div className={`rounded-2xl p-5 mb-3 border ${c.border}`} style={{ background: 'var(--surface-1)' }}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Fase atual</p>
               <span className={`text-[9px] font-bold uppercase tracking-wider ${c.text}`}>
@@ -1165,7 +1165,7 @@ function DashboardCliente({
       })()}
 
       {/* Treino de hoje */}
-      <div className="rounded-2xl p-5 mb-3" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface-1)' }}>
         <div className="flex items-start justify-between mb-1">
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Treino de hoje</p>
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${treinoHoje?.concluido ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
@@ -1177,7 +1177,7 @@ function DashboardCliente({
             {treinoHoje ? treinoHoje.nome : 'Escolha seu treino'}
           </p>
           {treinoHoje?.concluido ? (
-            <p className="text-emerald-400 font-black text-sm">✓ Concluído hoje</p>
+            <p className="text-[var(--accent)] font-black text-sm">✓ Concluído hoje</p>
           ) : vinculoPersonal ? (
             <p className="text-blue-400 font-black text-sm">{vinculoPersonal.nome ?? vinculoPersonal.email}</p>
           ) : (
@@ -1193,7 +1193,7 @@ function DashboardCliente({
       {/* Nutrição */}
       <button onClick={() => router.push('/nutricao')}
         className="w-full text-left rounded-2xl p-5 mb-3 active:scale-[0.98] transition-all"
-        style={{ background: '#161c2c' }}>
+        style={{ background: 'var(--surface-1)' }}>
         <div className="flex items-start justify-between mb-1">
           <div>
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Minha nutrição</p>
@@ -1244,7 +1244,7 @@ function DashboardCliente({
       </button>
 
       {/* Meu time */}
-      <div className="rounded-2xl p-5 mb-3" style={{ background: '#161c2c' }}>
+      <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface-1)' }}>
         <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meu time</p>
         <div className="space-y-3">
           {[
@@ -1354,7 +1354,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
   }, [])
 
   return (
-    <div className="md:flex md:h-screen" style={{ background: '#0f172a' }}>
+    <div className="md:flex md:h-screen" style={{ background: 'var(--bg-base)' }}>
       <SidebarProfissional tipo="personal" />
       <div className="flex-1 md:overflow-y-auto">
     <div className="max-w-md mx-auto px-4 md:max-w-5xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
@@ -1381,7 +1381,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
           { valor: loadingStats ? '—' : String(treinaramHoje), label: 'Treinaram', sub: 'hoje',           cor: treinaramHoje > 0 ? 'text-emerald-400' : 'text-white' },
           { valor: loadingStats ? '—' : String(alertas),       label: 'Alertas',   sub: 'sem treinar 7d', cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+          <div key={m.label} className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
             <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-3">{m.label}</p>
             <p className={`text-5xl font-black leading-none tracking-tight ${m.cor}`}>{m.valor}</p>
             <p className="text-zinc-600 text-xs mt-2">{m.sub}</p>
@@ -1421,7 +1421,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
       )}
 
       {alunosRecentes.length > 0 && (
-        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
             <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Seus alunos hoje</p>
             <button onClick={() => router.push('/personal')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
@@ -1599,7 +1599,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
   }, [])
 
   return (
-    <div className="md:flex md:h-screen" style={{ background: '#0f172a' }}>
+    <div className="md:flex md:h-screen" style={{ background: 'var(--bg-base)' }}>
       <SidebarProfissional tipo="nutricionista" />
       <div className="flex-1 md:overflow-y-auto">
     <div className="max-w-md mx-auto px-4 md:max-w-3xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
@@ -1627,7 +1627,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
           { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Boa recuperação', sub: 'hoje' },
           { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',     sub: 'essa semana' },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+          <div key={m.label} className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
             <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-3">{m.label}</p>
             <p className="text-white text-5xl font-black leading-none tracking-tight">{m.valor}</p>
             <p className="text-zinc-600 text-xs mt-2">{m.sub}</p>
@@ -1637,7 +1637,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
 
       {/* Consultas de hoje */}
       {consultasHoje.length > 0 && (
-        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
           <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
             <p className="text-white font-semibold text-sm">Consultas de hoje</p>
             <span className="text-zinc-500 text-xs">{consultasHoje.length} agendada{consultasHoje.length !== 1 ? 's' : ''}</span>
@@ -1746,7 +1746,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       )}
 
       {pacientesRecentes.length > 0 && (
-        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
             <p className="text-white font-semibold text-sm">Seus pacientes</p>
             <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-500 text-xs hover:text-white transition-colors">Ver todos →</button>

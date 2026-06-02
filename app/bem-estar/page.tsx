@@ -115,7 +115,7 @@ export default function BemEstar() {
         </div>
 
         {media && (
-          <div className="rounded-2xl p-5 mb-6" style={{ background: '#161c2c' }}>
+          <div className="rounded-2xl p-5 mb-6" style={{ background: 'var(--surface-1)' }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Seu estado geral hoje</p>
@@ -134,7 +134,7 @@ export default function BemEstar() {
 
         <div className="space-y-5 mb-6">
           {indicadores.map((ind) => (
-            <div key={ind.id} className="rounded-2xl p-5" style={{ background: '#161c2c' }}>
+            <div key={ind.id} className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
               <p className="text-white font-bold text-sm mb-0.5">{ind.label}</p>
               <p className="text-zinc-500 text-xs mb-4">{ind.descricao}</p>
               <div className="flex justify-between gap-1">

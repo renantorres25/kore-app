@@ -246,7 +246,7 @@ export default function ConvitePage() {
         )}
 
         {/* O que o convidado vai ter acesso */}
-        <div className="rounded-2xl p-5 border border-white/[0.11] mb-6" style={{ background: '#161c2c' }}>
+        <div className="rounded-2xl p-5 border border-white/[0.11] mb-6" style={{ background: 'var(--surface-1)' }}>
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">
             {tipoUsuario === 'cliente' ? 'O que ele vai ver no KORE' : 'O que você vai acompanhar'}
           </p>
@@ -297,7 +297,7 @@ export default function ConvitePage() {
               {convitesPendentes.map(c => {
                 const diasRestantes = Math.max(0, 7 - Math.floor((Date.now() - new Date(c.criado_em).getTime()) / (1000 * 60 * 60 * 24)))
                 return (
-                  <div key={c.id} className="flex items-center gap-3 rounded-xl border border-white/[0.11] px-4 py-3" style={{ background: '#161c2c' }}>
+                  <div key={c.id} className="flex items-center gap-3 rounded-xl border border-white/[0.11] px-4 py-3" style={{ background: 'var(--surface-1)' }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">{c.email_convidado}</p>
                       <p className="text-zinc-600 text-[10px]">{diasRestantes > 0 ? `Expira em ${diasRestantes} dia${diasRestantes !== 1 ? 's' : ''}` : 'Expirado'}</p>

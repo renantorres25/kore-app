@@ -533,7 +533,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
   const totalEdProt = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'proteina'), 0)
 
   return (
-    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row" style={{ background: '#0f172a' }}>
+    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row" style={{ background: 'var(--bg-base)' }}>
 
       {/* ── SIDEBAR — só desktop ─────────────────────────────────────── */}
       <SidebarProfissional tipo="nutricionista" />
@@ -553,7 +553,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
             {/* Avatar + nome + dados primários */}
             <div className="flex items-center gap-4 min-w-0">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <span className="text-emerald-400 font-black text-base">{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
+                <span className="text-[var(--accent)] font-black text-base">{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -585,7 +585,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               {proximaConsulta && (
                 <div className="text-right">
                   <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Próxima consulta</p>
-                  <p className="text-emerald-400 text-sm font-medium mt-0.5">{new Date(proximaConsulta).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>
+                  <p className="text-[var(--accent)] text-sm font-medium mt-0.5">{new Date(proximaConsulta).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>
                 </div>
               )}
               {medidasCP.length >= 2 && (() => {
@@ -629,7 +629,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               }}
               className={`px-4 py-3.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${
                 abaAtiva === tab.id
-                  ? 'border-emerald-400 text-white'
+                  ? 'border-[var(--accent)] text-white'
                   : 'border-transparent text-zinc-500 hover:text-zinc-300'
               }`}>
               <span>{tab.icon}</span>
@@ -662,7 +662,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 { label: 'Massa musc.', val: ultima.massa_muscular, unit: 'kg', delta: primeira?.massa_muscular ? Math.round(((ultima.massa_muscular ?? 0) - primeira.massa_muscular) * 10) / 10 : null, inv: false, cor: '#34d399' },
               ].filter(m => m.val != null)
               return (
-                <div className="rounded-3xl p-8" style={{ background: '#161c2c' }}>
+                <div className="rounded-3xl p-8" style={{ background: 'var(--surface-1)' }}>
                   <div className="flex items-center justify-between mb-8">
                     <p className="text-[11px] text-zinc-500 uppercase tracking-[0.2em]">Situação atual</p>
                     {ultimaAvaliacao && (
@@ -697,7 +697,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 </div>
               )
             })() : (
-              <div className="rounded-3xl p-8 flex items-center gap-5" style={{ background: '#161c2c' }}>
+              <div className="rounded-3xl p-8 flex items-center gap-5" style={{ background: 'var(--surface-1)' }}>
                 <div className="w-14 h-14 rounded-2xl bg-white/[0.05] flex items-center justify-center text-2xl shrink-0">📏</div>
                 <div>
                   <p className="text-white font-bold mb-1">Sem avaliações corporais</p>
@@ -741,7 +741,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               <div className="grid grid-cols-3 gap-4">
 
             {/* Recuperação */}
-            <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
               <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Recuperação</p>
               {sonoHoje?.score_recuperacao != null ? (
                 <>
@@ -768,7 +768,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
             </div>
 
             {/* Treino hoje */}
-            <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
               <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Treino hoje</p>
               {treinoHoje ? (
                 <>
@@ -789,7 +789,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
             </div>
 
             {/* Bem-estar */}
-            <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
               <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Bem-estar</p>
               {bemEstar ? (
                 <>
@@ -873,7 +873,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               const primeiro = comCal[0], ultimo = comCal[comCal.length - 1]
               const deltaCal = (ultimo.calorias_meta ?? 0) - (primeiro.calorias_meta ?? 0)
               return (
-                <div className="rounded-2xl overflow-hidden" style={{ background: '#161c2c' }}>
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Evolução das metas nutricionais</p>
                     <p className="text-zinc-600 text-[9px]">{historicoMetas.length} planos</p>
@@ -927,7 +927,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                   const refCal = sumAl(ref.alimentos, 'calorias')
                   const refProt = sumAl(ref.alimentos, 'proteina')
                   return (
-                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#161c2c' }}>
+                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                       {/* header refeição */}
                       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.14]" style={{ background: '#1c1c1c' }}>
                         <div className="flex items-center gap-2">
@@ -1065,7 +1065,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 )}
 
                 {/* Seções extras opcionais */}
-                <div className="rounded-2xl p-4 space-y-3" style={{ background: '#161c2c' }}>
+                <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--surface-1)' }}>
                   <p className="text-zinc-500 text-[9px] uppercase tracking-wider">Orientações complementares (opcional)</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
@@ -1122,7 +1122,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
             ) : planoAtivo && planoEstruturado ? (
               <>
                 {/* header plano ativo */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: '#161c2c' }}>
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
@@ -1232,7 +1232,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
               const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
               return (
-                <div className="rounded-2xl overflow-hidden" style={{ background: '#161c2c' }}>
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                   <div className="px-5 py-4 border-b border-white/[0.07] flex items-center gap-2">
                     <span>🔗</span>
                     <p className="text-white font-semibold text-sm">Integração com Personal Trainer</p>
@@ -1270,7 +1270,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                       <div className="rounded-xl px-4 py-3 border border-emerald-500/20" style={{ background: 'rgba(16,185,129,0.05)' }}>
                         <p className="text-zinc-500 text-xs mb-1 uppercase tracking-wider">Ajuste calórico sugerido · {periodizacaoFase?.nome_bloco}</p>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-emerald-400 text-xl font-black">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
+                          <span className="text-[var(--accent)] text-xl font-black">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
                           <span className="text-zinc-500 text-sm">({ajuste.pct > 0 ? '+' : ''}{Math.round(ajuste.pct * 100)}%)</span>
                         </div>
                         <p className="text-zinc-600 text-xs mt-0.5">{ajuste.label}</p>
@@ -1292,7 +1292,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 </div>
               )
             })() : (
-              <div className="rounded-2xl p-10 text-center" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
                 <p className="text-4xl mb-3">🏋️</p>
                 <p className="text-white font-semibold mb-1">Sem dados de treino</p>
                 <p className="text-zinc-500 text-sm">Paciente sem personal trainer vinculado ou sem periodização ativa.</p>
@@ -1313,7 +1313,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               <button onClick={gerarBriefing} disabled={gerandoBriefing}
                 className="flex items-center gap-2 text-sm text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded-xl px-5 py-2.5 active:scale-95 transition-all disabled:opacity-50 font-semibold">
                 {gerandoBriefing ? (
-                  <><div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> Analisando...</>
+                  <><div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /> Analisando...</>
                 ) : briefingEstruturado ? '↻ Reanalisar' : '✦ Gerar análise'}
               </button>
             </div>
@@ -1330,12 +1330,12 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Resumo */}
                 <div className="md:col-span-2 rounded-2xl border border-emerald-500/20 p-6" style={{ background: '#0a1510' }}>
-                  <p className="text-emerald-400 text-xs uppercase tracking-wider mb-2">Situação atual</p>
+                  <p className="text-[var(--accent)] text-xs uppercase tracking-wider mb-2">Situação atual</p>
                   <p className="text-white text-lg leading-relaxed">{briefingEstruturado.resumo}</p>
                 </div>
 
                 {/* Evolução */}
-                <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+                <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
                   <p className="text-zinc-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><span>📈</span> Evolução recente</p>
                   <ul className="space-y-2">
                     {briefingEstruturado.evolucao.map((item, i) => (
@@ -1379,11 +1379,11 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
             ) : null}
 
             {/* Chat referência */}
-            <div className="rounded-2xl border border-white/[0.07] p-5 flex items-center gap-4" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl border border-white/[0.07] p-5 flex items-center gap-4" style={{ background: 'var(--surface-1)' }}>
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-lg">✦</div>
               <div>
                 <p className="text-white text-sm font-semibold">Chat clínico disponível</p>
-                <p className="text-zinc-500 text-xs mt-0.5">Use o botão <span className="text-emerald-400">✦</span> no canto inferior direito para perguntas específicas sobre {paciente?.nome?.split(' ')[0] ?? 'este paciente'}</p>
+                <p className="text-zinc-500 text-xs mt-0.5">Use o botão <span className="text-[var(--accent)]">✦</span> no canto inferior direito para perguntas específicas sobre {paciente?.nome?.split(' ')[0] ?? 'este paciente'}</p>
               </div>
             </div>
           </div>
@@ -1405,10 +1405,10 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
             {loadingAnamnese ? (
               <div className="flex items-center justify-center py-16">
-                <div className="w-7 h-7 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                <div className="w-7 h-7 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : !anamneseCompleta ? (
-              <div className="rounded-2xl p-10 text-center" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
                 <p className="text-3xl mb-3">📋</p>
                 <p className="text-white font-semibold mb-1">Anamnese não preenchida</p>
                 <p className="text-zinc-500 text-sm mb-4">Preencha a anamnese do paciente para registrar histórico clínico</p>
@@ -1421,7 +1421,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Saúde */}
                 {(anamneseCompleta.patologias || anamneseCompleta.medicamentos || anamneseCompleta.alergias || anamneseCompleta.historico_familiar) && (
-                  <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+                  <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🏥 Saúde</p>
                     <div className="space-y-3">
                       {anamneseCompleta.patologias && <div><p className="text-zinc-600 text-xs mb-1">Patologias</p><p className="text-zinc-200 text-sm">{anamneseCompleta.patologias}</p></div>}
@@ -1433,7 +1433,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 )}
                 {/* Estilo de vida */}
                 {(anamneseCompleta.nivel_atividade || anamneseCompleta.horas_sono || anamneseCompleta.nivel_estresse) && (
-                  <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+                  <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🌿 Estilo de vida</p>
                     <div className="space-y-3">
                       {anamneseCompleta.nivel_atividade && <div><p className="text-zinc-600 text-xs mb-1">Atividade física</p><p className="text-zinc-200 text-sm capitalize">{anamneseCompleta.nivel_atividade.replace('_', ' ')}</p></div>}
@@ -1456,7 +1456,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 )}
                 {/* Nutrição */}
                 {(anamneseCompleta.restricoes_alimentares || anamneseCompleta.suplementos || anamneseCompleta.habitos_alimentares) && (
-                  <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+                  <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🥗 Nutrição</p>
                     <div className="space-y-3">
                       {anamneseCompleta.restricoes_alimentares && <div><p className="text-zinc-600 text-xs mb-1">Restrições alimentares</p><p className="text-amber-300 text-sm">{anamneseCompleta.restricoes_alimentares}</p></div>}
@@ -1468,7 +1468,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 )}
                 {/* Objetivos */}
                 {anamneseCompleta.objetivo_detalhado && (
-                  <div className="md:col-span-2 rounded-2xl p-5" style={{ background: '#161c2c' }}>
+                  <div className="md:col-span-2 rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">🎯 Objetivos</p>
                     <p className="text-zinc-200 text-sm leading-relaxed">{anamneseCompleta.objetivo_detalhado}</p>
                     {anamneseCompleta.motivacao && <p className="text-zinc-500 text-xs mt-2">Motivação: {anamneseCompleta.motivacao}</p>}
@@ -1494,7 +1494,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
             </div>
 
             {medidasCP.length === 0 ? (
-              <div className="rounded-2xl p-10 text-center" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
                 <p className="text-3xl mb-3">📏</p>
                 <p className="text-white font-semibold mb-1">Sem avaliações registradas</p>
                 <p className="text-zinc-500 text-sm mb-4">Adicione a primeira avaliação corporal do paciente</p>
@@ -1533,7 +1533,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               return (
                 <>
                   {/* Resumo da última avaliação */}
-                  <div className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+                  <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-zinc-400 text-xs uppercase tracking-wider">Última avaliação</p>
                       <p className="text-zinc-500 text-xs">{new Date(ultima.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</p>
@@ -1563,7 +1563,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                       const pts = medidasCP.filter(d => d[m.key] != null)
                       if (pts.length < 2) return null
                       return (
-                        <div key={m.label} className="rounded-2xl p-6" style={{ background: '#161c2c' }}>
+                        <div key={m.label} className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
                           <div className="flex items-center justify-between mb-3">
                             <div>
                               <p className="text-zinc-400 text-xs uppercase tracking-wider">{m.label}</p>
@@ -1586,7 +1586,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                   </div>
 
                   {/* Histórico de avaliações */}
-                  <div className="rounded-2xl overflow-hidden" style={{ background: '#161c2c' }}>
+                  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                     <div className="px-5 py-4 border-b border-white/[0.07]">
                       <p className="text-zinc-400 text-xs uppercase tracking-wider">Histórico de avaliações</p>
                     </div>
@@ -1743,7 +1743,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const emojis = ['☀️','🍎','🍽️','⚡','💪','🌙','🥑','🫐']
   const alimentos: any[] = ref.alimentos ?? []
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: '#161c2c' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
       <button onClick={() => setAberta(p => !p)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.02] transition-colors">
         <div className="w-9 h-9 rounded-xl bg-white/[0.07] flex items-center justify-center text-base shrink-0">
           {emojis[idx] ?? '🥗'}

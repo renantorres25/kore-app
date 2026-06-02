@@ -397,7 +397,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                 { val: mediaScore ?? '—', label: 'Recup.', cor: mediaScore && mediaScore >= 70 ? 'text-emerald-400' : mediaScore ? 'text-yellow-400' : 'text-zinc-500' },
                 { val: totalCalorias > 0 ? `${Math.round(totalCalorias/1000)}k` : '—', label: 'kcal', cor: 'text-orange-400' },
               ].map((s, i) => (
-                <div key={i} className="rounded-2xl p-3 border border-white/[0.11] text-center" style={{ background: '#161c2c' }}>
+                <div key={i} className="rounded-2xl p-3 border border-white/[0.11] text-center" style={{ background: 'var(--surface-1)' }}>
                   <p className={`text-xl font-black tabular-nums ${s.cor}`}>{s.val}</p>
                   <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5">{s.label}</p>
                 </div>
@@ -405,7 +405,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
             </div>
 
             {scores.some(s => s.score !== null) && (
-              <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                 <div className="px-5 pt-5 pb-3">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Score de recuperação</p>
@@ -427,7 +427,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
             )}
 
             {/* CALENDÁRIO COLORIDO */}
-            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
               <div className="px-5 pt-5 pb-5">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Consistência</p>
@@ -494,7 +494,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
               })
               const maxCount = Math.max(...counts, 1)
               return (
-                <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+                <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                   <div className="px-5 pt-5 pb-5">
                     <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-5">Atividades por semana</p>
                     <div className="flex items-end gap-3 h-20">
@@ -514,7 +514,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
             })()}
 
             {volumeExercicios.length > 0 && (
-              <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+              <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                 <div className="px-5 pt-5 pb-1">
                   <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Evolução — Musculação</p>
                 </div>
@@ -552,7 +552,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
                 { label: 'Músculo', unit: 'kg', values: medidasCP.map(m => m.massa_muscular), current: last.massa_muscular, delta: deltaMuscular, color: '#34D399', inverseBetter: false },
               ]
               return (
-                <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+                <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                   <div className="px-5 pt-5 pb-5">
                     <div className="flex items-center justify-between mb-5">
                       <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Composição corporal</p>
@@ -612,7 +612,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
               }, '')
               const areaD = `${lineD} L ${W},${H} L 0,${H} Z`
               return (
-                <div className="rounded-2xl border border-orange-500/10 mb-4 overflow-hidden" style={{ background: '#161c2c' }}>
+                <div className="rounded-2xl border border-orange-500/10 mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                   <div className="px-5 pt-5 pb-5">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Histórico calórico</p>
@@ -689,7 +689,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
+            <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
               <div className="px-5 pt-5 pb-3 border-b border-white/[0.14]">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Histórico de atividades</p>
               </div>

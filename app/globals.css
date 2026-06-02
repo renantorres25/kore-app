@@ -1,26 +1,139 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════
+   KORE — DESIGN TOKENS
+   "Clinical-Athletic / Performance Dark"
+   ═══════════════════════════════════════════════════════════ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Superfícies (do mais fundo ao mais alto) ─────────────── */
+  --bg-base:        #0A0E0C;
+  --surface-1:      #11161A;
+  --surface-2:      #171E22;
+  --surface-3:      #1E262B;
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-strong:  rgba(255,255,255,0.12);
+
+  /* ── Accent primário — vitalidade ────────────────────────── */
+  --accent:         #2DD4A7;
+  --accent-hover:   #25BD94;
+  --accent-soft:    rgba(45,212,167,0.12);
+
+  /* ── Accents de dados (gráficos) ─────────────────────────── */
+  --data-energy:    #F59E0B;
+  --data-sleep:     #38BDF8;
+  --data-recovery:  #A78BFA;
+  --data-strain:    #FB7185;
+
+  /* ── Texto (contraste AA garantido) ──────────────────────── */
+  --text-primary:   #F4F7F5;
+  --text-secondary: #A6B2AD;
+  --text-tertiary:  #6B7771;
+
+  /* ── Semântico ───────────────────────────────────────────── */
+  --success: #2DD4A7;
+  --warning: #F59E0B;
+  --danger:  #FB7185;
+
+  /* ── Raios ───────────────────────────────────────────────── */
+  --radius-card:  16px;
+  --radius-inner: 10px;
+  --radius-pill:  999px;
+
+  /* ── Elevação ─────────────────────────────────────────────── */
+  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.25);
+  --shadow-pop:  0 12px 40px rgba(0,0,0,.45);
+  --shadow-tile: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
+
+  /* ── Legacy (compatibilidade) ────────────────────────────── */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ── Fontes ─────────────────────────────────────────────────── */
+@layer base {
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-geist-sans), 'Geist', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #111111;
-    --foreground: #ededed;
+  /* Todos os números usam mono com tabular figures */
+  .mono, .stat, [data-stat], .kcal, .gram, .score {
+    font-family: var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Cards com sombra por padrão ─────────────────────────────── */
+@layer utilities {
+  .card {
+    background: var(--surface-1);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-tile);
+  }
+
+  .card-elevated {
+    background: var(--surface-2);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .pill {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .accent-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* Hover elevação nos tiles */
+  .tile-hover {
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  }
+  .tile-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+    border-color: var(--border-strong);
+  }
+}
+
+/* ── Sombra automática em todos os cards ────────────────────── */
+/* Qualquer div com rounded-2xl ou rounded-3xl sobre var(--surface-1) */
+[style*="var(--surface-1)"],
+[style*="var(--surface-2)"] {
+  box-shadow: var(--shadow-tile);
+}
+
+/* ── Scrollbar discreta ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Focus ring acessível ────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Reduced motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

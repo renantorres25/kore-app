@@ -181,7 +181,7 @@ export default function PeriodizacaoPage() {
           const cfg = getTipoCfg(b.tipo)
           const pct = Math.min(100, (semanaAtual.semanaTotal / totalSemanas) * 100)
           return (
-            <div className={`rounded-2xl p-5 border ${cfg.border} mb-5`} style={{ background: '#161c2c' }}>
+            <div className={`rounded-2xl p-5 border ${cfg.border} mb-5`} style={{ background: 'var(--surface-1)' }}>
               <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Fase atual</p>
               <div className="flex items-center gap-3 mb-4">
                 <div className={`w-12 h-12 rounded-2xl ${cfg.bg} ${cfg.border} border flex items-center justify-center`}>
@@ -203,7 +203,7 @@ export default function PeriodizacaoPage() {
 
         {/* Timeline */}
         {periodizacao && periodizacao.blocos.length > 0 && (
-          <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: '#161c2c' }}>
+          <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Linha do tempo · {totalSemanas} semanas</p>
             </div>
@@ -301,7 +301,7 @@ export default function PeriodizacaoPage() {
 
         {/* Formulário */}
         {criando && (
-          <div ref={formRef} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#161c2c' }}>
+          <div ref={formRef} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
             <div className="px-5 py-4 border-b border-white/[0.14]">
               <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Novo ciclo de treinamento</p>
             </div>
