@@ -99,7 +99,7 @@ export default function NutricionistaPaciente() {
   const [bemEstar, setBemEstar] = useState<BemEstar | null>(null)
   const [planoAtivo, setPlanoAtivo] = useState<PlanoNutricional | null>(null)
   const [gerandoPlano, setGerandoPlano] = useState(false)
-  const [abaAtiva, setAbaAtiva] = useState<'hoje' | 'plano' | 'treino'>('hoje')
+  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'plano' | 'treino' | 'ia'>('visao-geral')
   const [carregando, setCarregando] = useState(true)
 
   // editor
@@ -523,575 +523,152 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                 </div>
               </div>
             </div>
-            {/* Ações rápidas — desktop */}
-            <div className="hidden md:flex items-center gap-2 shrink-0">
-              <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-95 transition-all text-sm text-zinc-300 font-medium">
-                📋 Anamnese
-              </button>
-              <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-95 transition-all text-sm text-zinc-300 font-medium">
-                📏 Medidas
-              </button>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* ── BODY: 2 colunas no desktop ──────────────────────────────── */}
-      <div className="flex-1 md:flex md:overflow-hidden">
-
-        {/* ── PAINEL ESQUERDO — só desktop ──────────────────────────── */}
-        <div className="hidden md:flex md:flex-col md:w-[300px] md:shrink-0 md:overflow-y-auto md:border-r px-5 py-5 gap-5" style={{ background: '#0c1220', borderColor: 'rgba(255,255,255,0.08)' }}>
-
-          {/* ── DADOS DO PACIENTE ─────────────────────────── */}
-          <div>
-            <p className="text-xs text-zinc-500 uppercase tracking-[0.12em] mb-3">Dados</p>
-            <div className="grid grid-cols-2 gap-3">
-              {paciente?.peso && <div><p className="text-zinc-600 text-xs mb-0.5">Peso atual</p><p className="text-white text-sm font-semibold">{paciente.peso} kg</p></div>}
-              {paciente?.altura && <div><p className="text-zinc-600 text-xs mb-0.5">Altura</p><p className="text-white text-sm font-semibold">{paciente.altura} cm</p></div>}
-              {paciente?.sexo && <div><p className="text-zinc-600 text-xs mb-0.5">Sexo</p><p className="text-white text-sm font-semibold capitalize">{paciente.sexo}</p></div>}
-              {paciente?.objetivo && <div><p className="text-zinc-600 text-xs mb-0.5">Objetivo</p><p className="text-white text-sm font-semibold">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</p></div>}
-            </div>
-            {(paciente?.meta_peso || paciente?.meta_data_limite) && (
-              <div className="mt-3 pt-3 border-t border-white/[0.09] flex items-center gap-4">
-                {paciente.meta_peso && <div><p className="text-zinc-600 text-xs mb-0.5">Meta</p><p className="text-white text-sm font-semibold">{paciente.meta_peso} kg</p></div>}
-                {paciente.meta_data_limite && <div><p className="text-zinc-600 text-xs mb-0.5">Prazo</p><p className="text-white text-sm font-semibold">{new Date(paciente.meta_data_limite).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p></div>}
-              </div>
-            )}
-            <button onClick={() => {
-              setFichaPeso(String(paciente?.peso ?? '')); setFichaAltura(String(paciente?.altura ?? ''))
-              setFichaSexo(paciente?.sexo ?? ''); setFichaNascimento(paciente?.data_nascimento ?? '')
-              setFichaObjetivo(paciente?.objetivo ?? ''); setFichaMetaPeso(String(paciente?.meta_peso ?? ''))
-              setFichaMetaData(paciente?.meta_data_limite ?? ''); setEditandoFicha(p => !p)
-            }} className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-              {editandoFicha ? '↑ Fechar edição' : '✎ Editar ficha'}
-            </button>
-            {editandoFicha && (
-              <div className="mt-3 space-y-3 pt-3 border-t border-white/[0.09]">
-                <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-zinc-600 text-xs mb-1">Peso (kg)</p><input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)} placeholder="65" className="w-full bg-white/[0.07] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11]" /></div>
-                  <div><p className="text-zinc-600 text-xs mb-1">Altura (cm)</p><input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)} placeholder="165" className="w-full bg-white/[0.07] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11]" /></div>
-                </div>
-                <div><p className="text-zinc-600 text-xs mb-1">Objetivo</p>
-                  <div className="flex flex-wrap gap-1.5">{[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde']].map(([v, l]) => (<button key={v} onClick={() => setFichaObjetivo(v)} className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>{l}</button>))}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-zinc-600 text-xs mb-1">Meta (kg)</p><input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)} placeholder="62" className="w-full bg-white/[0.07] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11]" /></div>
-                  <div><p className="text-zinc-600 text-xs mb-1">Prazo</p><input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)} className="w-full bg-white/[0.07] text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-green-500/30 border border-white/[0.11]" style={{ colorScheme: 'dark' }} /></div>
-                </div>
-                {metaSemPrazoAviso && <p className="text-amber-400 text-xs px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">⚠️ Defina um prazo antes de salvar.</p>}
-                <button onClick={salvarFicha} disabled={salvandoFicha} className="w-full bg-white text-black font-semibold py-2 rounded-lg text-sm active:scale-95 transition-all disabled:opacity-40">{salvandoFicha ? 'Salvando...' : 'Salvar'}</button>
-              </div>
-            )}
-          </div>
-
-          {/* ── SEPARADOR ────────────────────────────────── */}
-          <div className="border-t border-white/[0.09]" />
-
-          {/* ── BRIEFING IA ──────────────────────────────── */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-zinc-500 uppercase tracking-[0.12em]">Briefing do paciente</p>
-              <button onClick={gerarBriefing} disabled={gerandoBriefing}
-                className="text-xs text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 rounded-lg px-2.5 py-1 active:scale-95 transition-all disabled:opacity-50">
-                {gerandoBriefing ? '...' : briefingIA ? '↻ Atualizar' : '✦ Gerar IA'}
-              </button>
-            </div>
-            {briefingIA ? (
-              <p className="text-zinc-300 text-sm leading-relaxed">{briefingIA}</p>
-            ) : (
-              <p className="text-zinc-600 text-xs">Clique em "Gerar IA" para um resumo clínico do paciente antes da consulta.</p>
-            )}
-          </div>
-
-          <div className="border-t border-white/[0.09]" />
-
-          {/* ── ALERTAS — badges escaneáveis ─────────────── */}
-          {(() => {
-            const lesoesFilt = limparAlerta(anamneseLesoes)
-            const rfFilt = limparAlerta(anamneseRestricaoFisica)
-            const medsFilt = limparAlerta(anamneseMedicamentos)
-            const alergFilt = limparAlerta(anamneseAlergias)
-            if (!lesoesFilt && !rfFilt && !medsFilt && !alergFilt) return null
-
-            // Transforma strings longas em badges individuais
-            function parseBadges(texto: string | null, cor: string) {
-              if (!texto) return null
-              return texto.split(/[·,;]/).map(s => s.trim()).filter(Boolean).map((item, i) => (
-                <span key={i} className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border ${cor} max-w-full`}>
-                  <span className="truncate">{item}</span>
-                </span>
-              ))
-            }
-
-            return (
-              <>
-                <div>
-                  <p className="text-xs text-red-400/70 uppercase tracking-[0.12em] mb-2.5 flex items-center gap-1.5">
-                    <span>⚠</span> Alertas clínicos
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {parseBadges(lesoesFilt, 'text-red-300 bg-red-500/10 border-red-500/20')}
-                    {parseBadges(rfFilt, 'text-amber-300 bg-amber-500/10 border-amber-500/20')}
-                    {parseBadges(medsFilt, 'text-zinc-300 bg-white/[0.06] border-white/[0.12]')}
-                    {parseBadges(alergFilt, 'text-orange-300 bg-orange-500/10 border-orange-500/20')}
-                  </div>
-                </div>
-                <div className="border-t border-white/[0.09]" />
-              </>
-            )
-          })()}
-
-          {/* ── COMPOSIÇÃO CORPORAL ───────────────────────── */}
-          {medidasCP.length >= 2 && (() => {
-            const ultima = medidasCP[medidasCP.length - 1]
-            const primeira = medidasCP[0]
-            const metricas = [
-              { key: 'peso' as keyof MedidaCP, label: 'Peso', unit: 'kg', inverse: false },
-              { key: 'gordura_pct' as keyof MedidaCP, label: '% Gordura', unit: '%', inverse: true },
-              { key: 'massa_muscular' as keyof MedidaCP, label: 'Massa muscular', unit: 'kg', inverse: false },
-              { key: 'cintura' as keyof MedidaCP, label: 'Cintura', unit: 'cm', inverse: true },
-            ].filter(m => ultima[m.key] != null && primeira[m.key] != null)
-            if (!metricas.length) return null
-            return (
-              <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-[0.12em] mb-3">Composição corporal</p>
-                <div className="space-y-2.5">
-                  {metricas.map(m => {
-                    const cur = ultima[m.key] as number
-                    const ini = primeira[m.key] as number
-                    const delta = Math.round((cur - ini) * 10) / 10
-                    const positivo = m.inverse ? delta < 0 : delta > 0
-                    return (
-                      <div key={m.key} className="flex items-center justify-between">
-                        <p className="text-zinc-500 text-sm">{m.label}</p>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-white text-sm font-semibold">{cur} {m.unit}</span>
-                          {delta !== 0 && (
-                            <span className={`text-xs ${delta === 0 ? 'text-zinc-600' : positivo ? 'text-green-400' : 'text-zinc-500'}`}>
-                              {delta > 0 ? '+' : ''}{delta}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)} className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Ver evolução completa →</button>
-              </div>
-            )
-          })()}
-
-          {/* ── SEPARADOR ────────────────────────────────── */}
-          {medidasCP.length >= 2 && <div className="border-t border-white/[0.09]" />}
-
-          {/* ── LINK PARA ABA TREINO ────────────────────── */}
-          {(periodizacaoFase || personalNome || caloriasSemanais || treinos7dDatas.length > 0) && (
-            <button onClick={() => setAbaAtiva('treino')}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-white/[0.08] text-left hover:border-white/[0.14] transition-all"
-              style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">🏋️</span>
-                <div>
-                  <p className="text-zinc-300 text-sm font-medium">Treino & Periodização</p>
-                  {periodizacaoFase && <p className="text-zinc-600 text-xs">{periodizacaoFase.nome_bloco} · Sem. {periodizacaoFase.semana_bloco}/{periodizacaoFase.total_semanas_bloco}</p>}
-                </div>
-              </div>
-              <span className="text-zinc-600 text-xs">→</span>
-            </button>
-          )}
-
-          {/* ── PLACEHOLDER PARA REMOVER INTEGRAÇÃO ────── */}
-          {false && (periodizacaoFase || personalNome || caloriasSemanais || treinos7dDatas.length > 0) && (() => {
-            const AJUSTE_FASE: Record<string, { pct: number; label: string }> = {
-              hipertrofia: { pct: 0.10, label: 'Superávit para hipertrofia' },
-              adaptacao:   { pct: 0.05, label: 'Leve superávit para adaptação' },
-              adaptação:   { pct: 0.05, label: 'Leve superávit para adaptação' },
-              forca:       { pct: 0.05, label: 'Leve superávit para força' },
-              força:       { pct: 0.05, label: 'Leve superávit para força' },
-              deload:      { pct: -0.08, label: 'Reduzir no deload' },
-              potencia:    { pct: 0.07, label: 'Combustível para potência' },
-              potência:    { pct: 0.07, label: 'Combustível para potência' },
-              resistencia: { pct: 0.05, label: 'Suporte energético' },
-              resistência: { pct: 0.05, label: 'Suporte energético' },
-            }
-            const tipoFase = periodizacaoFase?.tipo_bloco?.toLowerCase() ?? ''
-            const ajuste = AJUSTE_FASE[tipoFase]
-            const caloriasBase = planoAtivo?.calorias_meta
-            const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
-            const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
-            return (
-              <div className="space-y-3">
-                <p className="text-xs text-zinc-500 uppercase tracking-[0.12em] flex items-center gap-2">
-                  <span>🔗</span> Integração com personal
-                </p>
-                {personalNome && (
-                  <p className="text-zinc-300 text-sm font-medium">{personalNome}</p>
-                )}
-                {periodizacaoFase && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white text-sm font-semibold">{periodizacaoFase.nome_bloco}</p>
-                        <p className="text-zinc-500 text-xs">Semana {periodizacaoFase.semana_bloco} de {periodizacaoFase.total_semanas_bloco}</p>
-                      </div>
-                      <span className="text-zinc-400 text-xs">{Math.round(pct)}%</span>
-                    </div>
-                    <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500/50 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Treinos e gasto energético */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                    <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Treinos/semana</p>
-                    <p className="text-white text-base font-bold mt-0.5">{treinos7dDatas.length}<span className="text-zinc-500 text-xs font-normal">x</span></p>
-                  </div>
-                  <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                    <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Gasto semanal</p>
-                    <p className="text-white text-base font-bold mt-0.5">
-                      {caloriasSemanais && caloriasSemanais > 0 ? `${(caloriasSemanais / 1000).toFixed(1)}k` : '—'}<span className="text-zinc-500 text-xs font-normal"> kcal</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Ajuste calórico sugerido pela fase */}
-                {ajuste && caloriasBase && (
-                  <div className="rounded-lg px-3 py-2.5 border border-emerald-500/15" style={{ background: 'rgba(16,185,129,0.05)' }}>
-                    <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Ajuste sugerido — {periodizacaoFase?.nome_bloco}</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-emerald-400 text-sm font-bold">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
-                      <span className="text-zinc-500 text-xs">({ajuste.pct > 0 ? '+' : ''}{Math.round(ajuste.pct * 100)}%)</span>
-                    </div>
-                    <p className="text-zinc-600 text-[10px] mt-0.5">{ajuste.label}</p>
-                  </div>
-                )}
-
-                {/* Próxima fase */}
-                {proximaFase && diasAteProximaFase !== null && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-500">Próxima fase:</span>
-                    <span className="text-zinc-300 font-medium">{proximaFase} <span className="text-zinc-600">em {diasAteProximaFase}d</span></span>
-                  </div>
-                )}
-
-                {/* Perfil atlético */}
-                {(paciente?.nivel || paciente?.fcmax || ultimaAvaliacao) && (
-                  <div className="pt-2 border-t border-white/[0.07] space-y-1.5">
-                    {paciente?.nivel && <div className="flex justify-between"><span className="text-zinc-500 text-xs">Nível</span><span className="text-zinc-300 text-xs font-medium capitalize">{paciente.nivel}</span></div>}
-                    {paciente?.fcmax && <div className="flex justify-between"><span className="text-zinc-500 text-xs">FC máx</span><span className="text-zinc-300 text-xs font-medium">{paciente.fcmax} bpm</span></div>}
-                    {ultimaAvaliacao && <div className="flex justify-between"><span className="text-zinc-500 text-xs">Última aval.</span><span className="text-zinc-300 text-xs font-medium">{new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</span></div>}
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-
-          {/* ── LINKS RÁPIDOS ─────────────────────────────── */}
-          <div className="flex flex-col gap-1.5 pt-2 border-t border-white/[0.07]">
-            <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-white/[0.04] transition-all">
-              <span className="text-sm text-zinc-500">📋</span>
-              <p className="text-zinc-400 text-xs">Anamnese completa →</p>
-            </button>
-            <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-white/[0.04] transition-all">
-              <span className="text-sm text-zinc-500">📏</span>
-              <p className="text-zinc-400 text-xs">Medidas corporais →</p>
-            </button>
-          </div>
-
-        </div>
-        {/* ── FIM PAINEL ESQUERDO ───────────────────────────────────── */}
-
-        {/* ── PAINEL DIREITO (conteúdo principal) ──────────────────── */}
-        <div className="flex-1 md:overflow-y-auto" style={{ background: '#0f172a' }}>
-
-          {/* Mobile-only: quick actions + ficha + composição + periodização */}
-          <div className="md:hidden max-w-md mx-auto px-4 pt-5">
-
-            {/* Quick actions */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-                className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
-                <span className="text-xl shrink-0">📋</span>
-                <div><p className="text-white text-sm font-bold">Anamnese</p><p className="text-zinc-600 text-[10px]">Ficha de saúde</p></div>
-              </button>
-              <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-                className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
-                <span className="text-xl shrink-0">📏</span>
-                <div><p className="text-white text-sm font-bold">Medidas</p><p className="text-zinc-600 text-[10px]">Evolução corporal</p></div>
-              </button>
-            </div>
-
-        {/* Ficha do paciente */}
-        <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1e293b' }}>
-          <button
-            onClick={() => {
-              if (!editandoFicha) {
-                setFichaPeso(String(paciente?.peso ?? ''))
-                setFichaAltura(String(paciente?.altura ?? ''))
-                setFichaSexo(paciente?.sexo ?? '')
-                setFichaNascimento(paciente?.data_nascimento ?? '')
-                setFichaObjetivo(paciente?.objetivo ?? '')
-                setFichaMetaPeso(String(paciente?.meta_peso ?? ''))
-                setFichaMetaData(paciente?.meta_data_limite ?? '')
-              }
-              setEditandoFicha(p => !p)
-            }}
-            className="w-full flex items-center justify-between px-5 py-4 text-left active:opacity-80">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Ficha do paciente</p>
-              {!editandoFicha && (
-                <>
-                  {paciente?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{paciente.peso}kg</span>}
-                  {paciente?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{paciente.altura}cm</span>}
-                  {paciente?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.05] border border-white/[0.09] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
-                  {paciente?.meta_peso && <span className="text-[9px] text-emerald-600 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-full px-2 py-0.5">Meta: {paciente.meta_peso}kg</span>}
-                  {!paciente?.peso && !paciente?.altura && !paciente?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
-                </>
-              )}
-            </div>
-            <span className={`text-zinc-600 text-xs transition-transform duration-200 ${editandoFicha ? 'rotate-180' : ''}`}>▼</span>
-          </button>
-          {editandoFicha && (
-            <div className="px-5 pb-5 space-y-3 border-t border-white/[0.14]">
-              <div className="grid grid-cols-2 gap-3 pt-4">
-                <div>
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso (kg)</p>
-                  <input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)}
-                    placeholder="65.0"
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
-                </div>
-                <div>
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Altura (cm)</p>
-                  <input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)}
-                    placeholder="165"
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
-                </div>
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sexo</p>
-                <div className="flex gap-2">
-                  {['masculino', 'feminino', 'outro'].map(v => (
-                    <button key={v} onClick={() => setFichaSexo(v)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaSexo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
-                      {v.charAt(0).toUpperCase() + v.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Data de nascimento</p>
-                <input type="date" value={fichaNascimento} onChange={e => setFichaNascimento(e.target.value)}
-                  className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.11]" />
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Objetivo</p>
-                <div className="flex flex-wrap gap-2">
-                  {[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde geral']].map(([v, l]) => (
-                    <button key={v} onClick={() => setFichaObjetivo(v)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="border-t border-white/[0.14] pt-3">
-                <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2.5">Meta de peso</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso-alvo (kg)</p>
-                    <input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)}
-                      placeholder="Ex: 62"
-                      className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]" />
-                  </div>
-                  <div>
-                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Prazo</p>
-                    <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
-                      className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30 border border-white/[0.11]"
-                      style={{ colorScheme: 'dark' }} />
-                  </div>
-                </div>
-              </div>
-              {metaSemPrazoAviso && (
-                <p className="text-amber-400 text-xs text-center py-2 px-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                  ⚠️ Defina um prazo para a meta de peso antes de salvar.
-                </p>
-              )}
-              <button onClick={salvarFicha} disabled={salvandoFicha}
-                className="w-full bg-white text-black font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-40">
-                {salvandoFicha ? 'Salvando...' : 'Salvar ficha'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Composição Corporal — empty state */}
-        {medidasCP.length === 0 && (
-          <div className="rounded-2xl border border-white/[0.11] mb-4 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: '#1e293b' }}>
-            <span className="text-3xl">📏</span>
-            <div>
-              <p className="text-white text-sm font-bold">Sem medidas corporais</p>
-              <p className="text-zinc-600 text-xs mt-1">O personal ainda não registrou as medidas. Peça para ele iniciar o acompanhamento.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Composição Corporal */}
-        {medidasCP.length >= 2 && (() => {
-          const ultima = medidasCP[medidasCP.length - 1]
-          const primeira = medidasCP[0]
-          type MetricaDef = { key: keyof MedidaCP; label: string; unit: string; cor: string; inverse?: boolean }
-          const metricas: MetricaDef[] = [
-            { key: 'peso',           label: 'Peso',         unit: 'kg', cor: '#94a3b8' },
-            { key: 'gordura_pct',    label: '% Gordura',    unit: '%',  cor: '#f97316', inverse: true },
-            { key: 'massa_muscular', label: 'Massa musc.',  unit: 'kg', cor: '#34d399' },
-            { key: 'cintura',        label: 'Cintura',      unit: 'cm', cor: '#a78bfa', inverse: true },
-            { key: 'quadril',        label: 'Quadril',      unit: 'cm', cor: '#60a5fa' },
-            { key: 'braco_dir',      label: 'Braço',        unit: 'cm', cor: '#fb923c' },
-            { key: 'coxa_dir',       label: 'Coxa',         unit: 'cm', cor: '#f472b6' },
-          ].filter(m => ultima[m.key] != null && primeira[m.key] != null)
-          if (!metricas.length) return null
-          function sparkline(key: keyof MedidaCP, cor: string) {
-            const pts = medidasCP.filter(m => m[key] != null)
-            if (pts.length < 2) return null
-            const vals = pts.map(m => m[key] as number)
-            const W = 56, H = 24, maxV = Math.max(...vals), minV = Math.min(...vals), range = maxV - minV || 1
-            const xStep = W / Math.max(pts.length - 1, 1)
-            const toY = (v: number) => H - 3 - ((v - minV) / range) * (H - 6)
-            const d = vals.map((v, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
-            return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
-          }
-          return (
-            <div className="rounded-2xl border border-white/[0.11] mb-4 overflow-hidden" style={{ background: '#1e293b' }}>
-              <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
-                <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
-              </div>
-              <div className="divide-y divide-white/[0.04]">
-                {metricas.map(m => {
-                  const cur = ultima[m.key] as number
-                  const ini = primeira[m.key] as number
-                  const delta = Math.round((cur - ini) * 10) / 10
-                  const positivo = m.inverse ? delta < 0 : delta > 0
-                  const deltaCor = delta === 0 ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
-                  return (
-                    <div key={m.key} className="flex items-center gap-3 px-5 py-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-zinc-400 text-[10px] uppercase tracking-wider">{m.label}</p>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-white text-lg font-bold">{cur}</span>
-                          <span className="text-zinc-600 text-[10px]">{m.unit}</span>
-                          {delta !== 0 && <span className={`text-[10px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{m.unit}</span>}
-                        </div>
-                      </div>
-                      {sparkline(m.key, m.cor)}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })()}
-
-        {/* Fase de treinamento — prescrita pelo personal */}
-        {periodizacaoFase && (() => {
-          const TIPO_COR: Record<string, { text: string; bg: string; border: string; dot: string }> = {
-            hipertrofia: { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', dot: 'bg-emerald-400' },
-            forca:       { text: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/25',    dot: 'bg-blue-400'    },
-            deload:      { text: 'text-zinc-400',    bg: 'bg-zinc-500/10',    border: 'border-zinc-500/25',    dot: 'bg-zinc-400'    },
-            potencia:    { text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/25',  dot: 'bg-orange-400'  },
-            resistencia: { text: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/25',  dot: 'bg-purple-400'  },
-          }
-          const AJUSTE: Record<string, { pct: number; label: string }> = {
-            hipertrofia: { pct:  0.10, label: 'Superávit para hipertrofia' },
-            forca:       { pct:  0.05, label: 'Leve superávit para força' },
-            deload:      { pct: -0.08, label: 'Redução na semana de deload' },
-            potencia:    { pct:  0.07, label: 'Combustível para potência' },
-            resistencia: { pct:  0.05, label: 'Suporte energético' },
-          }
-          const cfg = TIPO_COR[periodizacaoFase.tipo_bloco] ?? TIPO_COR.hipertrofia
-          const ajuste = AJUSTE[periodizacaoFase.tipo_bloco]
-          const metaAtual = planoAtivo?.calorias_meta
-          const delta = metaAtual && ajuste ? Math.round(metaAtual * ajuste.pct) : null
-          const pct = (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100
-          return (
-            <div className={`rounded-2xl border ${cfg.border} mb-4 overflow-hidden`} style={{ background: '#080f0d' }}>
-              <div className="px-5 py-3.5 flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl ${cfg.bg} ${cfg.border} border flex items-center justify-center shrink-0`}>
-                  <span className="text-sm">🏋️</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-[10px] uppercase tracking-[0.15em] font-bold ${cfg.text}`}>Treino · {periodizacaoFase.nome_ciclo}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-white text-sm font-bold">{periodizacaoFase.nome_bloco}</span>
-                    <span className="text-zinc-600 text-[10px]">sem. {periodizacaoFase.semana_bloco}/{periodizacaoFase.total_semanas_bloco}</span>
-                    {periodizacaoFase.plano_associado && <span className="text-zinc-600 text-[10px]">· Plano {periodizacaoFase.plano_associado}</span>}
-                  </div>
-                </div>
-              </div>
-              <div className="px-5 pb-3">
-                <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden mb-2">
-                  <div className={`h-full rounded-full ${cfg.dot}`} style={{ width: `${pct}%` }} />
-                </div>
-                {delta !== null && (
-                  <div className="flex items-center gap-2 mt-2 p-3 rounded-xl bg-white/[0.05] border border-white/[0.14]">
-                    <span className={`text-sm font-black ${delta >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>{delta >= 0 ? '+' : ''}{delta} kcal</span>
-                    <p className="text-zinc-500 text-[11px] flex-1">{ajuste?.label} · meta sugerida: <span className="text-white font-semibold">{(metaAtual! + delta).toLocaleString('pt-BR')} kcal</span></p>
-                  </div>
-                )}
-                {!metaAtual && ajuste && (
-                  <p className="text-zinc-600 text-[11px] mt-1">Prescreva um plano nutricional para ver a sugestão por fase.</p>
-                )}
-              </div>
-            </div>
-          )
-        })()}
-
-          </div>
-          {/* ── FIM mobile-only ───────────────────────────────────────── */}
-
-          {/* ── TABS + CONTEÚDO — visível em mobile e desktop ─────────── */}
-          <div className="max-w-md md:max-w-4xl mx-auto px-4 md:px-8 pt-4 pb-28 md:pb-8">
-
-        {/* Abas */}
-        <div className="flex gap-1 p-1 rounded-2xl mb-5" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          {([['hoje', '📊 Visão Geral'], ['plano', '🥗 Plano'], ['treino', '🏋️ Treino']] as const).map(([id, label]) => (
-            <button key={id} onClick={() => { setAbaAtiva(id); setEditandoPlano(false) }}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
-              {label}
+      {/* ── BARRA DE ABAS ────────────────────────────────────────────── */}
+      <div className="shrink-0 border-b overflow-x-auto" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="flex px-4 md:px-8 min-w-max">
+          {([
+            { id: 'visao-geral', label: 'Visão Geral',   icon: '📊' },
+            { id: 'plano',       label: 'Plano',          icon: '🥗' },
+            { id: 'treino',      label: 'Treino',         icon: '🏋️' },
+            { id: 'ia',          label: 'IA Clínica',     icon: '✦' },
+            { id: 'anamnese',    label: 'Anamnese',       icon: '📋', ext: true },
+            { id: 'evolucao',    label: 'Evolução',       icon: '📈', ext: true },
+          ] as { id: string; label: string; icon: string; ext?: boolean }[]).map(tab => (
+            <button key={tab.id}
+              onClick={() => {
+                if (tab.id === 'anamnese') router.push(`/anamnese/${clienteId}`)
+                else if (tab.id === 'evolucao') router.push(`/evolucao-medidas/${clienteId}`)
+                else { setAbaAtiva(tab.id as any); setEditandoPlano(false) }
+              }}
+              className={`px-4 py-3.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                abaAtiva === tab.id
+                  ? 'border-emerald-400 text-white'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}>
+              <span>{tab.icon}</span>
+              {tab.label}
+              {tab.ext && <span className="text-zinc-600 text-xs">↗</span>}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* ── ABA HOJE ─────────────────────────────────────────────────── */}
-        {abaAtiva === 'hoje' && (
-          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+      {/* ── CONTEÚDO SINGLE-COLUMN ───────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 pb-28 md:pb-10">
 
-            {/* Alertas clínicos — mobile only, filtrados */}
-            {(() => {
-              const l = limparAlerta(anamneseLesoes), r = limparAlerta(anamneseRestricaoFisica)
-              const m = limparAlerta(anamneseMedicamentos), a = limparAlerta(anamneseAlergias)
-              if (!l && !r && !m && !a) return null
-              return (
-                <div className="md:hidden rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#201212' }}>
-                  <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
-                    <span className="text-red-400 text-sm">⚠</span>
-                    <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
-                  </div>
-                  <div className="px-5 py-3 flex flex-col gap-2">
-                    {l && <div><p className="text-zinc-500 text-xs mb-0.5">Lesões</p><p className="text-zinc-200 text-sm leading-relaxed">{l}</p></div>}
-                    {r && <div><p className="text-zinc-500 text-xs mb-0.5">Restrições físicas</p><p className="text-zinc-200 text-sm leading-relaxed">{r}</p></div>}
-                    {m && <div><p className="text-zinc-500 text-xs mb-0.5">Medicamentos</p><p className="text-zinc-200 text-sm leading-relaxed">{m}</p></div>}
-                    {a && <div><p className="text-zinc-500 text-xs mb-0.5">Alergias / Restrições</p><p className="text-zinc-200 text-sm leading-relaxed">{a}</p></div>}
+
+
+
+        {/* ── ABA VISÃO GERAL ──────────────────────────────────────────── */}
+        {abaAtiva === 'visao-geral' && (
+          <div className="space-y-5">
+
+            {/* ── HERO: BRIEFING IA ────────────────────────────────────── */}
+            <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: '#0f1f17' }}>
+              <div className="px-6 py-5 border-b border-emerald-500/10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-base">✦</div>
+                  <div>
+                    <p className="text-white font-bold text-base">Resumo Inteligente do Paciente</p>
+                    <p className="text-emerald-400/70 text-xs">KORE AI · Assistente clínico</p>
                   </div>
                 </div>
-              )
-            })()}
+                <button onClick={gerarBriefing} disabled={gerandoBriefing}
+                  className="flex items-center gap-1.5 text-sm text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded-xl px-4 py-2 active:scale-95 transition-all disabled:opacity-50 font-medium">
+                  {gerandoBriefing ? (
+                    <><div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> Gerando...</>
+                  ) : briefingIA ? '↻ Atualizar' : '✦ Gerar resumo'}
+                </button>
+              </div>
+              <div className="px-6 py-5">
+                {briefingIA ? (
+                  <p className="text-zinc-200 text-base leading-relaxed">{briefingIA}</p>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-zinc-500 text-sm mb-1">Gere um resumo clínico do paciente</p>
+                    <p className="text-zinc-600 text-xs">A IA sintetiza objetivo, composição, alertas e plano atual em segundos</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── ALERTAS + INDICADORES (2 colunas) ──────────────────── */}
+            <div className="grid md:grid-cols-2 gap-5">
+
+              {/* Alertas como badges */}
+              {(() => {
+                const l = limparAlerta(anamneseLesoes), r = limparAlerta(anamneseRestricaoFisica)
+                const m = limparAlerta(anamneseMedicamentos), a = limparAlerta(anamneseAlergias)
+                if (!l && !r && !m && !a) return (
+                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#1e293b' }}>
+                    <p className="text-zinc-600 text-xs uppercase tracking-wider mb-2">Alertas clínicos</p>
+                    <p className="text-zinc-600 text-sm">Nenhum alerta registrado</p>
+                  </div>
+                )
+                function badges(txt: string | null, cor: string) {
+                  if (!txt) return null
+                  return txt.split(/[·,;]/).map(s => s.trim()).filter(Boolean).map((item, i) => (
+                    <span key={i} className={`inline-flex text-xs px-2.5 py-1 rounded-lg border ${cor}`}>{item}</span>
+                  ))
+                }
+                return (
+                  <div className="rounded-2xl border border-red-500/15 p-5" style={{ background: '#1a0f0f' }}>
+                    <p className="text-red-400/70 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5"><span>⚠</span> Alertas clínicos</p>
+                    <div className="flex flex-wrap gap-2">
+                      {badges(l, 'text-red-300 bg-red-500/10 border-red-500/20')}
+                      {badges(r, 'text-amber-300 bg-amber-500/10 border-amber-500/20')}
+                      {badges(m, 'text-zinc-300 bg-white/[0.07] border-white/[0.12]')}
+                      {badges(a, 'text-orange-300 bg-orange-500/10 border-orange-500/20')}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Indicadores de composição */}
+              {medidasCP.length >= 2 ? (() => {
+                const ultima = medidasCP[medidasCP.length - 1]
+                const primeira = medidasCP[0]
+                return (
+                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#1e293b' }}>
+                    <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Composição corporal</p>
+                    <div className="space-y-2.5">
+                      {[
+                        { label: 'Peso', cur: ultima.peso, ini: primeira.peso, unit: 'kg', inv: false },
+                        { label: '% Gordura', cur: ultima.gordura_pct, ini: primeira.gordura_pct, unit: '%', inv: true },
+                        { label: 'Massa muscular', cur: ultima.massa_muscular, ini: primeira.massa_muscular, unit: 'kg', inv: false },
+                      ].filter(m => m.cur != null && m.ini != null).map(m => {
+                        const delta = Math.round(((m.cur ?? 0) - (m.ini ?? 0)) * 10) / 10
+                        const pos = m.inv ? delta < 0 : delta > 0
+                        return (
+                          <div key={m.label} className="flex items-center justify-between">
+                            <span className="text-zinc-500 text-sm">{m.label}</span>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-white text-sm font-semibold">{m.cur} {m.unit}</span>
+                              {delta !== 0 && <span className={`text-xs ${pos ? 'text-emerald-400' : 'text-zinc-500'}`}>{delta > 0 ? '+' : ''}{delta}</span>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)} className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Ver evolução completa →</button>
+                  </div>
+                )
+              })() : (
+                <div className="rounded-2xl border border-white/[0.09] p-5 flex flex-col items-center justify-center gap-2 text-center" style={{ background: '#1e293b' }}>
+                  <p className="text-3xl">📏</p>
+                  <p className="text-zinc-500 text-sm">Sem medidas registradas</p>
+                  <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)} className="text-xs text-emerald-400 border border-emerald-500/20 rounded-lg px-3 py-1.5 mt-1 active:scale-95 transition-all">Adicionar medidas →</button>
+                </div>
+              )}
+            </div>
+
+            {/* Linha separadora da seção "hoje" */}
+            <p className="text-xs text-zinc-600 uppercase tracking-[0.15em]">Dados de hoje</p>
 
             {/* Recuperação */}
             <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
@@ -1694,12 +1271,54 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
           </div>
         )}
 
+        {/* ── ABA IA CLÍNICA ─────────────────────────────────────────── */}
+        {abaAtiva === 'ia' && (
+          <div className="space-y-5">
+            {/* Briefing IA no topo */}
+            <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: '#0f1f17' }}>
+              <div className="px-6 py-5 border-b border-emerald-500/10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-base">✦</div>
+                  <div>
+                    <p className="text-white font-bold text-base">Resumo Inteligente</p>
+                    <p className="text-emerald-400/70 text-xs">Gerado pela KORE AI</p>
+                  </div>
+                </div>
+                <button onClick={gerarBriefing} disabled={gerandoBriefing}
+                  className="flex items-center gap-1.5 text-sm text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded-xl px-4 py-2 active:scale-95 transition-all disabled:opacity-50 font-medium">
+                  {gerandoBriefing ? (
+                    <><div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> Gerando...</>
+                  ) : briefingIA ? '↻ Atualizar' : '✦ Gerar resumo'}
+                </button>
+              </div>
+              <div className="px-6 py-5">
+                {briefingIA ? (
+                  <p className="text-zinc-200 text-base leading-relaxed">{briefingIA}</p>
+                ) : (
+                  <p className="text-zinc-500 text-sm text-center py-4">Clique em "Gerar resumo" para um briefing clínico completo do paciente</p>
+                )}
+              </div>
+            </div>
+
+            {/* Chat IA inline */}
+            <div className="rounded-2xl border border-white/[0.09] overflow-hidden" style={{ background: '#1e293b' }}>
+              <div className="px-5 py-4 border-b border-white/[0.07]">
+                <p className="text-white font-semibold text-sm flex items-center gap-2">🤖 Chat Clínico</p>
+                <p className="text-zinc-500 text-xs mt-0.5">Faça perguntas sobre este paciente — a IA já conhece todos os dados</p>
+              </div>
+              <div className="px-5 py-4">
+                <p className="text-zinc-500 text-sm">Use o chat <span className="text-emerald-400">✦</span> no canto inferior direito para conversar com a IA sobre {paciente?.nome?.split(' ')[0] ?? 'este paciente'}.</p>
+                <p className="text-zinc-600 text-xs mt-2">A IA tem acesso a: plano atual, alertas clínicos, composição corporal e integração com treino.</p>
+              </div>
+            </div>
           </div>
-          {/* ── FIM TABS WRAPPER ─────────────────────────────────────── */}
+        )}
+
         </div>
-        {/* ── FIM PAINEL DIREITO ───────────────────────────────────── */}
       </div>
-      {/* ── FIM BODY ─────────────────────────────────────────────── */}
+      {/* ── FIM CONTEÚDO SINGLE-COLUMN ───────────────────────────────── */}
+      </div>
+      {/* ── FIM CONTEÚDO PRINCIPAL ───────────────────────────────────── */}
 
       <div className="md:hidden"><NavBar tipo="nutricionista" ativa="pacientes" /></div>
 
@@ -1728,7 +1347,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
       )}
 
       {/* Modal nota clínica avulsa */}
-      {abaAtiva === 'hoje' && (
+      {abaAtiva === 'visao-geral' && (
         <div className="fixed bottom-20 right-4 z-50">
           <details className="group">
             <summary className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center cursor-pointer text-blue-300 text-xl list-none active:scale-95 transition-all">
@@ -1789,8 +1408,6 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
           ultimaAvaliacao,
         }} pacienteId={clienteId} />
       )}
-      </div>
-      {/* ── FIM CONTEÚDO PRINCIPAL ─────────────────────────────────── */}
     </main>
   )
 }
