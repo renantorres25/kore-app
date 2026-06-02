@@ -11,8 +11,8 @@
   --surface-1:      #11161A;
   --surface-2:      #171E22;
   --surface-3:      #1E262B;
-  --border-subtle:  rgba(255,255,255,0.06);
-  --border-strong:  rgba(255,255,255,0.12);
+  --border-subtle:  rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.16);
 
   /* ── Accent primário — vitalidade ────────────────────────── */
   --accent:         #2DD4A7;
@@ -27,10 +27,16 @@
 
   /* ── Texto (contraste AA garantido) ──────────────────────── */
   --text-primary:   #F4F7F5;
-  --text-secondary: #A6B2AD;
-  --text-tertiary:  #6B7771;
+  --text-secondary: #B8C4BF;
+  --text-tertiary:  #8A9894;
 
-  /* ── Semântico ───────────────────────────────────────────── */
+  /* ── Semântico (formal design tokens) ─────────────────────── */
+  --color-success: #2DD4A7;
+  --color-warning: #F59E0B;
+  --color-danger:  #FB7185;
+  --color-info:    #38BDF8;
+  --color-muted:   rgba(255,255,255,0.55);
+  /* Legacy aliases */
   --success: #2DD4A7;
   --warning: #F59E0B;
   --danger:  #FB7185;

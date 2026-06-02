@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import OnboardingTour from '../components/OnboardingTour'
 import SidebarProfissional from '../components/SidebarProfissional'
+import { Bell, AlertTriangle, ChevronRight } from 'lucide-react'
 
 type Perfil = {
   tipo: 'cliente' | 'personal' | 'nutricionista'
@@ -60,6 +61,22 @@ function getTodayBR(): string {
 
 function getHourBR(): number {
   return parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10)
+}
+
+function MiniSparkline({ values, color = '#2DD4A7' }: { values: number[]; color?: string }) {
+  if (values.length < 2) return null
+  const W = 64, H = 24, pad = 2
+  const max = Math.max(...values), min = Math.min(...values), range = max - min || 1
+  const xStep = (W - pad * 2) / Math.max(values.length - 1, 1)
+  const toY = (v: number) => H - pad - ((v - min) / range) * (H - pad * 2)
+  const d = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${(pad + i * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
+  const last = values[values.length - 1], first = values[0]
+  const trend = last > first ? '#2DD4A7' : last < first ? '#FB7185' : '#8A9894'
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0">
+      <path d={d} fill="none" stroke={trend} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+    </svg>
+  )
 }
 
 function getGreeting(): string {
@@ -510,7 +527,7 @@ Responda APENAS em JSON válido, sem markdown:
             </div>
             {notifs.length === 0 ? (
               <div className="py-10 text-center">
-                <p className="text-3xl mb-3">🔔</p>
+                <p className="text-3xl mb-3"><Bell size={18} /></p>
                 <p className="text-white font-bold mb-1">Tudo em dia!</p>
                 <p className="text-zinc-600 text-sm">Nenhuma notificação no momento.</p>
               </div>
@@ -527,7 +544,7 @@ Responda APENAS em JSON válido, sem markdown:
                       <p className="text-white font-bold text-sm">{n.titulo}</p>
                       <p className="text-zinc-500 text-xs mt-0.5">{n.corpo}</p>
                     </div>
-                    {n.link && <span className="text-zinc-600 text-sm shrink-0">›</span>}
+                    {n.link && <span className="text-zinc-600 text-sm shrink-0"><ChevronRight size={14} /></span>}
                   </button>
                 ))}
               </div>
@@ -1042,9 +1059,9 @@ function DashboardCliente({
           <p className="text-zinc-600 text-[11px] mt-1.5">{getTodayString()}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center text-sm active:scale-90 transition-all">
-            🔔
-            {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center active:scale-90 transition-all">
+              <Bell size={16} className="text-zinc-400" />
+                          {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
           <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center active:scale-90 transition-all">
             <span className="text-xs font-black text-white">{initials}</span>
@@ -1369,8 +1386,8 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
         </div>
         <div className="flex items-center gap-2 md:hidden">
           <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center text-sm active:scale-90 transition-all">
-            🔔
-            {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+              <Bell size={16} className="text-zinc-400" />
+                          {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
         </div>
       </div>
@@ -1387,7 +1404,9 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
           <div key={m.label} className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
             <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-3">{m.label}</p>
             <p className={`text-5xl font-black leading-none tracking-tight ${m.cor}`}>{m.valor}</p>
-            <p className="text-zinc-600 text-xs mt-2">{m.sub}</p>
+            <div className="flex items-end justify-between mt-3">
+              <p className="text-zinc-600 text-xs">{m.sub}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -1462,7 +1481,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
                   <p className="text-white text-sm font-semibold truncate">{n.nome ?? n.email.split('@')[0]}</p>
                   <p className="text-zinc-500 text-[10px]">{n.blocoAtual} → <span className="text-blue-300 font-semibold">{n.proximoBloco}</span> em {n.diasRestantes}d</p>
                 </div>
-                <span className="text-zinc-600 text-sm shrink-0">›</span>
+                <span className="text-zinc-600 text-sm shrink-0"><ChevronRight size={14} /></span>
               </button>
             ))}
           </div>
@@ -1470,7 +1489,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
       )}
       {alertas > 0 && (
         <div className="rounded-2xl p-4 border border-orange-500/20 bg-orange-500/5 mb-4">
-          <p className="text-orange-400 text-[10px] uppercase tracking-[0.15em] mb-1">⚠ {alertas} aluno{alertas > 1 ? 's' : ''} sem treinar há 7+ dias</p>
+          <p className="text-orange-400 text-[10px] uppercase tracking-[0.15em] mb-1"><AlertTriangle size={12} className="inline mr-1" /> {alertas} aluno{alertas > 1 ? 's' : ''} sem treinar há 7+ dias</p>
           <p className="text-zinc-500 text-xs">Acesse a lista de alunos para ver quem precisa de atenção.</p>
           <button onClick={() => router.push('/personal')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver alunos →</button>
         </div>
@@ -1493,6 +1512,9 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
   const [boaRecuperacao, setBoaRecuperacao] = useState(0)
   const [treinaram7d, setTreinaram7d] = useState(0)
   const [semPlano, setSemPlano] = useState(0)
+  const [sparklines, setSparklines] = useState<{ pacientes: number[]; recuperacao: number[]; treinos: number[] }>({
+    pacientes: [2,2,2,2,2], recuperacao: [0,0,0,0,0], treinos: [0,0,0,0,0]
+  })
   const [pacientesRecentes, setPacientesRecentes] = useState<{
     id: string; nome: string | null; email: string
     sonoScore: number | null; treinos7d: number; kcal7d: number
@@ -1605,7 +1627,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
     <div className="md:flex md:h-screen" style={{ background: 'var(--bg-base)' }}>
       <SidebarProfissional tipo="nutricionista" />
       <div className="flex-1 md:overflow-y-auto">
-    <div className="max-w-md mx-auto px-4 md:max-w-3xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
+    <div className="max-w-md mx-auto px-4 md:max-w-[1100px] md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <p className="text-zinc-400 text-sm font-medium mb-1">{getGreeting()}</p>
@@ -1614,8 +1636,8 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         </div>
         <div className="flex items-center gap-2 md:hidden">
           <button onClick={onOpenNotifs} className="relative w-10 h-10 rounded-2xl bg-white/[0.07] flex items-center justify-center text-sm active:scale-90 transition-all">
-            🔔
-            {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+              <Bell size={16} className="text-zinc-400" />
+                          {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
         </div>
       </div>
@@ -1626,14 +1648,17 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { valor: loadingStats ? '—' : String(totalPacientes),  label: 'Pacientes',     sub: 'ativos' },
-          { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Boa recuperação', sub: 'hoje' },
-          { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',     sub: 'essa semana' },
+          { valor: loadingStats ? '—' : String(totalPacientes),  label: 'Pacientes',       sub: 'ativos',       spark: sparklines.pacientes },
+          { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Boa recuperação', sub: 'hoje',         spark: sparklines.recuperacao },
+          { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',       sub: 'essa semana',  spark: sparklines.treinos },
         ].map((m) => (
           <div key={m.label} className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
             <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-3">{m.label}</p>
             <p className="text-white text-5xl font-black leading-none tracking-tight">{m.valor}</p>
-            <p className="text-zinc-600 text-xs mt-2">{m.sub}</p>
+            <div className="flex items-end justify-between mt-3">
+              <p className="text-zinc-600 text-xs">{m.sub}</p>
+              {m.spark.some(v => v > 0) && <MiniSparkline values={m.spark} />}
+            </div>
           </div>
         ))}
       </div>
@@ -1665,7 +1690,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       {semSono7d.length > 0 && (
         <div className="rounded-2xl border border-amber-500/15 mb-4 overflow-hidden" style={{ background: '#1c1605' }}>
           <div className="px-5 py-3 border-b border-amber-500/10 flex items-center gap-2">
-            <span className="text-amber-300 text-sm">⚠</span>
+            <span className="text-amber-300 text-sm"><AlertTriangle size={13} /></span>
               <p className="text-amber-200 text-xs font-semibold tracking-wide">Sem registro de sono — 7 dias</p>
           </div>
           <div className="divide-y divide-amber-500/[0.07]">
@@ -1741,7 +1766,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
                   <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
                   <p className="text-zinc-500 text-[10px]">Plano sem revisão há <span className="text-amber-400 font-semibold">{p.diasDesdeRevisao} dias</span></p>
                 </div>
-                <span className="text-zinc-600 text-sm shrink-0">›</span>
+                <span className="text-zinc-600 text-sm shrink-0"><ChevronRight size={14} /></span>
               </button>
             ))}
           </div>
@@ -1759,7 +1784,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
               const planoAntigo = p.diasDesdeUltimoPlano != null && p.diasDesdeUltimoPlano >= 30
               return (
                 <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
-                  className="w-full flex items-center gap-4 px-5 py-3.5 text-left hover:bg-white/[0.03] transition-all">
+                  className="w-full flex items-center gap-4 px-4 py-3.5 mx-1 text-left hover:bg-white/[0.04] rounded-xl transition-all">
                   <div className="w-9 h-9 rounded-xl bg-white/[0.07] flex items-center justify-center shrink-0">
                     <span className="text-zinc-300 text-sm font-bold">{(p.nome ?? p.email)[0].toUpperCase()}</span>
                   </div>
@@ -1775,7 +1800,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
                       {p.kcal7d > 0 && <span>{p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal/sem.</span>}
                     </div>
                   </div>
-                  <span className="text-zinc-600 text-sm shrink-0">›</span>
+                  <span className="text-zinc-600 text-sm shrink-0"><ChevronRight size={14} /></span>
                 </button>
               )
             })}

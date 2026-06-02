@@ -727,7 +727,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
               return (
                 <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-                  <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                  <div className="px-5 py-3 border-b border-white/[0.10] flex items-center gap-2">
                     <span className="text-red-400 text-xs">⚠</span>
                     <p className="text-xs font-semibold text-zinc-300 tracking-wide">Alertas clínicos</p>
                     <span className="ml-auto text-xs text-zinc-600 bg-white/[0.05] px-2 py-0.5 rounded-full">{rows.length}</span>
@@ -1527,17 +1527,26 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 { label: 'Quadril', key: 'quadril' as const, unit: 'cm', cor: '#60a5fa', inv: false },
               ] as MetricaEv[]).filter(m => ultima[m.key] != null)
 
-              function sparkline(key: keyof typeof ultima, cor: string) {
+              function sparkline(key: keyof typeof ultima, cor: string, unit: string) {
                 const pts = medidasCP.filter(m => m[key] != null)
                 if (pts.length < 2) return null
                 const vals = pts.map(m => m[key] as number)
-                const W = 120, H = 36, max = Math.max(...vals), min = Math.min(...vals), range = max - min || 1
-                const xStep = W / Math.max(pts.length - 1, 1)
-                const toY = (v: number) => H - 4 - ((v - min) / range) * (H - 8)
-                const d = vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
+                const dates = pts.map(m => new Date(m.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' }))
+                const W = 140, H = 48, pad = 4
+                const max = Math.max(...vals), min = Math.min(...vals), range = max - min || 1
+                const xStep = (W - pad * 2) / Math.max(pts.length - 1, 1)
+                const toY = (v: number) => H - pad - ((v - min) / range) * (H - pad * 2)
+                const toX = (i: number) => pad + i * xStep
+                const d = vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
                 return (
-                  <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0">
-                    <path d={d} fill="none" stroke={cor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible">
+                    <path d={d} fill="none" stroke={cor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+                    {vals.map((v, i) => (
+                      <g key={i}>
+                        <circle cx={toX(i)} cy={toY(v)} r="3.5" fill={cor} opacity="0.9" className="cursor-pointer" />
+                        <title>{dates[i]}: {String(v).replace('.', ',')} {unit}</title>
+                      </g>
+                    ))}
                   </svg>
                 )
               }
@@ -1591,7 +1600,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                             </div>
                             <p className="text-zinc-600 text-xs">{pts.length} medições</p>
                           </div>
-                          {sparkline(m.key, m.cor)}
+                          {sparkline(m.key, m.cor, m.unit)}
                         </div>
                       )
                     }).filter(Boolean)}
