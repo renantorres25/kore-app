@@ -45,7 +45,7 @@ const ALCOOL_LABEL: Record<string, string> = {
 function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = true }: { icon: string; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [aberto, setAberto] = useState(defaultOpen)
   return (
-    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1e293b' }}>
+    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
       <button onClick={() => setAberto(p => !p)} className="w-full px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
         style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.08)' : 'none', background: 'rgba(255,255,255,0.02)' }}>
         <div className="flex items-center gap-2.5">

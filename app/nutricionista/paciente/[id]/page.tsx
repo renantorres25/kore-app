@@ -111,6 +111,7 @@ export default function NutricionistaPaciente() {
   const [personalNome, setPersonalNome] = useState<string | null>(null)
   const [caloriasSemanais, setCaloriasSemanais] = useState<number | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
+  const [proximaConsulta, setProximaConsulta] = useState<string | null>(null)
   const [proximaFase, setProximaFase] = useState<string | null>(null)
   const [diasAteProximaFase, setDiasAteProximaFase] = useState<number | null>(null)
   const [anamneseLesoes, setAnamneseLesoes] = useState<string | null>(null)
@@ -118,6 +119,9 @@ export default function NutricionistaPaciente() {
   const [anamneseMedicamentos, setAnamneseMedicamentos] = useState<string | null>(null)
   const [anamneseAlergias, setAnamneseAlergias] = useState<string | null>(null)
   const [briefingIA, setBriefingIA] = useState<string | null>(null)
+  const [briefingEstruturado, setBriefingEstruturado] = useState<{
+    resumo: string; evolucao: string[]; alertas: string[]; recomendacoes: string[]
+  } | null>(null)
   const [gerandoBriefing, setGerandoBriefing] = useState(false)
 
   const [editandoFicha, setEditandoFicha] = useState(false)
@@ -154,7 +158,7 @@ export default function NutricionistaPaciente() {
         { data: perfil }, { data: treinos7d },
         { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
-        { data: anamneseData }, { data: ultimaAvalData },
+        { data: anamneseData }, { data: ultimaAvalData }, { data: proximaConsultaData },
       ] = await Promise.all([
         supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp').eq('id', clienteId).single(),
         supabase.from('treinos').select('data,calorias_estimadas').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
@@ -167,12 +171,14 @@ export default function NutricionistaPaciente() {
         supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1),
         supabase.from('anamneses').select('lesoes,restricoes_fisicas,medicamentos,alergias,restricoes_alimentares').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
         supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('agendamentos').select('data,hora,tipo').eq('cliente_id', clienteId).eq('status', 'agendado').gte('data', hoje).order('data').limit(1).maybeSingle(),
       ])
       if (perfil) setPaciente(perfil)
       setTreinos7dDatas((treinos7d ?? []).map((t: any) => t.data))
       const calSem = (treinos7d ?? []).reduce((s: number, t: any) => s + (t.calorias_estimadas ?? 0), 0)
       if (calSem > 0) setCaloriasSemanais(calSem)
       if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
+      if (proximaConsultaData?.data) setProximaConsulta(proximaConsultaData.data)
       const lesoes = (anamneseData ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
       const rf = (anamneseData ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
       const meds = (anamneseData ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
@@ -454,22 +460,55 @@ Responda APENAS JSON válido:
     const rfFilt = limparAlerta(anamneseRestricaoFisica)
     const medsFilt = limparAlerta(anamneseMedicamentos)
     const alergFilt = limparAlerta(anamneseAlergias)
-    const prompt = `Gere um briefing clínico conciso para o nutricionista sobre este paciente. Máximo 5 linhas. Sem markdown, sem bullet points, parágrafos curtos.
+    const deltaPeso = medidasCP.length >= 2 && medidasCP[0].peso && medidasCP[medidasCP.length-1].peso
+      ? ((medidasCP[medidasCP.length-1].peso ?? 0) - medidasCP[0].peso!).toFixed(1)
+      : null
+    const prompt = `Analise este paciente e retorne um JSON com este formato exato (sem texto fora do JSON):
+{
+  "resumo": "1-2 frases descrevendo a situação atual do paciente",
+  "evolucao": ["item1", "item2", "item3"],
+  "alertas": ["alerta1", "alerta2"],
+  "recomendacoes": ["rec1", "rec2", "rec3"]
+}
 
-PACIENTE: ${paciente.nome}, ${paciente.peso ? `${paciente.peso}kg` : '?'}/${paciente.altura ? `${paciente.altura}cm` : '?'}, objetivo: ${paciente.objetivo ?? '?'}
-META: ${paciente.meta_peso ? `${paciente.meta_peso}kg` : 'não definida'}
-COMPOSIÇÃO: ${medidasCP.length >= 2 ? `Peso ${medidasCP[medidasCP.length-1].peso}kg (${medidasCP[0].peso ? ((medidasCP[medidasCP.length-1].peso ?? 0) - medidasCP[0].peso!).toFixed(1) : '?'} total), gordura ${medidasCP[medidasCP.length-1].gordura_pct ?? '?'}%` : 'sem medidas'}
-PLANO ATUAL: ${planoAtivo ? `${planoAtivo.calorias_meta} kcal, ${planoAtivo.proteina_meta}g proteína` : 'nenhum'}
-ALERTAS: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).join('; ') || 'nenhum'}
-TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fase ${periodizacaoFase.nome_bloco}` : ''}`
+DADOS:
+Paciente: ${paciente.nome}, objetivo: ${paciente.objetivo ?? '?'}
+Peso atual: ${medidasCP.length >= 2 ? medidasCP[medidasCP.length-1].peso : paciente.peso}kg, variação total: ${deltaPeso ?? 'sem dados'}kg
+Gordura: ${medidasCP.length >= 2 ? `${medidasCP[medidasCP.length-1].gordura_pct}% (início ${medidasCP[0].gordura_pct}%)` : 'sem dados'}
+Massa muscular: ${medidasCP.length >= 2 ? `${medidasCP[medidasCP.length-1].massa_muscular}kg (início ${medidasCP[0].massa_muscular}kg)` : 'sem dados'}
+Plano: ${planoAtivo ? `${planoAtivo.calorias_meta} kcal, ${planoAtivo.proteina_meta}g prot` : 'sem plano'}
+Treinos esta semana: ${treinos7dDatas.length}
+Fase treino: ${periodizacaoFase ? `${periodizacaoFase.nome_bloco} (sem ${periodizacaoFase.semana_bloco}/${periodizacaoFase.total_semanas_bloco})` : 'não configurada'}
+Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).join('; ') || 'nenhum'}
+Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` : 'não registrado'}`
 
     try {
       const res = await fetch('/api/kore-chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagens: [{ role: 'user', content: prompt }], systemPrompt: 'Você é um assistente clínico de nutrição. Gere briefings objetivos e diretos ao ponto para uso em consultas.' })
+        body: JSON.stringify({
+          mensagens: [{ role: 'user', content: prompt }],
+          systemPrompt: 'Você é um assistente clínico de nutrição. Responda APENAS com o JSON solicitado, sem texto adicional.'
+        })
       })
       const data = await res.json()
-      setBriefingIA(data.resposta ?? null)
+      const resposta = data.resposta ?? ''
+      // Try to parse as structured JSON
+      try {
+        const match = resposta.match(/\{[\s\S]*\}/)
+        if (match) {
+          const parsed = JSON.parse(match[0])
+          if (parsed.resumo && parsed.evolucao && parsed.alertas && parsed.recomendacoes) {
+            setBriefingEstruturado(parsed)
+            setBriefingIA(parsed.resumo) // keep for compatibility
+          } else {
+            setBriefingIA(resposta)
+          }
+        } else {
+          setBriefingIA(resposta)
+        }
+      } catch {
+        setBriefingIA(resposta)
+      }
     } catch { setBriefingIA('Erro ao gerar briefing.') }
     setGerandoBriefing(false)
   }
@@ -502,26 +541,65 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
 
       {/* ── HEADER FIXO ─────────────────────────────────────────────── */}
       <div className="shrink-0 sticky top-0 z-20 backdrop-blur-sm border-b"
-           style={{ background: 'rgba(13,17,23,0.96)', borderColor: 'rgba(255,255,255,0.09)', paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
-        <div className="px-4 md:px-8 pb-3">
+           style={{ background: 'rgba(12,16,26,0.97)', borderColor: 'rgba(255,255,255,0.09)', paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+        <div className="px-4 md:px-8 pb-4">
           <button onClick={() => router.push('/nutricionista/pacientes')}
-            className="text-zinc-600 text-[10px] uppercase tracking-widest mb-2 flex items-center gap-1 hover:text-zinc-400 transition-colors">
+            className="text-zinc-500 text-xs uppercase tracking-widest mb-3 flex items-center gap-1 hover:text-zinc-300 transition-colors">
             ← Pacientes
           </button>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
-                <span className="text-green-400 font-black text-sm">{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
+          <div className="flex items-center justify-between gap-6">
+            {/* Avatar + nome + dados primários */}
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <span className="text-emerald-400 font-black text-base">{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl md:text-2xl font-black text-white tracking-tight truncate">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
-                <div className="flex flex-wrap gap-1.5 mt-0.5">
-                  {paciente?.peso && <span className="text-xs text-zinc-400 bg-white/[0.06] border border-white/[0.09] rounded-full px-2.5 py-0.5">{paciente.peso} kg</span>}
-                  {paciente?.objetivo && <span className="text-xs text-zinc-400 bg-white/[0.06] border border-white/[0.09] rounded-full px-2.5 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
-                  {paciente?.meta_peso && <span className="text-xs text-zinc-400 bg-white/[0.06] border border-white/[0.09] rounded-full px-2.5 py-0.5">Meta: {paciente.meta_peso} kg</span>}
-                  {metaCal && <span className="hidden md:inline text-xs text-zinc-400 bg-white/[0.06] border border-white/[0.09] rounded-full px-2.5 py-0.5">{metaCal} kcal/dia estimado</span>}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
+                  {paciente?.data_nascimento && (() => {
+                    const hoje2 = new Date()
+                    const nasc = new Date(paciente.data_nascimento)
+                    const idade = hoje2.getFullYear() - nasc.getFullYear() - (hoje2 < new Date(hoje2.getFullYear(), nasc.getMonth(), nasc.getDate()) ? 1 : 0)
+                    return <span className="text-zinc-500 text-sm">{idade} anos</span>
+                  })()}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {paciente?.peso && <span className="text-xs text-zinc-400 bg-white/[0.05] border border-white/[0.08] rounded-full px-2.5 py-0.5">{paciente.peso} kg</span>}
+                  {paciente?.objetivo && <span className="text-xs text-zinc-400 bg-white/[0.05] border border-white/[0.08] rounded-full px-2.5 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {paciente?.meta_peso && <span className="text-xs text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/15 rounded-full px-2.5 py-0.5">Meta: {paciente.meta_peso} kg</span>}
+                  {metaCal && <span className="hidden md:inline text-xs text-zinc-400 bg-white/[0.05] border border-white/[0.08] rounded-full px-2.5 py-0.5">{metaCal} kcal/dia</span>}
                 </div>
               </div>
+            </div>
+
+            {/* Dados contextuais — desktop only */}
+            <div className="hidden md:flex items-center gap-6 shrink-0">
+              {ultimaAvaliacao && (
+                <div className="text-right">
+                  <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Última consulta</p>
+                  <p className="text-zinc-300 text-sm font-medium mt-0.5">{new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>
+                </div>
+              )}
+              {proximaConsulta && (
+                <div className="text-right">
+                  <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Próxima consulta</p>
+                  <p className="text-emerald-400 text-sm font-medium mt-0.5">{new Date(proximaConsulta).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>
+                </div>
+              )}
+              {medidasCP.length >= 2 && (() => {
+                const ultima = medidasCP[medidasCP.length - 1]
+                const primeira = medidasCP[0]
+                const deltaPeso = ultima.peso && primeira.peso ? Math.round((ultima.peso - primeira.peso) * 10) / 10 : null
+                const evoluindo = deltaPeso !== null && (paciente?.objetivo === 'perder_peso' ? deltaPeso < 0 : deltaPeso > 0)
+                return (
+                  <div className="text-right">
+                    <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Status</p>
+                    <span className={`text-sm font-semibold mt-0.5 ${evoluindo ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                      {evoluindo ? '↗ Evoluindo' : deltaPeso === 0 ? '→ Estável' : '↘ Monitorar'}
+                    </span>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>
@@ -559,7 +637,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
 
       {/* ── CONTEÚDO SINGLE-COLUMN ───────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 pb-28 md:pb-10">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 pb-28 md:pb-10">
 
 
 
@@ -568,34 +646,30 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
         {abaAtiva === 'visao-geral' && (
           <div className="space-y-5">
 
-            {/* ── HERO: BRIEFING IA ────────────────────────────────────── */}
-            <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: '#0f1f17' }}>
-              <div className="px-6 py-5 border-b border-emerald-500/10 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-base">✦</div>
-                  <div>
-                    <p className="text-white font-bold text-base">Resumo Inteligente do Paciente</p>
-                    <p className="text-emerald-400/70 text-xs">KORE AI · Assistente clínico</p>
+            {/* ── BRIEFING IA — compacto na Visão Geral ───────────────── */}
+            {briefingEstruturado ? (
+              <div className="rounded-2xl border border-emerald-500/20 p-5" style={{ background: '#0a1510' }}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-emerald-400 text-sm">✦</span>
+                    <p className="text-emerald-400/70 text-xs uppercase tracking-wider">Resumo IA</p>
                   </div>
+                  <button onClick={() => setAbaAtiva('ia')} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">Ver análise completa →</button>
                 </div>
-                <button onClick={gerarBriefing} disabled={gerandoBriefing}
-                  className="flex items-center gap-1.5 text-sm text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded-xl px-4 py-2 active:scale-95 transition-all disabled:opacity-50 font-medium">
-                  {gerandoBriefing ? (
-                    <><div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> Gerando...</>
-                  ) : briefingIA ? '↻ Atualizar' : '✦ Gerar resumo'}
-                </button>
+                <p className="text-zinc-200 text-base leading-relaxed mt-2">{briefingEstruturado.resumo}</p>
               </div>
-              <div className="px-6 py-5">
-                {briefingIA ? (
-                  <p className="text-zinc-200 text-base leading-relaxed">{briefingIA}</p>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-zinc-500 text-sm mb-1">Gere um resumo clínico do paciente</p>
-                    <p className="text-zinc-600 text-xs">A IA sintetiza objetivo, composição, alertas e plano atual em segundos</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            ) : (
+              <button onClick={() => setAbaAtiva('ia')}
+                className="w-full rounded-2xl border border-emerald-500/15 p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-all hover:border-emerald-500/25"
+                style={{ background: '#0a1510' }}>
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">✦</div>
+                <div>
+                  <p className="text-white text-sm font-semibold">Gerar análise IA deste paciente</p>
+                  <p className="text-zinc-500 text-xs">Evolução, riscos, recomendações — em segundos</p>
+                </div>
+                <span className="text-zinc-600 ml-auto">→</span>
+              </button>
+            )}
 
             {/* ── ALERTAS + INDICADORES (2 colunas) ──────────────────── */}
             <div className="grid md:grid-cols-2 gap-5">
@@ -605,7 +679,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                 const l = limparAlerta(anamneseLesoes), r = limparAlerta(anamneseRestricaoFisica)
                 const m = limparAlerta(anamneseMedicamentos), a = limparAlerta(anamneseAlergias)
                 if (!l && !r && !m && !a) return (
-                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#1e293b' }}>
+                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
                     <p className="text-zinc-600 text-xs uppercase tracking-wider mb-2">Alertas clínicos</p>
                     <p className="text-zinc-600 text-sm">Nenhum alerta registrado</p>
                   </div>
@@ -634,7 +708,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                 const ultima = medidasCP[medidasCP.length - 1]
                 const primeira = medidasCP[0]
                 return (
-                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#1e293b' }}>
+                  <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
                     <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Composição corporal</p>
                     <div className="space-y-2.5">
                       {[
@@ -659,7 +733,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                   </div>
                 )
               })() : (
-                <div className="rounded-2xl border border-white/[0.09] p-5 flex flex-col items-center justify-center gap-2 text-center" style={{ background: '#1e293b' }}>
+                <div className="rounded-2xl border border-white/[0.09] p-5 flex flex-col items-center justify-center gap-2 text-center" style={{ background: '#161c2c' }}>
                   <p className="text-3xl">📏</p>
                   <p className="text-zinc-500 text-sm">Sem medidas registradas</p>
                   <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)} className="text-xs text-emerald-400 border border-emerald-500/20 rounded-lg px-3 py-1.5 mt-1 active:scale-95 transition-all">Adicionar medidas →</button>
@@ -671,7 +745,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             <p className="text-xs text-zinc-600 uppercase tracking-[0.15em]">Dados de hoje</p>
 
             {/* Recuperação */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">😴 Recuperação hoje</p>
               {sonoHoje?.score_recuperacao != null ? (
                 <div>
@@ -699,7 +773,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             </div>
 
             {/* Treino hoje */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">🏋️ Treino hoje</p>
               {treinoHoje ? (
                 <div>
@@ -730,7 +804,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             </div>
 
             {/* Bem-estar */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">⚡ Bem-estar hoje</p>
               {bemEstar ? (
                 <div className="space-y-3">
@@ -758,7 +832,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             </div>
 
             {/* Treinos — 7 dias */}
-            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
+            <div className="rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Treinos — últimos 7 dias</p>
               <div className="flex gap-1.5">
                 {dias7d.map((dia) => {
@@ -793,7 +867,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
 
             {/* Perfil atlético — mobile only (desktop: já no painel esquerdo) */}
             {(paciente?.nivel || paciente?.fcmax || paciente?.ftp || ultimaAvaliacao) && (
-              <div className="md:hidden rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#1e293b' }}>
+              <div className="md:hidden rounded-2xl p-5 border border-white/[0.11]" style={{ background: '#161c2c' }}>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Perfil atlético</p>
                 <div className="flex flex-wrap gap-2">
                   {paciente?.nivel && (
@@ -843,7 +917,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
               const primeiro = comCal[0], ultimo = comCal[comCal.length - 1]
               const deltaCal = (ultimo.calorias_meta ?? 0) - (primeiro.calorias_meta ?? 0)
               return (
-                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1e293b' }}>
+                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Evolução das metas nutricionais</p>
                     <p className="text-zinc-600 text-[9px]">{historicoMetas.length} planos</p>
@@ -897,7 +971,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                   const refCal = sumAl(ref.alimentos, 'calorias')
                   const refProt = sumAl(ref.alimentos, 'proteina')
                   return (
-                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#1e293b' }}>
+                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: '#161c2c' }}>
                       {/* header refeição */}
                       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.14]" style={{ background: '#1c1c1c' }}>
                         <div className="flex items-center gap-2">
@@ -1035,7 +1109,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                 )}
 
                 {/* Seções extras opcionais */}
-                <div className="rounded-2xl border border-white/[0.11] p-4 space-y-3" style={{ background: '#1e293b' }}>
+                <div className="rounded-2xl border border-white/[0.11] p-4 space-y-3" style={{ background: '#161c2c' }}>
                   <p className="text-zinc-500 text-[9px] uppercase tracking-wider">Orientações complementares (opcional)</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
@@ -1092,7 +1166,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
             ) : planoAtivo && planoEstruturado ? (
               <>
                 {/* header plano ativo */}
-                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1e293b' }}>
+                <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
@@ -1202,7 +1276,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
               const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
               const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
               return (
-                <div className="rounded-2xl border border-white/[0.09] overflow-hidden" style={{ background: '#1e293b' }}>
+                <div className="rounded-2xl border border-white/[0.09] overflow-hidden" style={{ background: '#161c2c' }}>
                   <div className="px-5 py-4 border-b border-white/[0.07] flex items-center gap-2">
                     <span>🔗</span>
                     <p className="text-white font-semibold text-sm">Integração com Personal Trainer</p>
@@ -1262,7 +1336,7 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
                 </div>
               )
             })() : (
-              <div className="rounded-2xl border border-white/[0.09] p-10 text-center" style={{ background: '#1e293b' }}>
+              <div className="rounded-2xl border border-white/[0.09] p-10 text-center" style={{ background: '#161c2c' }}>
                 <p className="text-4xl mb-3">🏋️</p>
                 <p className="text-white font-semibold mb-1">Sem dados de treino</p>
                 <p className="text-zinc-500 text-sm">Paciente sem personal trainer vinculado ou sem periodização ativa.</p>
@@ -1274,41 +1348,86 @@ TREINOS: ${treinos7dDatas.length} sessões essa semana${periodizacaoFase ? `, fa
         {/* ── ABA IA CLÍNICA ─────────────────────────────────────────── */}
         {abaAtiva === 'ia' && (
           <div className="space-y-5">
-            {/* Briefing IA no topo */}
-            <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: '#0f1f17' }}>
-              <div className="px-6 py-5 border-b border-emerald-500/10 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-base">✦</div>
-                  <div>
-                    <p className="text-white font-bold text-base">Resumo Inteligente</p>
-                    <p className="text-emerald-400/70 text-xs">Gerado pela KORE AI</p>
-                  </div>
-                </div>
-                <button onClick={gerarBriefing} disabled={gerandoBriefing}
-                  className="flex items-center gap-1.5 text-sm text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded-xl px-4 py-2 active:scale-95 transition-all disabled:opacity-50 font-medium">
-                  {gerandoBriefing ? (
-                    <><div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> Gerando...</>
-                  ) : briefingIA ? '↻ Atualizar' : '✦ Gerar resumo'}
-                </button>
+            {/* Header + Gerar */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-white font-black text-xl">IA Clínica</h2>
+                <p className="text-zinc-500 text-sm">Análise inteligente do paciente baseada em todos os dados disponíveis</p>
               </div>
-              <div className="px-6 py-5">
-                {briefingIA ? (
-                  <p className="text-zinc-200 text-base leading-relaxed">{briefingIA}</p>
-                ) : (
-                  <p className="text-zinc-500 text-sm text-center py-4">Clique em "Gerar resumo" para um briefing clínico completo do paciente</p>
-                )}
-              </div>
+              <button onClick={gerarBriefing} disabled={gerandoBriefing}
+                className="flex items-center gap-2 text-sm text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded-xl px-5 py-2.5 active:scale-95 transition-all disabled:opacity-50 font-semibold">
+                {gerandoBriefing ? (
+                  <><div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> Analisando...</>
+                ) : briefingEstruturado ? '↻ Reanalisar' : '✦ Gerar análise'}
+              </button>
             </div>
 
-            {/* Chat IA inline */}
-            <div className="rounded-2xl border border-white/[0.09] overflow-hidden" style={{ background: '#1e293b' }}>
-              <div className="px-5 py-4 border-b border-white/[0.07]">
-                <p className="text-white font-semibold text-sm flex items-center gap-2">🤖 Chat Clínico</p>
-                <p className="text-zinc-500 text-xs mt-0.5">Faça perguntas sobre este paciente — a IA já conhece todos os dados</p>
+            {!briefingEstruturado && !briefingIA && (
+              <div className="rounded-2xl border border-emerald-500/15 p-10 text-center" style={{ background: '#0a1510' }}>
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-3xl mx-auto mb-4">✦</div>
+                <p className="text-white font-bold text-lg mb-2">Análise Inteligente do Paciente</p>
+                <p className="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed">A IA vai analisar composição corporal, plano alimentar, treinos, alertas clínicos e gerar insights acionáveis para a consulta.</p>
               </div>
-              <div className="px-5 py-4">
-                <p className="text-zinc-500 text-sm">Use o chat <span className="text-emerald-400">✦</span> no canto inferior direito para conversar com a IA sobre {paciente?.nome?.split(' ')[0] ?? 'este paciente'}.</p>
-                <p className="text-zinc-600 text-xs mt-2">A IA tem acesso a: plano atual, alertas clínicos, composição corporal e integração com treino.</p>
+            )}
+
+            {briefingEstruturado ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Resumo */}
+                <div className="md:col-span-2 rounded-2xl border border-emerald-500/20 p-6" style={{ background: '#0a1510' }}>
+                  <p className="text-emerald-400 text-xs uppercase tracking-wider mb-2">Situação atual</p>
+                  <p className="text-white text-lg leading-relaxed">{briefingEstruturado.resumo}</p>
+                </div>
+
+                {/* Evolução */}
+                <div className="rounded-2xl border border-white/[0.09] p-5" style={{ background: '#161c2c' }}>
+                  <p className="text-zinc-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><span>📈</span> Evolução recente</p>
+                  <ul className="space-y-2">
+                    {briefingEstruturado.evolucao.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-zinc-300 text-sm">
+                        <span className="text-emerald-400 mt-0.5 shrink-0">→</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Alertas */}
+                <div className="rounded-2xl border border-amber-500/15 p-5" style={{ background: '#1a1308' }}>
+                  <p className="text-amber-400/80 text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><span>⚠</span> Pontos de atenção</p>
+                  <ul className="space-y-2">
+                    {briefingEstruturado.alertas.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-zinc-300 text-sm">
+                        <span className="text-amber-400 mt-0.5 shrink-0">·</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Recomendações */}
+                <div className="md:col-span-2 rounded-2xl border border-blue-500/15 p-5" style={{ background: '#0a0f1a' }}>
+                  <p className="text-blue-400/80 text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><span>💡</span> Recomendações para esta consulta</p>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    {briefingEstruturado.recomendacoes.map((rec, i) => (
+                      <div key={i} className="rounded-xl border border-blue-500/10 bg-blue-500/5 px-4 py-3">
+                        <span className="text-blue-300 text-sm">{rec}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : briefingIA ? (
+              <div className="rounded-2xl border border-emerald-500/20 p-6" style={{ background: '#0a1510' }}>
+                <p className="text-zinc-200 text-base leading-relaxed">{briefingIA}</p>
+              </div>
+            ) : null}
+
+            {/* Chat referência */}
+            <div className="rounded-2xl border border-white/[0.07] p-5 flex items-center gap-4" style={{ background: '#161c2c' }}>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-lg">✦</div>
+              <div>
+                <p className="text-white text-sm font-semibold">Chat clínico disponível</p>
+                <p className="text-zinc-500 text-xs mt-0.5">Use o botão <span className="text-emerald-400">✦</span> no canto inferior direito para perguntas específicas sobre {paciente?.nome?.split(' ')[0] ?? 'este paciente'}</p>
               </div>
             </div>
           </div>
@@ -1447,7 +1566,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const emojis = ['☀️','🍎','🍽️','⚡','💪','🌙','🥑','🫐']
   const alimentos: any[] = ref.alimentos ?? []
   return (
-    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#1e293b' }}>
+    <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: '#161c2c' }}>
       <button onClick={() => setAberta(p => !p)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.02] transition-colors">
         <div className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-base shrink-0">
           {emojis[idx] ?? '🥗'}
