@@ -59,7 +59,7 @@ function PerfilConteudo() {
   const [abaAtiva, setAbaAtiva] = useState<'basico' | 'atletico'>('basico')
 
   // Wearable Terra
-  const [wearableConectado, setWearableConectado] = useState<{ provider: string; last_sync: string | null } | null>(null)
+  const [wearableConectado, setWearableConectado] = useState<{ provider: string; last_sync: string | null; athlete_name?: string; athlete_photo?: string } | null>(null)
   const [conectandoWearable, setConectandoWearable] = useState(false)
 
   // Dados profissionais
@@ -69,6 +69,13 @@ function PerfilConteudo() {
   const [instagram, setInstagram] = useState('')
   const [valorConsulta, setValorConsulta] = useState('')
   const [formacao, setFormacao] = useState('')
+
+  // Mostra toast quando Strava conecta/desconecta
+  useEffect(() => {
+    const stravaParam = searchParams.get('strava')
+    if (stravaParam === 'conectado') setSucesso('✓ Strava conectado! Suas atividades serão sincronizadas automaticamente.')
+    if (stravaParam === 'erro') setErro('Erro ao conectar com Strava. Tente novamente.')
+  }, [])
 
   useEffect(() => {
     async function carregar() {
@@ -152,28 +159,24 @@ function PerfilConteudo() {
   }
 
   async function verificarWearable(uid: string) {
-    const res = await fetch(`/api/terra/status?usuarioId=${uid}`)
+    const res = await fetch(`/api/strava/status?usuarioId=${uid}`)
     const data = await res.json()
-    if (data.conectado) setWearableConectado({ provider: data.provider, last_sync: data.last_sync })
+    if (data.conectado) setWearableConectado({
+      provider: 'Strava',
+      last_sync: data.last_sync,
+      athlete_name: data.athlete_name,
+      athlete_photo: data.athlete_photo,
+    })
   }
 
   async function conectarWearable() {
     if (!userId) return
-    setConectandoWearable(true)
-    const res = await fetch('/api/terra/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuarioId: userId }),
-    })
-    const data = await res.json()
-    setConectandoWearable(false)
-    if (data.url) window.location.href = data.url
-    else alert('Erro ao conectar wearable. Tente novamente.')
+    window.location.href = `/api/strava/auth?usuarioId=${userId}`
   }
 
   async function desconectarWearable() {
     if (!userId) return
-    await fetch(`/api/terra/status?usuarioId=${userId}`, { method: 'DELETE' })
+    await fetch(`/api/strava/status?usuarioId=${userId}`, { method: 'DELETE' })
     setWearableConectado(null)
   }
 
@@ -572,18 +575,24 @@ function PerfilConteudo() {
         {!isNovo && !isProf && (
           <div className="mt-6 rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
             <div className="px-5 py-4 border-b border-white/[0.07]">
-              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-0.5">Dispositivo conectado</p>
-              <p className="text-zinc-400 text-xs">Sincronize seu sono, FC e atividades automaticamente</p>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-0.5">Integração Strava</p>
+              <p className="text-zinc-400 text-xs">Atividades sincronizadas automaticamente no KORE</p>
             </div>
             <div className="px-5 py-4">
               {wearableConectado ? (
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-xl">⌚</div>
+                  {wearableConectado.athlete_photo ? (
+                    <img src={wearableConectado.athlete_photo} alt="Strava" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#fc4c02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+                    </div>
+                  )}
                   <div className="flex-1">
-                    <p className="text-white font-semibold text-sm">{wearableConectado.provider}</p>
+                    <p className="text-white font-semibold text-sm">{wearableConectado.athlete_name ?? 'Strava'}</p>
                     <p className="text-zinc-500 text-xs">
                       {wearableConectado.last_sync
-                        ? `Última sync: ${new Date(wearableConectado.last_sync).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                        ? `Sincronizado em ${new Date(wearableConectado.last_sync).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
                         : 'Aguardando primeira sincronização'}
                     </p>
                   </div>
@@ -594,21 +603,19 @@ function PerfilConteudo() {
                 </div>
               ) : (
                 <div>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {['Fitbit', 'Garmin', 'Oura', 'Polar', 'Whoop', 'Apple Health', 'Samsung'].map(d => (
-                      <span key={d} className="text-xs text-zinc-500 bg-white/[0.04] border border-white/[0.08] rounded-full px-2.5 py-1">{d}</span>
-                    ))}
+                  <div className="flex items-center gap-3 mb-4 p-3 rounded-xl" style={{ background: 'rgba(252,76,2,0.08)', border: '1px solid rgba(252,76,2,0.2)' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#fc4c02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+                    <div>
+                      <p className="text-white text-sm font-semibold">Strava</p>
+                      <p className="text-zinc-500 text-xs">Corridas, pedaladas, natação e mais — sincronizados automaticamente</p>
+                    </div>
                   </div>
-                  <button onClick={conectarWearable} disabled={conectandoWearable}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
-                    style={{ background: 'var(--accent)', color: '#000' }}>
-                    {conectandoWearable ? (
-                      <><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> Conectando...</>
-                    ) : (
-                      <>⌚ Conectar wearable</>
-                    )}
+                  <button onClick={conectarWearable}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 text-white"
+                    style={{ background: '#fc4c02' }}>
+                    Conectar com Strava
                   </button>
-                  <p className="text-zinc-600 text-[10px] text-center mt-2">Sono, FC e atividades sincronizados automaticamente</p>
+                  <p className="text-zinc-600 text-[10px] text-center mt-2">Suas atividades aparecem automaticamente no KORE</p>
                 </div>
               )}
             </div>
