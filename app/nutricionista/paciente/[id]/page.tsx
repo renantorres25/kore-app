@@ -112,6 +112,14 @@ export default function NutricionistaPaciente() {
   const [nutriNome, setNutriNome] = useState<string | null>(null)
   const [personalNome, setPersonalNome] = useState<string | null>(null)
   const [caloriasSemanais, setCaloriasSemanais] = useState<number | null>(null)
+  const [historicoTreinosDetalhado, setHistoricoTreinosDetalhado] = useState<{
+    id: string; data: string; nome: string; plano: string | null; calorias: number | null; volume: number; exercicios: string[]
+  }[]>([])
+  const [atividadesLivres14d, setAtividadesLivres14d] = useState<{
+    id: string; data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_estimadas: number | null; intensidade: number | null
+  }[]>([])
+  const [recuperacao7d, setRecuperacao7d] = useState<{ data: string; score: number | null; duracao: number | null }[]>([])
+  const [treinoCarregando, setTreinoCarregando] = useState(false)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
   const [proximaConsulta, setProximaConsulta] = useState<string | null>(null)
   const [proximaFase, setProximaFase] = useState<string | null>(null)
@@ -418,6 +426,47 @@ export default function NutricionistaPaciente() {
       if (nova) setNotaAnamneseId(nova.id)
     }
     setSalvandoNota(false)
+  }
+
+  // Load detailed training data lazily when treino tab opens
+  useEffect(() => {
+    if (abaAtiva === 'treino') carregarDadosTreino()
+  }, [abaAtiva])
+
+  async function carregarDadosTreino() {
+    if (treinoCarregando || historicoTreinosDetalhado.length > 0) return
+    setTreinoCarregando(true)
+    const quatorze = new Date(); quatorze.setDate(quatorze.getDate() - 14)
+    const sete = new Date(); sete.setDate(sete.getDate() - 7)
+    const q14 = quatorze.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const q7 = sete.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+    const [{ data: treinosHist }, { data: exsHist }, { data: ativs }, { data: sonoHist }] = await Promise.all([
+      supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q14).order('data', { ascending: false }),
+      supabase.from('exercicios_treino').select('id,treino_id,nome').in('treino_id', []),
+      supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,intensidade').eq('usuario_id', clienteId).gte('data', q14).order('data', { ascending: false }),
+      supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', q7).order('data', { ascending: true }),
+    ])
+
+    if (treinosHist?.length) {
+      const ids = treinosHist.map((t: any) => t.id)
+      const { data: exs } = await supabase.from('exercicios_treino').select('id,treino_id,nome').in('treino_id', ids)
+      const { data: series } = ids.length
+        ? await supabase.from('series_registradas').select('exercicio_id,carga,repeticoes').in('exercicio_id', (exs ?? []).map((e: any) => e.id))
+        : { data: [] }
+
+      const hist = (treinosHist as any[]).map(t => {
+        const exsTreino = (exs ?? []).filter((e: any) => e.treino_id === t.id)
+        const seriesTreino = (series ?? []).filter((s: any) => exsTreino.some((e: any) => e.id === s.exercicio_id))
+        const vol = seriesTreino.reduce((acc: number, s: any) => acc + ((s.carga ?? 0) * (s.repeticoes ?? 0)), 0)
+        return { id: t.id, data: t.data, nome: t.nome, plano: t.plano, calorias: t.calorias_estimadas, volume: Math.round(vol), exercicios: exsTreino.slice(0, 4).map((e: any) => e.nome) }
+      })
+      setHistoricoTreinosDetalhado(hist)
+    }
+
+    if (ativs?.length) setAtividadesLivres14d(ativs as any)
+    if (sonoHist?.length) setRecuperacao7d(sonoHist.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao })))
+    setTreinoCarregando(false)
   }
 
   async function gerarPlanoIA() {
@@ -1263,91 +1312,204 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
         )}
 
         {/* ── ABA TREINO ────────────────────────────────────────────── */}
-        {abaAtiva === 'treino' && (
-          <div className="space-y-4">
-            {(periodizacaoFase || personalNome || caloriasSemanais || treinos7dDatas.length > 0) ? (() => {
-              const AJUSTE_FASE: Record<string, { pct: number; label: string }> = {
-                hipertrofia: { pct: 0.10, label: 'Superávit para hipertrofia' },
-                adaptacao: { pct: 0.05, label: 'Leve superávit para adaptação' }, adaptação: { pct: 0.05, label: 'Leve superávit para adaptação' },
-                forca: { pct: 0.05, label: 'Leve superávit para força' }, força: { pct: 0.05, label: 'Leve superávit para força' },
-                deload: { pct: -0.08, label: 'Reduzir no deload' },
-                potencia: { pct: 0.07, label: 'Combustível para potência' }, potência: { pct: 0.07, label: 'Combustível para potência' },
-                resistencia: { pct: 0.05, label: 'Suporte energético' }, resistência: { pct: 0.05, label: 'Suporte energético' },
-              }
-              const tipoFase = periodizacaoFase?.tipo_bloco?.toLowerCase() ?? ''
-              const ajuste = AJUSTE_FASE[tipoFase]
-              const caloriasBase = planoAtivo?.calorias_meta
-              const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
-              const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
-              return (
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-                  <div className="px-5 py-4 border-b border-white/[0.07] flex items-center gap-2">
-                    <span>🔗</span>
-                    <p className="text-white font-semibold text-sm">Integração com Personal Trainer</p>
-                    {personalNome && <span className="text-zinc-500 text-sm">— {personalNome}</span>}
+        {abaAtiva === 'treino' && (() => {
+          const AJUSTE_FASE: Record<string, { pct: number; label: string }> = {
+            hipertrofia: { pct: 0.10, label: 'Superávit para hipertrofia' },
+            adaptacao: { pct: 0.05, label: 'Leve superávit para adaptação' }, adaptação: { pct: 0.05, label: 'Leve superávit para adaptação' },
+            forca: { pct: 0.05, label: 'Leve superávit para força' }, força: { pct: 0.05, label: 'Leve superávit para força' },
+            deload: { pct: -0.08, label: 'Reduzir no deload' },
+            potencia: { pct: 0.07, label: 'Combustível para potência' },
+            resistencia: { pct: 0.05, label: 'Suporte energético' },
+          }
+          const tipoFase = periodizacaoFase?.tipo_bloco?.toLowerCase() ?? ''
+          const ajuste = AJUSTE_FASE[tipoFase]
+          const caloriasBase = planoAtivo?.calorias_meta
+          const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
+          const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
+          const calSemTotal = [
+            ...historicoTreinosDetalhado.map(t => t.calorias ?? 0),
+            ...atividadesLivres14d.filter(a => {
+              const d = new Date(a.data); const sete = new Date(); sete.setDate(sete.getDate() - 7)
+              return d >= sete
+            }).map(a => a.calorias_estimadas ?? 0)
+          ].reduce((acc, v) => acc + v, 0)
+          const scoreMedia = recuperacao7d.length ? Math.round(recuperacao7d.filter(r => r.score != null).reduce((a, r) => a + (r.score ?? 0), 0) / recuperacao7d.filter(r => r.score != null).length) : null
+
+          return (
+          <div className="space-y-5">
+            {/* ── 1. PERSONAL TRAINER + PERIODIZAÇÃO ── */}
+            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+              <div className="px-5 py-4 border-b border-white/[0.07]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-0.5">Personal Trainer</p>
+                    <p className="text-white font-bold text-base">{personalNome ?? 'Não vinculado'}</p>
                   </div>
-                  <div className="px-5 py-4 space-y-4">
-                    {periodizacaoFase && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="text-white text-base font-bold">{periodizacaoFase.nome_bloco}</p>
-                            <p className="text-zinc-500 text-sm">Semana {periodizacaoFase.semana_bloco}/{periodizacaoFase.total_semanas_bloco} · <span className="text-[var(--accent)] font-semibold">{Math.round(pct)}%</span> concluído</p>
-                          </div>
-                        </div>
-                        <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500/60 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                        <p className="text-white text-xl font-black">{treinos7dDatas.length}</p>
-                        <p className="text-zinc-500 text-xs mt-1">Treinos/sem.</p>
-                      </div>
-                      <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                        <p className="text-white text-xl font-black">{caloriasSemanais && caloriasSemanais > 0 ? `${(caloriasSemanais / 1000).toFixed(1)}k` : '—'}</p>
-                        <p className="text-zinc-500 text-xs mt-1">Kcal gastos</p>
-                      </div>
-                      <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                        <p className="text-white text-xl font-black capitalize">{paciente?.nivel?.charAt(0).toUpperCase() ?? '—'}</p>
-                        <p className="text-zinc-500 text-xs mt-1">Nível</p>
-                      </div>
-                    </div>
-                    {ajuste && caloriasBase && (
-                      <div className="rounded-xl px-4 py-3 border border-emerald-500/20" style={{ background: 'rgba(16,185,129,0.05)' }}>
-                        <p className="text-zinc-500 text-xs mb-1 uppercase tracking-wider">Ajuste calórico sugerido · {periodizacaoFase?.nome_bloco}</p>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-[var(--accent)] text-xl font-black">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
-                          <span className="text-zinc-500 text-sm">({ajuste.pct > 0 ? '+' : ''}{Math.round(ajuste.pct * 100)}%)</span>
-                        </div>
-                        <p className="text-zinc-600 text-xs mt-0.5">{ajuste.label}</p>
-                      </div>
-                    )}
-                    {proximaFase && diasAteProximaFase !== null && (
-                      <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-blue-500/15" style={{ background: 'rgba(59,130,246,0.05)' }}>
-                        <span className="text-zinc-400 text-sm">Próxima fase:</span>
-                        <span className="text-[var(--accent)] font-semibold text-sm">{proximaFase} <span className="text-zinc-600 font-normal">em {diasAteProximaFase}d</span></span>
-                      </div>
-                    )}
-                    {(paciente?.fcmax || ultimaAvaliacao) && (
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/[0.07]">
-                        {paciente?.fcmax && <div><p className="text-zinc-600 text-xs mb-0.5">FC máx</p><p className="text-white text-sm font-semibold">{paciente.fcmax} bpm</p></div>}
-                        {ultimaAvaliacao && <div><p className="text-zinc-600 text-xs mb-0.5">Última aval.</p><p className="text-white text-sm font-semibold">{new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p></div>}
-                      </div>
-                    )}
-                  </div>
+                  {paciente?.nivel && (
+                    <span className="text-xs text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1">Nível: {paciente.nivel}</span>
+                  )}
                 </div>
-              )
-            })() : (
-              <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
-                <p className="text-4xl mb-3">🏋️</p>
-                <p className="text-white font-semibold mb-1">Sem dados de treino</p>
-                <p className="text-zinc-500 text-sm">Paciente sem personal trainer vinculado ou sem periodização ativa.</p>
+              </div>
+              <div className="px-5 py-4 space-y-4">
+                {periodizacaoFase ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-white text-lg font-black">{periodizacaoFase.nome_bloco}</p>
+                        <p className="text-zinc-500 text-sm">Semana {periodizacaoFase.semana_bloco} de {periodizacaoFase.total_semanas_bloco}</p>
+                      </div>
+                      <span className="text-[var(--accent)] text-2xl font-black">{Math.round(pct)}%</span>
+                    </div>
+                    <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'var(--accent)' }} />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
+                )}
+
+                {/* Métricas semanais */}
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: 'Treinos', val: treinos7dDatas.length, unit: '/7d', cor: 'text-white' },
+                    { label: 'Kcal gastos', val: calSemTotal > 0 ? `${(calSemTotal/1000).toFixed(1)}k` : '—', unit: '', cor: 'text-orange-300' },
+                    { label: 'Recuperação', val: scoreMedia ? `${scoreMedia}` : '—', unit: '/100', cor: scoreMedia && scoreMedia >= 70 ? 'text-emerald-400' : scoreMedia && scoreMedia >= 50 ? 'text-yellow-400' : 'text-red-400' },
+                    { label: 'FC máx', val: paciente?.fcmax ?? '—', unit: paciente?.fcmax ? ' bpm' : '', cor: 'text-zinc-300' },
+                  ].map(m => (
+                    <div key={m.label} className="rounded-xl px-3 py-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <p className={`text-xl font-black ${m.cor}`}>{m.val}<span className="text-xs font-normal text-zinc-600">{m.unit}</span></p>
+                      <p className="text-zinc-600 text-[10px] mt-0.5">{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Ajuste calórico */}
+                {ajuste && caloriasBase && (
+                  <div className="rounded-xl px-4 py-3 border border-emerald-500/20" style={{ background: 'rgba(45,212,167,0.05)' }}>
+                    <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Ajuste calórico sugerido · {periodizacaoFase?.nome_bloco}</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[var(--accent)] text-2xl font-black">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
+                      <span className="text-zinc-500 text-sm">({ajuste.pct > 0 ? '+' : ''}{Math.round(ajuste.pct * 100)}%)</span>
+                    </div>
+                    <p className="text-zinc-600 text-xs mt-0.5">{ajuste.label}</p>
+                  </div>
+                )}
+
+                {proximaFase && diasAteProximaFase !== null && (
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08]" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <span className="text-zinc-400 text-sm">Próxima fase:</span>
+                    <span className="text-[var(--accent)] font-semibold text-sm">{proximaFase} <span className="text-zinc-600 font-normal">em {diasAteProximaFase}d</span></span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── 2. TENDÊNCIA DE RECUPERAÇÃO ── */}
+            {recuperacao7d.length > 0 && (
+              <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                <div className="px-5 py-4 border-b border-white/[0.07]">
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Recuperação — últimos 7 dias</p>
+                </div>
+                <div className="px-5 py-4">
+                  <div className="flex items-end gap-2 h-14">
+                    {recuperacao7d.map((r, i) => {
+                      const score = r.score ?? 0
+                      const h = Math.max(4, Math.round((score / 100) * 56))
+                      const cor = score >= 70 ? 'var(--accent)' : score >= 50 ? '#F59E0B' : '#FB7185'
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <div className="w-full rounded-sm" style={{ height: `${h}px`, background: cor, opacity: 0.8 }} title={`${r.data}: ${score}/100`} />
+                          <p className="text-zinc-700 text-[9px]">{r.data.slice(8,10)}/{r.data.slice(5,7)}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {scoreMedia && (
+                    <p className="text-zinc-500 text-xs mt-3">
+                      Média 7d: <span className={`font-semibold ${scoreMedia >= 70 ? 'text-emerald-400' : scoreMedia >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{scoreMedia}/100</span>
+                      {scoreMedia < 60 && <span className="text-amber-400 ml-2">⚠ Baixa recuperação — considere ajustar calorias</span>}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
+
+            {/* ── 3. HISTÓRICO DE TREINOS (14 dias) ── */}
+            {treinoCarregando ? (
+              <div className="rounded-2xl p-8 flex items-center justify-center gap-3" style={{ background: 'var(--surface-1)' }}>
+                <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                <p className="text-zinc-500 text-sm">Carregando histórico...</p>
+              </div>
+            ) : (
+              <>
+                {historicoTreinosDetalhado.length > 0 && (
+                  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                    <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
+                      <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Treinos — últimos 14 dias</p>
+                      <span className="text-zinc-600 text-xs">{historicoTreinosDetalhado.length} sessões</span>
+                    </div>
+                    <div className="divide-y divide-white/[0.04]">
+                      {historicoTreinosDetalhado.slice(0, 8).map(t => (
+                        <div key={t.id} className="px-5 py-3.5">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-zinc-600 bg-white/[0.05] rounded px-1.5 py-0.5">{new Date(t.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+                              {t.plano && <span className="text-[10px] text-zinc-500 bg-white/[0.04] rounded px-1.5 py-0.5">{t.plano}</span>}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {t.calorias && t.calorias > 0 && <span className="text-orange-300 text-xs font-semibold">{t.calorias} kcal</span>}
+                              {t.volume > 0 && <span className="text-zinc-600 text-xs">{t.volume >= 1000 ? `${(t.volume/1000).toFixed(1)}t` : `${t.volume}kg`} vol.</span>}
+                            </div>
+                          </div>
+                          <p className="text-white text-sm font-medium">{t.nome}</p>
+                          {t.exercicios.length > 0 && (
+                            <p className="text-zinc-600 text-xs mt-0.5">{t.exercicios.join(' · ')}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── 4. ATIVIDADES LIVRES ── */}
+                {atividadesLivres14d.length > 0 && (
+                  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                    <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
+                      <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Atividades livres</p>
+                      <span className="text-zinc-600 text-xs">{atividadesLivres14d.length} atividades</span>
+                    </div>
+                    <div className="divide-y divide-white/[0.04]">
+                      {atividadesLivres14d.slice(0, 6).map(a => (
+                        <div key={a.id} className="px-5 py-3 flex items-center gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-zinc-600">{new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+                              <p className="text-white text-sm font-medium capitalize">{a.modalidade}</p>
+                              {a.intensidade && <span className={`text-[10px] px-1.5 py-0.5 rounded ${a.intensidade >= 4 ? 'text-red-300 bg-red-500/10' : a.intensidade >= 3 ? 'text-yellow-300 bg-yellow-500/10' : 'text-zinc-400 bg-white/[0.04]'}`}>Int. {a.intensidade}/5</span>}
+                            </div>
+                            <p className="text-zinc-500 text-xs mt-0.5">{a.duracao_min}min{a.distancia_km ? ` · ${a.distancia_km}km` : ''}</p>
+                          </div>
+                          {a.calorias_estimadas && a.calorias_estimadas > 0 && (
+                            <span className="text-orange-300 text-sm font-semibold shrink-0">{a.calorias_estimadas} kcal</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {historicoTreinosDetalhado.length === 0 && atividadesLivres14d.length === 0 && (
+                  <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--surface-1)' }}>
+                    <p className="text-3xl mb-3">🏋️</p>
+                    <p className="text-white font-semibold mb-1">Sem treinos nos últimos 14 dias</p>
+                    <p className="text-zinc-500 text-sm">Paciente não registrou atividades nesse período.</p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        )}
+          )
+        })()}
 
         {/* ── ABA IA CLÍNICA ─────────────────────────────────────────── */}
         {abaAtiva === 'ia' && (
