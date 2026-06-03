@@ -80,8 +80,10 @@ export async function POST(req: NextRequest) {
         distancia_km: a.distance ? Math.round(a.distance / 100) / 10 : null,
         calorias_estimadas: a.calories ?? null,
         intensidade,
-        notas: `Strava · ${a.name ?? modalidade}`,
-      }, { onConflict: 'usuario_id,data,modalidade' })
+        observacoes: `Strava · ${a.name ?? modalidade}`,
+        fc_media: a.average_heartrate ? Math.round(a.average_heartrate) : null,
+        elevacao: a.total_elevation_gain ? Math.round(a.total_elevation_gain) : null,
+      })
 
       if (!error) importadas++
     }

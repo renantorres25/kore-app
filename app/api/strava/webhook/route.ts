@@ -96,8 +96,8 @@ export async function POST(req: NextRequest) {
       distancia_km: a.distance ? Math.round(a.distance / 100) / 10 : null,
       calorias_estimadas: a.calories ?? null,
       intensidade,
-      notas: `Strava · ${a.name ?? modalidade}`,
-    }, { onConflict: 'usuario_id,data,modalidade' })
+      observacoes: `Strava · ${a.name ?? modalidade}`,
+    })
 
     await supabase.from('strava_connections')
       .update({ last_sync: new Date().toISOString() })

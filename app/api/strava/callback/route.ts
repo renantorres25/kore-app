@@ -103,8 +103,8 @@ async function syncAtividades(usuarioId: string, accessToken: string) {
       distancia_km: distancia,
       calorias_estimadas: calorias,
       intensidade,
-      notas: `Strava · ${a.name ?? modalidade}`,
-    }, { onConflict: 'usuario_id,data,modalidade' })
+      observacoes: `Strava · ${a.name ?? modalidade}`,
+    })
   }
 
   await supabase.from('strava_connections')
