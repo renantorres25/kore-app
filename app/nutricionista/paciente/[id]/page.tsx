@@ -436,15 +436,14 @@ export default function NutricionistaPaciente() {
   async function carregarDadosTreino() {
     if (treinoCarregando || historicoTreinosDetalhado.length > 0) return
     setTreinoCarregando(true)
-    const quatorze = new Date(); quatorze.setDate(quatorze.getDate() - 14)
+    const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
     const sete = new Date(); sete.setDate(sete.getDate() - 7)
-    const q14 = quatorze.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const q30 = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const q7 = sete.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
-    const [{ data: treinosHist }, { data: exsHist }, { data: ativs }, { data: sonoHist }] = await Promise.all([
-      supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q14).order('data', { ascending: false }),
-      supabase.from('exercicios_treino').select('id,treino_id,nome').in('treino_id', []),
-      supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,intensidade').eq('usuario_id', clienteId).gte('data', q14).order('data', { ascending: false }),
+    const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }] = await Promise.all([
+      supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
+      supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
       supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', q7).order('data', { ascending: true }),
     ])
 
@@ -1442,69 +1441,94 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               </div>
             ) : (
               <>
-                {historicoTreinosDetalhado.length > 0 && (
-                  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-                    <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
-                      <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Treinos — últimos 14 dias</p>
-                      <span className="text-zinc-600 text-xs">{historicoTreinosDetalhado.length} sessões</span>
-                    </div>
+                {/* ── TREINOS DE MUSCULAÇÃO ── */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                  <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
+                    <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Treinos de musculação — 30 dias</p>
+                    <span className="text-zinc-600 text-xs">{historicoTreinosDetalhado.length > 0 ? `${historicoTreinosDetalhado.length} sessões` : 'sem registros'}</span>
+                  </div>
+                  {historicoTreinosDetalhado.length > 0 ? (
                     <div className="divide-y divide-white/[0.04]">
-                      {historicoTreinosDetalhado.slice(0, 8).map(t => (
-                        <div key={t.id} className="px-5 py-3.5">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-zinc-600 bg-white/[0.05] rounded px-1.5 py-0.5">{new Date(t.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                              {t.plano && <span className="text-[10px] text-zinc-500 bg-white/[0.04] rounded px-1.5 py-0.5">{t.plano}</span>}
+                      {historicoTreinosDetalhado.slice(0, 10).map(t => (
+                        <div key={t.id} className="px-5 py-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs text-zinc-500 bg-white/[0.05] border border-white/[0.07] rounded-md px-2 py-0.5">
+                                  {new Date(t.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                                </span>
+                                {t.plano && (
+                                  <span className="text-[10px] font-semibold text-zinc-400 bg-white/[0.04] border border-white/[0.06] rounded-md px-1.5 py-0.5">
+                                    Plano {t.plano}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-white text-sm font-semibold">{t.nome}</p>
+                              {t.exercicios.length > 0 && (
+                                <p className="text-zinc-500 text-xs mt-1 leading-relaxed">{t.exercicios.join(' · ')}</p>
+                              )}
                             </div>
-                            <div className="flex items-center gap-3">
-                              {t.calorias && t.calorias > 0 && <span className="text-orange-300 text-xs font-semibold">{t.calorias} kcal</span>}
-                              {t.volume > 0 && <span className="text-zinc-600 text-xs">{t.volume >= 1000 ? `${(t.volume/1000).toFixed(1)}t` : `${t.volume}kg`} vol.</span>}
+                            <div className="text-right shrink-0">
+                              {t.calorias && t.calorias > 0 && (
+                                <p className="text-orange-300 text-sm font-bold">{t.calorias} <span className="text-zinc-600 text-xs font-normal">kcal</span></p>
+                              )}
+                              {t.volume > 0 && (
+                                <p className="text-zinc-500 text-xs mt-0.5">{t.volume >= 1000 ? `${(t.volume/1000).toFixed(1)}t` : `${t.volume}kg`} vol.</p>
+                              )}
                             </div>
                           </div>
-                          <p className="text-white text-sm font-medium">{t.nome}</p>
-                          {t.exercicios.length > 0 && (
-                            <p className="text-zinc-600 text-xs mt-0.5">{t.exercicios.join(' · ')}</p>
-                          )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {/* ── 4. ATIVIDADES LIVRES ── */}
-                {atividadesLivres14d.length > 0 && (
-                  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-                    <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
-                      <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Atividades livres</p>
-                      <span className="text-zinc-600 text-xs">{atividadesLivres14d.length} atividades</span>
+                  ) : (
+                    <div className="px-5 py-8 text-center">
+                      <p className="text-zinc-500 text-sm">Nenhum treino de musculação nos últimos 30 dias</p>
                     </div>
+                  )}
+                </div>
+
+                {/* ── ATIVIDADES LIVRES ── */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                  <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
+                    <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Atividades livres — 30 dias</p>
+                    <span className="text-zinc-600 text-xs">{atividadesLivres14d.length > 0 ? `${atividadesLivres14d.length} atividades` : 'sem registros'}</span>
+                  </div>
+                  {atividadesLivres14d.length > 0 ? (
                     <div className="divide-y divide-white/[0.04]">
-                      {atividadesLivres14d.slice(0, 6).map(a => (
-                        <div key={a.id} className="px-5 py-3 flex items-center gap-4">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-zinc-600">{new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                              <p className="text-white text-sm font-medium capitalize">{a.modalidade}</p>
-                              {a.intensidade && <span className={`text-[10px] px-1.5 py-0.5 rounded ${a.intensidade >= 4 ? 'text-red-300 bg-red-500/10' : a.intensidade >= 3 ? 'text-yellow-300 bg-yellow-500/10' : 'text-zinc-400 bg-white/[0.04]'}`}>Int. {a.intensidade}/5</span>}
+                      {atividadesLivres14d.slice(0, 8).map(a => (
+                        <div key={a.id} className="px-5 py-4 flex items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs text-zinc-500 bg-white/[0.05] border border-white/[0.07] rounded-md px-2 py-0.5">
+                                {new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                              </span>
+                              {a.intensidade && (
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${
+                                  a.intensidade >= 4 ? 'text-red-300 bg-red-500/10 border-red-500/20' :
+                                  a.intensidade >= 3 ? 'text-yellow-300 bg-yellow-500/10 border-yellow-500/20' :
+                                  'text-zinc-400 bg-white/[0.04] border-white/[0.07]'
+                                }`}>Int. {a.intensidade}/5</span>
+                              )}
                             </div>
-                            <p className="text-zinc-500 text-xs mt-0.5">{a.duracao_min}min{a.distancia_km ? ` · ${a.distancia_km}km` : ''}</p>
+                            <p className="text-white text-sm font-semibold capitalize">{a.modalidade}</p>
+                            <p className="text-zinc-500 text-xs mt-0.5">
+                              {a.duracao_min} min{a.distancia_km ? ` · ${a.distancia_km} km` : ''}
+                            </p>
                           </div>
                           {a.calorias_estimadas && a.calorias_estimadas > 0 && (
-                            <span className="text-orange-300 text-sm font-semibold shrink-0">{a.calorias_estimadas} kcal</span>
+                            <p className="text-orange-300 text-sm font-bold shrink-0">
+                              {a.calorias_estimadas} <span className="text-zinc-600 text-xs font-normal">kcal</span>
+                            </p>
                           )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {historicoTreinosDetalhado.length === 0 && atividadesLivres14d.length === 0 && (
-                  <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--surface-1)' }}>
-                    <p className="text-3xl mb-3">🏋️</p>
-                    <p className="text-white font-semibold mb-1">Sem treinos nos últimos 14 dias</p>
-                    <p className="text-zinc-500 text-sm">Paciente não registrou atividades nesse período.</p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="px-5 py-8 text-center">
+                      <p className="text-zinc-500 text-sm">Nenhuma atividade livre registrada nos últimos 30 dias</p>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
