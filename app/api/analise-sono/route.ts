@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit } from '../_rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await req.json()
+    const { prompt, usuarioId } = await req.json()
+
+    const rl = await checkRateLimit(usuarioId ?? null, 'analise')
+    if (!rl.ok) return rl.erro!
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
