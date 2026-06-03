@@ -58,6 +58,10 @@ function PerfilConteudo() {
   const [modalidades, setModalidades] = useState<string[]>([])
   const [abaAtiva, setAbaAtiva] = useState<'basico' | 'atletico'>('basico')
 
+  // Wearable Terra
+  const [wearableConectado, setWearableConectado] = useState<{ provider: string; last_sync: string | null } | null>(null)
+  const [conectandoWearable, setConectandoWearable] = useState(false)
+
   // Dados profissionais
   const [especialidade, setEspecialidade] = useState('')
   const [registroProfissional, setRegistroProfissional] = useState('')
@@ -72,6 +76,7 @@ function PerfilConteudo() {
       if (!session) { router.push('/login'); return }
       setUserId(session.user.id)
       setEmail(session.user.email ?? '')
+      verificarWearable(session.user.id)
 
       const { data } = await supabase.from('perfis').select('*').eq('id', session.user.id).single()
       if (data) {
@@ -144,6 +149,32 @@ function PerfilConteudo() {
 
   function toggleModalidade(val: string) {
     setModalidades(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
+  }
+
+  async function verificarWearable(uid: string) {
+    const res = await fetch(`/api/terra/status?usuarioId=${uid}`)
+    const data = await res.json()
+    if (data.conectado) setWearableConectado({ provider: data.provider, last_sync: data.last_sync })
+  }
+
+  async function conectarWearable() {
+    if (!userId) return
+    setConectandoWearable(true)
+    const res = await fetch('/api/terra/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuarioId: userId }),
+    })
+    const data = await res.json()
+    setConectandoWearable(false)
+    if (data.url) window.location.href = data.url
+    else alert('Erro ao conectar wearable. Tente novamente.')
+  }
+
+  async function desconectarWearable() {
+    if (!userId) return
+    await fetch(`/api/terra/status?usuarioId=${userId}`, { method: 'DELETE' })
+    setWearableConectado(null)
   }
 
   async function handleSalvar() {
@@ -535,6 +566,53 @@ function PerfilConteudo() {
           <button onClick={() => router.push('/dashboard')} className="w-full text-zinc-600 text-xs py-3 mt-2 hover:text-zinc-400 transition-colors">
             Pular por enquanto — completar depois
           </button>
+        )}
+
+        {/* ── WEARABLE (só para clientes) ── */}
+        {!isNovo && !isProf && (
+          <div className="mt-6 rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+            <div className="px-5 py-4 border-b border-white/[0.07]">
+              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-0.5">Dispositivo conectado</p>
+              <p className="text-zinc-400 text-xs">Sincronize seu sono, FC e atividades automaticamente</p>
+            </div>
+            <div className="px-5 py-4">
+              {wearableConectado ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-xl">⌚</div>
+                  <div className="flex-1">
+                    <p className="text-white font-semibold text-sm">{wearableConectado.provider}</p>
+                    <p className="text-zinc-500 text-xs">
+                      {wearableConectado.last_sync
+                        ? `Última sync: ${new Date(wearableConectado.last_sync).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                        : 'Aguardando primeira sincronização'}
+                    </p>
+                  </div>
+                  <button onClick={desconectarWearable}
+                    className="text-xs text-red-400/70 border border-red-500/20 rounded-xl px-3 py-1.5 active:scale-95 transition-all shrink-0">
+                    Desconectar
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {['Fitbit', 'Garmin', 'Oura', 'Polar', 'Whoop', 'Apple Health', 'Samsung'].map(d => (
+                      <span key={d} className="text-xs text-zinc-500 bg-white/[0.04] border border-white/[0.08] rounded-full px-2.5 py-1">{d}</span>
+                    ))}
+                  </div>
+                  <button onClick={conectarWearable} disabled={conectandoWearable}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                    style={{ background: 'var(--accent)', color: '#000' }}>
+                    {conectandoWearable ? (
+                      <><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> Conectando...</>
+                    ) : (
+                      <>⌚ Conectar wearable</>
+                    )}
+                  </button>
+                  <p className="text-zinc-600 text-[10px] text-center mt-2">Sono, FC e atividades sincronizados automaticamente</p>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Acesso rápido — só para clientes (não profissionais) */}
