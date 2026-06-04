@@ -600,10 +600,29 @@ function PerfilConteudo() {
                         : 'Aguardando primeira sincronização'}
                     </p>
                   </div>
-                  <button onClick={desconectarWearable}
-                    className="text-xs text-red-400/70 border border-red-500/20 rounded-xl px-3 py-1.5 active:scale-95 transition-all shrink-0">
-                    Desconectar
-                  </button>
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <button onClick={async () => {
+                      const { data: { session } } = await supabase.auth.getSession()
+                      if (!session) return
+                      const btn = document.getElementById('sync-btn')
+                      if (btn) btn.textContent = 'Sincronizando...'
+                      const res = await fetch('/api/strava/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ usuarioId: session.user.id }),
+                      })
+                      const data = await res.json()
+                      if (btn) btn.textContent = data.inseridos > 0 ? `✓ ${data.inseridos} atividades` : 'Sincronizar'
+                      setTimeout(() => { if (btn) btn.textContent = 'Sincronizar' }, 3000)
+                    }} id="sync-btn"
+                      className="text-xs text-[var(--accent)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 rounded-xl px-3 py-1.5 active:scale-95 transition-all">
+                      Sincronizar
+                    </button>
+                    <button onClick={desconectarWearable}
+                      className="text-xs text-red-400/70 border border-red-500/20 rounded-xl px-3 py-1.5 active:scale-95 transition-all">
+                      Desconectar
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div>
