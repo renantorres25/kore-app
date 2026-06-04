@@ -441,11 +441,17 @@ export default function NutricionistaPaciente() {
     const q30 = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const q7 = sete.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
-    const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }] = await Promise.all([
+    const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalLink }] = await Promise.all([
       supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
       supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
       supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', q7).order('data', { ascending: true }),
+      supabase.from('vinculos').select('profissional_id, perfis(nome)').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle(),
     ])
+
+    // Set personal trainer name
+    if (personalLink?.perfis) {
+      setPersonalNome((personalLink.perfis as any).nome ?? null)
+    }
 
     if (treinosHist?.length) {
       const ids = treinosHist.map((t: any) => t.id)
@@ -735,48 +741,50 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
         {abaAtiva === 'visao-geral' && (
           <div className="space-y-8">
 
-            {/* ── 1. SITUAÇÃO ATUAL — hero com números grandes ─────────── */}
+            {/* ── 1. SITUAÇÃO ATUAL — compacto com validação ────────────── */}
             {medidasCP.length >= 1 ? (() => {
-              const ultima = medidasCP[medidasCP.length - 1]
-              const primeira = medidasCP.length >= 2 ? medidasCP[0] : null
-              type MC = { label: string; val: number | null; unit: string; delta: number | null; inv: boolean; cor: string }
+              // Filtra apenas medidas com valores válidos (sem dados corrompidos de teste)
+              const validas = medidasCP.filter(m =>
+                (m.peso == null || (m.peso > 30 && m.peso < 300)) &&
+                (m.gordura_pct == null || (m.gordura_pct > 0 && m.gordura_pct < 60)) &&
+                (m.massa_muscular == null || (m.massa_muscular > 10 && m.massa_muscular < 150))
+              )
+              if (!validas.length) return null
+              const ultima = validas[validas.length - 1]
+              const primeira = validas.length >= 2 ? validas[0] : null
+              type MC = { label: string; val: number | null; unit: string; delta: number | null; inv: boolean }
               const metricas: MC[] = [
-                { label: 'Peso', val: ultima.peso, unit: 'kg', delta: primeira?.peso ? Math.round(((ultima.peso ?? 0) - primeira.peso) * 10) / 10 : null, inv: false, cor: '#94a3b8' },
-                { label: 'Gordura', val: ultima.gordura_pct, unit: '%', delta: primeira?.gordura_pct ? Math.round(((ultima.gordura_pct ?? 0) - primeira.gordura_pct) * 10) / 10 : null, inv: true, cor: '#f97316' },
-                { label: 'Massa musc.', val: ultima.massa_muscular, unit: 'kg', delta: primeira?.massa_muscular ? Math.round(((ultima.massa_muscular ?? 0) - primeira.massa_muscular) * 10) / 10 : null, inv: false, cor: '#34d399' },
+                { label: 'Peso', val: ultima.peso, unit: 'kg', delta: primeira?.peso ? Math.round(((ultima.peso ?? 0) - primeira.peso) * 10) / 10 : null, inv: false },
+                { label: 'Gordura', val: ultima.gordura_pct, unit: '%', delta: primeira?.gordura_pct ? Math.round(((ultima.gordura_pct ?? 0) - primeira.gordura_pct) * 10) / 10 : null, inv: true },
+                { label: 'Músculo', val: ultima.massa_muscular, unit: 'kg', delta: primeira?.massa_muscular ? Math.round(((ultima.massa_muscular ?? 0) - primeira.massa_muscular) * 10) / 10 : null, inv: false },
               ].filter(m => m.val != null)
               return (
-                <div className="rounded-3xl p-8" style={{ background: 'var(--surface-1)' }}>
-                  <div className="flex items-center justify-between mb-8">
-                    <p className="text-[11px] text-zinc-500 uppercase tracking-[0.2em]">Situação atual</p>
-                    {ultimaAvaliacao && (
-                      <p className="text-zinc-600 text-xs">
-                        Avaliado em {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-3 gap-8 md:gap-12">
-                    {metricas.map(m => {
-                      const positivo = m.delta !== null && (m.inv ? m.delta < 0 : m.delta > 0)
-                      return (
-                        <div key={m.label}>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none">{m.val}</span>
-                            <span className="text-zinc-500 text-base font-normal">{m.unit}</span>
+                <div className="rounded-2xl px-5 py-4 flex items-center gap-0" style={{ background: 'var(--surface-1)' }}>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">Situação atual</p>
+                      {ultimaAvaliacao && <p className="text-zinc-600 text-[10px]">· {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>}
+                    </div>
+                    <div className="flex items-center gap-6">
+                      {metricas.map(m => {
+                        const positivo = m.delta !== null && (m.inv ? m.delta < 0 : m.delta > 0)
+                        return (
+                          <div key={m.label} className="flex items-baseline gap-1">
+                            <span className="text-2xl font-black text-white tracking-tight leading-none">{m.val}</span>
+                            <span className="text-zinc-500 text-xs">{m.unit}</span>
+                            {m.delta !== null && m.delta !== 0 && (
+                              <span className={`text-[10px] font-semibold ml-1 ${positivo ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {m.delta > 0 ? '+' : ''}{m.delta}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mt-2">{m.label}</p>
-                          {m.delta !== null && m.delta !== 0 && (
-                            <p className={`text-sm font-semibold mt-1 ${positivo ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                              {m.delta > 0 ? '+' : ''}{m.delta} total
-                            </p>
-                          )}
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
                   </div>
                   <button onClick={() => setAbaAtiva('evolucao')}
-                    className="mt-8 text-xs text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1">
-                    Ver evolução completa →
+                    className="text-xs text-zinc-600 hover:text-[var(--accent)] transition-colors shrink-0">
+                    Ver evolução →
                   </button>
                 </div>
               )
