@@ -95,7 +95,16 @@ async function syncAtividades(usuarioId: string, accessToken: string) {
       intensidade = a.suffer_score > 100 ? 5 : a.suffer_score > 60 ? 4 : a.suffer_score > 30 ? 3 : 2
     }
 
-    await supabase.from('atividades_livres').upsert({
+    const { data: existe } = await supabase
+      .from('atividades_livres')
+      .select('id')
+      .eq('usuario_id', usuarioId)
+      .eq('strava_activity_id', a.id)
+      .maybeSingle()
+
+    if (existe) continue
+
+    await supabase.from('atividades_livres').insert({
       usuario_id: usuarioId,
       data,
       modalidade,
@@ -108,7 +117,7 @@ async function syncAtividades(usuarioId: string, accessToken: string) {
       elevacao: a.total_elevation_gain ? Math.round(a.total_elevation_gain) : null,
       observacoes: `Strava · ${a.name ?? modalidade}`,
       strava_activity_id: a.id,
-    }, { onConflict: 'usuario_id,strava_activity_id', ignoreDuplicates: false })
+    })
   }
 
   await supabase.from('strava_connections')

@@ -84,7 +84,17 @@ export async function POST(req: NextRequest) {
       if (fcMedia) intensidade = fcMedia > 160 ? 5 : fcMedia > 140 ? 4 : fcMedia > 120 ? 3 : 2
       else if (a.suffer_score) intensidade = a.suffer_score > 100 ? 5 : a.suffer_score > 60 ? 4 : a.suffer_score > 30 ? 3 : 2
 
-      const { error } = await supabase.from('atividades_livres').upsert({
+      // Verifica se já existe para evitar duplicata
+      const { data: existe } = await supabase
+        .from('atividades_livres')
+        .select('id')
+        .eq('usuario_id', usuarioId)
+        .eq('strava_activity_id', a.id)
+        .maybeSingle()
+
+      if (existe) continue // já sincronizado
+
+      const { error } = await supabase.from('atividades_livres').insert({
         usuario_id: usuarioId,
         data,
         modalidade,
@@ -97,7 +107,7 @@ export async function POST(req: NextRequest) {
         elevacao: a.total_elevation_gain ? Math.round(a.total_elevation_gain) : null,
         observacoes: `Strava · ${a.name ?? modalidade}`,
         strava_activity_id: a.id,
-      }, { onConflict: 'usuario_id,strava_activity_id', ignoreDuplicates: false })
+      })
 
       if (error) { erros++; console.error('[Sync]', error.message) }
       else inseridos++
