@@ -225,6 +225,18 @@ export default function NutricionistaPaciente() {
       if (medidas?.length) setMedidasCP(medidas as MedidaCP[])
       if (historicoData?.length) setHistoricoMetas(historicoData as MetaHistorico[])
 
+      // Personal trainer vinculado — sempre busca, independente de periodização
+      const { data: personalLink } = await supabase
+        .from('vinculos').select('profissional_id')
+        .eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true)
+        .maybeSingle()
+      if (personalLink?.profissional_id) {
+        const { data: pp } = await supabase
+          .from('perfis').select('nome, email')
+          .eq('id', personalLink.profissional_id).single()
+        if (pp) setPersonalNome(pp.nome ?? pp.email ?? null)
+      }
+
       // Carregar fase atual da periodização
       const periAtiva = Array.isArray(periData) ? periData[0] : periData
       if (periAtiva) {
@@ -242,26 +254,12 @@ export default function NutricionistaPaciente() {
           const b = blocos[blocoIdx]
           const semanaNoBloco = Math.min(semanaTotal - acum, b.semanas)
           setPeriodizacaoFase({ nome_ciclo: periAtiva.nome, nome_bloco: b.nome, tipo_bloco: b.tipo, semana_bloco: semanaNoBloco, total_semanas_bloco: b.semanas, semana_total: semanaTotal, total_semanas: totalSemanas, descricao: b.descricao ?? null, plano_associado: b.plano_associado ?? null })
-          // Próxima fase
           if (blocoIdx < blocos.length - 1) {
             const prox = blocos[blocoIdx + 1]
             const semanasRestantes = b.semanas - semanaNoBloco
             setProximaFase(prox.nome)
             setDiasAteProximaFase(semanasRestantes * 7)
           }
-        }
-        // Personal trainer vinculado a este paciente
-        const { data: personalLink } = await supabase.from('vinculos').select('profissional_id').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle()
-        if (personalLink) {
-          const { data: pp } = await supabase.from('perfis').select('nome, email').eq('id', personalLink.profissional_id).single()
-          if (pp) setPersonalNome(pp.nome ?? pp.email)
-        }
-      } else {
-        // Tenta carregar personal mesmo sem periodização
-        const { data: personalLink } = await supabase.from('vinculos').select('profissional_id').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle()
-        if (personalLink) {
-          const { data: pp } = await supabase.from('perfis').select('nome, email').eq('id', personalLink.profissional_id).single()
-          if (pp) setPersonalNome(pp.nome ?? pp.email)
         }
       }
 
