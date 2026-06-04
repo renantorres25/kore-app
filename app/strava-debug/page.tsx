@@ -7,6 +7,8 @@ export default function StravaDebug() {
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<any>(null)
+  const [webhookResult, setWebhookResult] = useState<any>(null)
+  const [webhookLoading, setWebhookLoading] = useState(false)
 
   async function testar() {
     setLoading(true)
@@ -34,6 +36,13 @@ export default function StravaDebug() {
     setSyncing(false)
   }
 
+  async function registrarWebhook() {
+    setWebhookLoading(true)
+    const r = await fetch("/api/strava/register-webhook", { method: "POST" })
+    setWebhookResult(await r.json())
+    setWebhookLoading(false)
+  }
+
   useEffect(() => { testar() }, [])
 
   return (
@@ -44,6 +53,10 @@ export default function StravaDebug() {
         <button onClick={testar} disabled={loading}
           style={{ background: '#2dd4a7', color: '#000', padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700 }}>
           {loading ? 'Testando...' : '🔍 Testar conexão Strava'}
+        </button>
+        <button onClick={registrarWebhook} disabled={webhookLoading}
+          style={{ background: "#6366f1", color: "#fff", padding: "10px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700 }}>
+          {webhookLoading ? "Registrando..." : "🔔 Registrar webhook automático"}
         </button>
         <button onClick={sincronizar} disabled={syncing}
           style={{ background: '#f97316', color: '#000', padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700 }}>
@@ -74,6 +87,16 @@ export default function StravaDebug() {
             </div>
           )}
           {resultado.erro && <p style={{ color: '#f87171', marginTop: 12 }}>❌ Erro: {JSON.stringify(resultado.erro)}</p>}
+        </div>
+      )}
+
+      {webhookResult && (
+        <div style={{ background: "#111", borderRadius: 12, padding: 20, marginBottom: 20 }}>
+          <h2 style={{ color: "#818cf8", marginBottom: 12 }}>Webhook:</h2>
+          <p>Status: <strong style={{ color: webhookResult.status === "registrado" || webhookResult.status === "já_registrado" ? "#4ade80" : "#f87171" }}>{webhookResult.status}</strong></p>
+          <p style={{ color: "#94a3b8", marginTop: 8 }}>{webhookResult.message}</p>
+          {webhookResult.subscription_id && <p>ID: {webhookResult.subscription_id}</p>}
+          {webhookResult.erro && <p style={{ color: "#f87171" }}>{JSON.stringify(webhookResult.detalhes)}</p>}
         </div>
       )}
 
