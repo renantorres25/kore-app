@@ -81,22 +81,30 @@ export async function POST(req: NextRequest) {
     const a = await actRes.json()
     const modalidade = SPORT_MAP[a.sport_type ?? a.type] ?? 'outro'
     const duracao = a.moving_time ? Math.round(a.moving_time / 60) : null
-    if (!duracao || duracao < 5) return NextResponse.json({ ok: true })
+    if (!duracao || duracao < 3) return NextResponse.json({ ok: true })
 
     const data = a.start_date_local?.split('T')[0] ?? new Date(a.start_date).toLocaleDateString('en-CA')
     const fcMedia = a.average_heartrate ? Math.round(a.average_heartrate) : null
     let intensidade = 2
     if (fcMedia) intensidade = fcMedia > 160 ? 5 : fcMedia > 140 ? 4 : fcMedia > 120 ? 3 : 2
 
-    await supabase.from('atividades_livres').upsert({
+    // Calorias: detail endpoint retorna; para ciclismo converte kJ→kcal
+    let calorias: number | null = a.calories ? Math.round(a.calories) : null
+    if (!calorias && a.kilojoules) calorias = Math.round(a.kilojoules * 4)
+
+    await supabase.from('atividades_livres').insert({
       usuario_id: conn.usuario_id,
       data,
       modalidade,
       duracao_min: duracao,
       distancia_km: a.distance ? Math.round(a.distance / 100) / 10 : null,
-      calorias_estimadas: a.calories ?? null,
+      calorias_estimadas: calorias,
+      calorias_wearable: calorias,
+      fc_media: fcMedia,
+      elevacao: a.total_elevation_gain ? Math.round(a.total_elevation_gain) : null,
       intensidade,
       observacoes: `Strava · ${a.name ?? modalidade}`,
+      strava_activity_id: a.id,
     })
 
     await supabase.from('strava_connections')
