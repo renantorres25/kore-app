@@ -101,10 +101,14 @@ async function syncAtividades(usuarioId: string, accessToken: string) {
       modalidade,
       duracao_min: duracao,
       distancia_km: distancia,
-      calorias_estimadas: calorias,
+      calorias_estimadas: calorias ? Math.round(calorias) : null,
+      calorias_wearable: calorias ? Math.round(calorias) : null,
       intensidade,
+      fc_media: fcMedia,
+      elevacao: a.total_elevation_gain ? Math.round(a.total_elevation_gain) : null,
       observacoes: `Strava · ${a.name ?? modalidade}`,
-    })
+      strava_activity_id: a.id,
+    }, { onConflict: 'usuario_id,strava_activity_id', ignoreDuplicates: false })
   }
 
   await supabase.from('strava_connections')

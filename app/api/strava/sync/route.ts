@@ -7,11 +7,12 @@ const supabase = createClient(
 )
 
 const SPORT_MAP: Record<string, string> = {
-  Run: 'corrida', VirtualRun: 'corrida',
-  Ride: 'bike', VirtualRide: 'bike',
+  Run: 'corrida', VirtualRun: 'corrida', TrailRun: 'corrida',
+  Ride: 'bike', VirtualRide: 'bike', EBikeRide: 'bike', GravelRide: 'bike',
   Swim: 'natacao',
   WeightTraining: 'musculacao', Crossfit: 'crossfit',
-  Walk: 'outro', Hike: 'outro', Yoga: 'outro',
+  Yoga: 'outro', Pilates: 'outro', Walk: 'outro', Hike: 'outro',
+  Soccer: 'outro', Tennis: 'outro', Basketball: 'outro',
 }
 
 export async function POST(req: NextRequest) {
@@ -19,15 +20,16 @@ export async function POST(req: NextRequest) {
     const { usuarioId } = await req.json()
     if (!usuarioId) return NextResponse.json({ erro: 'usuarioId obrigatório' }, { status: 400 })
 
+    // Busca a conexão
     const { data: conn } = await supabase
       .from('strava_connections')
       .select('access_token, refresh_token, expires_at')
       .eq('usuario_id', usuarioId)
       .single()
 
-    if (!conn) return NextResponse.json({ erro: 'Sem conexão Strava' }, { status: 404 })
+    if (!conn) return NextResponse.json({ erro: 'Strava não conectado' }, { status: 404 })
 
-    // Refresh se expirado
+    // Refresh token se necessário
     let token = conn.access_token
     if (new Date(conn.expires_at) <= new Date()) {
       const r = await fetch('https://www.strava.com/oauth/token', {
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest) {
         }),
       })
       const rd = await r.json()
-      if (r.ok) {
+      if (r.ok && rd.access_token) {
         token = rd.access_token
         await supabase.from('strava_connections').update({
           access_token: rd.access_token,
@@ -51,26 +53,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const trinta = Math.floor(Date.now() / 1000) - 30 * 24 * 3600
+    // Busca atividades dos últimos 90 dias
+    const noventa = Math.floor(Date.now() / 1000) - 90 * 24 * 3600
     const res = await fetch(
-      `https://www.strava.com/api/v3/athlete/activities?after=${trinta}&per_page=60`,
+      `https://www.strava.com/api/v3/athlete/activities?after=${noventa}&per_page=100`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
-    if (!res.ok) return NextResponse.json({ erro: 'Erro Strava' }, { status: 500 })
+
+    if (!res.ok) {
+      const err = await res.text()
+      return NextResponse.json({ erro: `Strava API error: ${err}` }, { status: 500 })
+    }
 
     const atividades = await res.json()
-    let importadas = 0
+    if (!Array.isArray(atividades)) return NextResponse.json({ erro: 'Resposta inválida do Strava', raw: atividades }, { status: 500 })
+
+    let inseridos = 0
+    let erros = 0
 
     for (const a of atividades) {
       const modalidade = SPORT_MAP[a.sport_type ?? a.type] ?? 'outro'
       const duracao = a.moving_time ? Math.round(a.moving_time / 60) : null
-      if (!duracao || duracao < 5) continue
+      if (!duracao || duracao < 3) continue
+
+      const data = a.start_date_local?.split('T')[0]
+      if (!data) continue
 
       const fcMedia = a.average_heartrate ? Math.round(a.average_heartrate) : null
       let intensidade = 2
       if (fcMedia) intensidade = fcMedia > 160 ? 5 : fcMedia > 140 ? 4 : fcMedia > 120 ? 3 : 2
-
-      const data = a.start_date_local?.split('T')[0]
+      else if (a.suffer_score) intensidade = a.suffer_score > 100 ? 5 : a.suffer_score > 60 ? 4 : a.suffer_score > 30 ? 3 : 2
 
       const { error } = await supabase.from('atividades_livres').upsert({
         usuario_id: usuarioId,
@@ -78,22 +90,26 @@ export async function POST(req: NextRequest) {
         modalidade,
         duracao_min: duracao,
         distancia_km: a.distance ? Math.round(a.distance / 100) / 10 : null,
-        calorias_estimadas: a.calories ?? null,
+        calorias_estimadas: a.calories ? Math.round(a.calories) : null,
+        calorias_wearable: a.calories ? Math.round(a.calories) : null,
         intensidade,
-        observacoes: `Strava · ${a.name ?? modalidade}`,
-        fc_media: a.average_heartrate ? Math.round(a.average_heartrate) : null,
+        fc_media: fcMedia,
         elevacao: a.total_elevation_gain ? Math.round(a.total_elevation_gain) : null,
-      })
+        observacoes: `Strava · ${a.name ?? modalidade}`,
+        strava_activity_id: a.id,
+      }, { onConflict: 'usuario_id,strava_activity_id', ignoreDuplicates: false })
 
-      if (!error) importadas++
+      if (error) { erros++; console.error('[Sync]', error.message) }
+      else inseridos++
     }
 
     await supabase.from('strava_connections')
       .update({ last_sync: new Date().toISOString() })
       .eq('usuario_id', usuarioId)
 
-    return NextResponse.json({ importadas })
+    return NextResponse.json({ sucesso: true, inseridos, erros, total: atividades.length })
   } catch (err) {
+    console.error('[Strava Sync]', err)
     return NextResponse.json({ erro: 'Erro interno' }, { status: 500 })
   }
 }
