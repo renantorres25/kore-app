@@ -258,33 +258,63 @@ function SparkLine({ data, color }: { data: number[]; color: string }) {
    COMPONENTE: GRÁFICO DE EVOLUÇÃO
 ───────────────────────────────────────────── */
 function EvolucaoChart({ dados }: { dados: typeof PACIENTE.evolucao }) {
-  const w = 100, h = 80
+  const vw = 400, vh = 120
+  const padL = 8, padR = 8, padT = 8, padB = 24
+
   const kcals = dados.map(d => d.kcal)
   const prots = dados.map(d => d.prot)
   const maxK = Math.max(...kcals), minK = Math.min(...kcals)
   const maxP = Math.max(...prots), minP = Math.min(...prots)
+  const chartW = vw - padL - padR
+  const chartH = vh - padT - padB
 
   function pts(values: number[], min: number, max: number) {
     const range = max - min || 1
     return values.map((v, i) => {
-      const x = (i / (values.length - 1)) * w
-      const y = h - ((v - min) / range) * (h - 8) - 4
+      const x = padL + (i / (values.length - 1)) * chartW
+      const y = padT + chartH - ((v - min) / range) * chartH
       return `${x.toFixed(1)},${y.toFixed(1)}`
     }).join(' ')
   }
 
+  function areaPath(values: number[], min: number, max: number) {
+    const range = max - min || 1
+    const points = values.map((v, i) => {
+      const x = padL + (i / (values.length - 1)) * chartW
+      const y = padT + chartH - ((v - min) / range) * chartH
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    const bottom = padT + chartH
+    return `M ${points[0]} L ${points.join(' L ')} L ${padL + chartW},${bottom} L ${padL},${bottom} Z`
+  }
+
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${vw} ${vh}`} style={{ width: '100%', height: '100%', overflow: 'visible' }} preserveAspectRatio="none">
       <defs>
         <linearGradient id="gradK" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FF5A36" stopOpacity="0.3" />
+          <stop offset="0%" stopColor="#FF5A36" stopOpacity="0.18" />
           <stop offset="100%" stopColor="#FF5A36" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="gradP" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2DD4A7" stopOpacity="0.25" />
+          <stop offset="0%" stopColor="#2DD4A7" stopOpacity="0.12" />
           <stop offset="100%" stopColor="#2DD4A7" stopOpacity="0" />
         </linearGradient>
       </defs>
+
+      {/* Grid lines horizontais */}
+      {[0.25, 0.5, 0.75].map((p, i) => (
+        <line key={i}
+          x1={padL} y1={padT + chartH * p}
+          x2={padL + chartW} y2={padT + chartH * p}
+          stroke="rgba(255,255,255,0.05)" strokeWidth="1"
+        />
+      ))}
+
+      {/* Área Kcal */}
+      <path d={areaPath(kcals, minK, maxK)} fill="url(#gradK)" />
+      {/* Área Prot */}
+      <path d={areaPath(prots, minP, maxP)} fill="url(#gradP)" />
+
       {/* Kcal linha */}
       <polyline
         points={pts(kcals, minK, maxK)}
@@ -296,16 +326,23 @@ function EvolucaoChart({ dados }: { dados: typeof PACIENTE.evolucao }) {
         points={pts(prots, minP, maxP)}
         fill="none" stroke="#2DD4A7" strokeWidth="2"
         strokeLinecap="round" strokeLinejoin="round"
-        opacity={0.8}
+        opacity={0.9}
       />
-      {/* Labels no eixo X */}
+
+      {/* Pontos e labels X */}
       {dados.map((d, i) => {
-        const x = (i / (dados.length - 1)) * w
+        const x = padL + (i / (dados.length - 1)) * chartW
+        const yK = padT + chartH - ((d.kcal - minK) / (maxK - minK || 1)) * chartH
+        const yP = padT + chartH - ((d.prot - minP) / (maxP - minP || 1)) * chartH
         return (
-          <text key={i} x={x} y={h + 12} textAnchor="middle"
-            style={{ fontSize: 7, fill: 'var(--t3)', fontFamily: 'monospace' }}>
-            {d.semana}
-          </text>
+          <g key={i}>
+            <circle cx={x} cy={yK} r={3} fill="#FF5A36" />
+            <circle cx={x} cy={yP} r={2.5} fill="#2DD4A7" />
+            <text x={x} y={vh - 4} textAnchor="middle"
+              style={{ fontSize: 11, fill: 'var(--t3)', fontFamily: 'monospace' }}>
+              {d.semana}
+            </text>
+          </g>
         )
       })}
     </svg>
@@ -657,7 +694,7 @@ export default function PlanoV2() {
               <LegendaDot color="#2DD4A7" label="Proteína" />
             </div>
           </div>
-          <div style={{ height: 100, paddingBottom: 16 }}>
+          <div style={{ height: 140, width: '100%' }}>
             <EvolucaoChart dados={p.evolucao} />
           </div>
         </div>
