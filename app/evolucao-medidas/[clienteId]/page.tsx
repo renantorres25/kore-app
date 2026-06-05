@@ -1,10 +1,94 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import SidebarProfissional from '../../components/SidebarProfissional'
-import { History, Scale, Ruler } from 'lucide-react'
+import { History, Scale, Ruler, Calculator } from 'lucide-react'
+
+// ── Protocolos de dobras cutâneas ──────────────────────────────────────────
+type Protocolo = 'pollock7' | 'faulkner' | 'lohman' | 'durnin'
+
+const PROTOCOLO_INFO: Record<Protocolo, { label: string; desc: string; cor: string; sites: string[] }> = {
+  pollock7: {
+    label: 'Pollock 7 dobras', desc: 'Adultos 18–60 anos', cor: 'emerald',
+    sites: ['Peitoral', 'Axilar média', 'Tríceps', 'Subescapular', 'Abdominal', 'Suprailíaca', 'Coxa'],
+  },
+  faulkner: {
+    label: 'Faulkner', desc: 'Atletas', cor: 'blue',
+    sites: ['Tríceps', 'Subescapular', 'Suprailíaca', 'Abdominal'],
+  },
+  lohman: {
+    label: 'Lohman / Slaughter', desc: 'Pediátrico (<18 anos)', cor: 'pink',
+    sites: ['Tríceps', 'Subescapular'],
+  },
+  durnin: {
+    label: 'Durnin-Womersley', desc: 'Idosos (>60 anos)', cor: 'amber',
+    sites: ['Bíceps', 'Tríceps', 'Subescapular', 'Suprailíaca'],
+  },
+}
+
+function getProtocoloAuto(idade: number | null, eAtleta: boolean): Protocolo {
+  if (idade != null && idade < 18) return 'lohman'
+  if (idade != null && idade > 60) return 'durnin'
+  if (eAtleta) return 'faulkner'
+  return 'pollock7'
+}
+
+function calcularIdade(dataNasc: string | null): number | null {
+  if (!dataNasc) return null
+  const nasc = new Date(dataNasc)
+  const hoje = new Date()
+  let idade = hoje.getFullYear() - nasc.getFullYear()
+  if (hoje.getMonth() < nasc.getMonth() || (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())) idade--
+  return isNaN(idade) ? null : idade
+}
+
+function calcularGorduraDobras(
+  protocolo: Protocolo, sexo: string, idade: number,
+  d: { peitoral?: number | null; axilar?: number | null; triceps?: number | null; subescapular?: number | null; abdominal?: number | null; suprailiaca?: number | null; coxa?: number | null; biceps?: number | null }
+): number | null {
+  const isMasc = sexo === 'masculino' || sexo === 'm' || sexo === 'M'
+  const p = (v: number | null | undefined) => (v != null && !isNaN(v) ? v : null)
+
+  if (protocolo === 'pollock7') {
+    const vals = [p(d.peitoral), p(d.axilar), p(d.triceps), p(d.subescapular), p(d.abdominal), p(d.suprailiaca), p(d.coxa)]
+    if (vals.some(v => v == null)) return null
+    const soma = (vals as number[]).reduce((s, v) => s + v, 0)
+    const D = isMasc
+      ? 1.112 - 0.00043499 * soma + 0.00000055 * soma * soma - 0.00028826 * idade
+      : 1.097 - 0.00046971 * soma + 0.00000056 * soma * soma - 0.00012828 * idade
+    return Math.round(((4.95 / D) - 4.50) * 100 * 10) / 10
+  }
+
+  if (protocolo === 'faulkner') {
+    const vals = [p(d.triceps), p(d.subescapular), p(d.suprailiaca), p(d.abdominal)]
+    if (vals.some(v => v == null)) return null
+    const soma = (vals as number[]).reduce((s, v) => s + v, 0)
+    return Math.round((soma * 0.153 + 5.783) * 10) / 10
+  }
+
+  if (protocolo === 'lohman') {
+    const t = p(d.triceps), s = p(d.subescapular)
+    if (t == null || s == null) return null
+    const soma = t + s
+    if (soma <= 35) return Math.round((isMasc ? 0.735 * soma + 1.0 : 0.610 * soma + 5.1) * 10) / 10
+    return Math.round((0.546 * soma + 9.7) * 10) / 10
+  }
+
+  if (protocolo === 'durnin') {
+    const vals = [p(d.biceps), p(d.triceps), p(d.subescapular), p(d.suprailiaca)]
+    if (vals.some(v => v == null)) return null
+    const soma = (vals as number[]).reduce((s, v) => s + v, 0)
+    const logS = Math.log10(soma)
+    const A = isMasc ? 1.1715 : 1.1339
+    const B = isMasc ? 0.0779 : 0.0645
+    const D = A - B * logS
+    return Math.round(((4.95 / D) - 4.50) * 100 * 10) / 10
+  }
+
+  return null
+}
 
 type Medicao = {
   id: string
@@ -38,6 +122,8 @@ type Medicao = {
   dobra_abdominal: number | null
   dobra_coxa: number | null
   dobra_peitoral: number | null
+  dobra_axilar_media: number | null
+  dobra_biceps: number | null
   pa_sistolica: number | null
   pa_diastolica: number | null
   fc_repouso: number | null
@@ -63,6 +149,15 @@ type FormMedicao = {
   panturrilha_dir: string
   panturrilha_esq: string
   observacoes: string
+  // dobras cutâneas
+  dobra_peitoral: string
+  dobra_axilar_media: string
+  dobra_triceps: string
+  dobra_subescapular: string
+  dobra_abdominal: string
+  dobra_suprailiaca: string
+  dobra_coxa: string
+  dobra_biceps: string
 }
 
 function getTodayBR(): string {
@@ -76,6 +171,8 @@ const FORM_VAZIO: FormMedicao = {
   braco_dir: '', braco_esq: '', coxa_dir: '', coxa_esq: '',
   panturrilha_dir: '', panturrilha_esq: '',
   observacoes: '',
+  dobra_peitoral: '', dobra_axilar_media: '', dobra_triceps: '', dobra_subescapular: '',
+  dobra_abdominal: '', dobra_suprailiaca: '', dobra_coxa: '', dobra_biceps: '',
 }
 
 function MiniChart({ dados, campo, cor }: { dados: Medicao[]; campo: keyof Medicao; cor: string }) {
@@ -149,7 +246,11 @@ export default function EvolucaoMedidasPage() {
   const [backUrl, setBackUrl] = useState('/dashboard')
   const [clienteNome, setClienteNome] = useState<string | null>(null)
   const [meuperfil, setMeuPerfil] = useState<{ tipo: string } | null>(null)
-  const [abaAtiva, setAbaAtiva] = useState<'historico' | 'composicao' | 'circunferencias'>('historico')
+  const [abaAtiva, setAbaAtiva] = useState<'historico' | 'composicao' | 'circunferencias' | 'dobras'>('historico')
+  const [clienteSexo, setClienteSexo] = useState<string>('masculino')
+  const [clienteIdade, setClienteIdade] = useState<number | null>(null)
+  const [eAtleta, setEAtleta] = useState(false)
+  const [protocoloOverride, setProtocoloOverride] = useState<Protocolo | null>(null)
 
   useEffect(() => {
     async function carregar() {
@@ -159,8 +260,13 @@ export default function EvolucaoMedidasPage() {
       const { data: perfil } = await supabase.from('perfis').select('tipo, nome').eq('id', session.user.id).single()
       setMeuPerfil(perfil)
 
-      const { data: clientePerfil } = await supabase.from('perfis').select('nome, email').eq('id', clienteId).single()
+      const { data: clientePerfil } = await supabase.from('perfis').select('nome, email, sexo, data_nascimento, nivel, objetivo').eq('id', clienteId).single()
       setClienteNome(clientePerfil?.nome ?? clientePerfil?.email ?? null)
+      if (clientePerfil?.sexo) setClienteSexo(clientePerfil.sexo)
+      const idade = calcularIdade(clientePerfil?.data_nascimento ?? null)
+      setClienteIdade(idade)
+      const isAtleta = clientePerfil?.nivel === 'atleta' || clientePerfil?.objetivo === 'melhorar_condicionamento'
+      setEAtleta(isAtleta)
 
       if (perfil?.tipo === 'personal') setBackUrl(`/personal/aluno/${clienteId}`)
       else if (perfil?.tipo === 'nutricionista') setBackUrl(`/nutricionista/paciente/${clienteId}`)
@@ -203,6 +309,14 @@ export default function EvolucaoMedidasPage() {
       panturrilha_dir: m.panturrilha_dir != null ? String(m.panturrilha_dir) : '',
       panturrilha_esq: m.panturrilha_esq != null ? String(m.panturrilha_esq) : '',
       observacoes: m.observacoes ?? '',
+      dobra_peitoral: m.dobra_peitoral != null ? String(m.dobra_peitoral) : '',
+      dobra_axilar_media: m.dobra_axilar_media != null ? String(m.dobra_axilar_media) : '',
+      dobra_triceps: m.dobra_triceps != null ? String(m.dobra_triceps) : '',
+      dobra_subescapular: m.dobra_subescapular != null ? String(m.dobra_subescapular) : '',
+      dobra_abdominal: m.dobra_abdominal != null ? String(m.dobra_abdominal) : '',
+      dobra_suprailiaca: m.dobra_suprailiaca != null ? String(m.dobra_suprailiaca) : '',
+      dobra_coxa: m.dobra_coxa != null ? String(m.dobra_coxa) : '',
+      dobra_biceps: m.dobra_biceps != null ? String(m.dobra_biceps) : '',
     })
     setEditandoId(m.id)
     setErro('')
@@ -233,6 +347,15 @@ export default function EvolucaoMedidasPage() {
       panturrilha_dir: form.panturrilha_dir ? parseFloat(form.panturrilha_dir) : null,
       panturrilha_esq: form.panturrilha_esq ? parseFloat(form.panturrilha_esq) : null,
       observacoes: form.observacoes.trim() || null,
+      dobra_peitoral: form.dobra_peitoral ? parseFloat(form.dobra_peitoral) : null,
+      dobra_axilar_media: form.dobra_axilar_media ? parseFloat(form.dobra_axilar_media) : null,
+      dobra_triceps: form.dobra_triceps ? parseFloat(form.dobra_triceps) : null,
+      dobra_subescapular: form.dobra_subescapular ? parseFloat(form.dobra_subescapular) : null,
+      dobra_abdominal: form.dobra_abdominal ? parseFloat(form.dobra_abdominal) : null,
+      dobra_suprailiaca: form.dobra_suprailiaca ? parseFloat(form.dobra_suprailiaca) : null,
+      dobra_coxa: form.dobra_coxa ? parseFloat(form.dobra_coxa) : null,
+      dobra_biceps: form.dobra_biceps ? parseFloat(form.dobra_biceps) : null,
+      gordura_pct_calculada: gorduraDobras ?? null,
     }
 
     let error
@@ -306,6 +429,20 @@ export default function EvolucaoMedidasPage() {
 
   const tipoSidebar = meuperfil?.tipo === 'personal' ? 'personal' : 'nutricionista'
 
+  // ── Dobras: protocolo e cálculo live ──────────────────────────────────────
+  const protocolo = protocoloOverride ?? getProtocoloAuto(clienteIdade, eAtleta)
+  const pInfo = PROTOCOLO_INFO[protocolo]
+  const gorduraDobras = useMemo(() => calcularGorduraDobras(protocolo, clienteSexo, clienteIdade ?? 30, {
+    peitoral:    form.dobra_peitoral    ? parseFloat(form.dobra_peitoral)    : null,
+    axilar:      form.dobra_axilar_media ? parseFloat(form.dobra_axilar_media) : null,
+    triceps:     form.dobra_triceps     ? parseFloat(form.dobra_triceps)     : null,
+    subescapular:form.dobra_subescapular ? parseFloat(form.dobra_subescapular): null,
+    abdominal:   form.dobra_abdominal   ? parseFloat(form.dobra_abdominal)   : null,
+    suprailiaca: form.dobra_suprailiaca  ? parseFloat(form.dobra_suprailiaca) : null,
+    coxa:        form.dobra_coxa        ? parseFloat(form.dobra_coxa)        : null,
+    biceps:      form.dobra_biceps      ? parseFloat(form.dobra_biceps)      : null,
+  }), [protocolo, clienteSexo, clienteIdade, form.dobra_peitoral, form.dobra_axilar_media, form.dobra_triceps, form.dobra_subescapular, form.dobra_abdominal, form.dobra_suprailiaca, form.dobra_coxa, form.dobra_biceps])
+
   return (
     <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
       {isProfissional && <SidebarProfissional tipo={tipoSidebar} />}
@@ -372,7 +509,8 @@ export default function EvolucaoMedidasPage() {
                 { id: 'historico', label: 'Histórico', Icon: History },
                 { id: 'composicao', label: 'Composição', Icon: Scale },
                 { id: 'circunferencias', label: 'Circunf.', Icon: Ruler },
-              ] as { id: 'historico' | 'composicao' | 'circunferencias'; label: string; Icon: React.ComponentType<{size?: number}> }[]).map(({ id, label, Icon }) => (
+                { id: 'dobras', label: 'Dobras', Icon: Calculator },
+              ] as { id: 'historico' | 'composicao' | 'circunferencias' | 'dobras'; label: string; Icon: React.ComponentType<{size?: number}> }[]).map(({ id, label, Icon }) => (
                 <button key={id} onClick={() => setAbaAtiva(id)}
                   className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
                   <Icon size={12} />
@@ -524,6 +662,79 @@ export default function EvolucaoMedidasPage() {
                 )}
               </div>
             )}
+            {/* ABA DOBRAS */}
+            {abaAtiva === 'dobras' && (() => {
+              const ultimas = medicoes.filter(m =>
+                m.dobra_triceps != null || m.dobra_peitoral != null || m.dobra_subescapular != null
+              )
+              const campos: { campo: keyof Medicao; label: string; cor: string }[] = [
+                { campo: 'dobra_peitoral',    label: 'Peitoral',      cor: '#60a5fa' },
+                { campo: 'dobra_axilar_media',label: 'Axilar média',  cor: '#818cf8' },
+                { campo: 'dobra_triceps',     label: 'Tríceps',       cor: '#34d399' },
+                { campo: 'dobra_subescapular',label: 'Subescapular',  cor: '#f59e0b' },
+                { campo: 'dobra_abdominal',   label: 'Abdominal',     cor: '#f97316' },
+                { campo: 'dobra_suprailiaca', label: 'Suprailíaca',   cor: '#e879f9' },
+                { campo: 'dobra_coxa',        label: 'Coxa',          cor: '#fb923c' },
+                { campo: 'dobra_biceps',      label: 'Bíceps',        cor: '#22d3ee' },
+              ]
+              const protocMaisRecente = mais_recente?.gordura_pct_calculada
+
+              return (
+                <div className="space-y-4">
+                  {/* resultado calculado mais recente */}
+                  {protocMaisRecente != null && (
+                    <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
+                      <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Último resultado calculado</p>
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <p className="text-red-400 font-black text-3xl">{protocMaisRecente}<span className="text-zinc-600 text-sm font-normal ml-0.5">%</span></p>
+                          <p className="text-zinc-500 text-xs mt-0.5">Gordura corporal estimada</p>
+                        </div>
+                        {mais_recente && anterior?.gordura_pct_calculada != null && (
+                          <DeltaBadge atual={protocMaisRecente} anterior={anterior.gordura_pct_calculada} unidade="%" inverso />
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* dobras da medição mais recente */}
+                  {mais_recente && campos.some(c => mais_recente[c.campo] != null) ? (
+                    <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--surface-1)' }}>
+                      <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Dobras — último registro</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {campos.filter(c => mais_recente[c.campo] != null).map(c => {
+                          const val = mais_recente[c.campo] as number
+                          const prev = anterior ? anterior[c.campo] as number | null : null
+                          return (
+                            <div key={c.campo} className="rounded-xl px-3 py-2.5 flex items-center justify-between" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                              <span className="text-zinc-500 text-[11px]">{c.label}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-sm" style={{ color: c.cor }}>{val}<span className="text-zinc-600 text-[10px] font-normal">mm</span></span>
+                                {prev != null && <DeltaBadge atual={val} anterior={prev} unidade="mm" inverso />}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {ultimas.length >= 2 && campos.slice(0, 4).map(c =>
+                        medicoes.filter(m => m[c.campo] != null).length >= 2 ? (
+                          <div key={c.campo} className="pt-1">
+                            <p className="text-zinc-700 text-[9px] uppercase tracking-wider mb-1">{c.label}</p>
+                            <MiniChart dados={medicoes} campo={c.campo} cor={c.cor} />
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--surface-1)' }}>
+                      <Calculator size={32} className="text-zinc-700 mx-auto mb-3" />
+                      <p className="text-zinc-400 text-sm font-semibold">Sem dobras registradas</p>
+                      <p className="text-zinc-600 text-xs mt-1">Registre uma avaliação com os dados de dobras cutâneas</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </>
         )}
       </div>
@@ -588,6 +799,84 @@ export default function EvolucaoMedidasPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Dobras cutâneas */}
+              <div className="rounded-2xl border border-white/[0.11] overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.08]" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                  <Calculator size={14} className="text-zinc-500" />
+                  <p className="text-zinc-400 text-[10px] uppercase tracking-widest flex-1">Dobras Cutâneas (mm)</p>
+                  <button type="button" onClick={() => setEAtleta(p => !p)}
+                    className={`text-[9px] px-2 py-1 rounded-lg border font-semibold transition-all ${eAtleta ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' : 'border-white/[0.1] text-zinc-600'}`}>
+                    {eAtleta ? '⚡ Atleta' : 'Atleta?'}
+                  </button>
+                </div>
+
+                {/* protocolo auto-selecionado */}
+                <div className="px-4 py-3 border-b border-white/[0.06]" style={{ background: 'rgba(255,255,255,0.01)' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Protocolo</p>
+                    {protocoloOverride == null && <span className="text-[9px] text-zinc-700 bg-white/[0.04] rounded-full px-1.5 py-0.5">auto</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Object.keys(PROTOCOLO_INFO) as Protocolo[]).map(p => {
+                      const info = PROTOCOLO_INFO[p]
+                      const ativo = protocolo === p
+                      const corMap: Record<string, string> = { emerald: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400', blue: 'border-blue-500/30 bg-blue-500/10 text-blue-400', pink: 'border-pink-500/30 bg-pink-500/10 text-pink-400', amber: 'border-amber-500/30 bg-amber-500/10 text-amber-400' }
+                      return (
+                        <button key={p} type="button"
+                          onClick={() => setProtocoloOverride(protocoloOverride === p ? null : p)}
+                          className={`text-[9px] px-2 py-1 rounded-lg border transition-all ${ativo ? corMap[info.cor] : 'border-white/[0.08] text-zinc-600 hover:text-zinc-400'}`}>
+                          {info.label}
+                          {protocolo === p && protocoloOverride == null && ' ✦'}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-zinc-700 text-[9px] mt-1.5">Pontos: {pInfo.sites.join(' · ')}</p>
+                </div>
+
+                {/* campos de dobras */}
+                <div className="p-4 grid grid-cols-4 gap-2">
+                  {([
+                    { field: 'dobra_peitoral' as keyof FormMedicao,     label: 'Peitoral' },
+                    { field: 'dobra_axilar_media' as keyof FormMedicao,  label: 'Axilar M.' },
+                    { field: 'dobra_triceps' as keyof FormMedicao,       label: 'Tríceps' },
+                    { field: 'dobra_subescapular' as keyof FormMedicao,  label: 'Subesc.' },
+                    { field: 'dobra_abdominal' as keyof FormMedicao,     label: 'Abdom.' },
+                    { field: 'dobra_suprailiaca' as keyof FormMedicao,   label: 'Supraíl.' },
+                    { field: 'dobra_coxa' as keyof FormMedicao,          label: 'Coxa' },
+                    { field: 'dobra_biceps' as keyof FormMedicao,        label: 'Bíceps' },
+                  ] as { field: keyof FormMedicao; label: string }[]).map(({ field, label }) => {
+                    const isRequired = pInfo.sites.some(s => label.toLowerCase().startsWith(s.toLowerCase().slice(0, 4)))
+                    return (
+                      <div key={field}>
+                        <label className={`text-[9px] uppercase tracking-wider block mb-1.5 ${isRequired ? 'text-white/60' : 'text-zinc-700'}`}>{label}</label>
+                        <input type="number" value={form[field] as string} onChange={e => set(field, e.target.value)}
+                          placeholder="—" step="0.1"
+                          className={`w-full rounded-xl px-2 py-2 text-white text-sm text-center outline-none transition-colors ${isRequired ? 'bg-white/[0.09] border border-white/[0.2] focus:border-white/30' : 'bg-white/[0.04] border border-white/[0.08] focus:border-white/[0.15]'}`} />
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* resultado live */}
+                {gorduraDobras != null && (
+                  <div className="mx-4 mb-4 rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div>
+                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider">% Gordura calculada · {pInfo.label}</p>
+                      <p className="text-red-400 font-black text-2xl mt-0.5">{gorduraDobras}<span className="text-zinc-600 text-sm font-normal">%</span></p>
+                    </div>
+                    <button type="button"
+                      onClick={() => set('gordura_pct', String(gorduraDobras))}
+                      className="text-[10px] px-3 py-2 rounded-xl bg-white/[0.09] border border-white/[0.14] text-zinc-300 hover:text-white hover:bg-white/[0.15] transition-all active:scale-95 font-semibold">
+                      Usar →
+                    </button>
+                  </div>
+                )}
+                {gorduraDobras == null && Object.entries(form).some(([k, v]) => k.startsWith('dobra_') && v !== '') && (
+                  <p className="text-zinc-700 text-[9px] text-center pb-3">Preencha todos os pontos do protocolo para calcular</p>
+                )}
               </div>
 
               {/* Observações */}
