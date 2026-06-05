@@ -4,87 +4,161 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import SidebarProfissional from '../../components/SidebarProfissional'
-import { HeartPulse, Leaf, Dumbbell, Salad, Target, Activity, Moon } from 'lucide-react'
+import { HeartPulse, Leaf, Dumbbell, Salad, Target, Activity, Moon, Scale, ChevronDown } from 'lucide-react'
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type AnamneseForm = {
-  patologias: string; medicamentos: string; alergias: string; cirurgias: string
-  historico_familiar: string; nivel_atividade: string; horas_sono: string
-  nivel_estresse: number; fuma: boolean; alcool: string; historico_esportivo: string
-  lesoes: string; restricoes_fisicas: string; restricoes_alimentares: string
-  suplementos: string; refeicoes_por_dia: string; habitos_alimentares: string
-  objetivo_detalhado: string; motivacao: string; prazo_semanas: string; observacoes: string
-  // Saúde Intestinal
-  funcionamento_intestinal: string
-  usa_probioticos: boolean | null
-  // Ciclo Menstrual
-  ciclo_regular: boolean | null
-  duracao_ciclo_dias: string
-  fase_ciclo: string
-  sintomas_ciclo: string[]
+  // Objetivo
+  objetivo_detalhado: string; motivacao: string; prazo_semanas: string
+  // Identificação extra
+  profissao: string
+  // Histórico clínico
+  patologias: string; medicamentos: string; alergias: string; intolerancias: string
+  cirurgias: string; historico_familiar: string; exames_laboratoriais: string
+  // Histórico de peso
+  peso_maximo: string; peso_minimo: string; peso_habitual: string
+  efeito_sanfona: boolean | null; tentativas_emagrecimento: string
+  // Hábitos alimentares
+  refeicoes_por_dia: string; horarios_refeicoes: string
+  onde_come: string; quem_prepara: string
+  preferencias_alimentares: string; aversoes_alimentares: string
+  restricoes_alimentares: string; consumo_agua_litros: string
+  consumo_ultraprocessados: string; suplementos: string; habitos_alimentares: string
+  // Sono e estilo de vida
+  horas_sono: string; qualidade_sono: string; nivel_estresse: number
+  fuma: boolean; alcool: string; rotina_trabalho: string
+  // Atividade física
+  nivel_atividade: string; modalidade_treino: string; frequencia_treino: string
+  duracao_treino_min: string; horario_treino: string; historico_esportivo: string
+  // Saúde GI
+  funcionamento_intestinal: string; bristol_escala: string
+  refluxo: boolean | null; distensao_abdominal: boolean | null; usa_probioticos: boolean | null
+  // Ciclo menstrual
+  ciclo_regular: boolean | null; duracao_ciclo_dias: string
+  fase_ciclo: string; sintomas_ciclo: string[]
+  // Legado
+  lesoes: string; restricoes_fisicas: string; observacoes: string
 }
 type OutraAnamnese = AnamneseForm & { profissional_nome: string | null; profissional_tipo: string | null }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
 const FORM_VAZIO: AnamneseForm = {
-  patologias: '', medicamentos: '', alergias: '', cirurgias: '', historico_familiar: '',
-  nivel_atividade: '', horas_sono: '', nivel_estresse: 0, fuma: false, alcool: '',
-  historico_esportivo: '', lesoes: '', restricoes_fisicas: '',
-  restricoes_alimentares: '', suplementos: '', refeicoes_por_dia: '', habitos_alimentares: '',
-  objetivo_detalhado: '', motivacao: '', prazo_semanas: '', observacoes: '',
-  funcionamento_intestinal: '', usa_probioticos: null,
+  objetivo_detalhado: '', motivacao: '', prazo_semanas: '', profissao: '',
+  patologias: '', medicamentos: '', alergias: '', intolerancias: '',
+  cirurgias: '', historico_familiar: '', exames_laboratoriais: '',
+  peso_maximo: '', peso_minimo: '', peso_habitual: '',
+  efeito_sanfona: null, tentativas_emagrecimento: '',
+  refeicoes_por_dia: '', horarios_refeicoes: '',
+  onde_come: '', quem_prepara: '',
+  preferencias_alimentares: '', aversoes_alimentares: '',
+  restricoes_alimentares: '', consumo_agua_litros: '',
+  consumo_ultraprocessados: '', suplementos: '', habitos_alimentares: '',
+  horas_sono: '', qualidade_sono: '', nivel_estresse: 0,
+  fuma: false, alcool: '', rotina_trabalho: '',
+  nivel_atividade: '', modalidade_treino: '', frequencia_treino: '',
+  duracao_treino_min: '', horario_treino: '', historico_esportivo: '',
+  funcionamento_intestinal: '', bristol_escala: '',
+  refluxo: null, distensao_abdominal: null, usa_probioticos: null,
   ciclo_regular: null, duracao_ciclo_dias: '', fase_ciclo: '', sintomas_ciclo: [],
+  lesoes: '', restricoes_fisicas: '', observacoes: '',
 }
-
-const FUNCIONAMENTO_INTESTINAL = [
-  { val: 'regular',            label: 'Regular',           sub: 'Evacuação diária e consistente' },
-  { val: 'constipacao',        label: 'Constipação',       sub: 'Dificuldade ou evacuação infrequente' },
-  { val: 'diarreia_frequente', label: 'Diarreia frequente', sub: 'Fezes líquidas com frequência' },
-  { val: 'irregular',          label: 'Irregular',         sub: 'Alternância ou variação' },
-]
-const FASES_CICLO = [
-  { val: 'menstrual',   label: 'Menstrual',   sub: 'Dias 1–5' },
-  { val: 'folicular',   label: 'Folicular',   sub: 'Dias 6–13' },
-  { val: 'ovulatoria',  label: 'Ovulatória',  sub: 'Dias 14–16' },
-  { val: 'lutea',       label: 'Lútea',       sub: 'Dias 17–28' },
-]
-const SINTOMAS_CICLO_OPCOES = [
-  { val: 'tpm_intensa',        label: 'TPM intensa' },
-  { val: 'retencao_hidrica',   label: 'Retenção hídrica' },
-  { val: 'alteracao_apetite',  label: 'Alteração de apetite' },
-]
 
 const NIVEL_ATIVIDADE = [
-  { val: 'sedentario',      label: 'Sedentário',  sub: 'Sem exercício regular' },
-  { val: 'levemente_ativo', label: 'Leve',         sub: '1–2x por semana' },
+  { val: 'sedentario',      label: 'Sedentário',   sub: 'Sem exercício regular' },
+  { val: 'levemente_ativo', label: 'Levemente ativo', sub: '1–2x por semana' },
   { val: 'moderado',        label: 'Moderado',     sub: '3–4x por semana' },
   { val: 'muito_ativo',     label: 'Muito ativo',  sub: '5–6x por semana' },
-  { val: 'atleta',          label: 'Atleta',       sub: 'Treino diário/duplo' },
+  { val: 'atleta',          label: 'Atleta',       sub: 'Treino diário / duplo' },
 ]
 const ALCOOL = [
-  { val: 'nao', label: 'Não bebo' }, { val: 'social', label: 'Social' },
-  { val: 'moderado', label: 'Moderado' }, { val: 'frequente', label: 'Frequente' },
+  { val: 'nao', label: 'Não bebo' }, { val: 'social', label: 'Social (festas)' },
+  { val: 'moderado', label: 'Moderado (fins de semana)' }, { val: 'frequente', label: 'Frequente' },
 ]
-const NIVEL_ATIVIDADE_LABEL: Record<string, string> = {
-  sedentario: 'Sedentário', levemente_ativo: 'Levemente ativo',
-  moderado: 'Moderado', muito_ativo: 'Muito ativo', atleta: 'Atleta',
-}
-const ALCOOL_LABEL: Record<string, string> = {
-  nao: 'Não bebe', social: 'Social', moderado: 'Moderado', frequente: 'Frequente',
-}
+const ONDE_COME = [
+  { val: 'casa',        label: 'Em casa',        icon: '🏠' },
+  { val: 'trabalho',    label: 'No trabalho',     icon: '🏢' },
+  { val: 'restaurante', label: 'Restaurante',     icon: '🍽️' },
+  { val: 'delivery',    label: 'Delivery',        icon: '📦' },
+  { val: 'variado',     label: 'Variado',         icon: '🔀' },
+]
+const QUEM_PREPARA = [
+  { val: 'proprio',    label: 'Eu mesmo(a)' },
+  { val: 'familia',    label: 'Família' },
+  { val: 'empregada',  label: 'Empregada/cozinheiro' },
+  { val: 'delivery',   label: 'Delivery/pronto' },
+]
+const ULTRAPROCESSADOS = [
+  { val: 'raramente', label: 'Raramente', sub: '< 1x/semana' },
+  { val: 'semanal',   label: 'Semanal',   sub: '1–2x/semana' },
+  { val: 'frequente', label: 'Frequente', sub: '3–4x/semana' },
+  { val: 'diario',    label: 'Diário',    sub: 'Todo dia' },
+]
+const QUALIDADE_SONO = [
+  { val: 'boa',     label: 'Boa',     cor: 'emerald' },
+  { val: 'regular', label: 'Regular', cor: 'yellow' },
+  { val: 'ruim',    label: 'Ruim',    cor: 'red' },
+]
+const ROTINA_TRABALHO = [
+  { val: 'sedentaria', label: 'Sedentária', sub: 'Trabalho sentado (escritório)' },
+  { val: 'moderada',   label: 'Moderada',   sub: 'Fica de pé, anda bastante' },
+  { val: 'intensa',    label: 'Intensa',    sub: 'Trabalho físico / campo' },
+  { val: 'turnos',     label: 'Turnos',     sub: 'Horários variados / noturnos' },
+]
+const HORARIO_TREINO = [
+  { val: 'manha', label: 'Manhã', icon: '☀️' },
+  { val: 'tarde',  label: 'Tarde', icon: '🌤️' },
+  { val: 'noite',  label: 'Noite', icon: '🌙' },
+  { val: 'variado', label: 'Variado', icon: '🔀' },
+]
+const FUNCIONAMENTO_INTESTINAL = [
+  { val: 'regular',            label: 'Regular',            sub: 'Evacuação diária, consistente' },
+  { val: 'constipacao',        label: 'Constipação',        sub: 'Infrequente, com dificuldade' },
+  { val: 'diarreia_frequente', label: 'Diarreia frequente', sub: 'Fezes líquidas com frequência' },
+  { val: 'irregular',          label: 'Irregular',          sub: 'Alternância, variação' },
+]
+const BRISTOL = [
+  { tipo: 1, label: 'Tipo 1', desc: 'Caroços duros e separados', cor: 'text-red-500' },
+  { tipo: 2, label: 'Tipo 2', desc: 'Salsicha irregular', cor: 'text-orange-500' },
+  { tipo: 3, label: 'Tipo 3', desc: 'Salsicha com rachaduras', cor: 'text-yellow-400' },
+  { tipo: 4, label: 'Tipo 4', desc: 'Salsicha macia e lisa ✓', cor: 'text-emerald-400' },
+  { tipo: 5, label: 'Tipo 5', desc: 'Pedaços com bordas definidas', cor: 'text-yellow-400' },
+  { tipo: 6, label: 'Tipo 6', desc: 'Pedaços fofos irregulares', cor: 'text-orange-500' },
+  { tipo: 7, label: 'Tipo 7', desc: 'Aquosa, sem sólidos', cor: 'text-red-500' },
+]
+const FASES_CICLO = [
+  { val: 'menstrual',  label: 'Menstrual',  sub: 'Dias 1–5' },
+  { val: 'folicular',  label: 'Folicular',  sub: 'Dias 6–13' },
+  { val: 'ovulatoria', label: 'Ovulatória', sub: 'Dias 14–16' },
+  { val: 'lutea',      label: 'Lútea',      sub: 'Dias 17–28' },
+]
+const SINTOMAS_CICLO = [
+  { val: 'tpm_intensa',       label: 'TPM intensa' },
+  { val: 'retencao_hidrica',  label: 'Retenção hídrica' },
+  { val: 'alteracao_apetite', label: 'Alteração de apetite' },
+  { val: 'cólicas',           label: 'Cólicas intensas' },
+  { val: 'fadiga',            label: 'Fadiga' },
+  { val: 'insonia',           label: 'Insônia' },
+]
 
-function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = true }: { icon: React.ReactNode; titulo: string; subtitulo?: string; badge?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+// ─── Componentes de UI ────────────────────────────────────────────────────────
+function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = true }: {
+  icon: React.ReactNode; titulo: string; subtitulo?: string; badge?: string
+  children: React.ReactNode; defaultOpen?: boolean
+}) {
   const [aberto, setAberto] = useState(defaultOpen)
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-      <button onClick={() => setAberto(p => !p)} className="w-full px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
-        style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.07)' : 'none' }}>
+    <div className="rounded-2xl overflow-hidden border border-white/[0.08]" style={{ background: 'var(--surface-1)' }}>
+      <button onClick={() => setAberto(p => !p)}
+        className="w-full px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
+        style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-lg bg-white/[0.07] flex items-center justify-center text-zinc-400 shrink-0">{icon}</div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm">{titulo}</p>
-            {subtitulo && !aberto && <p className="text-zinc-600 text-xs mt-0.5">{subtitulo}</p>}
+            {subtitulo && !aberto && <p className="text-zinc-600 text-xs mt-0.5 truncate">{subtitulo}</p>}
           </div>
-          {badge && <span className="text-[11px] font-medium text-zinc-400 bg-white/[0.06] rounded-full px-2.5 py-0.5">{badge}</span>}
-          <span className={`text-zinc-600 text-xs ml-1 transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`}>▼</span>
+          {badge && <span className="text-[10px] font-medium text-zinc-400 bg-white/[0.06] rounded-full px-2.5 py-0.5 shrink-0">{badge}</span>}
+          <ChevronDown size={14} className={`text-zinc-600 shrink-0 transition-transform duration-200 ${aberto ? 'rotate-180' : ''}`} />
         </div>
       </button>
       {aberto && <div className="p-5 space-y-4">{children}</div>}
@@ -92,13 +166,57 @@ function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = t
   )
 }
 
-function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) {
+function Field({ label, optional, hint, children }: { label: string; optional?: boolean; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">
-        {label}{optional && <span className="text-zinc-700 normal-case tracking-normal ml-1">(opcional)</span>}
-      </label>
+      <div className="flex items-baseline gap-2 mb-1.5">
+        <label className="text-zinc-400 text-[12px] font-medium">{label}</label>
+        {optional && <span className="text-zinc-700 text-[10px] normal-case tracking-normal">opcional</span>}
+        {hint && <span className="text-zinc-600 text-[10px]">{hint}</span>}
+      </div>
       {children}
+    </div>
+  )
+}
+
+function Chips({ opcoes, value, onChange, multi = false }: {
+  opcoes: { val: string; label: string; sub?: string; icon?: string }[]
+  value: string | string[]; onChange: (v: string | string[]) => void; multi?: boolean
+}) {
+  function toggle(v: string) {
+    if (multi) {
+      const arr = Array.isArray(value) ? value : []
+      onChange(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v])
+    } else {
+      onChange((value as string) === v ? '' : v)
+    }
+  }
+  function isActive(v: string) {
+    return multi ? (Array.isArray(value) ? value.includes(v) : false) : value === v
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {opcoes.map(o => (
+        <button key={o.val} type="button" onClick={() => toggle(o.val)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all active:scale-95 ${isActive(o.val) ? 'bg-white border-white text-black' : 'bg-white/[0.04] border-white/[0.12] text-zinc-400 hover:border-white/20 hover:text-zinc-300'}`}>
+          {o.icon && <span>{o.icon}</span>}
+          <span>{o.label}</span>
+          {o.sub && isActive(o.val) && <span className="text-black/50 text-[10px]">· {o.sub}</span>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function YesNo({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex gap-2">
+      {([{ val: false, label: 'Não' }, { val: true, label: 'Sim' }] as const).map(o => (
+        <button key={String(o.val)} type="button" onClick={() => onChange(o.val)}
+          className={`flex-1 py-2.5 rounded-xl border text-sm font-bold transition-all active:scale-95 ${value === o.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.12] text-zinc-400 hover:text-zinc-300'}`}>
+          {o.label}
+        </button>
+      ))}
     </div>
   )
 }
@@ -109,14 +227,15 @@ function ReadRow({ label, value }: { label: string; value: string | number | boo
   return (
     <div className="flex gap-3 py-2 border-b border-white/[0.03] last:border-0">
       <span className="text-zinc-500 text-[11px] font-medium w-32 shrink-0 pt-0.5">{label}</span>
-      <span className="text-zinc-300 text-sm flex-1">{display}</span>
+      <span className="text-zinc-300 text-sm flex-1 leading-relaxed">{display}</span>
     </div>
   )
 }
 
-const INPUT_CLASS = "w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
-const TEXTAREA_CLASS = INPUT_CLASS + " resize-none"
+const INPUT = "w-full bg-white/[0.07] border border-white/[0.12] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/25 transition-colors"
+const TEXTAREA = INPUT + " resize-none"
 
+// ─── Página principal ─────────────────────────────────────────────────────────
 export default function AnamnesePage() {
   const router = useRouter()
   const params = useParams()
@@ -135,96 +254,129 @@ export default function AnamnesePage() {
   const [clienteSexo, setClienteSexo] = useState<string | null>(null)
   const [backUrl, setBackUrl] = useState('/dashboard')
 
-  useEffect(() => {
-    async function carregar() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/login'); return }
-      const meuId = session.user.id
+  useEffect(() => { carregar() }, [clienteId])
 
-      const [{ data: perfil }, { data: clientePerfil }] = await Promise.all([
-        supabase.from('perfis').select('tipo, nome').eq('id', meuId).single(),
-        supabase.from('perfis').select('nome, email, sexo').eq('id', clienteId).single(),
-      ])
-      setMeuPerfil(perfil)
-      setClienteNome(clientePerfil?.nome ?? clientePerfil?.email ?? null)
-      setClienteSexo(clientePerfil?.sexo ?? null)
+  async function carregar() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.push('/login'); return }
+    const meuId = session.user.id
 
-      if (perfil?.tipo === 'personal') setBackUrl(`/personal/aluno/${clienteId}`)
-      else if (perfil?.tipo === 'nutricionista') setBackUrl(`/nutricionista/paciente/${clienteId}`)
-      else setBackUrl('/perfil')
+    const [{ data: perfil }, { data: clientePerfil }] = await Promise.all([
+      supabase.from('perfis').select('tipo, nome').eq('id', meuId).single(),
+      supabase.from('perfis').select('nome, email, sexo').eq('id', clienteId).single(),
+    ])
+    setMeuPerfil(perfil)
+    setClienteNome(clientePerfil?.nome ?? clientePerfil?.email ?? null)
+    setClienteSexo(clientePerfil?.sexo ?? null)
 
-      const isProfissional = perfil?.tipo === 'personal' || perfil?.tipo === 'nutricionista'
+    if (perfil?.tipo === 'personal') setBackUrl(`/personal/aluno/${clienteId}`)
+    else if (perfil?.tipo === 'nutricionista') setBackUrl(`/nutricionista/paciente/${clienteId}`)
+    else setBackUrl('/perfil')
 
-      // Load own anamnese (by profissional_id for professionals, by cliente_id for clients)
-      const propria = isProfissional
-        ? await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).eq('profissional_id', meuId).limit(1).single()
-        : await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).is('profissional_id', null).limit(1).single()
+    const isProfissional = perfil?.tipo === 'personal' || perfil?.tipo === 'nutricionista'
 
-      if (propria.data) {
-        const e = propria.data
-        setAnamneseId(e.id)
-        setForm({
-          patologias: e.patologias ?? '', medicamentos: e.medicamentos ?? '',
-          alergias: e.alergias ?? '', cirurgias: e.cirurgias ?? '',
-          historico_familiar: e.historico_familiar ?? '', nivel_atividade: e.nivel_atividade ?? '',
-          horas_sono: e.horas_sono != null ? String(e.horas_sono) : '',
-          nivel_estresse: e.nivel_estresse ?? 0, fuma: e.fuma ?? false, alcool: e.alcool ?? '',
-          historico_esportivo: e.historico_esportivo ?? '', lesoes: e.lesoes ?? '',
-          restricoes_fisicas: e.restricoes_fisicas ?? '', restricoes_alimentares: e.restricoes_alimentares ?? '',
-          suplementos: e.suplementos ?? '', refeicoes_por_dia: e.refeicoes_por_dia != null ? String(e.refeicoes_por_dia) : '',
-          habitos_alimentares: e.habitos_alimentares ?? '', objetivo_detalhado: e.objetivo_detalhado ?? '',
-          motivacao: e.motivacao ?? '', prazo_semanas: e.prazo_semanas != null ? String(e.prazo_semanas) : '',
-          observacoes: e.observacoes ?? '',
-          funcionamento_intestinal: e.funcionamento_intestinal ?? '',
-          usa_probioticos: e.usa_probioticos ?? null,
-          ciclo_regular: e.ciclo_regular ?? null,
-          duracao_ciclo_dias: e.duracao_ciclo_dias != null ? String(e.duracao_ciclo_dias) : '',
-          fase_ciclo: e.fase_ciclo ?? '',
-          sintomas_ciclo: Array.isArray(e.sintomas_ciclo) ? e.sintomas_ciclo : [],
+    const propria = isProfissional
+      ? await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).eq('profissional_id', meuId).limit(1).single()
+      : await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).is('profissional_id', null).limit(1).single()
+
+    if (propria.data) {
+      const e = propria.data
+      setAnamneseId(e.id)
+      setForm({
+        objetivo_detalhado: e.objetivo_detalhado ?? '',
+        motivacao: e.motivacao ?? '',
+        prazo_semanas: e.prazo_semanas != null ? String(e.prazo_semanas) : '',
+        profissao: e.profissao ?? '',
+        patologias: e.patologias ?? '',
+        medicamentos: e.medicamentos ?? '',
+        alergias: e.alergias ?? '',
+        intolerancias: e.intolerancias ?? '',
+        cirurgias: e.cirurgias ?? '',
+        historico_familiar: e.historico_familiar ?? '',
+        exames_laboratoriais: e.exames_laboratoriais ?? '',
+        peso_maximo: e.peso_maximo != null ? String(e.peso_maximo) : '',
+        peso_minimo: e.peso_minimo != null ? String(e.peso_minimo) : '',
+        peso_habitual: e.peso_habitual != null ? String(e.peso_habitual) : '',
+        efeito_sanfona: e.efeito_sanfona ?? null,
+        tentativas_emagrecimento: e.tentativas_emagrecimento ?? '',
+        refeicoes_por_dia: e.refeicoes_por_dia != null ? String(e.refeicoes_por_dia) : '',
+        horarios_refeicoes: e.horarios_refeicoes ?? '',
+        onde_come: e.onde_come ?? '',
+        quem_prepara: e.quem_prepara ?? '',
+        preferencias_alimentares: e.preferencias_alimentares ?? '',
+        aversoes_alimentares: e.aversoes_alimentares ?? '',
+        restricoes_alimentares: e.restricoes_alimentares ?? '',
+        consumo_agua_litros: e.consumo_agua_litros != null ? String(e.consumo_agua_litros) : '',
+        consumo_ultraprocessados: e.consumo_ultraprocessados ?? '',
+        suplementos: e.suplementos ?? '',
+        habitos_alimentares: e.habitos_alimentares ?? '',
+        horas_sono: e.horas_sono != null ? String(e.horas_sono) : '',
+        qualidade_sono: e.qualidade_sono ?? '',
+        nivel_estresse: e.nivel_estresse ?? 0,
+        fuma: e.fuma ?? false,
+        alcool: e.alcool ?? '',
+        rotina_trabalho: e.rotina_trabalho ?? '',
+        nivel_atividade: e.nivel_atividade ?? '',
+        modalidade_treino: e.modalidade_treino ?? '',
+        frequencia_treino: e.frequencia_treino ?? '',
+        duracao_treino_min: e.duracao_treino_min != null ? String(e.duracao_treino_min) : '',
+        horario_treino: e.horario_treino ?? '',
+        historico_esportivo: e.historico_esportivo ?? '',
+        funcionamento_intestinal: e.funcionamento_intestinal ?? '',
+        bristol_escala: e.bristol_escala != null ? String(e.bristol_escala) : '',
+        refluxo: e.refluxo ?? null,
+        distensao_abdominal: e.distensao_abdominal ?? null,
+        usa_probioticos: e.usa_probioticos ?? null,
+        ciclo_regular: e.ciclo_regular ?? null,
+        duracao_ciclo_dias: e.duracao_ciclo_dias != null ? String(e.duracao_ciclo_dias) : '',
+        fase_ciclo: e.fase_ciclo ?? '',
+        sintomas_ciclo: Array.isArray(e.sintomas_ciclo) ? e.sintomas_ciclo : [],
+        lesoes: e.lesoes ?? '',
+        restricoes_fisicas: e.restricoes_fisicas ?? '',
+        observacoes: e.observacoes ?? '',
+      })
+    }
+
+    if (isProfissional) {
+      const { data: outras } = await supabase
+        .from('anamneses').select('*').eq('cliente_id', clienteId).neq('profissional_id', meuId)
+        .order('criado_em', { ascending: false }).limit(1)
+      if (outras?.length) {
+        const o = outras[0]
+        const { data: outroPerfil } = o.profissional_id
+          ? await supabase.from('perfis').select('nome, tipo').eq('id', o.profissional_id).single()
+          : { data: null }
+        setOutraAnamnese({
+          objetivo_detalhado: o.objetivo_detalhado ?? '', motivacao: o.motivacao ?? '', prazo_semanas: o.prazo_semanas != null ? String(o.prazo_semanas) : '',
+          profissao: o.profissao ?? '', patologias: o.patologias ?? '', medicamentos: o.medicamentos ?? '',
+          alergias: o.alergias ?? '', intolerancias: o.intolerancias ?? '', cirurgias: o.cirurgias ?? '',
+          historico_familiar: o.historico_familiar ?? '', exames_laboratoriais: o.exames_laboratoriais ?? '',
+          peso_maximo: o.peso_maximo != null ? String(o.peso_maximo) : '', peso_minimo: o.peso_minimo != null ? String(o.peso_minimo) : '',
+          peso_habitual: o.peso_habitual != null ? String(o.peso_habitual) : '', efeito_sanfona: o.efeito_sanfona ?? null,
+          tentativas_emagrecimento: o.tentativas_emagrecimento ?? '', refeicoes_por_dia: o.refeicoes_por_dia != null ? String(o.refeicoes_por_dia) : '',
+          horarios_refeicoes: o.horarios_refeicoes ?? '', onde_come: o.onde_come ?? '', quem_prepara: o.quem_prepara ?? '',
+          preferencias_alimentares: o.preferencias_alimentares ?? '', aversoes_alimentares: o.aversoes_alimentares ?? '',
+          restricoes_alimentares: o.restricoes_alimentares ?? '', consumo_agua_litros: o.consumo_agua_litros != null ? String(o.consumo_agua_litros) : '',
+          consumo_ultraprocessados: o.consumo_ultraprocessados ?? '', suplementos: o.suplementos ?? '',
+          habitos_alimentares: o.habitos_alimentares ?? '', horas_sono: o.horas_sono != null ? String(o.horas_sono) : '',
+          qualidade_sono: o.qualidade_sono ?? '', nivel_estresse: o.nivel_estresse ?? 0, fuma: o.fuma ?? false,
+          alcool: o.alcool ?? '', rotina_trabalho: o.rotina_trabalho ?? '', nivel_atividade: o.nivel_atividade ?? '',
+          modalidade_treino: o.modalidade_treino ?? '', frequencia_treino: o.frequencia_treino ?? '',
+          duracao_treino_min: o.duracao_treino_min != null ? String(o.duracao_treino_min) : '',
+          horario_treino: o.horario_treino ?? '', historico_esportivo: o.historico_esportivo ?? '',
+          funcionamento_intestinal: o.funcionamento_intestinal ?? '', bristol_escala: o.bristol_escala != null ? String(o.bristol_escala) : '',
+          refluxo: o.refluxo ?? null, distensao_abdominal: o.distensao_abdominal ?? null, usa_probioticos: o.usa_probioticos ?? null,
+          ciclo_regular: o.ciclo_regular ?? null, duracao_ciclo_dias: o.duracao_ciclo_dias != null ? String(o.duracao_ciclo_dias) : '',
+          fase_ciclo: o.fase_ciclo ?? '', sintomas_ciclo: Array.isArray(o.sintomas_ciclo) ? o.sintomas_ciclo : [],
+          lesoes: o.lesoes ?? '', restricoes_fisicas: o.restricoes_fisicas ?? '', observacoes: o.observacoes ?? '',
+          profissional_nome: outroPerfil?.nome ?? null, profissional_tipo: outroPerfil?.tipo ?? null,
         })
       }
-
-      // Load other professionals' anamneses
-      if (isProfissional) {
-        const { data: outras } = await supabase
-          .from('anamneses').select('*').eq('cliente_id', clienteId).neq('profissional_id', meuId)
-          .order('criado_em', { ascending: false }).limit(1)
-        if (outras?.length) {
-          const o = outras[0]
-          // Load other professional's name/type
-          const { data: outroPerfil } = o.profissional_id
-            ? await supabase.from('perfis').select('nome, tipo').eq('id', o.profissional_id).single()
-            : { data: null }
-          setOutraAnamnese({
-            patologias: o.patologias ?? '', medicamentos: o.medicamentos ?? '',
-            alergias: o.alergias ?? '', cirurgias: o.cirurgias ?? '',
-            historico_familiar: o.historico_familiar ?? '', nivel_atividade: o.nivel_atividade ?? '',
-            horas_sono: o.horas_sono != null ? String(o.horas_sono) : '',
-            nivel_estresse: o.nivel_estresse ?? 0, fuma: o.fuma ?? false, alcool: o.alcool ?? '',
-            historico_esportivo: o.historico_esportivo ?? '', lesoes: o.lesoes ?? '',
-            restricoes_fisicas: o.restricoes_fisicas ?? '', restricoes_alimentares: o.restricoes_alimentares ?? '',
-            suplementos: o.suplementos ?? '', refeicoes_por_dia: o.refeicoes_por_dia != null ? String(o.refeicoes_por_dia) : '',
-            habitos_alimentares: o.habitos_alimentares ?? '', objetivo_detalhado: o.objetivo_detalhado ?? '',
-            motivacao: o.motivacao ?? '', prazo_semanas: o.prazo_semanas != null ? String(o.prazo_semanas) : '',
-            observacoes: o.observacoes ?? '',
-            funcionamento_intestinal: o.funcionamento_intestinal ?? '',
-            usa_probioticos: o.usa_probioticos ?? null,
-            ciclo_regular: o.ciclo_regular ?? null,
-            duracao_ciclo_dias: o.duracao_ciclo_dias != null ? String(o.duracao_ciclo_dias) : '',
-            fase_ciclo: o.fase_ciclo ?? '',
-            sintomas_ciclo: Array.isArray(o.sintomas_ciclo) ? o.sintomas_ciclo : [],
-            profissional_nome: outroPerfil?.nome ?? null,
-            profissional_tipo: outroPerfil?.tipo ?? null,
-          })
-        }
-      }
-
-      setCarregando(false)
     }
-    carregar()
-  }, [clienteId, router])
+    setCarregando(false)
+  }
 
-  function set(field: keyof AnamneseForm, val: string | number | boolean | string[]) {
+  function set(field: keyof AnamneseForm, val: string | number | boolean | string[] | null) {
     setForm(prev => ({ ...prev, [field]: val }))
   }
 
@@ -234,38 +386,44 @@ export default function AnamnesePage() {
     if (!session) { router.push('/login'); return }
 
     const isProfissional = meuperfil?.tipo === 'personal' || meuperfil?.tipo === 'nutricionista'
+    const n = (v: string) => v.trim() || null
+    const f = (v: string) => v ? parseFloat(v) : null
+    const i = (v: string) => v ? parseInt(v) : null
+
     const payload = {
       cliente_id: clienteId,
       profissional_id: isProfissional ? session.user.id : null,
-      patologias: form.patologias.trim() || null,
-      medicamentos: form.medicamentos.trim() || null,
-      alergias: form.alergias.trim() || null,
-      cirurgias: form.cirurgias.trim() || null,
-      historico_familiar: form.historico_familiar.trim() || null,
-      nivel_atividade: form.nivel_atividade || null,
-      horas_sono: form.horas_sono ? parseFloat(form.horas_sono) : null,
-      nivel_estresse: form.nivel_estresse || null,
-      fuma: form.fuma,
-      alcool: form.alcool || null,
-      historico_esportivo: form.historico_esportivo.trim() || null,
-      lesoes: form.lesoes.trim() || null,
-      restricoes_fisicas: form.restricoes_fisicas.trim() || null,
-      restricoes_alimentares: form.restricoes_alimentares.trim() || null,
-      suplementos: form.suplementos.trim() || null,
-      refeicoes_por_dia: form.refeicoes_por_dia ? parseInt(form.refeicoes_por_dia) : null,
-      habitos_alimentares: form.habitos_alimentares.trim() || null,
-      objetivo_detalhado: form.objetivo_detalhado.trim() || null,
-      motivacao: form.motivacao.trim() || null,
-      prazo_semanas: form.prazo_semanas ? parseInt(form.prazo_semanas) : null,
-      observacoes: form.observacoes.trim() || null,
-      // Saúde Intestinal
-      funcionamento_intestinal: form.funcionamento_intestinal || null,
-      usa_probioticos: form.usa_probioticos,
-      // Ciclo Menstrual
+      objetivo_detalhado: n(form.objetivo_detalhado), motivacao: n(form.motivacao), prazo_semanas: i(form.prazo_semanas),
+      profissao: n(form.profissao),
+      patologias: n(form.patologias), medicamentos: n(form.medicamentos),
+      alergias: n(form.alergias), intolerancias: n(form.intolerancias),
+      cirurgias: n(form.cirurgias), historico_familiar: n(form.historico_familiar),
+      exames_laboratoriais: n(form.exames_laboratoriais),
+      peso_maximo: f(form.peso_maximo), peso_minimo: f(form.peso_minimo),
+      peso_habitual: f(form.peso_habitual), efeito_sanfona: form.efeito_sanfona,
+      tentativas_emagrecimento: n(form.tentativas_emagrecimento),
+      refeicoes_por_dia: i(form.refeicoes_por_dia), horarios_refeicoes: n(form.horarios_refeicoes),
+      onde_come: n(form.onde_come), quem_prepara: n(form.quem_prepara),
+      preferencias_alimentares: n(form.preferencias_alimentares),
+      aversoes_alimentares: n(form.aversoes_alimentares),
+      restricoes_alimentares: n(form.restricoes_alimentares),
+      consumo_agua_litros: f(form.consumo_agua_litros),
+      consumo_ultraprocessados: n(form.consumo_ultraprocessados),
+      suplementos: n(form.suplementos), habitos_alimentares: n(form.habitos_alimentares),
+      horas_sono: f(form.horas_sono), qualidade_sono: n(form.qualidade_sono),
+      nivel_estresse: form.nivel_estresse || null, fuma: form.fuma, alcool: n(form.alcool),
+      rotina_trabalho: n(form.rotina_trabalho),
+      nivel_atividade: n(form.nivel_atividade), modalidade_treino: n(form.modalidade_treino),
+      frequencia_treino: n(form.frequencia_treino), duracao_treino_min: i(form.duracao_treino_min),
+      horario_treino: n(form.horario_treino), historico_esportivo: n(form.historico_esportivo),
+      funcionamento_intestinal: n(form.funcionamento_intestinal),
+      bristol_escala: i(form.bristol_escala), refluxo: form.refluxo,
+      distensao_abdominal: form.distensao_abdominal, usa_probioticos: form.usa_probioticos,
       ciclo_regular: form.ciclo_regular,
-      duracao_ciclo_dias: form.duracao_ciclo_dias ? parseInt(form.duracao_ciclo_dias) : null,
-      fase_ciclo: form.fase_ciclo || null,
+      duracao_ciclo_dias: i(form.duracao_ciclo_dias), fase_ciclo: n(form.fase_ciclo),
       sintomas_ciclo: form.sintomas_ciclo.length > 0 ? form.sintomas_ciclo : null,
+      lesoes: n(form.lesoes), restricoes_fisicas: n(form.restricoes_fisicas),
+      observacoes: n(form.observacoes),
       atualizado_em: new Date().toISOString(),
     }
 
@@ -301,10 +459,10 @@ export default function AnamnesePage() {
   )
 
   const isProfissional = meuperfil?.tipo === 'personal' || meuperfil?.tipo === 'nutricionista'
-  const outraTipoLabel = outraAnamnese?.profissional_tipo === 'personal' ? 'Personal' : outraAnamnese?.profissional_tipo === 'nutricionista' ? 'Nutricionista' : 'Profissional'
-  const outraNome = outraAnamnese?.profissional_nome ?? outraTipoLabel
-
+  const isFeminino = clienteSexo === 'feminino' || clienteSexo === 'f' || clienteSexo === 'F'
   const tipoSidebar = meuperfil?.tipo === 'personal' ? 'personal' : 'nutricionista'
+  const outraTipoLabel = outraAnamnese?.profissional_tipo === 'personal' ? 'Personal' : 'Nutricionista'
+  const outraNome = outraAnamnese?.profissional_nome ?? outraTipoLabel
 
   return (
     <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
@@ -318,87 +476,235 @@ export default function AnamnesePage() {
           <div>
             <h1 className="text-2xl font-black tracking-tight">Anamnese</h1>
             <p className="text-zinc-500 text-sm mt-0.5">
-              {isProfissional && clienteNome ? clienteNome : (anamneseId ? 'Atualizar ficha de saúde' : 'Ficha de saúde completa')}
+              {clienteNome ?? (anamneseId ? 'Atualizar ficha clínica' : 'Ficha clínica completa')}
             </p>
           </div>
           {anamneseId && (
-            <span className="ml-auto text-xs uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 shrink-0">Preenchida</span>
+            <span className="ml-auto text-[10px] uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 shrink-0">Preenchida</span>
           )}
         </div>
 
-        {/* 2 colunas no desktop */}
-        <div className="space-y-5 md:space-y-0 md:grid md:grid-cols-2 md:gap-5">
+        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
 
-          <SectionCard icon={<HeartPulse size={14} />} titulo="Saúde" subtitulo="Histórico médico e condições atuais">
+          {/* ── 1. Objetivo da consulta ────────────────────────────────── */}
+          <SectionCard icon={<Target size={14} />} titulo="Objetivo da consulta" subtitulo="O que o paciente quer alcançar">
+            <Field label="Objetivo principal">
+              <textarea value={form.objetivo_detalhado} onChange={e => set('objetivo_detalhado', e.target.value)}
+                placeholder="Ex: Perder 8kg em 4 meses, principalmente abdômen e flancos..." rows={3} className={TEXTAREA} />
+            </Field>
+            <Field label="Motivação" optional>
+              <input value={form.motivacao} onChange={e => set('motivacao', e.target.value)}
+                placeholder="Ex: Casamento em novembro, recomendação médica, saúde..." className={INPUT} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Prazo desejado" optional>
+                <div className="relative">
+                  <input type="number" value={form.prazo_semanas} onChange={e => set('prazo_semanas', e.target.value)}
+                    placeholder="16" min={1} className={INPUT + ' pr-16'} />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">sem.</span>
+                </div>
+              </Field>
+              <Field label="Profissão" optional>
+                <input value={form.profissao} onChange={e => set('profissao', e.target.value)}
+                  placeholder="Ex: Professora, engenheiro..." className={INPUT} />
+              </Field>
+            </div>
+          </SectionCard>
+
+          {/* ── 2. Histórico Clínico ───────────────────────────────────── */}
+          <SectionCard icon={<HeartPulse size={14} />} titulo="Histórico Clínico" subtitulo="Doenças, medicamentos, exames laboratoriais">
             <Field label="Patologias / doenças diagnosticadas" optional>
               <textarea value={form.patologias} onChange={e => set('patologias', e.target.value)}
-                placeholder="Ex: Hipertensão, diabetes tipo 2, hipotireoidismo..." rows={2} className={TEXTAREA_CLASS} />
+                placeholder="Ex: Hipertensão, diabetes tipo 2, hipotireoidismo, SOP..." rows={2} className={TEXTAREA} />
             </Field>
             <Field label="Medicamentos em uso" optional>
               <textarea value={form.medicamentos} onChange={e => set('medicamentos', e.target.value)}
-                placeholder="Nome do medicamento e dose..." rows={2} className={TEXTAREA_CLASS} />
+                placeholder="Nome, dose e frequência de cada medicamento..." rows={2} className={TEXTAREA} />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Alergias" optional>
+            <Field label="Exames laboratoriais recentes" optional hint="(glicemia, colesterol, hemograma, TSH...)">
+              <textarea value={form.exames_laboratoriais} onChange={e => set('exames_laboratoriais', e.target.value)}
+                placeholder="Ex: Glicemia 98 (ref. <100), Colesterol total 210, TSH 2.4..." rows={3} className={TEXTAREA} />
+            </Field>
+            <div className="grid grid-cols-1 gap-3">
+              <Field label="Alergias alimentares" optional>
                 <input value={form.alergias} onChange={e => set('alergias', e.target.value)}
-                  placeholder="Alimentos, medicamentos..." className={INPUT_CLASS} />
+                  placeholder="Ex: Amendoim, frutos do mar, nozes..." className={INPUT} />
               </Field>
-              <Field label="Cirurgias" optional>
-                <input value={form.cirurgias} onChange={e => set('cirurgias', e.target.value)}
-                  placeholder="Ex: Joelho (2019)..." className={INPUT_CLASS} />
+              <Field label="Intolerâncias e sensibilidades" optional>
+                <input value={form.intolerancias} onChange={e => set('intolerancias', e.target.value)}
+                  placeholder="Ex: Lactose, glúten, FODMAP, frutose..." className={INPUT} />
               </Field>
             </div>
-            <Field label="Histórico familiar relevante" optional>
-              <input value={form.historico_familiar} onChange={e => set('historico_familiar', e.target.value)}
-                placeholder="Ex: Pai com diabetes, mãe com hipertensão..." className={INPUT_CLASS} />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Cirurgias" optional>
+                <input value={form.cirurgias} onChange={e => set('cirurgias', e.target.value)}
+                  placeholder="Ex: Bariátrica (2022)..." className={INPUT} />
+              </Field>
+              <Field label="Histórico familiar" optional>
+                <input value={form.historico_familiar} onChange={e => set('historico_familiar', e.target.value)}
+                  placeholder="Ex: Pai diabético, mãe hipertensa..." className={INPUT} />
+              </Field>
+            </div>
+          </SectionCard>
+
+          {/* ── 3. Histórico de Peso ──────────────────────────────────── */}
+          <SectionCard icon={<Scale size={14} />} titulo="Histórico de Peso" subtitulo="Peso máximo, mínimo, efeito sanfona">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { field: 'peso_maximo' as keyof AnamneseForm,  label: 'Peso máximo', unit: 'kg' },
+                { field: 'peso_minimo' as keyof AnamneseForm,  label: 'Peso mínimo', unit: 'kg' },
+                { field: 'peso_habitual' as keyof AnamneseForm, label: 'Peso habitual', unit: 'kg' },
+              ].map(({ field, label, unit }) => (
+                <Field key={field} label={label} optional>
+                  <div className="relative">
+                    <input type="number" value={form[field] as string} onChange={e => set(field, e.target.value)}
+                      placeholder="—" step="0.1" className={INPUT + ' pr-8'} />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">{unit}</span>
+                  </div>
+                </Field>
+              ))}
+            </div>
+            <Field label="Já teve efeito sanfona?">
+              <YesNo value={form.efeito_sanfona} onChange={v => set('efeito_sanfona', v)} />
+            </Field>
+            <Field label="Tentativas anteriores de emagrecimento" optional>
+              <textarea value={form.tentativas_emagrecimento} onChange={e => set('tentativas_emagrecimento', e.target.value)}
+                placeholder="Ex: Low carb por 2 meses (perdeu 4kg), reeducação alimentar (ganhou tudo de volta)..." rows={2} className={TEXTAREA} />
             </Field>
           </SectionCard>
 
-          <SectionCard icon={<Leaf size={14} />} titulo="Estilo de vida" subtitulo="Rotina, hábitos e bem-estar geral">
-            <Field label="Nível de atividade física atual">
+          {/* ── 4. Hábitos Alimentares ────────────────────────────────── */}
+          <SectionCard icon={<Salad size={14} />} titulo="Hábitos Alimentares" subtitulo="Rotina alimentar, preferências e restrições">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Refeições por dia" optional>
+                <input type="number" value={form.refeicoes_por_dia} onChange={e => set('refeicoes_por_dia', e.target.value)}
+                  placeholder="5" min={1} max={10} className={INPUT} />
+              </Field>
+              <Field label="Consumo de água" optional>
+                <div className="relative">
+                  <input type="number" value={form.consumo_agua_litros} onChange={e => set('consumo_agua_litros', e.target.value)}
+                    placeholder="2.0" step="0.5" className={INPUT + ' pr-6'} />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">L</span>
+                </div>
+              </Field>
+            </div>
+            <Field label="Horários das refeições" optional>
+              <input value={form.horarios_refeicoes} onChange={e => set('horarios_refeicoes', e.target.value)}
+                placeholder="Ex: café 07h · lanche 10h · almoço 13h · lanche 16h · jantar 19h" className={INPUT} />
+            </Field>
+            <Field label="Onde faz as refeições" optional>
+              <Chips opcoes={ONDE_COME} value={form.onde_come} onChange={v => set('onde_come', v as string)} />
+            </Field>
+            <Field label="Quem prepara as refeições" optional>
+              <Chips opcoes={QUEM_PREPARA} value={form.quem_prepara} onChange={v => set('quem_prepara', v as string)} />
+            </Field>
+            <Field label="Consumo de ultraprocessados" optional>
+              <Chips opcoes={ULTRAPROCESSADOS} value={form.consumo_ultraprocessados} onChange={v => set('consumo_ultraprocessados', v as string)} />
+            </Field>
+            <Field label="Preferências alimentares" optional>
+              <input value={form.preferencias_alimentares} onChange={e => set('preferencias_alimentares', e.target.value)}
+                placeholder="Ex: Adora frango, ovos, frutas, pão integral..." className={INPUT} />
+            </Field>
+            <Field label="Aversões alimentares" optional>
+              <input value={form.aversoes_alimentares} onChange={e => set('aversoes_alimentares', e.target.value)}
+                placeholder="Ex: Não come peixe, detesta brócolis, evita leite..." className={INPUT} />
+            </Field>
+            <Field label="Restrições alimentares" optional>
+              <input value={form.restricoes_alimentares} onChange={e => set('restricoes_alimentares', e.target.value)}
+                placeholder="Ex: Vegetariano, sem lactose, kosher, halal..." className={INPUT} />
+            </Field>
+            <Field label="Suplementos em uso" optional>
+              <input value={form.suplementos} onChange={e => set('suplementos', e.target.value)}
+                placeholder="Ex: Whey 30g pós-treino, creatina 5g/dia, vitamina D 5000UI..." className={INPUT} />
+            </Field>
+            <Field label="Observações sobre hábitos" optional>
+              <textarea value={form.habitos_alimentares} onChange={e => set('habitos_alimentares', e.target.value)}
+                placeholder="Ex: Come muito rápido, pula refeições sob estresse, compulsão noturna..." rows={2} className={TEXTAREA} />
+            </Field>
+          </SectionCard>
+
+          {/* ── 5. Saúde Gastrointestinal ─────────────────────────────── */}
+          <SectionCard icon={<Activity size={14} />} titulo="Saúde Gastrointestinal" subtitulo="Funcionamento intestinal, Bristol, refluxo">
+            <Field label="Funcionamento intestinal">
               <div className="grid grid-cols-1 gap-1.5">
-                {NIVEL_ATIVIDADE.map(n => (
-                  <button key={n.val} onClick={() => set('nivel_atividade', n.val)}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.nivel_atividade === n.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] hover:border-white/20'}`}>
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${form.nivel_atividade === n.val ? 'bg-black' : 'bg-white/20'}`} />
+                {FUNCIONAMENTO_INTESTINAL.map(op => (
+                  <button key={op.val} type="button" onClick={() => set('funcionamento_intestinal', op.val)}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.funcionamento_intestinal === op.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.12] hover:border-white/20'}`}>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${form.funcionamento_intestinal === op.val ? 'bg-black' : 'bg-white/20'}`} />
                     <div>
-                      <p className={`text-sm font-bold ${form.nivel_atividade === n.val ? 'text-black' : 'text-white'}`}>{n.label}</p>
-                      <p className={`text-sm ${form.nivel_atividade === n.val ? 'text-black/60' : 'text-zinc-500'}`}>{n.sub}</p>
+                      <p className={`text-sm font-bold ${form.funcionamento_intestinal === op.val ? 'text-black' : 'text-white'}`}>{op.label}</p>
+                      <p className={`text-xs ${form.funcionamento_intestinal === op.val ? 'text-black/60' : 'text-zinc-500'}`}>{op.sub}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </Field>
+            <Field label="Escala de Bristol" optional hint="(consistência das fezes — 4 é ideal)">
+              <div className="grid grid-cols-4 gap-1.5 md:grid-cols-7">
+                {BRISTOL.map(b => (
+                  <button key={b.tipo} type="button" onClick={() => set('bristol_escala', form.bristol_escala === String(b.tipo) ? '' : String(b.tipo))}
+                    className={`flex flex-col items-center p-2 rounded-xl border transition-all active:scale-95 text-center ${form.bristol_escala === String(b.tipo) ? 'bg-white border-white' : 'bg-white/[0.04] border-white/[0.1] hover:border-white/20'}`}>
+                    <span className={`text-lg font-black ${form.bristol_escala === String(b.tipo) ? 'text-black' : b.cor}`}>{b.tipo}</span>
+                    <span className={`text-[8px] leading-tight mt-0.5 ${form.bristol_escala === String(b.tipo) ? 'text-black/60' : 'text-zinc-600'}`}>{b.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </Field>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Refluxo?">
+                <YesNo value={form.refluxo} onChange={v => set('refluxo', v)} />
+              </Field>
+              <Field label="Distensão?">
+                <YesNo value={form.distensao_abdominal} onChange={v => set('distensao_abdominal', v)} />
+              </Field>
+              <Field label="Probiótico?">
+                <YesNo value={form.usa_probioticos} onChange={v => set('usa_probioticos', v)} />
+              </Field>
+            </div>
+          </SectionCard>
+
+          {/* ── 6. Sono e Estilo de Vida ──────────────────────────────── */}
+          <SectionCard icon={<Leaf size={14} />} titulo="Sono e Estilo de Vida" subtitulo="Qualidade do sono, estresse, tabagismo, álcool">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Horas de sono" optional>
+                <div className="relative">
+                  <input type="number" value={form.horas_sono} onChange={e => set('horas_sono', e.target.value)}
+                    placeholder="7" min={0} max={24} step={0.5} className={INPUT + ' pr-6'} />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">h</span>
+                </div>
+              </Field>
+              <Field label="Nível de estresse" optional hint="(1–10)">
+                <div className="relative">
+                  <input type="number" value={form.nivel_estresse || ''} onChange={e => set('nivel_estresse', parseInt(e.target.value) || 0)}
+                    placeholder="5" min={1} max={10} className={INPUT + ' pr-10'} />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-xs">/10</span>
+                </div>
+              </Field>
+            </div>
+            <Field label="Qualidade do sono" optional>
+              <Chips opcoes={QUALIDADE_SONO.map(q => ({ val: q.val, label: q.label }))} value={form.qualidade_sono} onChange={v => set('qualidade_sono', v as string)} />
+            </Field>
+            <Field label="Rotina de trabalho" optional>
+              <div className="grid grid-cols-1 gap-1.5">
+                {ROTINA_TRABALHO.map(r => (
+                  <button key={r.val} type="button" onClick={() => set('rotina_trabalho', r.val)}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.rotina_trabalho === r.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.12] hover:border-white/20'}`}>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${form.rotina_trabalho === r.val ? 'bg-black' : 'bg-white/20'}`} />
+                    <div>
+                      <p className={`text-sm font-bold ${form.rotina_trabalho === r.val ? 'text-black' : 'text-white'}`}>{r.label}</p>
+                      <p className={`text-xs ${form.rotina_trabalho === r.val ? 'text-black/60' : 'text-zinc-500'}`}>{r.sub}</p>
                     </div>
                   </button>
                 ))}
               </div>
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Horas de sono por noite" optional>
-                <div className="relative">
-                  <input type="number" value={form.horas_sono} onChange={e => set('horas_sono', e.target.value)}
-                    placeholder="7" min={0} max={24} step={0.5} className={INPUT_CLASS + " pr-10"} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">h</span>
-                </div>
-              </Field>
-              <Field label="Nível de estresse (1–10)" optional>
-                <div className="relative">
-                  <input type="number" value={form.nivel_estresse || ''} onChange={e => set('nivel_estresse', parseInt(e.target.value) || 0)}
-                    placeholder="5" min={1} max={10} className={INPUT_CLASS + " pr-10"} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">/10</span>
-                </div>
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Fuma?">
-                <div className="flex gap-2">
-                  {[{ val: false, label: 'Não' }, { val: true, label: 'Sim' }].map(o => (
-                    <button key={String(o.val)} onClick={() => set('fuma', o.val)}
-                      className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all active:scale-95 ${form.fuma === o.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] text-zinc-400'}`}>
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
+              <Field label="Tabagismo">
+                <YesNo value={form.fuma} onChange={v => set('fuma', v)} />
               </Field>
               <Field label="Álcool" optional>
                 <select value={form.alcool} onChange={e => set('alcool', e.target.value)}
-                  className={INPUT_CLASS + " appearance-none"} style={{ colorScheme: 'dark', background: '#141414' }}>
+                  className={INPUT} style={{ colorScheme: 'dark', background: '#141414' }}>
                   <option value="">Selecione</option>
                   {ALCOOL.map(a => <option key={a.val} value={a.val}>{a.label}</option>)}
                 </select>
@@ -406,96 +712,66 @@ export default function AnamnesePage() {
             </div>
           </SectionCard>
 
-          <SectionCard icon={<Dumbbell size={14} />} titulo="Histórico esportivo" subtitulo="Experiência, lesões e limitações físicas">
-            <Field label="Histórico esportivo" optional>
-              <textarea value={form.historico_esportivo} onChange={e => set('historico_esportivo', e.target.value)}
-                placeholder="Ex: 3 anos musculação, praticou natação na infância..." rows={3} className={TEXTAREA_CLASS} />
-            </Field>
-            <Field label="Lesões e histórico de dores" optional>
-              <textarea value={form.lesoes} onChange={e => set('lesoes', e.target.value)}
-                placeholder="Ex: Lesão no manguito rotador direito (2021), dor lombar crônica..." rows={2} className={TEXTAREA_CLASS} />
-            </Field>
-            <Field label="Restrições físicas / movimentos limitados" optional>
-              <input value={form.restricoes_fisicas} onChange={e => set('restricoes_fisicas', e.target.value)}
-                placeholder="Ex: Evitar agachamento profundo, não pode supino..." className={INPUT_CLASS} />
-            </Field>
-          </SectionCard>
-
-          <SectionCard icon={<Salad size={14} />} titulo="Nutrição" subtitulo="Alimentação, restrições e suplementação">
-            <Field label="Restrições alimentares" optional>
-              <input value={form.restricoes_alimentares} onChange={e => set('restricoes_alimentares', e.target.value)}
-                placeholder="Ex: Intolerância a lactose, vegetariano, sem glúten..." className={INPUT_CLASS} />
-            </Field>
-            <Field label="Suplementos em uso" optional>
-              <input value={form.suplementos} onChange={e => set('suplementos', e.target.value)}
-                placeholder="Ex: Whey 30g pós-treino, creatina 5g, vitamina D..." className={INPUT_CLASS} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Refeições por dia" optional>
-                <input type="number" value={form.refeicoes_por_dia} onChange={e => set('refeicoes_por_dia', e.target.value)}
-                  placeholder="5" min={1} max={10} className={INPUT_CLASS} />
-              </Field>
-            </div>
-            <Field label="Hábitos alimentares" optional>
-              <textarea value={form.habitos_alimentares} onChange={e => set('habitos_alimentares', e.target.value)}
-                placeholder="Ex: Come muito fora, pula o café da manhã, come bem nos finais de semana..." rows={2} className={TEXTAREA_CLASS} />
-            </Field>
-          </SectionCard>
-
-          {/* ── Saúde Intestinal ─────────────────────────────────────────── */}
-          <SectionCard icon={<Activity size={14} />} titulo="Saúde Intestinal" subtitulo="Funcionamento e microbiota">
-            <Field label="Funcionamento intestinal">
+          {/* ── 7. Atividade Física ───────────────────────────────────── */}
+          <SectionCard icon={<Dumbbell size={14} />} titulo="Atividade Física" subtitulo="Modalidade, frequência, intensidade e horário">
+            <Field label="Nível de atividade atual">
               <div className="grid grid-cols-1 gap-1.5">
-                {FUNCIONAMENTO_INTESTINAL.map(op => (
-                  <button key={op.val} onClick={() => set('funcionamento_intestinal', op.val)}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.funcionamento_intestinal === op.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] hover:border-white/20'}`}>
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${form.funcionamento_intestinal === op.val ? 'bg-black' : 'bg-white/20'}`} />
+                {NIVEL_ATIVIDADE.map(n => (
+                  <button key={n.val} type="button" onClick={() => set('nivel_atividade', n.val)}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.nivel_atividade === n.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.12] hover:border-white/20'}`}>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${form.nivel_atividade === n.val ? 'bg-black' : 'bg-white/20'}`} />
                     <div>
-                      <p className={`text-sm font-bold ${form.funcionamento_intestinal === op.val ? 'text-black' : 'text-white'}`}>{op.label}</p>
-                      <p className={`text-sm ${form.funcionamento_intestinal === op.val ? 'text-black/60' : 'text-zinc-500'}`}>{op.sub}</p>
+                      <p className={`text-sm font-bold ${form.nivel_atividade === n.val ? 'text-black' : 'text-white'}`}>{n.label}</p>
+                      <p className={`text-xs ${form.nivel_atividade === n.val ? 'text-black/60' : 'text-zinc-500'}`}>{n.sub}</p>
                     </div>
                   </button>
                 ))}
               </div>
             </Field>
-            <Field label="Uso de probióticos?">
-              <div className="flex gap-2">
-                {[{ val: true, label: 'Sim' }, { val: false, label: 'Não' }].map(o => (
-                  <button key={String(o.val)} onClick={() => set('usa_probioticos', o.val)}
-                    className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all active:scale-95 ${form.usa_probioticos === o.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] text-zinc-400'}`}>
-                    {o.label}
-                  </button>
-                ))}
-              </div>
+            <Field label="Modalidade" optional>
+              <input value={form.modalidade_treino} onChange={e => set('modalidade_treino', e.target.value)}
+                placeholder="Ex: Musculação, corrida, natação, crossfit, bike..." className={INPUT} />
+            </Field>
+            <div className="grid grid-cols-3 gap-2">
+              <Field label="Frequência" optional>
+                <input value={form.frequencia_treino} onChange={e => set('frequencia_treino', e.target.value)}
+                  placeholder="3x/sem" className={INPUT} />
+              </Field>
+              <Field label="Duração" optional>
+                <div className="relative">
+                  <input type="number" value={form.duracao_treino_min} onChange={e => set('duracao_treino_min', e.target.value)}
+                    placeholder="60" className={INPUT + ' pr-8'} />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[10px]">min</span>
+                </div>
+              </Field>
+              <Field label="Horário" optional>
+                <Chips opcoes={HORARIO_TREINO} value={form.horario_treino} onChange={v => set('horario_treino', v as string)} />
+              </Field>
+            </div>
+            <Field label="Histórico esportivo" optional>
+              <textarea value={form.historico_esportivo} onChange={e => set('historico_esportivo', e.target.value)}
+                placeholder="Ex: Praticou natação na adolescência, parou há 3 anos, tem dor lombar crônica..." rows={2} className={TEXTAREA} />
             </Field>
           </SectionCard>
 
-          {/* ── Ciclo Menstrual (apenas sexo feminino) ───────────────────── */}
-          {(clienteSexo === 'feminino' || clienteSexo === 'f' || clienteSexo === 'F') && (
-            <SectionCard icon={<Moon size={14} />} titulo="Ciclo Menstrual" subtitulo="Dados relevantes para nutrição" defaultOpen={false}>
+          {/* ── 8. Ciclo Menstrual (condicional) ─────────────────────── */}
+          {isFeminino && (
+            <SectionCard icon={<Moon size={14} />} titulo="Ciclo Menstrual" subtitulo="Regularidade, fase atual, sintomas" defaultOpen={false}>
               <Field label="Ciclo regular?">
-                <div className="flex gap-2">
-                  {[{ val: true, label: 'Sim' }, { val: false, label: 'Não' }].map(o => (
-                    <button key={String(o.val)} onClick={() => set('ciclo_regular', o.val)}
-                      className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all active:scale-95 ${form.ciclo_regular === o.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] text-zinc-400'}`}>
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
+                <YesNo value={form.ciclo_regular} onChange={v => set('ciclo_regular', v)} />
               </Field>
               <Field label="Duração média do ciclo" optional>
                 <div className="relative">
-                  <input type="number" value={form.duracao_ciclo_dias}
-                    onChange={e => set('duracao_ciclo_dias', e.target.value)}
-                    placeholder="28" min={14} max={45} className={INPUT_CLASS + " pr-12"} />
+                  <input type="number" value={form.duracao_ciclo_dias} onChange={e => set('duracao_ciclo_dias', e.target.value)}
+                    placeholder="28" min={14} max={45} className={INPUT + ' pr-12'} />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">dias</span>
                 </div>
               </Field>
               <Field label="Fase atual do ciclo" optional>
                 <div className="grid grid-cols-2 gap-1.5">
                   {FASES_CICLO.map(f => (
-                    <button key={f.val} onClick={() => set('fase_ciclo', form.fase_ciclo === f.val ? '' : f.val)}
-                      className={`flex flex-col px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.fase_ciclo === f.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] hover:border-white/20'}`}>
+                    <button key={f.val} type="button" onClick={() => set('fase_ciclo', form.fase_ciclo === f.val ? '' : f.val)}
+                      className={`flex flex-col px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.fase_ciclo === f.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.12] hover:border-white/20'}`}>
                       <p className={`text-xs font-bold ${form.fase_ciclo === f.val ? 'text-black' : 'text-white'}`}>{f.label}</p>
                       <p className={`text-[10px] ${form.fase_ciclo === f.val ? 'text-black/60' : 'text-zinc-500'}`}>{f.sub}</p>
                     </button>
@@ -503,22 +779,17 @@ export default function AnamnesePage() {
                 </div>
               </Field>
               <Field label="Sintomas relevantes" optional>
-                <div className="flex flex-col gap-1.5">
-                  {SINTOMAS_CICLO_OPCOES.map(s => {
+                <div className="flex flex-wrap gap-1.5">
+                  {SINTOMAS_CICLO.map(s => {
                     const marcado = form.sintomas_ciclo.includes(s.val)
                     return (
-                      <button key={s.val}
-                        onClick={() => {
-                          const novos = marcado
-                            ? form.sintomas_ciclo.filter(v => v !== s.val)
-                            : [...form.sintomas_ciclo, s.val]
-                          set('sintomas_ciclo', novos)
-                        }}
-                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${marcado ? 'bg-white/[0.12] border-white/30' : 'bg-white/[0.04] border-white/[0.14] hover:border-white/20'}`}>
-                        <div className={`w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${marcado ? 'border-white bg-white' : 'border-white/30'}`}>
-                          {marcado && <span className="text-black text-[10px] font-black leading-none">✓</span>}
+                      <button key={s.val} type="button"
+                        onClick={() => set('sintomas_ciclo', marcado ? form.sintomas_ciclo.filter(v => v !== s.val) : [...form.sintomas_ciclo, s.val])}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all active:scale-95 ${marcado ? 'bg-white/[0.12] border-white/30 text-white' : 'bg-white/[0.04] border-white/[0.12] text-zinc-500'}`}>
+                        <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 ${marcado ? 'border-white bg-white' : 'border-white/30'}`}>
+                          {marcado && <span className="text-black text-[8px] font-black leading-none">✓</span>}
                         </div>
-                        <span className={`text-sm font-medium ${marcado ? 'text-white' : 'text-zinc-400'}`}>{s.label}</span>
+                        {s.label}
                       </button>
                     )
                   })}
@@ -527,98 +798,35 @@ export default function AnamnesePage() {
             </SectionCard>
           )}
 
-          <div className="md:col-span-2"><SectionCard icon={<Target size={14} />} titulo="Objetivos" subtitulo="O que o cliente quer alcançar">
-            <Field label="Objetivo detalhado">
-              <textarea value={form.objetivo_detalhado} onChange={e => set('objetivo_detalhado', e.target.value)}
-                placeholder="Ex: Perder 8kg em 4 meses, principalmente abdômen..." rows={3} className={TEXTAREA_CLASS} />
-            </Field>
-            <Field label="Motivação principal" optional>
-              <input value={form.motivacao} onChange={e => set('motivacao', e.target.value)}
-                placeholder="Ex: Casamento em novembro, recomendação médica..." className={INPUT_CLASS} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Prazo desejado" optional>
-                <div className="relative">
-                  <input type="number" value={form.prazo_semanas} onChange={e => set('prazo_semanas', e.target.value)}
-                    placeholder="16" min={1} className={INPUT_CLASS + " pr-16"} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">sem.</span>
-                </div>
-              </Field>
-            </div>
-            <Field label="Observações adicionais" optional>
+          {/* ── Observações clínicas ──────────────────────────────────── */}
+          <div className={isFeminino ? '' : 'md:col-span-2'}>
+            <SectionCard icon={<span className="text-xs">📝</span>} titulo="Observações clínicas" subtitulo="Notas livres da consulta" defaultOpen={false}>
               <textarea value={form.observacoes} onChange={e => set('observacoes', e.target.value)}
-                placeholder="Qualquer outra informação relevante..." rows={2} className={TEXTAREA_CLASS} />
-            </Field>
-          </SectionCard></div>
+                placeholder="Notas adicionais, impressões da consulta, pontos de atenção..." rows={4} className={TEXTAREA} />
+            </SectionCard>
+          </div>
 
-          {/* ── Notas do outro profissional (read-only) ───────────────────── */}
+          {/* ── Notas do outro profissional (read-only) ───────────────── */}
           {outraAnamnese && (
-            <div className="rounded-2xl border border-blue-500/20 overflow-hidden" style={{ background: '#101825' }}>
+            <div className="md:col-span-2 rounded-2xl border border-blue-500/20 overflow-hidden" style={{ background: '#0d1520' }}>
               <button onClick={() => setVerOutra(v => !v)}
                 className="w-full px-5 py-4 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors">
                 <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
                   <span className="text-sm">{outraAnamnese.profissional_tipo === 'nutricionista' ? '🥗' : '🏋️'}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-blue-300 font-bold text-sm">Notas de {outraNome}</p>
+                  <p className="text-blue-300 font-bold text-sm">Anamnese de {outraNome}</p>
                   <p className="text-zinc-500 text-xs">{outraTipoLabel} · somente leitura</p>
                 </div>
-                <span className="text-zinc-600 text-xs">{verOutra ? '▲' : '▼'}</span>
+                <ChevronDown size={14} className={`text-zinc-600 transition-transform duration-200 ${verOutra ? 'rotate-180' : ''}`} />
               </button>
-
               {verOutra && (
                 <div className="px-5 pb-5 space-y-4 border-t border-blue-500/10">
-                  {/* Saúde */}
-                  {(outraAnamnese.patologias || outraAnamnese.medicamentos || outraAnamnese.alergias || outraAnamnese.cirurgias || outraAnamnese.historico_familiar) && (
-                    <div className="pt-4">
-                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Saúde</p>
-                      <ReadRow label="Patologias" value={outraAnamnese.patologias} />
-                      <ReadRow label="Medicamentos" value={outraAnamnese.medicamentos} />
-                      <ReadRow label="Alergias" value={outraAnamnese.alergias} />
-                      <ReadRow label="Cirurgias" value={outraAnamnese.cirurgias} />
-                      <ReadRow label="Hist. familiar" value={outraAnamnese.historico_familiar} />
-                    </div>
-                  )}
-                  {/* Estilo de vida */}
-                  {(outraAnamnese.nivel_atividade || outraAnamnese.horas_sono || outraAnamnese.nivel_estresse || outraAnamnese.alcool) && (
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Estilo de vida</p>
-                      <ReadRow label="Atividade" value={outraAnamnese.nivel_atividade ? NIVEL_ATIVIDADE_LABEL[outraAnamnese.nivel_atividade] : null} />
-                      <ReadRow label="Sono" value={outraAnamnese.horas_sono ? `${outraAnamnese.horas_sono}h/noite` : null} />
-                      <ReadRow label="Estresse" value={outraAnamnese.nivel_estresse ? `${outraAnamnese.nivel_estresse}/10` : null} />
-                      <ReadRow label="Fuma" value={outraAnamnese.fuma} />
-                      <ReadRow label="Álcool" value={outraAnamnese.alcool ? ALCOOL_LABEL[outraAnamnese.alcool] : null} />
-                    </div>
-                  )}
-                  {/* Esportivo */}
-                  {(outraAnamnese.historico_esportivo || outraAnamnese.lesoes || outraAnamnese.restricoes_fisicas) && (
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Histórico esportivo</p>
-                      <ReadRow label="Histórico" value={outraAnamnese.historico_esportivo} />
-                      <ReadRow label="Lesões" value={outraAnamnese.lesoes} />
-                      <ReadRow label="Restrições" value={outraAnamnese.restricoes_fisicas} />
-                    </div>
-                  )}
-                  {/* Nutrição */}
-                  {(outraAnamnese.restricoes_alimentares || outraAnamnese.suplementos || outraAnamnese.habitos_alimentares || outraAnamnese.refeicoes_por_dia) && (
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Nutrição</p>
-                      <ReadRow label="Restrições" value={outraAnamnese.restricoes_alimentares} />
-                      <ReadRow label="Suplementos" value={outraAnamnese.suplementos} />
-                      <ReadRow label="Refeições/dia" value={outraAnamnese.refeicoes_por_dia} />
-                      <ReadRow label="Hábitos" value={outraAnamnese.habitos_alimentares} />
-                    </div>
-                  )}
-                  {/* Objetivos */}
-                  {(outraAnamnese.objetivo_detalhado || outraAnamnese.motivacao || outraAnamnese.observacoes) && (
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.15em] text-zinc-600 mb-2">Objetivos</p>
-                      <ReadRow label="Objetivo" value={outraAnamnese.objetivo_detalhado} />
-                      <ReadRow label="Motivação" value={outraAnamnese.motivacao} />
-                      <ReadRow label="Prazo" value={outraAnamnese.prazo_semanas ? `${outraAnamnese.prazo_semanas} semanas` : null} />
-                      <ReadRow label="Observações" value={outraAnamnese.observacoes} />
-                    </div>
-                  )}
+                  {outraAnamnese.patologias && <div className="pt-3"><p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Clínico</p><ReadRow label="Patologias" value={outraAnamnese.patologias} /><ReadRow label="Medicamentos" value={outraAnamnese.medicamentos} /><ReadRow label="Alergias" value={outraAnamnese.alergias} /><ReadRow label="Intolerâncias" value={outraAnamnese.intolerancias} /></div>}
+                  {outraAnamnese.peso_maximo && <div><p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Peso</p><ReadRow label="Máx/Mín/Hab." value={[outraAnamnese.peso_maximo, outraAnamnese.peso_minimo, outraAnamnese.peso_habitual].filter(Boolean).join(' / ') + ' kg'} /><ReadRow label="Efeito sanfona" value={outraAnamnese.efeito_sanfona} /></div>}
+                  {outraAnamnese.objetivo_detalhado && <div><p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Objetivo</p><ReadRow label="Objetivo" value={outraAnamnese.objetivo_detalhado} /><ReadRow label="Motivação" value={outraAnamnese.motivacao} /></div>}
+                  {outraAnamnese.nivel_atividade && <div><p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Atividade física</p><ReadRow label="Nível" value={outraAnamnese.nivel_atividade} /><ReadRow label="Modalidade" value={outraAnamnese.modalidade_treino} /><ReadRow label="Frequência" value={outraAnamnese.frequencia_treino} /></div>}
+                  {outraAnamnese.observacoes && <div><ReadRow label="Observações" value={outraAnamnese.observacoes} /></div>}
                 </div>
               )}
             </div>
@@ -626,12 +834,13 @@ export default function AnamnesePage() {
 
         </div>
 
-        {erro && <p className="text-red-400 text-sm text-center mt-4">{erro}</p>}
+        {erro && <p className="text-red-400 text-sm text-center mt-4 bg-red-500/10 rounded-xl py-3">{erro}</p>}
 
         <button onClick={handleSalvar} disabled={salvando}
           className="w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-30 text-sm tracking-widest uppercase">
           {salvando ? 'Salvando...' : anamneseId ? 'Atualizar anamnese' : 'Salvar anamnese'}
         </button>
+
       </div>
       </div>
     </main>
