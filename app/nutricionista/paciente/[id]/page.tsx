@@ -77,6 +77,12 @@ const OBJETIVO_LABEL: Record<string, string> = {
   perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa',
   melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
 }
+const FASE_CICLO_LABEL: Record<string, string> = {
+  menstrual: 'Menstrual (dias 1–5)',
+  folicular: 'Folicular (dias 6–13)',
+  ovulatoria: 'Ovulatória (dias 14–16)',
+  lutea: 'Lútea (dias 17–28)',
+}
 function getDias7d(hoje: string) {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(hoje + 'T12:00:00-03:00'); d.setDate(d.getDate() - (6 - i))
@@ -128,6 +134,8 @@ export default function NutricionistaPaciente() {
   const [anamneseRestricaoFisica, setAnamneseRestricaoFisica] = useState<string | null>(null)
   const [anamneseMedicamentos, setAnamneseMedicamentos] = useState<string | null>(null)
   const [anamneseAlergias, setAnamneseAlergias] = useState<string | null>(null)
+  const [anamneseRestricaoAlimentar, setAnamneseRestricaoAlimentar] = useState<string | null>(null)
+  const [anamneseFaseCiclo, setAnamneseFaseCiclo] = useState<string | null>(null)
   const [briefingIA, setBriefingIA] = useState<string | null>(null)
   const [briefingEstruturado, setBriefingEstruturado] = useState<{
     resumo: string; evolucao: string[]; alertas: string[]; recomendacoes: string[]
@@ -189,7 +197,7 @@ export default function NutricionistaPaciente() {
         supabase.from('evolucao_medidas').select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20),
         supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
         supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1),
-        supabase.from('anamneses').select('lesoes,restricoes_fisicas,medicamentos,alergias,restricoes_alimentares').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
+        supabase.from('anamneses').select('lesoes,restricoes_fisicas,medicamentos,alergias,restricoes_alimentares,fase_ciclo').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
         supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('agendamentos').select('data,hora,tipo').eq('cliente_id', clienteId).eq('status', 'agendado').gte('data', hoje).order('data').limit(1).maybeSingle(),
       ])
@@ -202,11 +210,15 @@ export default function NutricionistaPaciente() {
       const lesoes = (anamneseData ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
       const rf = (anamneseData ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
       const meds = (anamneseData ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
-      const alerg = (anamneseData ?? []).map((a: any) => [a.alergias, a.restricoes_alimentares].filter(Boolean).join(', ')).filter(Boolean).join(' · ')
+      const alerg = (anamneseData ?? []).map((a: any) => a.alergias).filter(Boolean).join(' · ')
+      const restAlim = (anamneseData ?? []).map((a: any) => a.restricoes_alimentares).filter(Boolean).join(' · ')
+      const faseCiclo = (anamneseData ?? []).find((a: any) => a.fase_ciclo)?.fase_ciclo ?? null
       if (lesoes) setAnamneseLesoes(lesoes)
       if (rf) setAnamneseRestricaoFisica(rf)
       if (meds) setAnamneseMedicamentos(meds)
       if (alerg) setAnamneseAlergias(alerg)
+      if (restAlim) setAnamneseRestricaoAlimentar(restAlim)
+      if (faseCiclo) setAnamneseFaseCiclo(faseCiclo)
 
       // Nota clínica avulsa — armazenada na anamnese do profissional
       const { data: anamnesePropria } = await supabase
@@ -739,9 +751,65 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
         {abaAtiva === 'visao-geral' && (
           <div className="space-y-8">
 
-            {/* ── 1. SITUAÇÃO ATUAL — compacto com validação ────────────── */}
+            {/* ── 1. PERFIL NUTRICIONAL — bloco prioritário ────────────── */}
+            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+              <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center gap-2">
+                <Salad size={13} className="text-emerald-400 shrink-0" />
+                <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-semibold">Perfil nutricional</p>
+                {paciente?.meta_data_limite && (
+                  <span className="ml-auto text-[10px] text-zinc-600">
+                    Prazo: {new Date(paciente.meta_data_limite).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                  </span>
+                )}
+              </div>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Coluna esquerda: objetivo, meta, ciclo */}
+                <div className="space-y-3">
+                  {paciente?.objetivo ? (
+                    <div>
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Objetivo</p>
+                      <p className="text-white font-bold text-base">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</p>
+                      {paciente.meta_peso && (
+                        <p className="text-emerald-400 text-sm mt-0.5">Meta: {paciente.meta_peso} kg</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-zinc-700 text-sm italic">Objetivo não definido</p>
+                  )}
+                  {anamneseFaseCiclo && (paciente?.sexo === 'feminino' || paciente?.sexo === 'f' || paciente?.sexo === 'F') && (
+                    <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-xl px-3 py-2.5">
+                      <span className="text-base">🌙</span>
+                      <div>
+                        <p className="text-[10px] text-purple-400/70 uppercase tracking-wider">Fase do ciclo</p>
+                        <p className="text-purple-300 text-sm font-medium mt-0.5">{FASE_CICLO_LABEL[anamneseFaseCiclo] ?? anamneseFaseCiclo}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Coluna direita: alertas alimentares + medicamentos */}
+                <div className="space-y-2.5">
+                  {[
+                    { icon: '🟡', label: 'Alergias alimentares',    val: limparAlerta(anamneseAlergias),           color: 'text-amber-300' },
+                    { icon: '🔶', label: 'Restrições alimentares',  val: limparAlerta(anamneseRestricaoAlimentar), color: 'text-orange-300' },
+                    { icon: '💊', label: 'Medicamentos em uso',     val: limparAlerta(anamneseMedicamentos),        color: 'text-zinc-300' },
+                  ].filter(r => r.val).map((row, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <span className="text-sm shrink-0 mt-0.5">{row.icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-zinc-600 text-[10px] uppercase tracking-wider">{row.label}</p>
+                        <p className={`text-sm leading-snug mt-0.5 ${row.color}`}>{row.val}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {!anamneseAlergias && !anamneseRestricaoAlimentar && !anamneseMedicamentos && (
+                    <p className="text-zinc-700 text-sm italic">Sem alertas nutricionais registrados</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── 2. SITUAÇÃO ATUAL — composição corporal ──────────────── */}
             {medidasCP.length >= 1 ? (() => {
-              // Filtra apenas medidas com valores válidos (sem dados corrompidos de teste)
               const validas = medidasCP.filter(m =>
                 (m.peso == null || (m.peso > 30 && m.peso < 300)) &&
                 (m.gordura_pct == null || (m.gordura_pct > 0 && m.gordura_pct < 60)) &&
@@ -760,7 +828,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 <div className="rounded-2xl px-5 py-4 flex items-center gap-0" style={{ background: 'var(--surface-1)' }}>
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">Situação atual</p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">Composição corporal</p>
                       {ultimaAvaliacao && <p className="text-zinc-600 text-[10px]">· {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>}
                     </div>
                     <div className="flex items-center gap-6">
@@ -798,44 +866,6 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                 </button>
               </div>
             )}
-
-            {/* ── 2. ALERTAS CLÍNICOS — linhas hierarquizadas ──────────── */}
-            {(() => {
-              const l = limparAlerta(anamneseLesoes), r = limparAlerta(anamneseRestricaoFisica)
-              const m = limparAlerta(anamneseMedicamentos), a = limparAlerta(anamneseAlergias)
-              if (!l && !r && !m && !a) return null
-
-              type AlertRow = { icon: string; cat: string; txt: string; level: 'danger' | 'warning' | 'info' }
-              const rows: AlertRow[] = [
-                ...(l ? l.split(/[·;]/).map(s => s.trim()).filter(Boolean).map(t => ({ icon: '🔴', cat: 'Lesão', txt: t, level: 'danger' as const })) : []),
-                ...(r ? r.split(/[·;]/).map(s => s.trim()).filter(Boolean).map(t => ({ icon: '🟠', cat: 'Restrição física', txt: t, level: 'warning' as const })) : []),
-                ...(m ? m.split(/[·;]/).map(s => s.trim()).filter(Boolean).map(t => ({ icon: '⚪', cat: 'Medicamento', txt: t, level: 'info' as const })) : []),
-                ...(a ? a.split(/[·,;]/).map(s => s.trim()).filter(Boolean).map(t => ({ icon: '🟡', cat: 'Alergia', txt: t, level: 'warning' as const })) : []),
-              ]
-              const colors = { danger: 'border-red-500/20 bg-red-500/5', warning: 'border-amber-500/20 bg-amber-500/5', info: 'border-white/[0.08] bg-white/[0.03]' }
-              const textColors = { danger: 'text-red-300', warning: 'text-amber-300', info: 'text-zinc-300' }
-
-              return (
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-                  <div className="px-5 py-3 border-b border-white/[0.10] flex items-center gap-2">
-                    <span className="text-red-400 text-xs">⚠</span>
-                    <p className="text-xs font-semibold text-zinc-300 tracking-wide">Alertas clínicos</p>
-                    <span className="ml-auto text-xs text-zinc-600 bg-white/[0.05] px-2 py-0.5 rounded-full">{rows.length}</span>
-                  </div>
-                  <div className="divide-y divide-white/[0.04]">
-                    {rows.map((row, i) => (
-                      <div key={i} className={`flex items-start gap-3 px-5 py-3 ${colors[row.level]}`}>
-                        <span className="text-sm shrink-0 mt-0.5">{row.icon}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-zinc-500 text-[10px] uppercase tracking-wider">{row.cat}</p>
-                          <p className={`text-sm leading-snug mt-0.5 ${textColors[row.level]}`}>{row.txt}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })()}
 
             {/* ── 3. DADOS DE HOJE — 3 colunas, números grandes ────────── */}
             <div>
