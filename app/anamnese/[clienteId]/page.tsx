@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import SidebarProfissional from '../../components/SidebarProfissional'
-import { HeartPulse, Leaf, Dumbbell, Salad, Target } from 'lucide-react'
+import { HeartPulse, Leaf, Dumbbell, Salad, Target, Activity, Moon } from 'lucide-react'
 
 type AnamneseForm = {
   patologias: string; medicamentos: string; alergias: string; cirurgias: string
@@ -13,6 +13,14 @@ type AnamneseForm = {
   lesoes: string; restricoes_fisicas: string; restricoes_alimentares: string
   suplementos: string; refeicoes_por_dia: string; habitos_alimentares: string
   objetivo_detalhado: string; motivacao: string; prazo_semanas: string; observacoes: string
+  // Saúde Intestinal
+  funcionamento_intestinal: string
+  usa_probioticos: boolean | null
+  // Ciclo Menstrual
+  ciclo_regular: boolean | null
+  duracao_ciclo_dias: string
+  fase_ciclo: string
+  sintomas_ciclo: string[]
 }
 type OutraAnamnese = AnamneseForm & { profissional_nome: string | null; profissional_tipo: string | null }
 
@@ -22,7 +30,27 @@ const FORM_VAZIO: AnamneseForm = {
   historico_esportivo: '', lesoes: '', restricoes_fisicas: '',
   restricoes_alimentares: '', suplementos: '', refeicoes_por_dia: '', habitos_alimentares: '',
   objetivo_detalhado: '', motivacao: '', prazo_semanas: '', observacoes: '',
+  funcionamento_intestinal: '', usa_probioticos: null,
+  ciclo_regular: null, duracao_ciclo_dias: '', fase_ciclo: '', sintomas_ciclo: [],
 }
+
+const FUNCIONAMENTO_INTESTINAL = [
+  { val: 'regular',            label: 'Regular',           sub: 'Evacuação diária e consistente' },
+  { val: 'constipacao',        label: 'Constipação',       sub: 'Dificuldade ou evacuação infrequente' },
+  { val: 'diarreia_frequente', label: 'Diarreia frequente', sub: 'Fezes líquidas com frequência' },
+  { val: 'irregular',          label: 'Irregular',         sub: 'Alternância ou variação' },
+]
+const FASES_CICLO = [
+  { val: 'menstrual',   label: 'Menstrual',   sub: 'Dias 1–5' },
+  { val: 'folicular',   label: 'Folicular',   sub: 'Dias 6–13' },
+  { val: 'ovulatoria',  label: 'Ovulatória',  sub: 'Dias 14–16' },
+  { val: 'lutea',       label: 'Lútea',       sub: 'Dias 17–28' },
+]
+const SINTOMAS_CICLO_OPCOES = [
+  { val: 'tpm_intensa',        label: 'TPM intensa' },
+  { val: 'retencao_hidrica',   label: 'Retenção hídrica' },
+  { val: 'alteracao_apetite',  label: 'Alteração de apetite' },
+]
 
 const NIVEL_ATIVIDADE = [
   { val: 'sedentario',      label: 'Sedentário',  sub: 'Sem exercício regular' },
@@ -104,6 +132,7 @@ export default function AnamnesePage() {
   const [erro, setErro] = useState('')
   const [meuperfil, setMeuPerfil] = useState<{ tipo: string; nome: string | null } | null>(null)
   const [clienteNome, setClienteNome] = useState<string | null>(null)
+  const [clienteSexo, setClienteSexo] = useState<string | null>(null)
   const [backUrl, setBackUrl] = useState('/dashboard')
 
   useEffect(() => {
@@ -114,10 +143,11 @@ export default function AnamnesePage() {
 
       const [{ data: perfil }, { data: clientePerfil }] = await Promise.all([
         supabase.from('perfis').select('tipo, nome').eq('id', meuId).single(),
-        supabase.from('perfis').select('nome, email').eq('id', clienteId).single(),
+        supabase.from('perfis').select('nome, email, sexo').eq('id', clienteId).single(),
       ])
       setMeuPerfil(perfil)
       setClienteNome(clientePerfil?.nome ?? clientePerfil?.email ?? null)
+      setClienteSexo(clientePerfil?.sexo ?? null)
 
       if (perfil?.tipo === 'personal') setBackUrl(`/personal/aluno/${clienteId}`)
       else if (perfil?.tipo === 'nutricionista') setBackUrl(`/nutricionista/paciente/${clienteId}`)
@@ -145,6 +175,12 @@ export default function AnamnesePage() {
           habitos_alimentares: e.habitos_alimentares ?? '', objetivo_detalhado: e.objetivo_detalhado ?? '',
           motivacao: e.motivacao ?? '', prazo_semanas: e.prazo_semanas != null ? String(e.prazo_semanas) : '',
           observacoes: e.observacoes ?? '',
+          funcionamento_intestinal: e.funcionamento_intestinal ?? '',
+          usa_probioticos: e.usa_probioticos ?? null,
+          ciclo_regular: e.ciclo_regular ?? null,
+          duracao_ciclo_dias: e.duracao_ciclo_dias != null ? String(e.duracao_ciclo_dias) : '',
+          fase_ciclo: e.fase_ciclo ?? '',
+          sintomas_ciclo: Array.isArray(e.sintomas_ciclo) ? e.sintomas_ciclo : [],
         })
       }
 
@@ -171,6 +207,12 @@ export default function AnamnesePage() {
             habitos_alimentares: o.habitos_alimentares ?? '', objetivo_detalhado: o.objetivo_detalhado ?? '',
             motivacao: o.motivacao ?? '', prazo_semanas: o.prazo_semanas != null ? String(o.prazo_semanas) : '',
             observacoes: o.observacoes ?? '',
+            funcionamento_intestinal: o.funcionamento_intestinal ?? '',
+            usa_probioticos: o.usa_probioticos ?? null,
+            ciclo_regular: o.ciclo_regular ?? null,
+            duracao_ciclo_dias: o.duracao_ciclo_dias != null ? String(o.duracao_ciclo_dias) : '',
+            fase_ciclo: o.fase_ciclo ?? '',
+            sintomas_ciclo: Array.isArray(o.sintomas_ciclo) ? o.sintomas_ciclo : [],
             profissional_nome: outroPerfil?.nome ?? null,
             profissional_tipo: outroPerfil?.tipo ?? null,
           })
@@ -182,7 +224,7 @@ export default function AnamnesePage() {
     carregar()
   }, [clienteId, router])
 
-  function set(field: keyof AnamneseForm, val: string | number | boolean) {
+  function set(field: keyof AnamneseForm, val: string | number | boolean | string[]) {
     setForm(prev => ({ ...prev, [field]: val }))
   }
 
@@ -216,6 +258,14 @@ export default function AnamnesePage() {
       motivacao: form.motivacao.trim() || null,
       prazo_semanas: form.prazo_semanas ? parseInt(form.prazo_semanas) : null,
       observacoes: form.observacoes.trim() || null,
+      // Saúde Intestinal
+      funcionamento_intestinal: form.funcionamento_intestinal || null,
+      usa_probioticos: form.usa_probioticos,
+      // Ciclo Menstrual
+      ciclo_regular: form.ciclo_regular,
+      duracao_ciclo_dias: form.duracao_ciclo_dias ? parseInt(form.duracao_ciclo_dias) : null,
+      fase_ciclo: form.fase_ciclo || null,
+      sintomas_ciclo: form.sintomas_ciclo.length > 0 ? form.sintomas_ciclo : null,
       atualizado_em: new Date().toISOString(),
     }
 
@@ -391,6 +441,91 @@ export default function AnamnesePage() {
                 placeholder="Ex: Come muito fora, pula o café da manhã, come bem nos finais de semana..." rows={2} className={TEXTAREA_CLASS} />
             </Field>
           </SectionCard>
+
+          {/* ── Saúde Intestinal ─────────────────────────────────────────── */}
+          <SectionCard icon={<Activity size={14} />} titulo="Saúde Intestinal" subtitulo="Funcionamento e microbiota">
+            <Field label="Funcionamento intestinal">
+              <div className="grid grid-cols-1 gap-1.5">
+                {FUNCIONAMENTO_INTESTINAL.map(op => (
+                  <button key={op.val} onClick={() => set('funcionamento_intestinal', op.val)}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.funcionamento_intestinal === op.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] hover:border-white/20'}`}>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${form.funcionamento_intestinal === op.val ? 'bg-black' : 'bg-white/20'}`} />
+                    <div>
+                      <p className={`text-sm font-bold ${form.funcionamento_intestinal === op.val ? 'text-black' : 'text-white'}`}>{op.label}</p>
+                      <p className={`text-sm ${form.funcionamento_intestinal === op.val ? 'text-black/60' : 'text-zinc-500'}`}>{op.sub}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </Field>
+            <Field label="Uso de probióticos?">
+              <div className="flex gap-2">
+                {[{ val: true, label: 'Sim' }, { val: false, label: 'Não' }].map(o => (
+                  <button key={String(o.val)} onClick={() => set('usa_probioticos', o.val)}
+                    className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all active:scale-95 ${form.usa_probioticos === o.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] text-zinc-400'}`}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </SectionCard>
+
+          {/* ── Ciclo Menstrual (apenas sexo feminino) ───────────────────── */}
+          {(clienteSexo === 'feminino' || clienteSexo === 'f' || clienteSexo === 'F') && (
+            <SectionCard icon={<Moon size={14} />} titulo="Ciclo Menstrual" subtitulo="Dados relevantes para nutrição" defaultOpen={false}>
+              <Field label="Ciclo regular?">
+                <div className="flex gap-2">
+                  {[{ val: true, label: 'Sim' }, { val: false, label: 'Não' }].map(o => (
+                    <button key={String(o.val)} onClick={() => set('ciclo_regular', o.val)}
+                      className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all active:scale-95 ${form.ciclo_regular === o.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] text-zinc-400'}`}>
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label="Duração média do ciclo" optional>
+                <div className="relative">
+                  <input type="number" value={form.duracao_ciclo_dias}
+                    onChange={e => set('duracao_ciclo_dias', e.target.value)}
+                    placeholder="28" min={14} max={45} className={INPUT_CLASS + " pr-12"} />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">dias</span>
+                </div>
+              </Field>
+              <Field label="Fase atual do ciclo" optional>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {FASES_CICLO.map(f => (
+                    <button key={f.val} onClick={() => set('fase_ciclo', form.fase_ciclo === f.val ? '' : f.val)}
+                      className={`flex flex-col px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${form.fase_ciclo === f.val ? 'bg-white border-white text-black' : 'bg-white/[0.05] border-white/[0.14] hover:border-white/20'}`}>
+                      <p className={`text-xs font-bold ${form.fase_ciclo === f.val ? 'text-black' : 'text-white'}`}>{f.label}</p>
+                      <p className={`text-[10px] ${form.fase_ciclo === f.val ? 'text-black/60' : 'text-zinc-500'}`}>{f.sub}</p>
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label="Sintomas relevantes" optional>
+                <div className="flex flex-col gap-1.5">
+                  {SINTOMAS_CICLO_OPCOES.map(s => {
+                    const marcado = form.sintomas_ciclo.includes(s.val)
+                    return (
+                      <button key={s.val}
+                        onClick={() => {
+                          const novos = marcado
+                            ? form.sintomas_ciclo.filter(v => v !== s.val)
+                            : [...form.sintomas_ciclo, s.val]
+                          set('sintomas_ciclo', novos)
+                        }}
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98] ${marcado ? 'bg-white/[0.12] border-white/30' : 'bg-white/[0.04] border-white/[0.14] hover:border-white/20'}`}>
+                        <div className={`w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${marcado ? 'border-white bg-white' : 'border-white/30'}`}>
+                          {marcado && <span className="text-black text-[10px] font-black leading-none">✓</span>}
+                        </div>
+                        <span className={`text-sm font-medium ${marcado ? 'text-white' : 'text-zinc-400'}`}>{s.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </Field>
+            </SectionCard>
+          )}
 
           <div className="md:col-span-2"><SectionCard icon={<Target size={14} />} titulo="Objetivos" subtitulo="O que o cliente quer alcançar">
             <Field label="Objetivo detalhado">
