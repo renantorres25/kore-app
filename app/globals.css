@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 /* ═══════════════════════════════════════════════════════════
    KORE — DESIGN TOKENS
@@ -78,14 +79,14 @@
   body {
     background: var(--bg-base);
     color: var(--t1);
-    font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   /* Display / títulos / números grandes → Sora */
   h1, h2, h3, .display, .sora {
-    font-family: var(--font-sora), 'Sora', system-ui, sans-serif;
+    font-family: 'Sora', var(--font-geist-sans), system-ui, sans-serif;
   }
 
   /* Dados tabulares → JetBrains Mono */
@@ -168,4 +169,23 @@ button:not(:disabled), a, [role="button"] {
   width: 100%;
 }
 
-/* ── Scrollbar discreta ─────────────────────────────────────�
+/* ── Scrollbar discreta ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Focus ring acessível ────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Reduced motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
