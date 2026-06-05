@@ -566,6 +566,18 @@ export default function PlanoV2() {
       minHeight: '100vh',
       background: 'var(--bg-base)',
       color: 'var(--t1)',
+    }}>
+    {/* Gradiente radial de fundo */}
+    <div style={{
+      position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+      background: `
+        radial-gradient(ellipse 60% 40% at 15% 10%, rgba(255,90,54,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 35% at 85% 80%, rgba(96,165,250,0.05) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(167,139,250,0.03) 0%, transparent 60%)
+      `,
+    }} />
+    <div style={{
+      position: 'relative', zIndex: 1,
       padding: '32px 24px',
       maxWidth: 1100,
       margin: '0 auto',
@@ -776,6 +788,7 @@ export default function PlanoV2() {
       <div style={{ marginTop: 48, textAlign: 'center', fontSize: 11, color: 'var(--t3)' }}>
         KORE · Energetic Precision — plano-v2 preview
       </div>
+    </div>
     </div>
   )
 }
