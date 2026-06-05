@@ -126,6 +126,8 @@ export default function NutricionistaPaciente() {
   const [recuperacao7d, setRecuperacao7d] = useState<{ data: string; score: number | null; duracao: number | null }[]>([])
   const [recuperacaoPrev7d, setRecuperacaoPrev7d] = useState<{ data: string; score: number | null }[]>([])
   const [treinoCarregando, setTreinoCarregando] = useState(false)
+  const [backfillando, setBackfillando] = useState(false)
+  const [backfillMsg, setBackfillMsg] = useState<string | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
   const [proximaConsulta, setProximaConsulta] = useState<string | null>(null)
   const [proximaFase, setProximaFase] = useState<string | null>(null)
@@ -496,8 +498,37 @@ export default function NutricionistaPaciente() {
     if (abaAtiva === 'treino') carregarDadosTreino()
   }, [abaAtiva])
 
-  async function carregarDadosTreino() {
-    if (treinoCarregando || historicoTreinosDetalhado.length > 0) return
+  async function backfillCalorias() {
+    setBackfillando(true); setBackfillMsg(null)
+    try {
+      const res = await fetch('/api/strava/backfill-calorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioId: clienteId }),
+      })
+      const data = await res.json()
+      if (data.sucesso) {
+        const msg = data.atualizados > 0
+          ? `✓ ${data.atualizados} atividades atualizadas`
+          : 'Nenhuma caloria disponível no Strava para as atividades restantes'
+        setBackfillMsg(msg)
+        if (data.atualizados > 0) {
+          setHistoricoTreinosDetalhado([])
+          setAtividadesLivres14d([])
+          setTimeout(() => carregarDadosTreino(true), 100)
+        }
+      } else {
+        setBackfillMsg(data.erro ?? 'Erro ao buscar calorias')
+      }
+    } catch {
+      setBackfillMsg('Erro de conexão')
+    }
+    setBackfillando(false)
+    setTimeout(() => setBackfillMsg(null), 5000)
+  }
+
+  async function carregarDadosTreino(force = false) {
+    if (!force && (treinoCarregando || historicoTreinosDetalhado.length > 0)) return
     setTreinoCarregando(true)
     const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
     const sete = new Date(); sete.setDate(sete.getDate() - 7)
@@ -1733,9 +1764,23 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
                 {/* ── ATIVIDADES LIVRES ── */}
                 <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-                  <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
-                    <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Atividades livres — 30 dias</p>
-                    <span className="text-zinc-600 text-xs">{atividadesLivres14d.length > 0 ? `${atividadesLivres14d.length} atividades` : 'sem registros'}</span>
+                  <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Atividades livres — 30 dias</p>
+                      <span className="text-zinc-600 text-xs">{atividadesLivres14d.length > 0 ? `${atividadesLivres14d.length} atividades` : 'sem registros'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {backfillMsg && <span className="text-[10px] text-emerald-400">{backfillMsg}</span>}
+                      {atividadesLivres14d.some(a => !a.calorias_wearable) && (
+                        <button onClick={backfillCalorias} disabled={backfillando}
+                          className="flex items-center gap-1.5 text-[10px] text-orange-300 border border-orange-500/25 bg-orange-500/8 rounded-lg px-2.5 py-1.5 hover:border-orange-500/40 transition-all active:scale-95 disabled:opacity-50">
+                          {backfillando
+                            ? <><div className="w-2.5 h-2.5 border border-orange-300 border-t-transparent rounded-full animate-spin" /> Buscando...</>
+                            : <>🔄 Buscar calorias do Strava</>
+                          }
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {atividadesLivres14d.length > 0 ? (
                     <div className="divide-y divide-white/[0.04]">
