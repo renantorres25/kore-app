@@ -571,9 +571,9 @@ export default function PlanoV2() {
     <div style={{
       position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
       background: `
-        radial-gradient(ellipse 60% 40% at 15% 10%, rgba(255,90,54,0.07) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 35% at 85% 80%, rgba(96,165,250,0.05) 0%, transparent 65%),
-        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(167,139,250,0.03) 0%, transparent 60%)
+        radial-gradient(ellipse 70% 50% at 10% 0%, rgba(255,90,54,0.18) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 45% at 90% 100%, rgba(96,165,250,0.14) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 60% 50%, rgba(167,139,250,0.07) 0%, transparent 55%)
       `,
     }} />
     <div style={{
