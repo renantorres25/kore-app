@@ -362,21 +362,24 @@ function StatTile({
 
   return (
     <div style={{
-      background: 'var(--surface-1)',
-      border: '1px solid var(--hairline)',
+      background: 'rgba(255,255,255,0.04)',
+      border: `1px solid ${color}33`,
       borderRadius: 'var(--radius-inner)',
       padding: '16px',
       display: 'flex', flexDirection: 'column', gap: 8,
+      boxShadow: `0 0 30px ${color}12, inset 0 1px 0 rgba(255,255,255,0.06)`,
       transition: 'transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease',
       cursor: 'default',
     }}
     onMouseEnter={e => {
-      (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'
-      ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--hairline-2)'
+      (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'
+      ;(e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 50px ${color}25, inset 0 1px 0 rgba(255,255,255,0.08)`
+      ;(e.currentTarget as HTMLDivElement).style.borderColor = `${color}66`
     }}
     onMouseLeave={e => {
       (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-      ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--hairline)'
+      ;(e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 30px ${color}12, inset 0 1px 0 rgba(255,255,255,0.06)`
+      ;(e.currentTarget as HTMLDivElement).style.borderColor = `${color}33`
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 12, color: 'var(--t2)', fontWeight: 500 }}>{label}</span>
@@ -564,16 +567,16 @@ export default function PlanoV2() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-base)',
+      background: '#13141a',
       color: 'var(--t1)',
     }}>
-    {/* Gradiente radial de fundo */}
+    {/* Gradiente radial de fundo — mais intenso */}
     <div style={{
       position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
       background: `
-        radial-gradient(ellipse 70% 50% at 10% 0%, rgba(255,90,54,0.18) 0%, transparent 65%),
-        radial-gradient(ellipse 60% 45% at 90% 100%, rgba(96,165,250,0.14) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 60% 50%, rgba(167,139,250,0.07) 0%, transparent 55%)
+        radial-gradient(ellipse 80% 55% at 5% 0%, rgba(255,90,54,0.22) 0%, transparent 60%),
+        radial-gradient(ellipse 65% 50% at 95% 100%, rgba(96,165,250,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 55% 45%, rgba(167,139,250,0.10) 0%, transparent 55%)
       `,
     }} />
     <div style={{
@@ -625,11 +628,12 @@ export default function PlanoV2() {
         {/* Streak chip */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          background: 'rgba(255,90,54,0.1)',
-          border: '1px solid rgba(255,90,54,0.25)',
+          background: 'rgba(255,90,54,0.15)',
+          border: '1px solid rgba(255,90,54,0.4)',
           borderRadius: 999, padding: '6px 14px',
+          boxShadow: '0 0 20px rgba(255,90,54,0.2)',
         }}>
-          <Flame size={16} color="var(--energy)" />
+          <Flame size={16} color="var(--energy)" className="float" />
           <span style={{
             fontFamily: 'var(--font-sora), Sora, sans-serif',
             fontSize: 15, fontWeight: 700, color: 'var(--energy)',
@@ -646,10 +650,9 @@ export default function PlanoV2() {
           border: '1px solid rgba(45,212,167,0.2)',
           borderRadius: 999, padding: '6px 14px',
         }}>
-          <div style={{
+          <div className="pulse-dot" style={{
             width: 7, height: 7, borderRadius: '50%',
-            background: '#2DD4A7',
-            boxShadow: '0 0 6px #2DD4A7',
+            background: '#2DD4A7', color: '#2DD4A7',
           }} />
           <span style={{ fontSize: 12, fontWeight: 600, color: '#2DD4A7' }}>Evoluindo</span>
         </div>
@@ -665,11 +668,12 @@ export default function PlanoV2() {
       }}>
         {/* Card aderência */}
         <div style={{
-          background: 'var(--surface-1)',
-          border: '1px solid var(--hairline)',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,90,54,0.2)',
           borderRadius: 'var(--radius-card)',
           padding: 24,
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+          boxShadow: '0 0 40px rgba(255,90,54,0.08), inset 0 1px 0 rgba(255,255,255,0.06)',
         }}>
           <div style={{
             fontSize: 13, fontWeight: 600, color: 'var(--t2)',
@@ -689,10 +693,11 @@ export default function PlanoV2() {
 
         {/* Card evolução */}
         <div style={{
-          background: 'var(--surface-1)',
-          border: '1px solid var(--hairline)',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 'var(--radius-card)',
           padding: 24,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
