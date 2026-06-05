@@ -32,17 +32,16 @@ type AlimentoEd = {
   kcal_100g?: number | null; prot_100g?: number | null; carbo_100g?: number | null
   gramas?: string
 }
-type RefeicaoEd = { nome: string; horario: string; dica: string; alimentos: AlimentoEd[] }
+type VariacaoEd = { nome: string; dica: string; alimentos: AlimentoEd[] }
+type RefeicaoEd = { nome: string; horario: string; variacoes: VariacaoEd[] }
 type ExtrasEd = {
   hidratacaoLitros: string; hidratacaoOri: string
   oriTreino: string; estrategia: string; dicaFome: string
 }
 
 const ALIMENTO_VAZIO: AlimentoEd = { nome: '', quantidade: '', calorias: '', proteina: '', kcal_100g: null, prot_100g: null, carbo_100g: null, gramas: '' }
-const REFEICAO_VAZIA: RefeicaoEd = {
-  nome: '', horario: '', dica: '',
-  alimentos: [{ ...ALIMENTO_VAZIO }],
-}
+const VARIACAO_VAZIA: VariacaoEd = { nome: 'Opção A', dica: '', alimentos: [{ ...ALIMENTO_VAZIO }] }
+const REFEICAO_VAZIA: RefeicaoEd = { nome: '', horario: '', variacoes: [{ ...VARIACAO_VAZIA }] }
 const EXTRAS_VAZIO: ExtrasEd = { hidratacaoLitros: '', hidratacaoOri: '', oriTreino: '', estrategia: '', dicaFome: '' }
 
 function getTodayBR() {
@@ -173,6 +172,7 @@ export default function NutricionistaPaciente() {
   const [refeicoesEd, setRefeicoesEd] = useState<RefeicaoEd[]>([])
   const [notaEd, setNotaEd] = useState('')
   const [extrasEd, setExtrasEd] = useState<ExtrasEd>(EXTRAS_VAZIO)
+  const [variacaoAtivaEditor, setVariacaoAtivaEditor] = useState<Record<number, number>>({})
 
   useEffect(() => {
     async function carregar() {
@@ -283,16 +283,33 @@ export default function NutricionistaPaciente() {
   // ── editor helpers ──────────────────────────────────────────────────────
   function iniciarEdicao(doZero = false) {
     if (!doZero && planoEstruturado) {
-      setRefeicoesEd(planoEstruturado.refeicoes.map((r: any) => ({
-        nome: r.nome ?? '', horario: r.horario ?? '', dica: r.dica ?? '',
-        alimentos: (r.alimentos && r.alimentos.length > 0)
-          ? r.alimentos.map((a: any) => ({
-              nome: a.nome ?? '', quantidade: a.quantidade ?? '',
-              calorias: String(a.calorias ?? ''), proteina: String(a.proteina ?? ''),
-              kcal_100g: a.kcal_100g ?? null, prot_100g: a.prot_100g ?? null, carbo_100g: a.carbo_100g ?? null, gramas: a.gramas ?? '',
-            }))
-          : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? ''), kcal_100g: null, prot_100g: null, carbo_100g: null }],
-      })))
+      setVariacaoAtivaEditor({})
+      setRefeicoesEd(planoEstruturado.refeicoes.map((r: any) => {
+        function mapAlimentos(als: any[]) {
+          return als.map((a: any) => ({
+            nome: a.nome ?? '', quantidade: a.quantidade ?? '',
+            calorias: String(a.calorias ?? ''), proteina: String(a.proteina ?? ''),
+            kcal_100g: a.kcal_100g ?? null, prot_100g: a.prot_100g ?? null, carbo_100g: a.carbo_100g ?? null, gramas: a.gramas ?? '',
+          }))
+        }
+        let variacoes: VariacaoEd[]
+        if (r.variacoes && r.variacoes.length > 0) {
+          variacoes = r.variacoes.map((v: any) => ({
+            nome: v.nome ?? 'Opção A',
+            dica: v.dica ?? '',
+            alimentos: v.alimentos?.length > 0 ? mapAlimentos(v.alimentos) : [{ ...ALIMENTO_VAZIO }],
+          }))
+        } else {
+          variacoes = [{
+            nome: 'Opção A',
+            dica: r.dica ?? '',
+            alimentos: r.alimentos?.length > 0
+              ? mapAlimentos(r.alimentos)
+              : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? ''), kcal_100g: null, prot_100g: null, carbo_100g: null, gramas: '' }],
+          }]
+        }
+        return { nome: r.nome ?? '', horario: r.horario ?? '', variacoes }
+      }))
       setNotaEd(planoEstruturado.nota_nutri ?? '')
       setExtrasEd({
         hidratacaoLitros: String(planoEstruturado.hidratacao?.litros_dia ?? ''),
@@ -311,55 +328,79 @@ export default function NutricionistaPaciente() {
   }
 
   function addRefeicao() {
-    setRefeicoesEd(p => [...p, { nome: '', horario: '', dica: '', alimentos: [{ ...ALIMENTO_VAZIO }] }])
+    setRefeicoesEd(p => [...p, { ...REFEICAO_VAZIA }])
   }
   function removeRefeicao(i: number) {
     setRefeicoesEd(p => p.filter((_, idx) => idx !== i))
+    setVariacaoAtivaEditor(prev => { const n = { ...prev }; delete n[i]; return n })
   }
-  function updateRefeicao(i: number, field: 'nome' | 'horario' | 'dica', val: string) {
+  function updateRefeicao(i: number, field: 'nome' | 'horario', val: string) {
     setRefeicoesEd(p => p.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
   }
-  function addAlimento(rIdx: number) {
-    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
-      ? { ...r, alimentos: [...r.alimentos, { ...ALIMENTO_VAZIO }] }
-      : r))
-  }
-  function removeAlimento(rIdx: number, aIdx: number) {
-    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
-      ? { ...r, alimentos: r.alimentos.filter((_, i) => i !== aIdx) }
-      : r))
-  }
-  function updateAlimento(rIdx: number, aIdx: number, field: keyof AlimentoEd, val: string) {
+  function addVariacao(rIdx: number) {
+    const currentLen = refeicoesEd[rIdx]?.variacoes.length ?? 1
     setRefeicoesEd(p => p.map((r, idx) => {
       if (idx !== rIdx) return r
-      const novos = r.alimentos.map((a, i) => {
-        if (i !== aIdx) return a
-        const updated = { ...a, [field]: val }
-        // autocalcula macros pelo campo gramas (separado da quantidade de exibição)
-        if (field === 'gramas' && a.kcal_100g != null) {
-          const g = parseFloat(val)
-          if (!isNaN(g) && g > 0) {
-            updated.calorias = String(Math.round(a.kcal_100g * g / 100))
-            updated.proteina = String(((a.prot_100g ?? 0) * g / 100).toFixed(1))
-          } else {
-            updated.calorias = ''
-            updated.proteina = ''
-          }
-        }
-        return updated
-      })
-      return { ...r, alimentos: novos }
+      const letra = String.fromCharCode(65 + r.variacoes.length)
+      return { ...r, variacoes: [...r.variacoes, { nome: `Opção ${letra}`, dica: '', alimentos: [{ ...ALIMENTO_VAZIO }] }] }
+    }))
+    setVariacaoAtivaEditor(prev => ({ ...prev, [rIdx]: currentLen }))
+  }
+  function removeVariacao(rIdx: number, vIdx: number) {
+    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
+      ? { ...r, variacoes: r.variacoes.filter((_, i) => i !== vIdx) }
+      : r))
+    setVariacaoAtivaEditor(prev => ({ ...prev, [rIdx]: Math.max(0, (prev[rIdx] ?? 1) - 1) }))
+  }
+  function updateVariacaoDica(rIdx: number, vIdx: number, val: string) {
+    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
+      ? { ...r, variacoes: r.variacoes.map((v, vi) => vi === vIdx ? { ...v, dica: val } : v) }
+      : r))
+  }
+  function addAlimento(rIdx: number, vIdx: number) {
+    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
+      ? { ...r, variacoes: r.variacoes.map((v, vi) => vi === vIdx ? { ...v, alimentos: [...v.alimentos, { ...ALIMENTO_VAZIO }] } : v) }
+      : r))
+  }
+  function removeAlimento(rIdx: number, vIdx: number, aIdx: number) {
+    setRefeicoesEd(p => p.map((r, idx) => idx === rIdx
+      ? { ...r, variacoes: r.variacoes.map((v, vi) => vi === vIdx ? { ...v, alimentos: v.alimentos.filter((_, i) => i !== aIdx) } : v) }
+      : r))
+  }
+  function updateAlimento(rIdx: number, vIdx: number, aIdx: number, field: keyof AlimentoEd, val: string) {
+    setRefeicoesEd(p => p.map((r, idx) => {
+      if (idx !== rIdx) return r
+      return {
+        ...r, variacoes: r.variacoes.map((v, vi) => {
+          if (vi !== vIdx) return v
+          const novos = v.alimentos.map((a, i) => {
+            if (i !== aIdx) return a
+            const updated = { ...a, [field]: val }
+            if (field === 'gramas' && a.kcal_100g != null) {
+              const g = parseFloat(val)
+              if (!isNaN(g) && g > 0) {
+                updated.calorias = String(Math.round(a.kcal_100g * g / 100))
+                updated.proteina = String(((a.prot_100g ?? 0) * g / 100).toFixed(1))
+              } else { updated.calorias = ''; updated.proteina = '' }
+            }
+            return updated
+          })
+          return { ...v, alimentos: novos }
+        })
+      }
     }))
   }
-  function handleSelectTACO(rIdx: number, aIdx: number, taco: AlimentoTACO) {
+  function handleSelectTACO(rIdx: number, vIdx: number, aIdx: number, taco: AlimentoTACO) {
     setRefeicoesEd(p => p.map((r, idx) => {
       if (idx !== rIdx) return r
-      const novos = r.alimentos.map((a, i) => {
-        if (i !== aIdx) return a
-        // ao selecionar da TACO: seta nome + armazena macros/100g, limpa gramas/calorias para redigitar
-        return { ...a, nome: taco.nome, kcal_100g: taco.energia_kcal, prot_100g: taco.proteina_g, carbo_100g: taco.carbo_g, gramas: '', calorias: '', proteina: '' }
-      })
-      return { ...r, alimentos: novos }
+      return {
+        ...r, variacoes: r.variacoes.map((v, vi) => {
+          if (vi !== vIdx) return v
+          const novos = v.alimentos.map((a, i) => i !== aIdx ? a
+            : { ...a, nome: taco.nome, kcal_100g: taco.energia_kcal, prot_100g: taco.proteina_g, carbo_100g: taco.carbo_g, gramas: '', calorias: '', proteina: '' })
+          return { ...v, alimentos: novos }
+        })
+      }
     }))
   }
 
@@ -367,18 +408,29 @@ export default function NutricionistaPaciente() {
     setSalvandoEd(true)
     const planoJSON: any = {
       nota_nutri: notaEd,
-      refeicoes: refeicoesEd.map(r => ({
-        nome: r.nome, horario: r.horario,
-        ...(r.dica ? { dica: r.dica } : {}),
-        calorias: sumAl(r.alimentos, 'calorias'),
-        proteina: sumAl(r.alimentos, 'proteina'),
-        alimentos: r.alimentos.filter(a => a.nome).map(a => ({
-          nome: a.nome, quantidade: a.quantidade,
-          calorias: parseFloat(a.calorias) || 0,
-          proteina: parseFloat(a.proteina) || 0,
-          ...(a.kcal_100g != null ? { kcal_100g: a.kcal_100g, prot_100g: a.prot_100g, carbo_100g: a.carbo_100g, gramas: a.gramas } : {}),
-        })),
-      })),
+      refeicoes: refeicoesEd.map(r => {
+        const variacoes = r.variacoes.map((v, vi) => ({
+          nome: v.nome || `Opção ${String.fromCharCode(65 + vi)}`,
+          ...(v.dica ? { dica: v.dica } : {}),
+          calorias: sumAl(v.alimentos, 'calorias'),
+          proteina: sumAl(v.alimentos, 'proteina'),
+          alimentos: v.alimentos.filter(a => a.nome).map(a => ({
+            nome: a.nome, quantidade: a.quantidade,
+            calorias: parseFloat(a.calorias) || 0,
+            proteina: parseFloat(a.proteina) || 0,
+            ...(a.kcal_100g != null ? { kcal_100g: a.kcal_100g, prot_100g: a.prot_100g, carbo_100g: a.carbo_100g, gramas: a.gramas } : {}),
+          })),
+        }))
+        const calRef = variacoes[0]?.calorias ?? 0
+        const protRef = variacoes[0]?.proteina ?? 0
+        return {
+          nome: r.nome, horario: r.horario,
+          calorias: calRef, proteina: protRef,
+          variacoes,
+          // legado para compatibilidade com visualizações antigas
+          alimentos: variacoes[0]?.alimentos ?? [],
+        }
+      }),
     }
     if (extrasEd.hidratacaoLitros || extrasEd.hidratacaoOri)
       planoJSON.hidratacao = { litros_dia: parseFloat(extrasEd.hidratacaoLitros) || 0, orientacao: extrasEd.hidratacaoOri }
@@ -630,8 +682,14 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
   let planoEstruturado: any = null
   if (planoAtivo) { try { const p = JSON.parse(planoAtivo.conteudo); if (p.refeicoes) planoEstruturado = p } catch {} }
 
-  const totalEdCal = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'calorias'), 0)
-  const totalEdProt = refeicoesEd.reduce((s, r) => s + sumAl(r.alimentos, 'proteina'), 0)
+  const totalEdCal = refeicoesEd.reduce((s, r, rIdx) => {
+    const vIdx = variacaoAtivaEditor[rIdx] ?? 0
+    return s + sumAl(r.variacoes[vIdx]?.alimentos ?? [], 'calorias')
+  }, 0)
+  const totalEdProt = refeicoesEd.reduce((s, r, rIdx) => {
+    const vIdx = variacaoAtivaEditor[rIdx] ?? 0
+    return s + sumAl(r.variacoes[vIdx]?.alimentos ?? [], 'proteina')
+  }, 0)
 
   return (
     <main className="min-h-[100dvh] text-white flex flex-col md:flex-row" style={{ background: 'var(--bg-base)' }}>
@@ -1056,8 +1114,10 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
                 {/* Refeições */}
                 {refeicoesEd.map((ref, rIdx) => {
-                  const refCal = sumAl(ref.alimentos, 'calorias')
-                  const refProt = sumAl(ref.alimentos, 'proteina')
+                  const vIdx = variacaoAtivaEditor[rIdx] ?? 0
+                  const varAtiva = ref.variacoes[vIdx] ?? ref.variacoes[0]
+                  const refCal = sumAl(varAtiva?.alimentos ?? [], 'calorias')
+                  const refProt = sumAl(varAtiva?.alimentos ?? [], 'proteina')
                   return (
                     <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
                       {/* header refeição */}
@@ -1084,85 +1144,103 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                             className="bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20 text-center" />
                         </div>
 
-                        {/* alimentos */}
-                        <div className="space-y-2">
-                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimentos</p>
-                          {ref.alimentos.map((al, aIdx) => (
-                            <div key={aIdx} className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                              <div className="flex items-center gap-2">
-                                <AlimentoBusca
-                                  value={al.nome}
-                                  onChange={v => updateAlimento(rIdx, aIdx, 'nome', v)}
-                                  onSelect={taco => handleSelectTACO(rIdx, aIdx, taco)}
-                                  placeholder="Buscar alimento (TACO) ou digitar..."
-                                  className="flex-1 bg-transparent text-white placeholder-zinc-600 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15"
-                                />
-                                {ref.alimentos.length > 1 && (
-                                  <button onClick={() => removeAlimento(rIdx, aIdx)} className="text-zinc-700 hover:text-red-400 transition-colors text-sm shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.14]">✕</button>
-                                )}
-                              </div>
-                              {/* badge TACO + campos separados: exibição vs cálculo */}
-                              {al.kcal_100g != null && (
-                                <div className="flex items-center gap-2 px-1 flex-wrap">
-                                  <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ TACO</span>
-                                  <span className="text-zinc-600 text-[9px]">{al.kcal_100g} kcal · {al.prot_100g}g prot · {al.carbo_100g}g carb <span className="text-zinc-700">por 100g</span></span>
-                                </div>
-                              )}
-                              {/* Quantidade para exibição no plano (ex: "2 ovos", "1 copo") */}
-                              <input value={al.quantidade} onChange={e => updateAlimento(rIdx, aIdx, 'quantidade', e.target.value)}
-                                placeholder="Quantidade para exibir (ex: 2 ovos, 1 copo, 100g)"
-                                className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15" />
-                              {/* Gramas para cálculo automático — só aparece quando TACO selecionado */}
-                              {al.kcal_100g != null && (
-                                <div className="flex items-center gap-2">
-                                  <div className="relative flex-1">
-                                    <input type="number" value={al.gramas ?? ''} onChange={e => updateAlimento(rIdx, aIdx, 'gramas', e.target.value)}
-                                      placeholder="Gramas para calcular macros (ex: 120)"
-                                      className="w-full bg-emerald-500/5 border border-emerald-500/20 text-white placeholder-zinc-600 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
-                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px]">g</span>
-                                  </div>
-                                  {al.gramas && parseFloat(al.gramas) > 0 && (
-                                    <div className="text-right shrink-0">
-                                      <span className="text-orange-400 text-[11px] font-bold">{Math.round(al.kcal_100g * parseFloat(al.gramas) / 100)} kcal</span>
-                                      <span className="text-zinc-600 text-[11px] mx-1">·</span>
-                                      <span className="text-blue-400 text-[11px]">{((al.prot_100g ?? 0) * parseFloat(al.gramas) / 100).toFixed(1)}g</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="relative">
-                                  <input type="number" value={al.calorias} onChange={e => updateAlimento(rIdx, aIdx, 'calorias', e.target.value)}
-                                    placeholder="0"
-                                    className="w-full bg-transparent text-orange-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500/20 pr-12" />
-                                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">kcal</span>
-                                </div>
-                                <div className="relative">
-                                  <input type="number" value={al.proteina} onChange={e => updateAlimento(rIdx, aIdx, 'proteina', e.target.value)}
-                                    placeholder="0"
-                                    className="w-full bg-transparent text-blue-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500/20 pr-10" />
-                                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">g prot</span>
-                                </div>
-                              </div>
-                            </div>
+                        {/* tabs de variações */}
+                        <div className="flex items-center gap-1 border-b border-white/[0.08] pb-1">
+                          {ref.variacoes.map((v, vi) => (
+                            <button key={vi}
+                              onClick={() => setVariacaoAtivaEditor(p => ({ ...p, [rIdx]: vi }))}
+                              className={`px-3 py-1.5 rounded-t-lg text-xs font-semibold border-b-2 transition-all ${vIdx === vi ? 'text-white border-[var(--accent)]' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}>
+                              {v.nome || `Opção ${String.fromCharCode(65 + vi)}`}
+                            </button>
                           ))}
-                          <button onClick={() => addAlimento(rIdx)}
-                            className="w-full py-2 rounded-xl border border-dashed border-white/[0.14] text-zinc-600 text-xs hover:border-white/20 hover:text-zinc-400 transition-all active:scale-95">
-                            + adicionar alimento
-                          </button>
+                          {ref.variacoes.length < 3 && (
+                            <button onClick={() => addVariacao(rIdx)}
+                              className="ml-1 px-2 py-1 text-[10px] text-zinc-600 hover:text-emerald-400 transition-colors rounded border border-dashed border-white/[0.1] hover:border-emerald-500/30">
+                              + variação
+                            </button>
+                          )}
+                          {vIdx > 0 && (
+                            <button onClick={() => removeVariacao(rIdx, vIdx)}
+                              className="ml-auto text-[10px] text-red-400/40 hover:text-red-400 transition-colors">
+                              ✕ remover opção
+                            </button>
+                          )}
                         </div>
 
-                        {/* dica opcional */}
-                        <input value={ref.dica} onChange={e => updateRefeicao(rIdx, 'dica', e.target.value)}
-                          placeholder="💡 Dica para o paciente (opcional)"
-                          className="w-full bg-white/[0.02] text-zinc-400 placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/10 border border-white/[0.14]" />
-
-                        {/* total refeição */}
-                        {refCal > 0 && (
-                          <div className="flex items-center gap-3 pt-1 border-t border-white/[0.14]">
-                            <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Total</span>
-                            <span className="text-orange-400 text-xs font-bold">{refCal} kcal</span>
-                            <span className="text-blue-400 text-xs font-bold">{refProt}g prot</span>
+                        {/* conteúdo da variação ativa */}
+                        {varAtiva && (
+                          <div className="space-y-2">
+                            <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimentos — {varAtiva.nome}</p>
+                            {varAtiva.alimentos.map((al, aIdx) => (
+                              <div key={aIdx} className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                                <div className="flex items-center gap-2">
+                                  <AlimentoBusca
+                                    value={al.nome}
+                                    onChange={v => updateAlimento(rIdx, vIdx, aIdx, 'nome', v)}
+                                    onSelect={taco => handleSelectTACO(rIdx, vIdx, aIdx, taco)}
+                                    placeholder="Buscar alimento (TACO) ou digitar..."
+                                    className="flex-1 bg-transparent text-white placeholder-zinc-600 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15"
+                                  />
+                                  {varAtiva.alimentos.length > 1 && (
+                                    <button onClick={() => removeAlimento(rIdx, vIdx, aIdx)} className="text-zinc-700 hover:text-red-400 transition-colors text-sm shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border border-white/[0.14]">✕</button>
+                                  )}
+                                </div>
+                                {al.kcal_100g != null && (
+                                  <div className="flex items-center gap-2 px-1 flex-wrap">
+                                    <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ TACO</span>
+                                    <span className="text-zinc-600 text-[9px]">{al.kcal_100g} kcal · {al.prot_100g}g prot · {al.carbo_100g}g carb <span className="text-zinc-700">por 100g</span></span>
+                                  </div>
+                                )}
+                                <input value={al.quantidade} onChange={e => updateAlimento(rIdx, vIdx, aIdx, 'quantidade', e.target.value)}
+                                  placeholder="Quantidade para exibir (ex: 2 ovos, 1 copo, 100g)"
+                                  className="w-full bg-transparent text-white placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-white/15" />
+                                {al.kcal_100g != null && (
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative flex-1">
+                                      <input type="number" value={al.gramas ?? ''} onChange={e => updateAlimento(rIdx, vIdx, aIdx, 'gramas', e.target.value)}
+                                        placeholder="Gramas para calcular macros (ex: 120)"
+                                        className="w-full bg-emerald-500/5 border border-emerald-500/20 text-white placeholder-zinc-600 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px]">g</span>
+                                    </div>
+                                    {al.gramas && parseFloat(al.gramas) > 0 && (
+                                      <div className="text-right shrink-0">
+                                        <span className="text-orange-400 text-[11px] font-bold">{Math.round(al.kcal_100g * parseFloat(al.gramas) / 100)} kcal</span>
+                                        <span className="text-zinc-600 text-[11px] mx-1">·</span>
+                                        <span className="text-blue-400 text-[11px]">{((al.prot_100g ?? 0) * parseFloat(al.gramas) / 100).toFixed(1)}g</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="relative">
+                                    <input type="number" value={al.calorias} onChange={e => updateAlimento(rIdx, vIdx, aIdx, 'calorias', e.target.value)}
+                                      placeholder="0"
+                                      className="w-full bg-transparent text-orange-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-500/20 pr-12" />
+                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">kcal</span>
+                                  </div>
+                                  <div className="relative">
+                                    <input type="number" value={al.proteina} onChange={e => updateAlimento(rIdx, vIdx, aIdx, 'proteina', e.target.value)}
+                                      placeholder="0"
+                                      className="w-full bg-transparent text-blue-300 placeholder-zinc-700 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500/20 pr-10" />
+                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">g prot</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            <button onClick={() => addAlimento(rIdx, vIdx)}
+                              className="w-full py-2 rounded-xl border border-dashed border-white/[0.14] text-zinc-600 text-xs hover:border-white/20 hover:text-zinc-400 transition-all active:scale-95">
+                              + adicionar alimento
+                            </button>
+                            <input value={varAtiva.dica} onChange={e => updateVariacaoDica(rIdx, vIdx, e.target.value)}
+                              placeholder="💡 Dica para o paciente (opcional)"
+                              className="w-full bg-white/[0.02] text-zinc-400 placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/10 border border-white/[0.14]" />
+                            {refCal > 0 && (
+                              <div className="flex items-center gap-3 pt-1 border-t border-white/[0.14]">
+                                <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Total {varAtiva.nome}</span>
+                                <span className="text-orange-400 text-xs font-bold">{refCal} kcal</span>
+                                <span className="text-blue-400 text-xs font-bold">{refProt}g prot</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

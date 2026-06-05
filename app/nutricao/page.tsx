@@ -16,7 +16,8 @@ function getHourBR(): number {
 type Perfil = { nome: string | null; peso: number | null; objetivo: string | null }
 type Alimento = { nome: string; quantidade: string; calorias: number; proteina: number; carboidrato?: number; gordura?: number }
 type Suplemento = { nome: string; dose: string; horario: string; motivo: string }
-type Refeicao = { nome: string; horario: string; calorias: number; proteina: number; alimentos: Alimento[]; dica?: string }
+type VariacaoPlano = { nome: string; dica?: string; alimentos: Alimento[] }
+type Refeicao = { nome: string; horario: string; calorias: number; proteina: number; alimentos: Alimento[]; dica?: string; variacoes?: VariacaoPlano[] }
 type PlanoEstruturado = {
   nota_nutri?: string
   refeicoes: Refeicao[]
@@ -72,6 +73,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 }) {
   const [refeicaoAberta, setRefeicaoAberta] = useState<number | null>(0)
   const [secaoAberta, setSecaoAberta] = useState<string | null>(null)
+  const [variacaoAtiva, setVariacaoAtiva] = useState<Record<number, number>>({})
 
   let e: PlanoEstruturado | null = null
   if (plano) {
@@ -120,8 +122,9 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
   if (plano) {
     const dataCriacao = new Date(plano.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: 'numeric', month: 'long', year: 'numeric' })
-    const totalCalDia = e ? e.refeicoes.reduce((s, r) => s + r.alimentos.reduce((ss, a) => ss + a.calorias, 0), 0) : 0
-    const totalProtDia = e ? e.refeicoes.reduce((s, r) => s + r.alimentos.reduce((ss, a) => ss + a.proteina, 0), 0) : 0
+    const getAlimentos = (ref: Refeicao, vIdx = 0) => ref.variacoes ? (ref.variacoes[vIdx]?.alimentos ?? ref.variacoes[0]?.alimentos ?? ref.alimentos) : ref.alimentos
+    const totalCalDia = e ? e.refeicoes.reduce((s, r) => s + getAlimentos(r, 0).reduce((ss, a) => ss + a.calorias, 0), 0) : 0
+    const totalProtDia = e ? e.refeicoes.reduce((s, r) => s + getAlimentos(r, 0).reduce((ss, a) => ss + a.proteina, 0), 0) : 0
     const isPlanoProfissional = vinculoNutri && plano.criado_por === vinculoNutri.id
 
     return (
@@ -183,9 +186,13 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
           <div className="px-4 space-y-3">
             {e.refeicoes.map((ref, i) => {
               const aberta = refeicaoAberta === i
-              const totalCal = ref.alimentos.reduce((s, a) => s + a.calorias, 0)
-              const totalProt = ref.alimentos.reduce((s, a) => s + a.proteina, 0)
+              const vIdx = variacaoAtiva[i] ?? 0
+              const alimentos = getAlimentos(ref, vIdx)
+              const dica = ref.variacoes ? ref.variacoes[vIdx]?.dica : ref.dica
+              const totalCal = alimentos.reduce((s, a) => s + a.calorias, 0)
+              const totalProt = alimentos.reduce((s, a) => s + a.proteina, 0)
               const pctDia = totalCalDia > 0 ? Math.round((totalCal / totalCalDia) * 100) : 0
+              const temVariacoes = ref.variacoes && ref.variacoes.length > 1
 
               return (
                 <div key={i} className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
@@ -203,6 +210,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-white font-bold text-sm">{ref.nome}</p>
                         <span className="text-zinc-600 text-[10px] bg-white/[0.07] border border-white/[0.11] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>
+                        {temVariacoes && <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-1.5 py-0.5 shrink-0">{ref.variacoes!.length} opções</span>}
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-orange-400 text-[11px] font-semibold">{totalCal} kcal</span>
@@ -215,6 +223,18 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
                   {aberta && (
                     <div className="border-t border-white/[0.14]">
+                      {/* tabs de variações */}
+                      {temVariacoes && (
+                        <div className="flex items-center gap-1 px-4 pt-3 pb-1 overflow-x-auto">
+                          {ref.variacoes!.map((v, vi) => (
+                            <button key={vi}
+                              onClick={() => setVariacaoAtiva(prev => ({ ...prev, [i]: vi }))}
+                              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${vIdx === vi ? 'bg-white/[0.12] border-white/20 text-white' : 'border-white/[0.08] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.14]'}`}>
+                              {v.nome || `Opção ${String.fromCharCode(65 + vi)}`}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between px-4 py-2 bg-white/[0.02] border-b border-white/[0.03]">
                         <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimento</span>
                         <div className="flex gap-4">
@@ -223,7 +243,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                           <span className="text-zinc-600 text-[9px] uppercase tracking-wider w-10 text-right">Prot</span>
                         </div>
                       </div>
-                      {ref.alimentos.map((al, j) => (
+                      {alimentos.map((al, j) => (
                         <div key={j} className="flex items-center justify-between px-4 py-3 border-b border-white/[0.03] last:border-0">
                           <div className="flex-1 min-w-0 mr-3">
                             <p className="text-zinc-200 text-sm font-medium leading-tight">{al.nome}</p>
@@ -243,10 +263,10 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
                           <span className="text-blue-400 text-[12px] font-bold w-10 text-right">{totalProt}g</span>
                         </div>
                       </div>
-                      {ref.dica && (
+                      {dica && (
                         <div className="mx-4 mb-3 mt-2 rounded-xl bg-white/[0.02] border border-white/[0.09] px-3 py-2.5">
                           <p className="text-emerald-400 text-[9px] uppercase tracking-wider mb-1">💡 Dica</p>
-                          <p className="text-zinc-400 text-[11px] leading-relaxed">{ref.dica}</p>
+                          <p className="text-zinc-400 text-[11px] leading-relaxed">{dica}</p>
                         </div>
                       )}
                     </div>
