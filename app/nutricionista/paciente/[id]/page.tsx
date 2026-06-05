@@ -1469,7 +1469,81 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               </div>
             )}
 
-            {/* ── 3. HISTÓRICO DE TREINOS (14 dias) ── */}
+            {/* ── 3. RESUMO SEMANAL DE TREINO ── */}
+            {!treinoCarregando && (() => {
+              const seteAtras = new Date(); seteAtras.setDate(seteAtras.getDate() - 6)
+              const q7 = seteAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+              const treinosUlt7 = historicoTreinosDetalhado.filter(t => t.data >= q7)
+              const atividadesUlt7 = atividadesLivres14d.filter(a => a.data >= q7)
+
+              const calTreinos = treinosUlt7.reduce((s, t) => s + (t.calorias ?? 0), 0)
+              const calAtividades = atividadesUlt7.reduce((s, a) => s + (a.calorias_estimadas ?? 0), 0)
+              const totalCal = calTreinos + calAtividades
+
+              const minAtividades = atividadesUlt7.reduce((s, a) => s + (a.duracao_min ?? 0), 0)
+              const totalHoras = (minAtividades + treinosUlt7.length * 60) / 60
+              const mediaDiaria = Math.round(totalCal / 7)
+
+              // Distribuição por modalidade (contagem de sessões)
+              const modalMap: Record<string, number> = {}
+              if (treinosUlt7.length > 0) modalMap['Musculação'] = treinosUlt7.length
+              atividadesUlt7.forEach(a => {
+                const m = a.modalidade ? (a.modalidade.charAt(0).toUpperCase() + a.modalidade.slice(1).toLowerCase()) : 'Outro'
+                modalMap[m] = (modalMap[m] ?? 0) + 1
+              })
+              const totalSessoes = Object.values(modalMap).reduce((s, v) => s + v, 0)
+              const modais = Object.entries(modalMap)
+                .map(([nome, count]) => ({ nome, count, pct: totalSessoes > 0 ? Math.round(count / totalSessoes * 100) : 0 }))
+                .sort((a, b) => b.count - a.count)
+
+              if (totalSessoes === 0 && totalCal === 0) return null
+
+              return (
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                  <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
+                    <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Resumo semanal de treino</p>
+                    <span className="text-zinc-600 text-[10px]">{totalSessoes} sessão{totalSessoes !== 1 ? 'ões' : ''}</span>
+                  </div>
+                  <div className="p-5">
+                    <div className="grid grid-cols-3 gap-4 mb-5">
+                      <div>
+                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Kcal gastas</p>
+                        <p className="text-2xl font-black text-orange-300 leading-none">{totalCal > 0 ? totalCal.toLocaleString('pt-BR') : '—'}</p>
+                        <p className="text-zinc-600 text-xs mt-0.5">na semana</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Horas de treino</p>
+                        <p className="text-2xl font-black text-white leading-none">{totalHoras > 0 ? totalHoras.toFixed(1) : '—'}</p>
+                        <p className="text-zinc-600 text-xs mt-0.5">horas totais</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Média diária</p>
+                        <p className="text-2xl font-black text-emerald-400 leading-none">{mediaDiaria > 0 ? mediaDiaria.toLocaleString('pt-BR') : '—'}</p>
+                        <p className="text-zinc-600 text-xs mt-0.5">kcal/dia</p>
+                      </div>
+                    </div>
+                    {modais.length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Distribuição por modalidade</p>
+                        <div className="space-y-2">
+                          {modais.map(m => (
+                            <div key={m.nome} className="flex items-center gap-3">
+                              <p className="text-zinc-400 text-xs w-24 shrink-0 truncate">{m.nome}</p>
+                              <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                                <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${m.pct}%` }} />
+                              </div>
+                              <p className="text-zinc-500 text-xs w-8 text-right shrink-0">{m.pct}%</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* ── 4. HISTÓRICO DE TREINOS (30 dias) ── */}
             {treinoCarregando ? (
               <div className="rounded-2xl p-8 flex items-center justify-center gap-3" style={{ background: 'var(--surface-1)' }}>
                 <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
