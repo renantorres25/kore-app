@@ -362,24 +362,26 @@ function StatTile({
 
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.04)',
-      border: `1px solid ${color}33`,
+      background: 'rgba(255,255,255,0.06)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      border: `1px solid ${color}44`,
       borderRadius: 'var(--radius-inner)',
-      padding: '16px',
-      display: 'flex', flexDirection: 'column', gap: 8,
-      boxShadow: `0 0 30px ${color}12, inset 0 1px 0 rgba(255,255,255,0.06)`,
-      transition: 'transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease',
+      padding: '20px',
+      display: 'flex', flexDirection: 'column', gap: 10,
+      boxShadow: `0 0 40px ${color}15, 0 20px 60px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)`,
+      transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
       cursor: 'default',
     }}
     onMouseEnter={e => {
-      (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'
-      ;(e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 50px ${color}25, inset 0 1px 0 rgba(255,255,255,0.08)`
-      ;(e.currentTarget as HTMLDivElement).style.borderColor = `${color}66`
+      (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
+      ;(e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 60px ${color}28, 0 30px 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)`
+      ;(e.currentTarget as HTMLDivElement).style.borderColor = `${color}77`
     }}
     onMouseLeave={e => {
       (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-      ;(e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 30px ${color}12, inset 0 1px 0 rgba(255,255,255,0.06)`
-      ;(e.currentTarget as HTMLDivElement).style.borderColor = `${color}33`
+      ;(e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 40px ${color}15, 0 20px 60px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)`
+      ;(e.currentTarget as HTMLDivElement).style.borderColor = `${color}44`
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 12, color: 'var(--t2)', fontWeight: 500 }}>{label}</span>
@@ -429,11 +431,14 @@ function RefeicaoCard({ r, idx }: { r: Refeicao; idx: number }) {
 
   return (
     <div style={{
-      background: 'var(--surface-1)',
-      border: '1px solid var(--hairline)',
+      background: 'rgba(255,255,255,0.05)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255,255,255,0.09)',
       borderRadius: 'var(--radius-inner)',
       overflow: 'hidden',
-      transition: 'border-color 150ms ease',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)',
+      transition: 'border-color 200ms ease, box-shadow 200ms ease',
     }}>
       <button
         onClick={() => setOpen(o => !o)}
@@ -513,8 +518,8 @@ function RefeicaoCard({ r, idx }: { r: Refeicao; idx: number }) {
         <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {r.dica && (
             <div style={{
-              background: 'rgba(255,90,54,0.06)',
-              border: '1px solid rgba(255,90,54,0.15)',
+              background: 'rgba(255,90,54,0.10)',
+              border: '1px solid rgba(255,90,54,0.25)',
               borderRadius: 10, padding: '10px 12px',
               fontSize: 12, color: 'var(--t2)', lineHeight: 1.5,
             }}>
@@ -567,17 +572,23 @@ export default function PlanoV2() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#13141a',
+      background: '#0d0e14',
       color: 'var(--t1)',
     }}>
-    {/* Gradiente radial de fundo — mais intenso */}
+    {/* Gradiente radial — vibrante */}
     <div style={{
       position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
       background: `
-        radial-gradient(ellipse 80% 55% at 5% 0%, rgba(255,90,54,0.22) 0%, transparent 60%),
-        radial-gradient(ellipse 65% 50% at 95% 100%, rgba(96,165,250,0.18) 0%, transparent 55%),
-        radial-gradient(ellipse 55% 45% at 55% 45%, rgba(167,139,250,0.10) 0%, transparent 55%)
+        radial-gradient(ellipse 90% 60% at 0% 0%, rgba(255,90,54,0.30) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 55% at 100% 100%, rgba(96,165,250,0.22) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 50% at 50% 40%, rgba(167,139,250,0.12) 0%, transparent 50%)
       `,
+    }} />
+    {/* Noise overlay para textura premium */}
+    <div style={{
+      position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.025,
+      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+      backgroundRepeat: 'repeat', backgroundSize: '128px',
     }} />
     <div style={{
       position: 'relative', zIndex: 1,
@@ -668,12 +679,14 @@ export default function PlanoV2() {
       }}>
         {/* Card aderência */}
         <div style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,90,54,0.2)',
+          background: 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,90,54,0.25)',
           borderRadius: 'var(--radius-card)',
           padding: 24,
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
-          boxShadow: '0 0 40px rgba(255,90,54,0.08), inset 0 1px 0 rgba(255,255,255,0.06)',
+          boxShadow: '0 0 60px rgba(255,90,54,0.12), 0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
         }}>
           <div style={{
             fontSize: 13, fontWeight: 600, color: 'var(--t2)',
@@ -693,11 +706,13 @@ export default function PlanoV2() {
 
         {/* Card evolução */}
         <div style={{
-          background: 'rgba(255,255,255,0.04)',
+          background: 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 'var(--radius-card)',
           padding: 24,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -755,12 +770,15 @@ export default function PlanoV2() {
 
       {/* ── NOTA CLÍNICA ─────────────────────────────────────── */}
       <div style={{
-        background: 'var(--surface-1)',
-        border: '1px solid var(--hairline)',
+        background: 'rgba(255,255,255,0.05)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: 'var(--radius-card)',
         borderLeft: '3px solid var(--energy)',
         padding: 20, marginBottom: 16,
         display: 'flex', gap: 16,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 30px rgba(255,90,54,0.06), inset 0 1px 0 rgba(255,255,255,0.08)',
         opacity: mounted ? 1 : 0,
         transition: 'opacity 400ms ease 400ms',
       }}>
