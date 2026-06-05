@@ -121,9 +121,10 @@ export default function NutricionistaPaciente() {
     id: string; data: string; nome: string; plano: string | null; calorias: number | null; volume: number; exercicios: string[]
   }[]>([])
   const [atividadesLivres14d, setAtividadesLivres14d] = useState<{
-    id: string; data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_estimadas: number | null; intensidade: number | null
+    id: string; data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_estimadas: number | null; calorias_wearable: number | null; intensidade: number | null
   }[]>([])
   const [recuperacao7d, setRecuperacao7d] = useState<{ data: string; score: number | null; duracao: number | null }[]>([])
+  const [recuperacaoPrev7d, setRecuperacaoPrev7d] = useState<{ data: string; score: number | null }[]>([])
   const [treinoCarregando, setTreinoCarregando] = useState(false)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
   const [proximaConsulta, setProximaConsulta] = useState<string | null>(null)
@@ -500,13 +501,15 @@ export default function NutricionistaPaciente() {
     setTreinoCarregando(true)
     const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
     const sete = new Date(); sete.setDate(sete.getDate() - 7)
+    const quatorze = new Date(); quatorze.setDate(quatorze.getDate() - 14)
     const q30 = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const q7 = sete.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const q14 = quatorze.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
     const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalLink }] = await Promise.all([
       supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
-      supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
-      supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', q7).order('data', { ascending: true }),
+      supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
+      supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', q14).order('data', { ascending: true }),
       supabase.from('vinculos').select('profissional_id, perfis(nome)').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle(),
     ])
 
@@ -532,7 +535,13 @@ export default function NutricionistaPaciente() {
     }
 
     if (ativs?.length) setAtividadesLivres14d(ativs as any)
-    if (sonoHist?.length) setRecuperacao7d(sonoHist.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao })))
+    if (sonoHist?.length) {
+      const sonoArr = sonoHist as any[]
+      const curr7 = sonoArr.filter(s => s.data >= q7)
+      const prev7 = sonoArr.filter(s => s.data < q7)
+      setRecuperacao7d(curr7.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao })))
+      setRecuperacaoPrev7d(prev7.map((s: any) => ({ data: s.data, score: s.score_recuperacao })))
+    }
     setTreinoCarregando(false)
   }
 
@@ -1444,9 +1453,36 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
             ...atividadesLivres14d.filter(a => {
               const d = new Date(a.data); const sete = new Date(); sete.setDate(sete.getDate() - 7)
               return d >= sete
-            }).map(a => a.calorias_estimadas ?? 0)
+            }).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
           ].reduce((acc, v) => acc + v, 0)
           const scoreMedia = recuperacao7d.length ? Math.round(recuperacao7d.filter(r => r.score != null).reduce((a, r) => a + (r.score ?? 0), 0) / recuperacao7d.filter(r => r.score != null).length) : null
+
+          // Comparação semana anterior
+          const dBase = new Date(hoje + 'T12:00:00-03:00')
+          const dq7Ini = new Date(dBase); dq7Ini.setDate(dq7Ini.getDate() - 6)
+          const dq14Ini = new Date(dBase); dq14Ini.setDate(dq14Ini.getDate() - 13)
+          const q7CurrStr = dq7Ini.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const q14CurrStr = dq14Ini.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+          const treinosCurr = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr)
+          const treinosPrev = historicoTreinosDetalhado.filter(t => t.data >= q14CurrStr && t.data < q7CurrStr)
+          const ativsCurr = atividadesLivres14d.filter(a => a.data >= q7CurrStr)
+          const ativsPrev = atividadesLivres14d.filter(a => a.data >= q14CurrStr && a.data < q7CurrStr)
+
+          const semSessoes = treinosCurr.length + ativsCurr.length
+          const prevSessoes = treinosPrev.length + ativsPrev.length
+          const semKcal = treinosCurr.reduce((s, t) => s + (t.calorias ?? 0), 0) + ativsCurr.reduce((s, a) => s + (a.calorias_wearable ?? a.calorias_estimadas ?? 0), 0)
+          const prevKcal = treinosPrev.reduce((s, t) => s + (t.calorias ?? 0), 0) + ativsPrev.reduce((s, a) => s + (a.calorias_wearable ?? a.calorias_estimadas ?? 0), 0)
+          const semMin = ativsCurr.reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosCurr.length * 60
+          const prevMin = ativsPrev.reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosPrev.length * 60
+          const semHoras = semMin / 60
+          const prevHoras = prevMin / 60
+          const prevRecupArr = recuperacaoPrev7d.filter(r => r.score != null).map(r => r.score!)
+          const prevScoreMedia = prevRecupArr.length ? Math.round(prevRecupArr.reduce((a, b) => a + b, 0) / prevRecupArr.length) : null
+          const semDelta = (curr: number | null, prev: number | null): number | null => {
+            if (prev === null || prev === 0 || curr === null) return null
+            return Math.round(((curr - prev) / prev) * 100)
+          }
 
           return (
           <div className="space-y-5">
@@ -1481,17 +1517,37 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                   <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
                 )}
 
-                {/* Métricas semanais */}
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { label: 'Treinos', val: treinos7dDatas.length, unit: '/7d', cor: 'text-white' },
-                    { label: 'Kcal gastos', val: calSemTotal > 0 ? `${(calSemTotal/1000).toFixed(1)}k` : '—', unit: '', cor: 'text-orange-300' },
-                    { label: 'Recuperação', val: scoreMedia ? `${scoreMedia}` : '—', unit: '/100', cor: scoreMedia && scoreMedia >= 70 ? 'text-emerald-400' : scoreMedia && scoreMedia >= 50 ? 'text-yellow-400' : 'text-red-400' },
-                    { label: 'FC máx', val: paciente?.fcmax ?? '—', unit: paciente?.fcmax ? ' bpm' : '', cor: 'text-zinc-300' },
-                  ].map(m => (
-                    <div key={m.label} className="rounded-xl px-3 py-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                      <p className={`text-xl font-black ${m.cor}`}>{m.val}<span className="text-xs font-normal text-zinc-600">{m.unit}</span></p>
-                      <p className="text-zinc-600 text-[10px] mt-0.5">{m.label}</p>
+                {/* Métricas semanais com comparação vs semana anterior */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {([
+                    {
+                      label: 'Sessões', fmt: String(semSessoes), unit: '/sem',
+                      cor: 'text-white', delta: semDelta(semSessoes, prevSessoes), good: (d: number) => d >= 0,
+                    },
+                    {
+                      label: 'Horas treinadas', fmt: semHoras > 0 ? semHoras.toFixed(1) : '—', unit: 'h',
+                      cor: 'text-blue-300', delta: semDelta(semHoras, prevHoras > 0 ? prevHoras : null), good: (d: number) => d >= 0,
+                    },
+                    {
+                      label: 'Kcal gastas', fmt: semKcal > 0 ? `${(semKcal/1000).toFixed(1)}k` : '—', unit: '',
+                      cor: 'text-orange-300', delta: semDelta(semKcal, prevKcal > 0 ? prevKcal : null), good: (d: number) => d >= 0,
+                    },
+                    {
+                      label: 'Recuperação', fmt: scoreMedia ? `${scoreMedia}` : '—', unit: scoreMedia ? '/100' : '',
+                      cor: scoreMedia && scoreMedia >= 70 ? 'text-emerald-400' : scoreMedia && scoreMedia >= 50 ? 'text-yellow-400' : scoreMedia ? 'text-red-400' : 'text-zinc-500',
+                      delta: semDelta(scoreMedia, prevScoreMedia), good: (d: number) => d >= 0,
+                    },
+                  ] as { label: string; fmt: string; unit: string; cor: string; delta: number | null; good: (d: number) => boolean }[]).map(m => (
+                    <div key={m.label} className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <p className={`text-xl font-black leading-none ${m.cor}`}>{m.fmt}<span className="text-xs font-normal text-zinc-600">{m.unit}</span></p>
+                      <p className="text-zinc-600 text-[10px] mt-1">{m.label}</p>
+                      {m.delta !== null ? (
+                        <p className={`text-[10px] font-bold mt-1 ${m.good(m.delta) ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {m.delta > 0 ? '↑' : m.delta < 0 ? '↓' : '→'} {m.delta > 0 ? '+' : ''}{m.delta}%
+                        </p>
+                      ) : (
+                        <p className="text-zinc-700 text-[10px] mt-1">sem ant.</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1555,7 +1611,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               const atividadesUlt7 = atividadesLivres14d.filter(a => a.data >= q7)
 
               const calTreinos = treinosUlt7.reduce((s, t) => s + (t.calorias ?? 0), 0)
-              const calAtividades = atividadesUlt7.reduce((s, a) => s + (a.calorias_estimadas ?? 0), 0)
+              const calAtividades = atividadesUlt7.reduce((s, a) => s + (a.calorias_wearable ?? a.calorias_estimadas ?? 0), 0)
               const totalCal = calTreinos + calAtividades
 
               const minAtividades = atividadesUlt7.reduce((s, a) => s + (a.duracao_min ?? 0), 0)
@@ -1703,11 +1759,15 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                               {a.duracao_min} min{a.distancia_km ? ` · ${a.distancia_km} km` : ''}
                             </p>
                           </div>
-                          {a.calorias_estimadas && a.calorias_estimadas > 0 && (
-                            <p className="text-orange-300 text-sm font-bold shrink-0">
-                              {a.calorias_estimadas} <span className="text-zinc-600 text-xs font-normal">kcal</span>
-                            </p>
-                          )}
+                          {(() => {
+                            const kcal = a.calorias_wearable ?? a.calorias_estimadas
+                            if (!kcal) return null
+                            return (
+                              <p className="text-orange-300 text-sm font-bold shrink-0">
+                                {a.calorias_wearable ? '~' : ''}{kcal} <span className="text-zinc-600 text-xs font-normal">kcal</span>
+                              </p>
+                            )
+                          })()}
                         </div>
                       ))}
                     </div>
