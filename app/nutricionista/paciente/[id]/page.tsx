@@ -498,6 +498,35 @@ export default function NutricionistaPaciente() {
     if (abaAtiva === 'treino') carregarDadosTreino()
   }, [abaAtiva])
 
+  async function sincronizarStrava() {
+    setBackfillando(true); setBackfillMsg(null)
+    try {
+      const res = await fetch('/api/strava/sync-atividades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioId: clienteId, dias: 30 }),
+      })
+      const data = await res.json()
+      if (data.sucesso) {
+        const parts = []
+        if (data.inseridos > 0) parts.push(`${data.inseridos} nova${data.inseridos > 1 ? 's' : ''}`)
+        if (data.atualizados > 0) parts.push(`${data.atualizados} cal. atualizadas`)
+        setBackfillMsg(parts.length ? `✓ ${parts.join(' · ')}` : '✓ Tudo sincronizado')
+        if (data.inseridos > 0 || data.atualizados > 0) {
+          setHistoricoTreinosDetalhado([])
+          setAtividadesLivres14d([])
+          setTimeout(() => carregarDadosTreino(true), 100)
+        }
+      } else {
+        setBackfillMsg(data.erro ?? 'Erro ao sincronizar')
+      }
+    } catch {
+      setBackfillMsg('Erro de conexão')
+    }
+    setBackfillando(false)
+    setTimeout(() => setBackfillMsg(null), 6000)
+  }
+
   async function backfillCalorias() {
     setBackfillando(true); setBackfillMsg(null)
     try {
@@ -1773,20 +1802,18 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {backfillMsg && <span className="text-[10px] text-emerald-400">{backfillMsg}</span>}
-                      {atividadesLivres14d.some(a => !a.calorias_wearable) && (
-                        <button onClick={backfillCalorias} disabled={backfillando}
-                          className="flex items-center gap-1.5 text-[10px] text-orange-300 border border-orange-500/25 bg-orange-500/8 rounded-lg px-2.5 py-1.5 hover:border-orange-500/40 transition-all active:scale-95 disabled:opacity-50">
-                          {backfillando
-                            ? <><div className="w-2.5 h-2.5 border border-orange-300 border-t-transparent rounded-full animate-spin" /> Buscando...</>
-                            : <>🔄 Buscar calorias do Strava</>
-                          }
-                        </button>
-                      )}
+                      <button onClick={sincronizarStrava} disabled={backfillando}
+                        className="flex items-center gap-1.5 text-[10px] text-blue-300 border border-blue-500/25 bg-blue-500/8 rounded-lg px-2.5 py-1.5 hover:border-blue-500/40 transition-all active:scale-95 disabled:opacity-50">
+                        {backfillando
+                          ? <><div className="w-2.5 h-2.5 border border-blue-300 border-t-transparent rounded-full animate-spin" /> Sincronizando...</>
+                          : <>↑ Sincronizar Strava</>
+                        }
+                      </button>
                     </div>
                   </div>
                   {atividadesLivres14d.length > 0 ? (
                     <div className="divide-y divide-white/[0.04]">
-                      {atividadesLivres14d.slice(0, 8).map(a => (
+                      {atividadesLivres14d.slice(0, 20).map(a => (
                         <div key={a.id} className="px-5 py-4 flex items-center gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
