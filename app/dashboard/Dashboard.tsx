@@ -1954,22 +1954,4 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
       <button onClick={() => router.push('/convite')} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '16px', borderRadius: 20, fontSize: 14, border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Convidar paciente</button>
     </div>
   )
-} C.t3, fontSize: 12 }}>
-                      {p.sonoScore != null && <span>Recup.: {p.sonoScore}/100</span>}
-                      {p.treinos7d > 0 && <span>{p.treinos7d}x treinos</span>}
-                      {p.kcal7d > 0 && <span>{p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal/sem.</span>}
-                    </div>
-                  </div>
-                  <span style={{ color: C.t3, flexShrink: 0 }}><ChevronRight size={14} /></span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      <button onClick={() => router.push('/nutricionista/pacientes')} style={glass({ width: '100%', color: C.t2, fontWeight: 600, padding: '14px', fontSize: 14, marginBottom: 12, cursor: 'pointer' })}>Ver todos os pacientes</button>
-      <button onClick={() => router.push('/convite')} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '16px', borderRadius: 20, fontSize: 14, border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Convidar paciente</button>
-    </div>
-  )
 }

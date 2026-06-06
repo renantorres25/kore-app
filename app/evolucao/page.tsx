@@ -830,7 +830,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
       <div style={{ padding: '16px 22px' }}>
         {!analise.gerado && !analise.carregando && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.t2, margin: 0, lineHeight: 1.55 }}>A IA analisa todas suas atividades junto com recuperação e consistência.</p>s atividades junto com recuperação e consistência.</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.t2, margin: 0, lineHeight: 1.55 }}>A IA analisa todas suas atividades junto com recuperação e consistência.</p>
             <button onClick={gerarAnaliseIA} style={{
               width: '100%', padding: '13px', borderRadius: 12, cursor: 'pointer',
               fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
