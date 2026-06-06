@@ -156,7 +156,7 @@ export default function Agenda() {
   const STATUS_LABEL: Record<string, string> = { agendado: 'Agendado', realizado: 'Realizado', cancelado: 'Cancelado' }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+    <main className="min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -164,7 +164,7 @@ export default function Agenda() {
   const tipoSidebar = tipo === 'personal' ? 'personal' : 'nutricionista'
 
   return (
-    <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
+    <main className="min-h-[100dvh] text-white md:flex">
       {(tipo === 'nutricionista' || tipo === 'personal') && <SidebarProfissional tipo={tipoSidebar} />}
       <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
@@ -196,8 +196,8 @@ export default function Agenda() {
 
         {/* Calendário semanal */}
         {vistaCalendario === 'semana' && (
-        <div className="rounded-2xl p-4 mb-5" style={{ background: 'var(--surface-1)' }}>
-          <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-3">Esta semana</p>
+        <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20, padding: 16, marginBottom: 20 }}>
+          <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#7A8290', marginBottom: 12, fontWeight: 600 }}>Esta semana</p>
           <div className="grid grid-cols-7 gap-1">
             {semana7.map((dia, i) => {
               const temAg = grupos[dia]?.length > 0
