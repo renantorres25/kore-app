@@ -13,6 +13,62 @@ type SerieRegistrada = { exercicio_id: string; numero_serie: number; carga: numb
 type BlocoAtual = { nome: string; tipo: string; semanaNoBloco: number; totalSemanas: number; descricao: string | null; semanaGlobal: number; totalSemanasCiclo: number; ciclonome: string }
 type Modalidade = 'musculacao' | 'corrida' | 'bike' | 'natacao' | 'crossfit' | 'outro'
 
+/* ─────────────────────────────────────────────────────────
+   DESIGN SYSTEM · ENERGETIC PRECISION
+   ───────────────────────────────────────────────────────── */
+const C = {
+  energy: '#FF5A36', energy2: '#FF8A3D',
+  good: '#2DD4A7', sleep: '#60A5FA', recovery: '#A78BFA',
+  warn: '#F5B544', danger: '#FB7185',
+  t1: '#F5F6F8', t2: '#9AA0AD', t3: '#7A8290',
+}
+
+const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
+const FONT_BODY = "'Plus Jakarta Sans', system-ui, sans-serif"
+const FONT_MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+
+const glass: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.065)',
+  backdropFilter: 'blur(16px) saturate(130%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(130%)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 20,
+  boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
+}
+
+const glassSubtle: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.10)',
+  borderRadius: 16,
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.14)',
+  borderRadius: 12,
+  padding: '12px 14px',
+  color: C.t1,
+  fontSize: 14,
+  fontFamily: FONT_MONO,
+  fontVariantNumeric: 'tabular-nums',
+  outline: 'none',
+}
+
+const labelStyle: React.CSSProperties = { color: C.t3, fontSize: 10, marginBottom: 6, display: 'block', fontFamily: FONT_BODY }
+
+const dataNum = (color = C.t1): React.CSSProperties => ({ fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums', color })
+
+function useIsDesktop() {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    const c = () => setV(window.innerWidth >= 1024)
+    c(); window.addEventListener('resize', c)
+    return () => window.removeEventListener('resize', c)
+  }, [])
+  return v
+}
+
 const MET: Record<Modalidade, number> = { musculacao: 4.5, corrida: 8.0, bike: 6.0, natacao: 7.0, crossfit: 8.5, outro: 5.0 }
 
 function estimarCalorias(modalidade: Modalidade, duracaoMin: number, pesoKg: number): number {
@@ -44,79 +100,95 @@ function calcVolume(series: Record<string, SerieRegistrada[]>): number {
 }
 
 const MODALIDADES = [
-  { id: 'musculacao' as Modalidade, icon: '🏋️', label: 'Musculação', cor: 'bg-emerald-500/10', corText: 'text-emerald-400', corBorder: 'border-emerald-500/20', hex: '#10B981' },
-  { id: 'corrida'    as Modalidade, icon: '🏃', label: 'Corrida',    cor: 'bg-blue-500/10',    corText: 'text-blue-400',    corBorder: 'border-blue-500/20',    hex: '#3B82F6' },
-  { id: 'bike'       as Modalidade, icon: '🚴', label: 'Bike',       cor: 'bg-orange-500/10',  corText: 'text-orange-400',  corBorder: 'border-orange-500/20',  hex: '#F97316' },
-  { id: 'natacao'    as Modalidade, icon: '🏊', label: 'Natação',    cor: 'bg-cyan-500/10',    corText: 'text-cyan-400',    corBorder: 'border-cyan-500/20',    hex: '#06B6D4' },
-  { id: 'crossfit'   as Modalidade, icon: '⚡', label: 'Crossfit',   cor: 'bg-yellow-500/10',  corText: 'text-yellow-400',  corBorder: 'border-yellow-500/20',  hex: '#EAB308' },
-  { id: 'outro'      as Modalidade, icon: '🎯', label: 'Outro',      cor: 'bg-purple-500/10',  corText: 'text-purple-400',  corBorder: 'border-purple-500/20',  hex: '#A855F7' },
+  { id: 'musculacao' as Modalidade, label: 'Musculação', hex: C.good },
+  { id: 'corrida'    as Modalidade, label: 'Corrida',    hex: C.sleep },
+  { id: 'bike'       as Modalidade, label: 'Bike',       hex: C.energy2 },
+  { id: 'natacao'    as Modalidade, label: 'Natação',    hex: '#22D3EE' },
+  { id: 'crossfit'   as Modalidade, label: 'Crossfit',   hex: C.warn },
+  { id: 'outro'      as Modalidade, label: 'Outro',      hex: C.recovery },
 ]
 
-const CORES_PLANO: Record<string, { text: string; bg: string; border: string; glow: string; hex: string }> = {
-  A: { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', glow: 'bg-emerald-400', hex: '#10B981' },
-  B: { text: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    glow: 'bg-blue-400',    hex: '#3B82F6' },
-  C: { text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20',  glow: 'bg-orange-400',  hex: '#F97316' },
+const CORES_PLANO: Record<string, { hex: string }> = {
+  A: { hex: C.good },
+  B: { hex: C.sleep },
+  C: { hex: C.energy },
 }
 
 const ZONAS_FC = [
-  { valor: 'Z1', label: 'Z1 — Recuperação ativa', desc: '< 65% FCmax', cor: 'bg-blue-500/15 border-blue-500/30 text-blue-400' },
-  { valor: 'Z2', label: 'Z2 — Base aeróbica',     desc: '65–75% FCmax', cor: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
-  { valor: 'Z3', label: 'Z3 — Tempo',              desc: '75–85% FCmax', cor: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400' },
-  { valor: 'Z4', label: 'Z4 — Limiar',             desc: '85–92% FCmax', cor: 'bg-orange-500/15 border-orange-500/30 text-orange-400' },
-  { valor: 'Z5', label: 'Z5 — VO2max',             desc: '> 92% FCmax',  cor: 'bg-red-500/15 border-red-500/30 text-red-400' },
-  { valor: 'misto', label: 'Misto',                desc: 'Várias zonas', cor: 'bg-purple-500/15 border-purple-500/30 text-purple-400' },
+  { valor: 'Z1', label: 'Z1 — Recuperação ativa', desc: '< 65% FCmax', hex: C.sleep },
+  { valor: 'Z2', label: 'Z2 — Base aeróbica',     desc: '65–75% FCmax', hex: C.good },
+  { valor: 'Z3', label: 'Z3 — Tempo',              desc: '75–85% FCmax', hex: C.warn },
+  { valor: 'Z4', label: 'Z4 — Limiar',             desc: '85–92% FCmax', hex: C.energy2 },
+  { valor: 'Z5', label: 'Z5 — VO2max',             desc: '> 92% FCmax',  hex: C.energy },
+  { valor: 'misto', label: 'Misto',                desc: 'Várias zonas', hex: C.recovery },
 ]
 
-const TIPO_BLOCO: Record<string, { text: string; bg: string; bar: string; dot: string }> = {
-  adaptacao:  { text: 'text-emerald-400', bg: 'bg-emerald-500/10', bar: 'bg-emerald-400', dot: 'bg-emerald-400' },
-  hipertrofia:{ text: 'text-blue-400',    bg: 'bg-blue-500/10',    bar: 'bg-blue-400',    dot: 'bg-blue-400'    },
-  forca:      { text: 'text-purple-400',  bg: 'bg-purple-500/10',  bar: 'bg-purple-400',  dot: 'bg-purple-400'  },
-  deload:     { text: 'text-zinc-400',    bg: 'bg-zinc-500/10',    bar: 'bg-zinc-400',    dot: 'bg-zinc-400'    },
-  potencia:   { text: 'text-orange-400',  bg: 'bg-orange-500/10',  bar: 'bg-orange-400',  dot: 'bg-orange-400'  },
-  resistencia:{ text: 'text-cyan-400',    bg: 'bg-cyan-500/10',    bar: 'bg-cyan-400',    dot: 'bg-cyan-400'    },
+const TIPO_BLOCO: Record<string, { hex: string }> = {
+  adaptacao:  { hex: C.good },
+  hipertrofia:{ hex: C.sleep },
+  forca:      { hex: C.recovery },
+  deload:     { hex: C.t2 },
+  potencia:   { hex: C.energy },
+  resistencia:{ hex: '#22D3EE' },
 }
 
+/* helpers de cor com alpha */
+const alpha = (hex: string, a: number) => {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r},${g},${b},${a})`
+}
+
+const sectionTitle = (hex: string): React.CSSProperties => ({
+  fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', color: hex,
+  marginBottom: 16, fontFamily: FONT_BODY, fontWeight: 700,
+})
+
+/* ─────────────────────────────────────────────────────────
+   FORMULÁRIOS POR MODALIDADE
+   ───────────────────────────────────────────────────────── */
+function Field({ label, ...props }: any) {
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <input {...props} style={inputStyle} />
+    </div>
+  )
+}
 
 function FormCorrida({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
   const pace = calcularPace(duracaoAtual, parseFloat(form.distancia_km ?? '0'))
   return (
     <>
-      <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📍 Percurso</p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (km)</label><input type="number" step="0.1" placeholder="Ex: 10.5" value={form.distancia_km ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Elevação (m)</label><input type="number" placeholder="Ex: 150" value={form.elevacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, elevacao: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
+      <div style={{ ...glass, padding: 20 }}>
+        <p style={sectionTitle(mod.hex)}>Percurso</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Distância (km)" type="number" step="0.1" placeholder="Ex: 10.5" value={form.distancia_km ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))} />
+            <Field label="Elevação (m)" type="number" placeholder="Ex: 150" value={form.elevacao ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, elevacao: e.target.value }))} />
           </div>
-          {pace && <div className="flex items-center gap-2 bg-blue-500/5 border border-blue-500/20 rounded-xl px-4 py-3"><span className="text-blue-400 text-sm">⚡</span><p className="text-blue-400 text-sm font-bold">Pace: {pace} min/km</p><p className="text-zinc-600 text-xs ml-auto">calculado automaticamente</p></div>}
+          {pace && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: alpha(mod.hex, 0.08), border: `1px solid ${alpha(mod.hex, 0.25)}`, borderRadius: 12, padding: '12px 16px' }}>
+              <p style={{ ...dataNum(mod.hex), fontSize: 14, fontWeight: 700 }}>Pace: {pace} min/km</p>
+              <p style={{ color: C.t3, fontSize: 11, marginLeft: 'auto', fontFamily: FONT_BODY }}>automático</p>
+            </div>
+          )}
         </div>
       </div>
-      <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-        <p className={`text-[10px] uppercase tracking-[0.15em] mb-1 ${mod.corText}`}>❤️ Zona de frequência cardíaca</p>
-        <p className="text-zinc-600 text-xs mb-4">Zona predominante do treino — fundamental para análise da carga</p>
-        <div className="grid grid-cols-2 gap-2">
-          {ZONAS_FC.map(z => (
-            <button key={z.valor} onClick={() => setForm((p: any) => ({ ...p, zona_fc: z.valor }))}
-              className={`flex flex-col items-start p-3 rounded-xl border transition-all active:scale-95 text-left ${form.zona_fc === z.valor ? z.cor : 'bg-white/[0.02] border-white/[0.11] text-zinc-500'}`}>
-              <span className="text-xs font-black">{z.label}</span>
-              <span className="text-[9px] opacity-70 mt-0.5">{z.desc}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label><input type="number" placeholder="Ex: 155" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC máxima (bpm)</label><input type="number" placeholder="Ex: 178" value={form.fc_max ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_max: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
+      <ZonaFC form={form} setForm={setForm} mod={mod} legenda="Zona predominante do treino — fundamental para análise da carga" />
+      <div style={{ ...glass, padding: 20 }}>
+        <p style={sectionTitle(mod.hex)}>Métricas</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="FC média (bpm)" type="number" placeholder="Ex: 155" value={form.fc_media ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} />
+            <Field label="FC máxima (bpm)" type="number" placeholder="Ex: 178" value={form.fc_max ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, fc_max: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Cadência (ppm)</label><input type="number" placeholder="Ex: 172" value={form.cadencia ?? ''} onChange={e => setForm((p: any) => ({ ...p, cadencia: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 850" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-blue-500/30 placeholder:text-zinc-700" /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Cadência (ppm)" type="number" placeholder="Ex: 172" value={form.cadencia ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, cadencia: e.target.value }))} />
+            <Field label="Calorias (wearable)" type="number" placeholder="Ex: 850" value={form.calorias_wearable ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} />
           </div>
         </div>
-        {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>}
+        {!form.calorias_wearable && calsPreview && <p style={{ color: C.t3, fontSize: 10, marginTop: 8, fontFamily: FONT_BODY }}>Estimativa sem wearable: ~{calsPreview} kcal</p>}
       </div>
     </>
   )
@@ -126,43 +198,35 @@ function FormBike({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
   const velMedia = form.distancia_km && duracaoAtual ? Math.round((parseFloat(form.distancia_km) / (duracaoAtual / 60)) * 10) / 10 : null
   return (
     <>
-      <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📍 Percurso</p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (km)</label><input type="number" step="0.1" placeholder="Ex: 40" value={form.distancia_km ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Elevação (m)</label><input type="number" placeholder="Ex: 650" value={form.elevacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, elevacao: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
+      <div style={{ ...glass, padding: 20 }}>
+        <p style={sectionTitle(mod.hex)}>Percurso</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Distância (km)" type="number" step="0.1" placeholder="Ex: 40" value={form.distancia_km ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, distancia_km: e.target.value }))} />
+            <Field label="Elevação (m)" type="number" placeholder="Ex: 650" value={form.elevacao ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, elevacao: e.target.value }))} />
           </div>
-          {velMedia && <div className="flex items-center gap-2 bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3"><span className="text-orange-400 text-sm">⚡</span><p className="text-orange-400 text-sm font-bold">Velocidade média: {velMedia} km/h</p></div>}
+          {velMedia && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: alpha(mod.hex, 0.08), border: `1px solid ${alpha(mod.hex, 0.25)}`, borderRadius: 12, padding: '12px 16px' }}>
+              <p style={{ ...dataNum(mod.hex), fontSize: 14, fontWeight: 700 }}>Velocidade média: {velMedia} km/h</p>
+            </div>
+          )}
         </div>
       </div>
-      <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-        <p className={`text-[10px] uppercase tracking-[0.15em] mb-1 ${mod.corText}`}>❤️ Zona de frequência cardíaca</p>
-        <p className="text-zinc-600 text-xs mb-4">Zona predominante — define se foi treino base ou intenso</p>
-        <div className="grid grid-cols-2 gap-2">
-          {ZONAS_FC.map(z => (
-            <button key={z.valor} onClick={() => setForm((p: any) => ({ ...p, zona_fc: z.valor }))}
-              className={`flex flex-col items-start p-3 rounded-xl border transition-all active:scale-95 text-left ${form.zona_fc === z.valor ? z.cor : 'bg-white/[0.02] border-white/[0.11] text-zinc-500'}`}>
-              <span className="text-xs font-black">{z.label}</span>
-              <span className="text-[9px] opacity-70 mt-0.5">{z.desc}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Potência média (W)</label><input type="number" placeholder="Ex: 180" value={form.potencia_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, potencia_media: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Potência máx (W)</label><input type="number" placeholder="Ex: 320" value={form.potencia_max ?? ''} onChange={e => setForm((p: any) => ({ ...p, potencia_max: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
+      <ZonaFC form={form} setForm={setForm} mod={mod} legenda="Zona predominante — define se foi treino base ou intenso" />
+      <div style={{ ...glass, padding: 20 }}>
+        <p style={sectionTitle(mod.hex)}>Métricas</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Potência média (W)" type="number" placeholder="Ex: 180" value={form.potencia_media ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, potencia_media: e.target.value }))} />
+            <Field label="Potência máx (W)" type="number" placeholder="Ex: 320" value={form.potencia_max ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, potencia_max: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label><input type="number" placeholder="Ex: 148" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Cadência (rpm)</label><input type="number" placeholder="Ex: 88" value={form.cadencia ?? ''} onChange={e => setForm((p: any) => ({ ...p, cadencia: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="FC média (bpm)" type="number" placeholder="Ex: 148" value={form.fc_media ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} />
+            <Field label="Cadência (rpm)" type="number" placeholder="Ex: 88" value={form.cadencia ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, cadencia: e.target.value }))} />
           </div>
-          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 1200" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-orange-500/30 placeholder:text-zinc-700" /></div>
+          <Field label="Calorias (wearable)" type="number" placeholder="Ex: 1200" value={form.calorias_wearable ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} />
         </div>
-        {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>}
+        {!form.calorias_wearable && calsPreview && <p style={{ color: C.t3, fontSize: 10, marginTop: 8, fontFamily: FONT_BODY }}>Estimativa sem wearable: ~{calsPreview} kcal</p>}
       </div>
     </>
   )
@@ -172,32 +236,42 @@ function FormNatacao({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
   const paceNat = calcularPaceNatacao(duracaoAtual, parseInt(form.distancia_m ?? '0'))
   return (
     <>
-      <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>🏊 Volume</p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Distância (m)</label><input type="number" placeholder="Ex: 2000" value={form.distancia_m ?? ''} onChange={e => setForm((p: any) => ({ ...p, distancia_m: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
-            <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Voltas (25m)</label><input type="number" placeholder="Ex: 80" value={form.voltas ?? ''} onChange={e => setForm((p: any) => ({ ...p, voltas: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
+      <div style={{ ...glass, padding: 20 }}>
+        <p style={sectionTitle(mod.hex)}>Volume</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Distância (m)" type="number" placeholder="Ex: 2000" value={form.distancia_m ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, distancia_m: e.target.value }))} />
+            <Field label="Voltas (25m)" type="number" placeholder="Ex: 80" value={form.voltas ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, voltas: e.target.value }))} />
           </div>
-          {paceNat && <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/20 rounded-xl px-4 py-3"><span className="text-cyan-400 text-sm">⚡</span><p className="text-cyan-400 text-sm font-bold">Pace: {paceNat} /100m</p></div>}
+          {paceNat && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: alpha(mod.hex, 0.08), border: `1px solid ${alpha(mod.hex, 0.25)}`, borderRadius: 12, padding: '12px 16px' }}>
+              <p style={{ ...dataNum(mod.hex), fontSize: 14, fontWeight: 700 }}>Pace: {paceNat} /100m</p>
+            </div>
+          )}
           <div>
-            <label className="text-zinc-600 text-[10px] mb-3 block">Estilo predominante</label>
-            <div className="grid grid-cols-2 gap-2">
-              {['Livre', 'Costas', 'Peito', 'Borboleta', 'Medley', 'Misto'].map(e => (
-                <button key={e} onClick={() => setForm((p: any) => ({ ...p, estilo: e }))}
-                  className={`py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${form.estilo === e ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.05] border-white/[0.14] text-zinc-500'}`}>{e}</button>
-              ))}
+            <label style={{ ...labelStyle, marginBottom: 12 }}>Estilo predominante</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {['Livre', 'Costas', 'Peito', 'Borboleta', 'Medley', 'Misto'].map(e => {
+                const on = form.estilo === e
+                return (
+                  <button key={e} onClick={() => setForm((p: any) => ({ ...p, estilo: e }))}
+                    style={{ padding: '10px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, fontFamily: FONT_BODY, transition: 'all .15s', cursor: 'pointer',
+                      background: on ? alpha(mod.hex, 0.12) : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${on ? alpha(mod.hex, 0.4) : 'rgba(255,255,255,0.12)'}`,
+                      color: on ? mod.hex : C.t3 }}>{e}</button>
+                )
+              })}
             </div>
           </div>
         </div>
       </div>
-      <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-        <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Métricas</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC pós-treino (bpm)</label><input type="number" placeholder="Ex: 145" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
-          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 600" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/30 placeholder:text-zinc-700" /></div>
+      <div style={{ ...glass, padding: 20 }}>
+        <p style={sectionTitle(mod.hex)}>Métricas</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="FC pós-treino (bpm)" type="number" placeholder="Ex: 145" value={form.fc_media ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} />
+          <Field label="Calorias (wearable)" type="number" placeholder="Ex: 600" value={form.calorias_wearable ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} />
         </div>
-        {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px] mt-2">Estimativa sem wearable: ~{calsPreview} kcal</p>}
+        {!form.calorias_wearable && calsPreview && <p style={{ color: C.t3, fontSize: 10, marginTop: 8, fontFamily: FONT_BODY }}>Estimativa sem wearable: ~{calsPreview} kcal</p>}
       </div>
     </>
   )
@@ -205,31 +279,68 @@ function FormNatacao({ form, setForm, mod, calsPreview, duracaoAtual }: any) {
 
 function FormCrossfit({ form, setForm, mod, calsPreview }: any) {
   return (
-    <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-      <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>⚡ WOD</p>
-      <div className="space-y-3">
+    <div style={{ ...glass, padding: 20 }}>
+      <p style={sectionTitle(mod.hex)}>WOD</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
-          <label className="text-zinc-600 text-[10px] mb-2 block">Tipo do WOD</label>
-          <div className="flex gap-2 flex-wrap">
-            {['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Chipper', 'Strength'].map(t => (
-              <button key={t} onClick={() => setForm((p: any) => ({ ...p, tipo_wod: t }))}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${form.tipo_wod === t ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.05] border-white/[0.14] text-zinc-500'}`}>{t}</button>
-            ))}
+          <label style={{ ...labelStyle, marginBottom: 8 }}>Tipo do WOD</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Chipper', 'Strength'].map(t => {
+              const on = form.tipo_wod === t
+              return (
+                <button key={t} onClick={() => setForm((p: any) => ({ ...p, tipo_wod: t }))}
+                  style={{ padding: '6px 12px', borderRadius: 12, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY, cursor: 'pointer', transition: 'all .15s',
+                    background: on ? alpha(mod.hex, 0.12) : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${on ? alpha(mod.hex, 0.4) : 'rgba(255,255,255,0.12)'}`,
+                    color: on ? mod.hex : C.t3 }}>{t}</button>
+              )
+            })}
           </div>
         </div>
-        <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Movimentos e cargas</label><textarea placeholder="Ex: 21-15-9 Thrusters 42kg + Pull-ups" value={form.movimentos ?? ''} onChange={e => setForm((p: any) => ({ ...p, movimentos: e.target.value }))} rows={2} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700 resize-none" /></div>
-        <div className="grid grid-cols-2 gap-3">
-          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Resultado / Score</label><input type="text" placeholder="Ex: 8rds+5 / 12:34" value={form.resultado ?? ''} onChange={e => setForm((p: any) => ({ ...p, resultado: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700" /></div>
-          <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 500" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-yellow-500/30 placeholder:text-zinc-700" /></div>
+        <div>
+          <label style={labelStyle}>Movimentos e cargas</label>
+          <textarea placeholder="Ex: 21-15-9 Thrusters 42kg + Pull-ups" value={form.movimentos ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, movimentos: e.target.value }))} rows={2} style={{ ...inputStyle, fontFamily: FONT_BODY, resize: 'none' }} />
         </div>
-        {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px]">Estimativa sem wearable: ~{calsPreview} kcal</p>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Resultado / Score" type="text" placeholder="Ex: 8rds+5 / 12:34" value={form.resultado ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, resultado: e.target.value }))} />
+          <Field label="Calorias (wearable)" type="number" placeholder="Ex: 500" value={form.calorias_wearable ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} />
+        </div>
+        {!form.calorias_wearable && calsPreview && <p style={{ color: C.t3, fontSize: 10, fontFamily: FONT_BODY }}>Estimativa sem wearable: ~{calsPreview} kcal</p>}
       </div>
     </div>
   )
 }
 
+function ZonaFC({ form, setForm, mod, legenda }: any) {
+  return (
+    <div style={{ ...glass, padding: 20 }}>
+      <p style={{ ...sectionTitle(mod.hex), marginBottom: 4 }}>Zona de frequência cardíaca</p>
+      <p style={{ color: C.t3, fontSize: 12, marginBottom: 16, fontFamily: FONT_BODY }}>{legenda}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {ZONAS_FC.map(z => {
+          const on = form.zona_fc === z.valor
+          return (
+            <button key={z.valor} onClick={() => setForm((p: any) => ({ ...p, zona_fc: z.valor }))}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, borderRadius: 12, textAlign: 'left', cursor: 'pointer', transition: 'all .15s',
+                background: on ? alpha(z.hex, 0.15) : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${on ? alpha(z.hex, 0.4) : 'rgba(255,255,255,0.11)'}`,
+                color: on ? z.hex : C.t3 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, fontFamily: FONT_BODY }}>{z.label}</span>
+              <span style={{ fontSize: 9, opacity: 0.7, marginTop: 2, fontFamily: FONT_MONO }}>{z.desc}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────
+   PÁGINA PRINCIPAL
+   ───────────────────────────────────────────────────────── */
 export default function TreinoCliente() {
   const router = useRouter()
+  const isDesktop = useIsDesktop()
   const [treinos, setTreinos] = useState<Treino[]>([])
   const [planoAtivo, setPlanoAtivo] = useState<string | null>(null)
   const [treinosConcluidosHoje, setTreinosConcluidosHoje] = useState<Set<string>>(new Set())
@@ -467,31 +578,48 @@ Responda APENAS JSON válido:
     } catch { setAnaliseLivre({ texto: 'Não foi possível gerar análise.', carregando: false }) }
   }
 
+  /* ───── largura responsiva do container ───── */
+  const containerStyle: React.CSSProperties = {
+    maxWidth: isDesktop ? 1200 : 448,
+    margin: '0 auto',
+    paddingLeft: isDesktop ? 48 : 16,
+    paddingRight: isDesktop ? 48 : 16,
+  }
+
   if (mostrarQuiz) return <QuizIA tipo="treino" onConcluir={gerarPlanoComIA} onCancelar={() => setMostrarQuiz(false)} />
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${C.energy}`, borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </main>
   )
 
   if (tela === 'gerando_plano_ia') {
     return (
-      <main className="min-h-screen bg-[#0d1117] flex items-center justify-center px-4">
-        <div className="text-center max-w-sm w-full">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-            <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+      <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{ textAlign: 'center', maxWidth: 384, width: '100%' }}>
+          <div style={{ width: 64, height: 64, borderRadius: 24, background: alpha(C.energy, 0.12), border: `1px solid ${alpha(C.energy, 0.25)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.energy}`, borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
           </div>
-          <p className="text-emerald-400 text-[10px] uppercase tracking-[0.3em] mb-3">✦ KORE IA</p>
-          <h2 className="text-2xl font-black text-white mb-3">Montando seu plano</h2>
-          <p className="text-zinc-500 text-sm leading-relaxed mb-8">Personalizando cada detalhe com base nas suas respostas...</p>
-          <div className="space-y-2">
-            {MENSAGENS_GERANDO.map((msg, i) => (
-              <div key={i} className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all duration-500 ${i < gerandoMensagem ? 'bg-emerald-500/5 border-emerald-500/20' : i === gerandoMensagem ? 'bg-white/[0.07] border-white/[0.14]' : 'bg-white/[0.02] border-white/[0.14] opacity-40'}`}>
-                {i < gerandoMensagem ? <span className="text-emerald-400 text-sm shrink-0">✓</span> : i === gerandoMensagem ? <div className="w-3.5 h-3.5 border-2 border-emerald-400/60 border-t-emerald-400 rounded-full animate-spin shrink-0" /> : <div className="w-3.5 h-3.5 rounded-full border border-white/[0.15] shrink-0" />}
-                <p className={`text-sm ${i <= gerandoMensagem ? 'text-zinc-300' : 'text-zinc-600'}`}>{msg}</p>
-              </div>
-            ))}
+          <p style={{ color: C.energy, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.3em', marginBottom: 12, fontFamily: FONT_BODY }}>KORE IA</p>
+          <h2 style={{ fontSize: 26, fontWeight: 800, color: C.t1, marginBottom: 12, fontFamily: FONT_DISPLAY }}>Montando seu plano</h2>
+          <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6, marginBottom: 32, fontFamily: FONT_BODY }}>Personalizando cada detalhe com base nas suas respostas...</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {MENSAGENS_GERANDO.map((msg, i) => {
+              const done = i < gerandoMensagem, active = i === gerandoMensagem
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 12, padding: '12px 16px', transition: 'all .5s',
+                  background: done ? alpha(C.energy, 0.06) : active ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${done ? alpha(C.energy, 0.2) : 'rgba(255,255,255,0.12)'}`, opacity: i > gerandoMensagem ? 0.4 : 1 }}>
+                  {done ? <span style={{ color: C.energy, fontSize: 14, flexShrink: 0 }}>✓</span>
+                    : active ? <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${alpha(C.energy, 0.6)}`, borderTopColor: C.energy, animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                    : <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.15)', flexShrink: 0 }} />}
+                  <p style={{ fontSize: 14, color: i <= gerandoMensagem ? '#D4D8DF' : C.t3, fontFamily: FONT_BODY }}>{msg}</p>
+                </div>
+              )
+            })}
           </div>
         </div>
       </main>
@@ -503,47 +631,40 @@ Responda APENAS JSON válido:
     const tc = totalConcluidas(); const tt = totalSeries()
     const vol = calcVolume(series); const pct = tt > 0 ? Math.round((tc / tt) * 100) : 0
     return (
-      <main className="min-h-[100dvh] bg-[#0d1117] text-white overflow-y-auto">
-        <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-          <div className="relative mb-8 text-center pt-4">
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full blur-3xl opacity-15 pointer-events-none" style={{ background: c.hex }} />
-            <div className="relative">
-              <div className={`w-20 h-20 rounded-3xl ${c.bg} border ${c.border} flex items-center justify-center mx-auto mb-5`} style={{ boxShadow: `0 0 60px ${c.hex}25` }}>
-                <span className={`text-4xl font-black ${c.text}`}>✓</span>
+      <main style={{ minHeight: '100dvh', color: C.t1, overflowY: 'auto', fontFamily: FONT_BODY }}>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.8}}`}</style>
+        <div style={{ maxWidth: 448, margin: '0 auto', padding: '0 16px 48px', paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+          <div style={{ position: 'relative', marginBottom: 32, textAlign: 'center', paddingTop: 16 }}>
+            <div style={{ position: 'absolute', top: -32, left: '50%', transform: 'translateX(-50%)', width: 288, height: 288, borderRadius: '50%', filter: 'blur(80px)', opacity: 0.18, pointerEvents: 'none', background: c.hex }} />
+            <div style={{ position: 'relative' }}>
+              <div style={{ width: 80, height: 80, borderRadius: 28, background: alpha(c.hex, 0.12), border: `1px solid ${alpha(c.hex, 0.3)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: `0 0 60px ${alpha(c.hex, 0.25)}` }}>
+                <span style={{ fontSize: 36, fontWeight: 800, color: c.hex, fontFamily: FONT_DISPLAY }}>✓</span>
               </div>
-              <p className={`text-[10px] uppercase tracking-[0.3em] mb-2 ${c.text}`}>Treino concluído · Plano {em.plano}</p>
-              <h1 className="text-3xl font-black text-white mb-1">{em.nome}</h1>
-              <p className="text-zinc-500 text-sm capitalize">{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
+              <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.3em', marginBottom: 8, color: c.hex }}>Treino concluído · Plano {em.plano}</p>
+              <h1 style={{ fontSize: 30, fontWeight: 800, color: C.t1, marginBottom: 4, fontFamily: FONT_DISPLAY }}>{em.nome}</h1>
+              <p style={{ color: C.t2, fontSize: 14, textTransform: 'capitalize' }}>{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             {[
-              { label: 'Séries', val: `${tc}`, extra: `/${tt}`, subEl: <div className="mt-2 h-[3px] bg-white/[0.09] rounded-full overflow-hidden"><div className={`h-full rounded-full ${c.glow}`} style={{ width: `${pct}%` }} /></div> },
+              { label: 'Séries', val: `${tc}`, extra: `/${tt}`, bar: true },
               { label: 'Volume', val: vol > 0 ? vol.toLocaleString('pt-BR') : '—', sub: 'kg × reps' },
               { label: 'Calorias est.', val: caloriasEstimadas ? `~${caloriasEstimadas}` : '—', sub: 'kcal gastas' },
               { label: 'Recuperação', val: score ? `${score}` : '—', sub: score ? '/100' : 'não registrado' },
             ].map((s, i) => (
-              <div key={i} className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">{s.label}</p>
-                <p className={`text-3xl font-black tabular-nums ${c.text}`}>{s.val}{(s as any).extra && <span className="text-zinc-600 text-lg font-light">{(s as any).extra}</span>}</p>
-                {(s as any).subEl ?? <p className="text-zinc-600 text-xs mt-1">{s.sub}</p>}
+              <div key={i} style={{ ...glass, padding: 20 }}>
+                <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{s.label}</p>
+                <p style={{ fontSize: 30, fontWeight: 800, ...dataNum(c.hex), fontFamily: FONT_DISPLAY }}>{s.val}{(s as any).extra && <span style={{ color: C.t3, fontSize: 18, fontWeight: 300 }}>{(s as any).extra}</span>}</p>
+                {(s as any).bar
+                  ? <div style={{ marginTop: 8, height: 3, background: 'rgba(255,255,255,0.09)', borderRadius: 999, overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 999, background: c.hex, width: `${pct}%` }} /></div>
+                  : <p style={{ color: C.t3, fontSize: 12, marginTop: 4 }}>{s.sub}</p>}
               </div>
             ))}
           </div>
-          <div className={`rounded-2xl border mb-4 overflow-hidden ${c.border}`} style={{ background: 'linear-gradient(145deg, #131b2e 0%, #141414 100%)' }}>
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
-              <div className={`w-7 h-7 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${c.text}`}>✦</span></div>
-              <div className="flex-1"><p className={`text-[10px] uppercase tracking-[0.2em] ${c.text}`}>Análise KORE IA</p><p className="text-zinc-600 text-[10px]">Powered by Claude</p></div>
-              {analise.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
-            </div>
-            <div className="px-5 py-4">
-              {analise.carregando ? <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>
-                : <p className="text-zinc-300 text-sm leading-relaxed">{analise.texto || 'Gerando análise...'}</p>}
-            </div>
-          </div>
-          <div className="space-y-3">
-            <button onClick={() => router.push('/dashboard')} className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">Voltar ao dashboard</button>
-            <button onClick={() => { setEm(null); setConcluido(false); setTela('principal') }} className="w-full border border-white/[0.14] text-zinc-400 font-bold py-4 rounded-2xl text-sm active:scale-95 hover:border-white/20 hover:text-white transition-all">Registrar outra atividade</button>
+          <AnaliseIA hex={c.hex} analise={analise} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <BotaoEnergy onClick={() => router.push('/dashboard')}>Voltar ao dashboard</BotaoEnergy>
+            <button onClick={() => { setEm(null); setConcluido(false); setTela('principal') }} style={{ ...glassSubtle, width: '100%', color: C.t2, fontWeight: 700, padding: '14px 0', fontSize: 14, cursor: 'pointer', fontFamily: FONT_BODY }}>Registrar outra atividade</button>
           </div>
         </div>
       </main>
@@ -553,41 +674,36 @@ Responda APENAS JSON válido:
   if (tela === 'conclusao_livre' && modalidade) {
     const mod = MODALIDADES.find(m => m.id === modalidade)!
     const duracaoMin = parseInt(form.duracao_min ?? '30') || 30
+    const stats = [
+      { label: 'Duração', val: `${duracaoMin}`, un: 'min' },
+      { label: 'Calorias', val: `~${caloriasEstimadas ?? '—'}`, un: 'kcal' },
+      ...(form.distancia_km ? [{ label: 'Distância', val: form.distancia_km, un: 'km' }] : []),
+      ...(form.distancia_m ? [{ label: 'Distância', val: form.distancia_m, un: 'm' }] : []),
+      ...(form.potencia_media ? [{ label: 'Potência média', val: form.potencia_media, un: 'W' }] : []),
+    ]
     return (
-      <main className="min-h-[100dvh] bg-[#0d1117] text-white overflow-y-auto">
-        <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-          <div className="text-center pt-4 mb-6">
-            <div className={`w-20 h-20 rounded-3xl ${mod.cor} border ${mod.corBorder} flex items-center justify-center mx-auto mb-5`}><span className="text-4xl">{mod.icon}</span></div>
-            <p className={`text-[10px] uppercase tracking-[0.3em] mb-2 ${mod.corText}`}>Atividade registrada</p>
-            <h1 className="text-3xl font-black text-white mb-1">{mod.label}</h1>
+      <main style={{ minHeight: '100dvh', color: C.t1, overflowY: 'auto', fontFamily: FONT_BODY }}>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.8}}`}</style>
+        <div style={{ maxWidth: 448, margin: '0 auto', padding: '0 16px 48px', paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+          <div style={{ textAlign: 'center', paddingTop: 16, marginBottom: 24 }}>
+            <div style={{ width: 80, height: 80, borderRadius: 28, background: alpha(mod.hex, 0.12), border: `1px solid ${alpha(mod.hex, 0.3)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: `0 0 60px ${alpha(mod.hex, 0.25)}` }}>
+              <span style={{ fontSize: 34, fontWeight: 800, color: mod.hex, fontFamily: FONT_DISPLAY }}>✓</span>
+            </div>
+            <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.3em', marginBottom: 8, color: mod.hex }}>Atividade registrada</p>
+            <h1 style={{ fontSize: 30, fontWeight: 800, color: C.t1, marginBottom: 4, fontFamily: FONT_DISPLAY }}>{mod.label}</h1>
           </div>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Duração</p>
-              <p className={`text-3xl font-black ${mod.corText}`}>{duracaoMin}<span className="text-zinc-600 text-lg font-light">min</span></p>
-            </div>
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Calorias</p>
-              <p className={`text-3xl font-black ${mod.corText}`}>~{caloriasEstimadas ?? '—'}<span className="text-zinc-600 text-lg font-light">kcal</span></p>
-            </div>
-            {form.distancia_km && <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p><p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_km}<span className="text-zinc-600 text-lg font-light">km</span></p></div>}
-            {form.distancia_m && <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Distância</p><p className={`text-3xl font-black ${mod.corText}`}>{form.distancia_m}<span className="text-zinc-600 text-lg font-light">m</span></p></div>}
-            {form.potencia_media && <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">Potência média</p><p className={`text-3xl font-black ${mod.corText}`}>{form.potencia_media}<span className="text-zinc-600 text-lg font-light">W</span></p></div>}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            {stats.map((s, i) => (
+              <div key={i} style={{ ...glass, padding: 20 }}>
+                <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{s.label}</p>
+                <p style={{ fontSize: 30, fontWeight: 800, ...dataNum(mod.hex), fontFamily: FONT_DISPLAY }}>{s.val}<span style={{ color: C.t3, fontSize: 18, fontWeight: 300 }}>{s.un}</span></p>
+              </div>
+            ))}
           </div>
-          <div className={`rounded-2xl border mb-4 overflow-hidden ${mod.corBorder}`} style={{ background: 'linear-gradient(145deg, #131b2e 0%, #141414 100%)' }}>
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
-              <div className={`w-7 h-7 rounded-xl ${mod.cor} flex items-center justify-center shrink-0`}><span className={`text-[11px] font-black ${mod.corText}`}>✦</span></div>
-              <div className="flex-1"><p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>Análise KORE IA</p></div>
-              {analiseLivre.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
-            </div>
-            <div className="px-5 py-4">
-              {analiseLivre.carregando ? <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>
-                : <p className="text-zinc-300 text-sm leading-relaxed">{analiseLivre.texto}</p>}
-            </div>
-          </div>
-          <div className="space-y-3">
-            <button onClick={() => router.push('/dashboard')} className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">Voltar ao dashboard</button>
-            <button onClick={() => { setTela('principal'); setModalidade(null); setForm({ intensidade: 3 }) }} className="w-full border border-white/[0.14] text-zinc-400 font-bold py-4 rounded-2xl text-sm active:scale-95 hover:border-white/20 hover:text-white transition-all">Registrar outra atividade</button>
+          <AnaliseIA hex={mod.hex} analise={analiseLivre} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <BotaoEnergy onClick={() => router.push('/dashboard')}>Voltar ao dashboard</BotaoEnergy>
+            <button onClick={() => { setTela('principal'); setModalidade(null); setForm({ intensidade: 3 }) }} style={{ ...glassSubtle, width: '100%', color: C.t2, fontWeight: 700, padding: '14px 0', fontSize: 14, cursor: 'pointer', fontFamily: FONT_BODY }}>Registrar outra atividade</button>
           </div>
         </div>
       </main>
@@ -597,61 +713,79 @@ Responda APENAS JSON válido:
   if (tela === 'executando_musculacao' && em) {
     const c = CORES_PLANO[em.plano]
     const tc = totalConcluidas(); const tt = totalSeries(); const prog = tt > 0 ? (tc / tt) * 100 : 0
+    const concluiTudo = tc === tt && tt > 0
     return (
-      <main className="min-h-[100dvh] bg-[#0d1117] text-white flex flex-col">
-        <div className="shrink-0 border-b border-white/[0.14]" style={{ background: 'rgba(8,8,8,0.97)' }}>
-          <div className="max-w-md mx-auto px-4 pt-12 pb-4">
-            <div className="flex items-center justify-between mb-3">
-              <div><p className={`text-[10px] uppercase tracking-[0.2em] ${c.text}`}>Plano {em.plano}</p><h1 className="text-xl font-black text-white mt-0.5">{em.nome}</h1></div>
-              <p className="text-zinc-500 text-sm">{tc}/{tt} séries</p>
+      <main style={{ minHeight: '100dvh', color: C.t1, display: 'flex', flexDirection: 'column', fontFamily: FONT_BODY }}>
+        <div style={{ flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.10)', background: 'rgba(8,8,8,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+          <div style={{ maxWidth: 448, margin: '0 auto', padding: '0 16px 16px', paddingTop: 48 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', color: c.hex }}>Plano {em.plano}</p>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: C.t1, marginTop: 2, fontFamily: FONT_DISPLAY }}>{em.nome}</h1>
+              </div>
+              <p style={{ ...dataNum(C.t2), fontSize: 14 }}>{tc}/{tt} séries</p>
             </div>
-            <div className="h-[3px] bg-white/[0.09] rounded-full overflow-hidden">
-              <div className={`h-full rounded-full ${c.glow} transition-all duration-500`} style={{ width: `${prog}%` }} />
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.09)', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: 999, background: c.hex, transition: 'width .5s', width: `${prog}%` }} />
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto pb-40">
-          <div className="max-w-md mx-auto px-4 py-4 space-y-4">
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 160 }}>
+          <div style={{ maxWidth: 448, margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {em.exercicios.map((ex, ei) => {
               const exs = series[ex.id] ?? []
               const ok = exs.length > 0 && exs.every(s => s.concluida)
               return (
-                <div key={ex.id} className={`rounded-2xl border transition-all overflow-hidden ${ok ? 'border-emerald-500/30' : 'border-white/[0.11]'}`} style={{ background: ok ? 'rgba(16,185,129,0.04)' : 'var(--surface-1)' }}>
-                  <div className="flex items-center gap-3 p-4 pb-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${ok ? 'bg-emerald-500/20 text-emerald-400' : `${c.bg} ${c.text}`}`}>{ok ? '✓' : ei + 1}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-bold text-sm ${ok ? 'text-emerald-400' : 'text-white'}`}>{ex.nome}</p>
-                      <p className="text-zinc-600 text-[11px]">{ex.series} séries · {ex.repeticoes} reps{ex.carga_sugerida ? ` · ${ex.carga_sugerida}kg sugerido` : ''}</p>
+                <div key={ex.id} style={{ ...glass, overflow: 'hidden', padding: 0, border: `1px solid ${ok ? alpha(C.good, 0.3) : 'rgba(255,255,255,0.12)'}`, background: ok ? alpha(C.good, 0.05) : (glass.background as string) }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 12px' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 15, fontFamily: FONT_DISPLAY,
+                      background: ok ? alpha(C.good, 0.2) : alpha(c.hex, 0.15), color: ok ? C.good : c.hex }}>{ok ? '✓' : ei + 1}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 700, fontSize: 14, color: ok ? C.good : C.t1 }}>{ex.nome}</p>
+                      <p style={{ ...dataNum(C.t3), fontSize: 11 }}>{ex.series} séries · {ex.repeticoes} reps{ex.carga_sugerida ? ` · ${ex.carga_sugerida}kg sugerido` : ''}</p>
                     </div>
                   </div>
-                  {ex.observacoes && <div className="mx-4 mb-3 bg-white/[0.05] rounded-xl px-3 py-2 border border-white/[0.14]"><p className="text-zinc-500 text-[11px] italic">{ex.observacoes}</p></div>}
-                  <div className="px-4 pb-4 space-y-2">
+                  {ex.observacoes && <div style={{ margin: '0 16px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '8px 12px', border: '1px solid rgba(255,255,255,0.10)' }}><p style={{ color: C.t2, fontSize: 11, fontStyle: 'italic' }}>{ex.observacoes}</p></div>}
+                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {exs.map((s, si) => (
-                      <div key={si} className={`flex items-center gap-2 rounded-xl p-2 ${s.concluida ? 'bg-emerald-500/5' : 'bg-white/[0.02]'}`}>
-                        <p className={`text-sm font-bold w-6 text-center shrink-0 ${s.concluida ? 'text-emerald-400' : 'text-zinc-500'}`}>{si + 1}</p>
-                        <div className="flex-1"><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Carga (kg)</p><input type="number" value={s.carga ?? ''} onChange={e => setCarga(ex.id, si, e.target.value ? parseFloat(e.target.value) : null)} placeholder="—" disabled={s.concluida} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 placeholder:text-zinc-700 disabled:opacity-50" /></div>
-                        <div className="flex-1"><p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Reps</p><input type="number" value={s.repeticoes} onChange={e => setReps(ex.id, si, parseInt(e.target.value) || 0)} disabled={s.concluida} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-white/20 disabled:opacity-50" /></div>
-                        <button onClick={() => toggle(ex.id, si)} className={`w-11 h-11 rounded-xl border flex items-center justify-center text-sm font-bold transition-all active:scale-90 shrink-0 ${s.concluida ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.09] border-white/[0.12] text-zinc-400'}`}>{s.concluida ? '✓' : '○'}</button>
+                      <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, padding: 8, background: s.concluida ? alpha(C.good, 0.07) : 'rgba(255,255,255,0.02)' }}>
+                        <p style={{ ...dataNum(s.concluida ? C.good : C.t2), fontSize: 14, fontWeight: 700, width: 24, textAlign: 'center', flexShrink: 0 }}>{si + 1}</p>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Carga (kg)</p>
+                          <input type="number" value={s.carga ?? ''} onChange={e => setCarga(ex.id, si, e.target.value ? parseFloat(e.target.value) : null)} placeholder="—" disabled={s.concluida} style={{ ...inputStyle, padding: '8px', textAlign: 'center', opacity: s.concluida ? 0.5 : 1 }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Reps</p>
+                          <input type="number" value={s.repeticoes} onChange={e => setReps(ex.id, si, parseInt(e.target.value) || 0)} disabled={s.concluida} style={{ ...inputStyle, padding: '8px', textAlign: 'center', opacity: s.concluida ? 0.5 : 1 }} />
+                        </div>
+                        <button onClick={() => toggle(ex.id, si)} style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, transition: 'all .15s', cursor: 'pointer', flexShrink: 0,
+                          background: s.concluida ? alpha(C.good, 0.2) : 'rgba(255,255,255,0.09)',
+                          border: `1px solid ${s.concluida ? alpha(C.good, 0.4) : 'rgba(255,255,255,0.12)'}`,
+                          color: s.concluida ? C.good : C.t2 }}>{s.concluida ? '✓' : '○'}</button>
                       </div>
                     ))}
                   </div>
                 </div>
               )
             })}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Duração do treino</p>
-              <div className="flex items-center gap-3">
-                <input type="number" placeholder="60" value={form.duracao_musculacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_musculacao: e.target.value }))} className="flex-1 bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                <p className="text-zinc-500 text-sm">minutos</p>
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>Duração do treino</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input type="number" placeholder="60" value={form.duracao_musculacao ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_musculacao: e.target.value }))} style={{ ...inputStyle, flex: 1 }} />
+                <p style={{ color: C.t2, fontSize: 14 }}>minutos</p>
               </div>
-              {form.duracao_musculacao && <p className="text-zinc-600 text-[11px] mt-2">≈ {estimarCalorias('musculacao', parseInt(form.duracao_musculacao), pesoKg)} kcal estimadas</p>}
+              {form.duracao_musculacao && <p style={{ color: C.t3, fontSize: 11, marginTop: 8 }}>≈ {estimarCalorias('musculacao', parseInt(form.duracao_musculacao), pesoKg)} kcal estimadas</p>}
             </div>
           </div>
         </div>
-        <div className="fixed bottom-0 left-0 right-0 border-t border-white/[0.14]" style={{ background: 'rgba(8,8,8,0.97)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <div className="max-w-md mx-auto px-4 py-4">
-            <button onClick={finalizarMusculacao} disabled={salvando || tc === 0} className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all ${tc === tt && tt > 0 ? 'bg-white text-black' : 'bg-white/10 text-white border border-white/20'}`}>
-              {salvando ? 'Salvando...' : tc === tt && tt > 0 ? '🏁 Finalizar treino' : `Finalizar (${tc}/${tt} séries)`}
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderTop: '1px solid rgba(255,255,255,0.10)', background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div style={{ maxWidth: 448, margin: '0 auto', padding: '16px' }}>
+            <button onClick={finalizarMusculacao} disabled={salvando || tc === 0}
+              style={{ width: '100%', fontWeight: 800, padding: '16px 0', borderRadius: 16, fontSize: 15, cursor: salvando || tc === 0 ? 'default' : 'pointer', opacity: salvando || tc === 0 ? 0.3 : 1, transition: 'all .15s', fontFamily: FONT_DISPLAY, color: '#0A0A0A', border: 'none',
+                background: concluiTudo ? `linear-gradient(135deg, ${C.energy}, ${C.energy2})` : 'rgba(255,255,255,0.12)',
+                boxShadow: concluiTudo ? `0 8px 32px ${alpha(C.energy, 0.4)}` : 'none',
+                ...(concluiTudo ? {} : { color: C.t1 }) }}>
+              {salvando ? 'Salvando...' : concluiTudo ? 'Finalizar treino' : `Finalizar (${tc}/${tt} séries)`}
             </button>
           </div>
         </div>
@@ -664,29 +798,32 @@ Responda APENAS JSON válido:
     const duracaoAtual = parseInt(form.duracao_min ?? '0') || 0
     const calsPreview = duracaoAtual > 0 ? estimarCalorias(modalidade, duracaoAtual, pesoKg) : null
     return (
-      <main className="min-h-[100dvh] bg-[#0d1117] text-white flex flex-col">
-        <div className="shrink-0 border-b border-white/[0.14]" style={{ background: 'rgba(8,8,8,0.97)' }}>
-          <div className="max-w-md mx-auto px-4 pt-12 pb-4 flex items-center gap-3">
-            <span className="text-3xl">{mod.icon}</span>
-            <div><p className={`text-[10px] uppercase tracking-[0.2em] ${mod.corText}`}>{mod.label}</p><h1 className="text-xl font-black text-white">Registrar atividade</h1></div>
+      <main style={{ minHeight: '100dvh', color: C.t1, display: 'flex', flexDirection: 'column', fontFamily: FONT_BODY }}>
+        <div style={{ flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.10)', background: 'rgba(8,8,8,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+          <div style={{ maxWidth: 448, margin: '0 auto', padding: '0 16px 16px', paddingTop: 48, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: alpha(mod.hex, 0.12), border: `1px solid ${alpha(mod.hex, 0.3)}`, flexShrink: 0 }} />
+            <div>
+              <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', color: mod.hex }}>{mod.label}</p>
+              <h1 style={{ fontSize: 20, fontWeight: 800, color: C.t1, fontFamily: FONT_DISPLAY }}>Registrar atividade</h1>
+            </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto pb-32">
-          <div className="max-w-md mx-auto px-4 py-5 space-y-4">
-            <div className="flex items-start gap-3 bg-white/[0.02] rounded-2xl px-4 py-3">
-              <span className="text-lg shrink-0">💡</span>
-              <p className="text-zinc-500 text-xs leading-relaxed">Quanto mais dados você preencher, mais precisa será a análise da IA. Todos os campos são opcionais exceto a duração.</p>
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 128 }}>
+          <div style={{ maxWidth: 448, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ ...glassSubtle, display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.energy, marginTop: 6, flexShrink: 0 }} />
+              <p style={{ color: C.t2, fontSize: 12, lineHeight: 1.6 }}>Quanto mais dados você preencher, mais precisa será a análise da IA. Todos os campos são opcionais exceto a duração.</p>
             </div>
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">⏱ Duração <span className={mod.corText}>*</span></p>
-              <div className="flex items-center gap-3">
-                <input type="number" placeholder="45" value={form.duracao_min ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))} className="flex-1 bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-lg text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                <p className="text-zinc-500 text-sm">minutos</p>
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>Duração <span style={{ color: mod.hex }}>*</span></p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input type="number" placeholder="45" value={form.duracao_min ?? ''} onChange={e => setForm((p: any) => ({ ...p, duracao_min: e.target.value }))} style={{ ...inputStyle, flex: 1, fontSize: 18, textAlign: 'center', fontWeight: 700 }} />
+                <p style={{ color: C.t2, fontSize: 14 }}>minutos</p>
               </div>
               {calsPreview && !form.calorias_wearable && (
-                <div className="mt-3 flex items-center gap-2 bg-white/[0.05] rounded-xl px-3 py-2 border border-white/[0.14]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
-                  <p className="text-zinc-400 text-[11px]">Estimativa: <span className="text-white font-bold">~{calsPreview} kcal</span> (sem wearable)</p>
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '8px 12px', border: '1px solid rgba(255,255,255,0.10)' }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.energy, flexShrink: 0 }} />
+                  <p style={{ color: C.t2, fontSize: 11 }}>Estimativa: <span style={{ color: C.t1, fontWeight: 700, ...dataNum(C.t1) }}>~{calsPreview} kcal</span> (sem wearable)</p>
                 </div>
               )}
             </div>
@@ -695,35 +832,45 @@ Responda APENAS JSON válido:
             {modalidade === 'natacao' && <FormNatacao form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} duracaoAtual={duracaoAtual} />}
             {modalidade === 'crossfit' && <FormCrossfit form={form} setForm={setForm} mod={mod} calsPreview={calsPreview} />}
             {modalidade === 'outro' && (
-              <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-                <p className={`text-[10px] uppercase tracking-[0.15em] mb-4 ${mod.corText}`}>📊 Dados gerais</p>
-                <div className="space-y-3">
-                  <div><label className="text-zinc-600 text-[10px] mb-1.5 block">FC média (bpm)</label><input type="number" placeholder="Ex: 140" value={form.fc_media ?? ''} onChange={e => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" /></div>
-                  <div><label className="text-zinc-600 text-[10px] mb-1.5 block">Calorias (wearable)</label><input type="number" placeholder="Ex: 400" value={form.calorias_wearable ?? ''} onChange={e => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500/30 placeholder:text-zinc-700" /></div>
-                  {!form.calorias_wearable && calsPreview && <p className="text-zinc-600 text-[10px]">Estimativa sem wearable: ~{calsPreview} kcal</p>}
+              <div style={{ ...glass, padding: 20 }}>
+                <p style={sectionTitle(mod.hex)}>Dados gerais</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <Field label="FC média (bpm)" type="number" placeholder="Ex: 140" value={form.fc_media ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, fc_media: e.target.value }))} />
+                  <Field label="Calorias (wearable)" type="number" placeholder="Ex: 400" value={form.calorias_wearable ?? ''} onChange={(e: any) => setForm((p: any) => ({ ...p, calorias_wearable: e.target.value }))} />
+                  {!form.calorias_wearable && calsPreview && <p style={{ color: C.t3, fontSize: 10 }}>Estimativa sem wearable: ~{calsPreview} kcal</p>}
                 </div>
               </div>
             )}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">😤 Intensidade percebida (PSE)</p>
-              <div className="flex gap-2">
-                {[{ v: 1, l: 'Leve', e: '😌' }, { v: 2, l: 'Moderado', e: '🙂' }, { v: 3, l: 'Forte', e: '😤' }, { v: 4, l: 'Muito forte', e: '😰' }, { v: 5, l: 'Máximo', e: '🔥' }].map(i => (
-                  <button key={i.v} onClick={() => setForm((p: any) => ({ ...p, intensidade: i.v }))} className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${form.intensidade === i.v ? `${mod.cor} ${mod.corBorder} ${mod.corText}` : 'bg-white/[0.05] border-white/[0.14] text-zinc-500'}`}>
-                    <span className="text-xl">{i.e}</span><span className="text-[9px] mt-1 font-semibold leading-tight text-center">{i.l}</span>
-                  </button>
-                ))}
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>Intensidade percebida (PSE)</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[{ v: 1, l: 'Leve' }, { v: 2, l: 'Moderado' }, { v: 3, l: 'Forte' }, { v: 4, l: 'Muito forte' }, { v: 5, l: 'Máximo' }].map(i => {
+                  const on = form.intensidade === i.v
+                  return (
+                    <button key={i.v} onClick={() => setForm((p: any) => ({ ...p, intensidade: i.v }))}
+                      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '14px 4px', borderRadius: 12, transition: 'all .15s', cursor: 'pointer', gap: 6,
+                        background: on ? alpha(mod.hex, 0.12) : 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${on ? alpha(mod.hex, 0.4) : 'rgba(255,255,255,0.12)'}`,
+                        color: on ? mod.hex : C.t3 }}>
+                      <span style={{ ...dataNum(on ? mod.hex : C.t3), fontSize: 18, fontWeight: 800, fontFamily: FONT_DISPLAY }}>{i.v}</span>
+                      <span style={{ fontSize: 9, fontWeight: 600, lineHeight: 1.1, textAlign: 'center' }}>{i.l}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">📝 Observações <span className="text-zinc-700 normal-case">(opcional)</span></p>
-              <textarea placeholder="Como você se sentiu? Alguma dor, sensação especial, estratégia de pace..." value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>Observações <span style={{ color: C.t3, textTransform: 'none' }}>(opcional)</span></p>
+              <textarea placeholder="Como você se sentiu? Alguma dor, sensação especial, estratégia de pace..." value={form.observacoes ?? ''} onChange={e => setForm((p: any) => ({ ...p, observacoes: e.target.value }))} rows={3} style={{ ...inputStyle, fontFamily: FONT_BODY, resize: 'none' }} />
             </div>
           </div>
         </div>
-        <div className="fixed bottom-0 left-0 right-0 border-t border-white/[0.14]" style={{ background: 'rgba(8,8,8,0.97)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <div className="max-w-md mx-auto px-4 py-4 flex gap-3">
-            <button onClick={() => setTela('principal')} className="w-12 h-12 rounded-2xl border border-white/[0.14] text-zinc-500 flex items-center justify-center active:scale-90 transition-all">✕</button>
-            <button onClick={salvarAtividadeLivre} disabled={salvandoLivre || !form.duracao_min} className={`flex-1 font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all tracking-wide ${mod.cor} ${mod.corBorder} ${mod.corText} border`}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderTop: '1px solid rgba(255,255,255,0.10)', background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div style={{ maxWidth: 448, margin: '0 auto', padding: '16px', display: 'flex', gap: 12 }}>
+            <button onClick={() => setTela('principal')} style={{ width: 48, height: 48, borderRadius: 14, ...glassSubtle, color: C.t2, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>✕</button>
+            <button onClick={salvarAtividadeLivre} disabled={salvandoLivre || !form.duracao_min}
+              style={{ flex: 1, fontWeight: 800, padding: '16px 0', borderRadius: 16, fontSize: 15, cursor: salvandoLivre || !form.duracao_min ? 'default' : 'pointer', opacity: salvandoLivre || !form.duracao_min ? 0.3 : 1, transition: 'all .15s', fontFamily: FONT_DISPLAY, color: '#0A0A0A', border: 'none',
+                background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, boxShadow: `0 8px 32px ${alpha(C.energy, 0.35)}` }}>
               {salvandoLivre ? 'Salvando...' : `Salvar ${mod.label}`}
             </button>
           </div>
@@ -732,126 +879,261 @@ Responda APENAS JSON válido:
     )
   }
 
+  /* ───── TELA PRINCIPAL ───── */
   const sel = treinos.find(t => t.plano === planoAtivo)
-  return (
-    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
-      <div className="max-w-md mx-auto px-4 pb-24" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-        <div className="mb-6">
-          <button onClick={() => router.push('/dashboard')} className="text-zinc-600 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-1 hover:text-zinc-400 transition-colors">← Dashboard</button>
-          <h1 className="text-2xl font-black text-white tracking-tight">Treinos</h1>
-          <p className="text-zinc-600 text-xs mt-1">Planos do personal ou registre qualquer atividade</p>
+
+  const blocoBox = blocoAtual && (() => {
+    const tb = TIPO_BLOCO[blocoAtual.tipo] ?? TIPO_BLOCO.adaptacao
+    const pct = Math.round((blocoAtual.semanaGlobal / blocoAtual.totalSemanasCiclo) * 100)
+    return (
+      <div style={{ ...glass, padding: 16, marginBottom: 20 }}>
+        <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.15em', color: C.t2, marginBottom: 12 }}>{blocoAtual.ciclonome}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: alpha(tb.hex, 0.12) }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: tb.hex }} />
+            </div>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.2, color: tb.hex, fontFamily: FONT_DISPLAY }}>{blocoAtual.nome}</p>
+              <p style={{ color: C.t2, fontSize: 11 }}>Semana {blocoAtual.semanaNoBloco} de {blocoAtual.totalSemanas}</p>
+            </div>
+          </div>
+          <span style={{ ...dataNum(C.t3), fontSize: 10, flexShrink: 0 }}>Sem. {blocoAtual.semanaGlobal}/{blocoAtual.totalSemanasCiclo}</span>
         </div>
-        {blocoAtual && (() => {
-          const tb = TIPO_BLOCO[blocoAtual.tipo] ?? TIPO_BLOCO.adaptacao
-          const pct = Math.round((blocoAtual.semanaGlobal / blocoAtual.totalSemanasCiclo) * 100)
+        <div style={{ width: '100%', height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.05)', marginBottom: 12, overflow: 'hidden' }}>
+          <div style={{ height: '100%', borderRadius: 999, background: tb.hex, width: `${pct}%` }} />
+        </div>
+        {blocoAtual.descricao && <p style={{ color: C.t2, fontSize: 11, lineHeight: 1.6 }}>{blocoAtual.descricao}</p>}
+      </div>
+    )
+  })()
+
+  // bloco principal de planos + exercícios
+  const planosBox = treinos.length > 0 && (
+    <div style={{ marginBottom: 24 }}>
+      <p style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>Meus planos</p>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {treinos.map(t => {
+          const co = CORES_PLANO[t.plano]
+          const on = planoAtivo === t.plano
           return (
-            <div className="rounded-2xl p-4 mb-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-3">📅 {blocoAtual.ciclonome}</p>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tb.bg}`}>
-                    <div className={`w-2.5 h-2.5 rounded-full ${tb.dot}`} />
-                  </div>
-                  <div>
-                    <p className={`font-bold text-base leading-tight ${tb.text}`}>{blocoAtual.nome}</p>
-                    <p className="text-zinc-500 text-[11px]">Semana {blocoAtual.semanaNoBloco} de {blocoAtual.totalSemanas}</p>
-                  </div>
-                </div>
-                <span className="text-zinc-600 text-[10px] shrink-0">Sem. {blocoAtual.semanaGlobal}/{blocoAtual.totalSemanasCiclo}</span>
-              </div>
-              <div className="w-full h-1 rounded-full bg-white/[0.05] mb-3 overflow-hidden">
-                <div className={`h-full rounded-full ${tb.bar}`} style={{ width: `${pct}%` }} />
-              </div>
-              {blocoAtual.descricao && <p className="text-zinc-500 text-[11px] leading-relaxed">{blocoAtual.descricao}</p>}
-            </div>
+            <button key={t.plano} onClick={() => setPlanoAtivo(t.plano)}
+              style={{ flex: 1, padding: '12px 0', borderRadius: 16, fontWeight: 800, fontSize: 14, transition: 'all .15s', cursor: 'pointer', fontFamily: FONT_DISPLAY,
+                background: on ? alpha(co.hex, 0.14) : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${on ? alpha(co.hex, 0.4) : 'rgba(255,255,255,0.11)'}`,
+                color: on ? co.hex : C.t3,
+                backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                boxShadow: on ? `0 0 24px ${alpha(co.hex, 0.2)}` : 'none' }}>
+              Plano {t.plano}
+              <span style={{ display: 'block', fontSize: 9, fontWeight: 400, marginTop: 2, opacity: 0.75, fontFamily: FONT_BODY }}>{treinosConcluidosHoje.has(t.plano) ? '✓ Feito hoje' : `${t.exercicios.length} exerc.`}</span>
+            </button>
           )
-        })()}
-        {treinos.length > 0 && (
-          <div className="mb-6">
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meus planos</p>
-            <div className="flex gap-2 mb-4">
-              {treinos.map(t => {
-                const co = CORES_PLANO[t.plano]
-                return (
-                  <button key={t.plano} onClick={() => setPlanoAtivo(t.plano)} className={`flex-1 py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === t.plano ? `${co.bg} ${co.border} ${co.text}` : 'bg-white/[0.05] border-white/[0.11] text-zinc-600'}`}>
-                    Plano {t.plano}
-                    <span className="block text-[9px] font-normal mt-0.5 opacity-70">{treinosConcluidosHoje.has(t.plano) ? '✓ Feito hoje' : `${t.exercicios.length} exerc.`}</span>
-                  </button>
-                )
-              })}
-            </div>
-            {sel && (() => {
-              const co = CORES_PLANO[sel.plano]
-              const isPlanoIA = !sel.personal_id
-              return (
-                <div>
-                  <div className={`rounded-2xl p-5 border ${co.border} mb-4`} style={{ background: 'var(--surface-1)' }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className={`text-[10px] uppercase tracking-[0.2em] ${co.text}`}>Plano {sel.plano}</p>
-                      {isPlanoIA && <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">✦ IA</span>}
+        })}
+      </div>
+      {sel && (() => {
+        const co = CORES_PLANO[sel.plano]
+        const isPlanoIA = !sel.personal_id
+        return (
+          <div style={isDesktop ? { display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, alignItems: 'start' } : undefined}>
+            {/* coluna esquerda: card do plano com exercícios */}
+            <div style={{ ...glass, padding: 20, border: `1px solid ${alpha(co.hex, 0.3)}`, marginBottom: isDesktop ? 0 : 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', color: co.hex }}>Plano {sel.plano}</p>
+                {isPlanoIA && <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: C.energy, background: alpha(C.energy, 0.1), border: `1px solid ${alpha(C.energy, 0.2)}`, borderRadius: 999, padding: '2px 8px' }}>IA</span>}
+              </div>
+              <p style={{ color: C.t1, fontWeight: 800, fontSize: 20, marginBottom: 4, fontFamily: FONT_DISPLAY }}>{sel.nome}</p>
+              {sel.descricao && <p style={{ color: C.t2, fontSize: 12, marginBottom: 16 }}>{sel.descricao}</p>}
+              <div style={{ marginTop: 16 }}>
+                {sel.exercicios.map((ex, i) => (
+                  <div key={ex.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < sel.exercicios.length - 1 ? '1px solid rgba(255,255,255,0.10)' : 'none' }}>
+                    <div style={{ width: 26, height: 26, borderRadius: 8, background: alpha(co.hex, 0.15), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ ...dataNum(co.hex), fontSize: 11, fontWeight: 800, fontFamily: FONT_DISPLAY }}>{i + 1}</span>
                     </div>
-                    <p className="text-white font-black text-xl mb-1">{sel.nome}</p>
-                    {sel.descricao && <p className="text-zinc-500 text-xs mb-4">{sel.descricao}</p>}
-                    <div className="space-y-2 mt-4">
-                      {sel.exercicios.map((ex, i) => (
-                        <div key={ex.id} className="flex items-center gap-3 py-2 border-b border-white/[0.14] last:border-0">
-                          <div className={`w-6 h-6 rounded-lg ${co.bg} flex items-center justify-center shrink-0`}><span className={`text-[10px] font-black ${co.text}`}>{i + 1}</span></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
-                            <p className="text-zinc-600 text-[11px]">{ex.series}×{ex.repeticoes}{ex.carga_sugerida ? ` · ${ex.carga_sugerida}kg` : ''}</p>
-                          </div>
-                        </div>
-                      ))}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: C.t1, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.nome}</p>
+                      <p style={{ ...dataNum(C.t3), fontSize: 11 }}>{ex.series}×{ex.repeticoes}{ex.carga_sugerida ? ` · ${ex.carga_sugerida}kg` : ''}</p>
                     </div>
                   </div>
-                  {score && (
-                    <div className="rounded-2xl p-4 mb-4" style={{ background: 'var(--surface-1)' }}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                        <p className="text-zinc-400 text-[11px]">Recuperação: <span className="text-white font-bold">{score}/100</span> {score >= 70 ? '— ótimo para treinar forte!' : score >= 50 ? '— moderação.' : '— leve hoje.'}</p>
-                      </div>
-                    </div>
-                  )}
-                  <button onClick={() => iniciarMusculacao(sel)} className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 hover:bg-zinc-100 transition-all mb-4">Iniciar Plano {sel.plano} →</button>
-                </div>
-              )
-            })()}
-          </div>
-        )}
-        {!temPersonal && (
-          <div className="mb-6">
-            {treinos.length === 0 ? (
-              <div className="rounded-2xl p-5 border border-emerald-500/20 mb-4" style={{ background: 'linear-gradient(145deg, #0a1410 0%, #080d0a 100%)' }}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><span className="text-emerald-400 font-black text-lg">✦</span></div>
-                  <div><p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">KORE IA · Personal virtual</p><p className="text-white font-black text-base">Sem personal? A IA monta seu plano</p></div>
-                </div>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-4">Responda uma consulta rápida e a IA cria um plano personalizado com exercícios, séries e cargas.</p>
-                <button onClick={() => setMostrarQuiz(true)} className="w-full bg-emerald-500 text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">✦ Iniciar consulta com IA →</button>
+                ))}
               </div>
-            ) : (
-              <button onClick={() => setMostrarQuiz(true)} className="w-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all mb-4">✦ Gerar novo plano com IA</button>
-            )}
-          </div>
-        )}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 h-px bg-white/[0.09]" />
-          <p className="text-zinc-600 text-[10px] uppercase tracking-widest">ou</p>
-          <div className="flex-1 h-px bg-white/[0.09]" />
-        </div>
-        <div>
-          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Registrar atividade</p>
-          <div className="grid grid-cols-3 gap-2">
-            {MODALIDADES.map(mod => (
-              <button key={mod.id} onClick={() => abrirFormulario(mod.id)} className={`rounded-2xl p-4 border ${mod.corBorder} ${mod.cor} active:scale-95 transition-all text-center`}>
-                <span className="text-3xl block mb-1.5">{mod.icon}</span>
-                <p className={`text-[11px] font-bold ${mod.corText}`}>{mod.label}</p>
+            </div>
+            {/* coluna direita (desktop): recuperação + CTA */}
+            <div>
+              {score && (
+                <div style={{ ...glass, padding: 16, marginBottom: 16 }}>
+                  <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Recuperação</p>
+                  <p style={{ ...dataNum(score >= 70 ? C.good : score >= 50 ? C.warn : C.danger), fontSize: 30, fontWeight: 800, fontFamily: FONT_DISPLAY }}>{score}<span style={{ color: C.t3, fontSize: 16, fontWeight: 300 }}>/100</span></p>
+                  <p style={{ color: C.t2, fontSize: 11, marginTop: 4 }}>{score >= 70 ? 'Ótimo para treinar forte!' : score >= 50 ? 'Treine com moderação.' : 'Vá leve hoje.'}</p>
+                </div>
+              )}
+              <button onClick={() => iniciarMusculacao(sel)}
+                style={{ width: '100%', fontWeight: 800, padding: '18px 0', borderRadius: 16, fontSize: 16, cursor: 'pointer', transition: 'all .15s', fontFamily: FONT_DISPLAY, color: '#0A0A0A', border: 'none',
+                  background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, boxShadow: `0 8px 32px ${alpha(C.energy, 0.4)}`, marginBottom: 16 }}>
+                Iniciar Plano {sel.plano}
               </button>
-            ))}
+            </div>
           </div>
+        )
+      })()}
+    </div>
+  )
+
+  // bloco IA / sem personal
+  const iaBox = !temPersonal && (
+    <div style={{ marginBottom: 24 }}>
+      {treinos.length === 0 ? (
+        <div style={{ ...glass, padding: 20, border: `1px solid ${alpha(C.energy, 0.25)}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 16, background: alpha(C.energy, 0.12), border: `1px solid ${alpha(C.energy, 0.25)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ color: C.energy, fontWeight: 800, fontSize: 18, fontFamily: FONT_DISPLAY }}>K</span>
+            </div>
+            <div>
+              <p style={{ color: C.energy, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em' }}>KORE IA · Personal virtual</p>
+              <p style={{ color: C.t1, fontWeight: 800, fontSize: 16, fontFamily: FONT_DISPLAY }}>Sem personal? A IA monta seu plano</p>
+            </div>
+          </div>
+          <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>Responda uma consulta rápida e a IA cria um plano personalizado com exercícios, séries e cargas.</p>
+          <button onClick={() => setMostrarQuiz(true)}
+            style={{ width: '100%', fontWeight: 800, padding: '14px 0', borderRadius: 14, fontSize: 14, cursor: 'pointer', fontFamily: FONT_DISPLAY, color: '#0A0A0A', border: 'none',
+              background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, boxShadow: `0 8px 32px ${alpha(C.energy, 0.4)}` }}>
+            Iniciar consulta com IA
+          </button>
         </div>
+      ) : (
+        <button onClick={() => setMostrarQuiz(true)}
+          style={{ width: '100%', fontWeight: 700, padding: '14px 0', borderRadius: 16, fontSize: 14, cursor: 'pointer', fontFamily: FONT_DISPLAY,
+            background: alpha(C.energy, 0.08), border: `1px solid ${alpha(C.energy, 0.25)}`, color: C.energy }}>
+          Gerar novo plano com IA
+        </button>
+      )}
+    </div>
+  )
+
+  // bloco atividades livres
+  const MODALIDADE_ICONS: Record<string, React.ReactNode> = {
+    musculacao: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1"/><path d="M7.5 6.5v11M17.5 6.5v11"/><path d="M7.5 12h9"/><path d="M3 10.5v3M21 10.5v3"/></svg>,
+    corrida:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="13" cy="4" r="2"/><path d="M8 21l2-6 3 3 4-8"/><path d="M6 12l2-3 4 1 2-4"/></svg>,
+    bike:       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="6" cy="15" r="4"/><circle cx="18" cy="15" r="4"/><path d="M6 15l4-8h4l2 4"/><path d="M14 7l2 4h-6"/></svg>,
+    natacao:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><circle cx="12" cy="6" r="2"/><path d="M12 8v4"/></svg>,
+    crossfit:   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
+    outro:      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>,
+  }
+
+  const atividadesBox = (
+    <div>
+      <p style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>Registrar atividade</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {MODALIDADES.map(mod => (
+          <button key={mod.id} onClick={() => abrirFormulario(mod.id)}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLButtonElement; el.style.borderColor = alpha(mod.hex, 0.4); el.style.background = alpha(mod.hex, 0.08); el.style.transform = 'translateX(4px)' }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLButtonElement; el.style.borderColor = alpha(mod.hex, 0.18); el.style.background = 'rgba(255,255,255,0.04)'; el.style.transform = 'translateX(0)' }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+              padding: '14px 16px', borderRadius: 14, cursor: 'pointer',
+              background: 'rgba(255,255,255,0.04)',
+              border: `1px solid ${alpha(mod.hex, 0.18)}`,
+              transition: 'all .2s ease', textAlign: 'left',
+            }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: alpha(mod.hex, 0.15), flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: mod.hex }}>
+              {MODALIDADE_ICONS[mod.id]}
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 600, color: mod.hex, fontFamily: FONT_DISPLAY }}>{mod.label}</span>
+            <span style={{ marginLeft: 'auto', color: C.t3, fontSize: 16 }}>→</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  const divisor = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.09)' }} />
+      <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>ou</p>
+      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.09)' }} />
+    </div>
+  )
+
+  return (
+    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0 }}>
+      <div style={{ ...containerStyle, paddingBottom: 96, paddingTop: isDesktop ? 40 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+
+        {/* Header */}
+        <div style={{ marginBottom: 32, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <p style={{ color: C.t3, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 8 }}>— Dashboard</p>
+            <h1 style={{ fontSize: isDesktop ? 36 : 28, fontWeight: 800, color: C.t1, letterSpacing: '-0.02em', fontFamily: FONT_DISPLAY, margin: 0 }}>Treinos</h1>
+            <p style={{ color: C.t3, fontSize: 13, marginTop: 6 }}>Planos do personal ou registre qualquer atividade</p>
+          </div>
+          {score && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: `rgba(255,255,255,0.05)`, border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14, padding: '10px 16px' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: score >= 70 ? C.good : score >= 50 ? C.warn : C.danger }} />
+              <span style={{ fontSize: 13, color: C.t2, fontWeight: 500 }}>Recuperação:</span>
+              <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, color: score >= 70 ? C.good : score >= 50 ? C.warn : C.danger, fontVariantNumeric: 'tabular-nums' }}>{score}/100</span>
+            </div>
+          )}
+        </div>
+
+        {isDesktop ? (
+          /* ── LAYOUT DESKTOP: 3 áreas ── */
+          <>
+            {blocoBox}
+            {/* Planos + Atividades em grid principal */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, alignItems: 'start' }}>
+              <div>
+                {planosBox}
+                {iaBox}
+              </div>
+              <div>
+                {atividadesBox}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {blocoBox}
+            {planosBox}
+            {iaBox}
+            {divisor}
+            {atividadesBox}
+          </>
+        )}
       </div>
       <NavBar tipo="cliente" ativa="treino" />
     </main>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────
+   COMPONENTES AUXILIARES DE UI
+   ───────────────────────────────────────────────────────── */
+function BotaoEnergy({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick}
+      style={{ width: '100%', fontWeight: 800, padding: '16px 0', borderRadius: 16, fontSize: 15, cursor: 'pointer', transition: 'all .15s', fontFamily: FONT_DISPLAY, color: '#0A0A0A', border: 'none',
+        background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, boxShadow: `0 8px 32px ${alpha(C.energy, 0.4)}` }}>
+      {children}
+    </button>
+  )
+}
+
+function AnaliseIA({ hex, analise }: { hex: string; analise: { texto: string; carregando: boolean } }) {
+  return (
+    <div style={{ ...glass, overflow: 'hidden', padding: 0, marginBottom: 16, border: `1px solid ${alpha(hex, 0.3)}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 10, background: alpha(hex, 0.15), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: hex, fontFamily: FONT_DISPLAY }}>K</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', color: hex }}>Análise KORE IA</p>
+          <p style={{ color: C.t3, fontSize: 10 }}>Powered by Claude</p>
+        </div>
+        {analise.carregando && <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${hex}`, borderTopColor: 'transparent', animation: 'spin 1s linear infinite', flexShrink: 0 }} />}
+      </div>
+      <div style={{ padding: '16px 20px' }}>
+        {analise.carregando
+          ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[1, 0.8, 0.6].map((w, i) => <div key={i} style={{ height: 12, background: 'rgba(255,255,255,0.09)', borderRadius: 999, animation: 'pulse 1.5s ease-in-out infinite', width: `${w * 100}%` }} />)}</div>
+          : <p style={{ color: '#CBD0D8', fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-line' }}>{analise.texto || 'Gerando análise...'}</p>}
+      </div>
+    </div>
   )
 }
