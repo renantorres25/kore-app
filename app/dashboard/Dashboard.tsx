@@ -1689,6 +1689,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
         if (t.calorias_estimadas) kcalMap.set(t.cliente_id, (kcalMap.get(t.cliente_id) ?? 0) + t.calorias_estimadas)
       })
       atividades?.forEach(a => {
+        treinos7dSet.set(a.usuario_id, (treinos7dSet.get(a.usuario_id) ?? 0) + 1)
         const kcal = a.calorias_wearable ?? a.calorias_estimadas ?? 0
         if (kcal) kcalMap.set(a.usuario_id, (kcalMap.get(a.usuario_id) ?? 0) + kcal)
       })
