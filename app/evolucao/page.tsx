@@ -474,23 +474,44 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
     </div>
   )
 
+  const scoreColor = mediaScore != null
+    ? (mediaScore >= 70 ? C.good : mediaScore >= 50 ? C.warn : C.danger)
+    : C.good
+
   const ScoreCard = scores.some(s => s.score !== null) ? (
-    <div style={{ ...glass, overflow: 'hidden' }}>
-      <div style={{ padding: '20px 22px 8px' }}>
-        {sectionTitle('Score de recuperação', <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: C.t3 }}>14 dias</span>)}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-          {mediaScore != null && (
-            <p style={{ ...dataNum(C.good), fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 800, lineHeight: 1, margin: 0 }}>
-              {mediaScore}<span style={{ fontFamily: FONT_BODY, fontSize: 16, fontWeight: 300, color: C.t3 }}>/100</span>
+    <div style={{ ...glass, overflow: 'hidden', border: `1px solid ${scoreColor}22` }}>
+      {/* Header com score hero */}
+      <div style={{ padding: '24px 24px 0', position: 'relative', overflow: 'hidden' }}>
+        {/* Glow atrás do número */}
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: scoreColor, opacity: 0.07, filter: 'blur(50px)', pointerEvents: 'none' }} />
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, position: 'relative' }}>
+          <div>
+            <p style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.t3, margin: '0 0 10px' }}>Score de recuperação</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              {mediaScore != null && (
+                <p style={{ fontFamily: FONT_DISPLAY, fontSize: 56, fontWeight: 800, lineHeight: 1, margin: 0, color: scoreColor, letterSpacing: '-0.03em' }}>
+                  {mediaScore}
+                </p>
+              )}
+              <span style={{ fontFamily: FONT_BODY, fontSize: 18, fontWeight: 300, color: C.t3 }}>/100</span>
+            </div>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.t2, margin: '6px 0 0' }}>
+              {mediaScore != null && (mediaScore >= 70 ? 'Boa recuperação · pode treinar forte' : mediaScore >= 50 ? 'Recuperação moderada · treine com cuidado' : 'Recuperação baixa · priorize descanso')}
             </p>
+          </div>
+          {melhorScore != null && (
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <p style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.t3, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>máximo</p>
+              <p style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 800, color: C.t2, margin: 0 }}>{melhorScore}</p>
+            </div>
           )}
-          {melhorScore != null && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.t2, margin: 0 }}>máx {melhorScore}</p>}
         </div>
       </div>
-      <div style={{ padding: '8px 4px 0' }}>
-        <Sparkline data={scoreValues} color={C.good} height={70} />
+      {/* Gráfico */}
+      <div style={{ padding: '4px 4px 0' }}>
+        <Sparkline data={scoreValues} color={scoreColor} height={90} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 18px 18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 20px 18px' }}>
         <p style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.t3, margin: 0 }}>{formatDate(scores[0].data)}</p>
         <p style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.t3, margin: 0 }}>{formatDate(scores[scores.length - 1].data)}</p>
       </div>

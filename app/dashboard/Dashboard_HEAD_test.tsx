@@ -837,58 +837,36 @@ function SonoMiniChart({ historico }: { historico: { data: string; score_recuper
 
   if (!dias.some(d => d.score != null)) return null
 
-  const W = 280, H = 60, padX = 10, padY = 12
+  const W = 280, H = 56, padX = 10, padY = 8
   const toY = (s: number) => H - padY - (s / 100) * (H - 2 * padY)
   const withX = dias.map((d, i) => ({ ...d, x: padX + (i / 6) * (W - 2 * padX) }))
   const valid = withX.filter(d => d.score != null) as (typeof withX[0] & { score: number })[]
+  const line = valid.map((d, i) => `${i === 0 ? 'M' : 'L'}${d.x.toFixed(1)},${toY(d.score).toFixed(1)}`).join(' ')
+  const area = valid.length > 1 ? `${line} L${valid[valid.length-1].x.toFixed(1)},${H} L${valid[0].x.toFixed(1)},${H} Z` : ''
   const last = valid[valid.length - 1]
-  const lineColor = last ? dotColor(last.score) : C.good
-
-  // Curva suave via cubic bezier
-  const smoothLine = valid.reduce((acc, pt, i) => {
-    if (i === 0) return `M${pt.x.toFixed(1)},${toY(pt.score).toFixed(1)}`
-    const prev = valid[i - 1]
-    const cpX = (prev.x + pt.x) / 2
-    return `${acc} C${cpX.toFixed(1)},${toY(prev.score).toFixed(1)} ${cpX.toFixed(1)},${toY(pt.score).toFixed(1)} ${pt.x.toFixed(1)},${toY(pt.score).toFixed(1)}`
-  }, '')
-  const area = valid.length > 1
-    ? `${smoothLine} L${valid[valid.length-1].x.toFixed(1)},${H} L${valid[0].x.toFixed(1)},${H} Z`
-    : ''
-
-  // Clamp label Y para não clipar no topo
-  const labelY = (pt: typeof valid[0]) => Math.max(10, toY(pt.score) - 7)
 
   return (
-    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.10)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.18em' }}>Score · 7 dias</p>
-        {last && <p style={{ color: lineColor, fontSize: 9, fontWeight: 700, fontFamily: FONT_MONO }}>Hoje: {last.score}</p>}
-      </div>
+    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+      <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Score de recuperação · 7 dias</p>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, overflow: 'visible' }}>
         <defs>
           <linearGradient id="dashSonoGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            <stop offset="0%" stopColor={C.good} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={C.good} stopOpacity="0" />
           </linearGradient>
         </defs>
-        {/* Linha de referência central */}
-        <line x1={padX} y1={toY(50)} x2={W - padX} y2={toY(50)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" />
         {area && <path d={area} fill="url(#dashSonoGrad)" />}
-        {valid.length > 1 && <path d={smoothLine} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />}
-        {valid.map((d, i) => (
-          <circle key={i} cx={d.x} cy={toY(d.score)} r={d === last ? 4 : 2.5}
-            fill={dotColor(d.score)} opacity={d === last ? 1 : 0.7}
-            style={d === last ? { filter: `drop-shadow(0 0 4px ${dotColor(d.score)}99)` } : undefined} />
-        ))}
-        {last && <text x={last.x} y={labelY(last)} textAnchor="middle" fill={dotColor(last.score)} fontSize="8" fontWeight="bold">{last.score}</text>}
+        {valid.length > 1 && <path d={line} fill="none" stroke={C.good} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.75" />}
+        {valid.map((d, i) => <circle key={i} cx={d.x} cy={toY(d.score)} r="3" fill={dotColor(d.score)} />)}
+        {last && <text x={last.x} y={toY(last.score) - 7} textAnchor="middle" fill={dotColor(last.score)} fontSize="9" fontWeight="bold">{last.score}</text>}
       </svg>
-      <div style={{ display: 'flex', marginTop: 4 }}>
+      <div style={{ display: 'flex', marginTop: 2 }}>
         {withX.map((d, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <span style={{ fontWeight: 700, fontSize: 8, fontFamily: FONT_MONO, color: d.score != null ? dotColor(d.score) : 'rgba(255,255,255,0.18)' }}>
-              {d.score != null ? d.score : '—'}
+            <span style={{ fontWeight: 700, fontSize: 9, fontFamily: FONT_MONO, color: d.score != null ? dotColor(d.score) : 'transparent' }}>
+              {d.score ?? 0}
             </span>
-            <span style={{ color: C.t3, fontSize: 7, textTransform: 'uppercase' }}>{d.dayName}</span>
+            <span style={{ color: C.t3, fontSize: 8, textTransform: 'uppercase' }}>{d.dayName}</span>
           </div>
         ))}
       </div>
@@ -897,7 +875,7 @@ function SonoMiniChart({ historico }: { historico: { data: string; score_recuper
 }
 
 function ScoreRing({ score }: { score: number }) {
-  const size = 120, stroke = 8
+  const size = 120, stroke = 9
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
   const offset = circ - (score / 100) * circ
@@ -908,11 +886,11 @@ function ScoreRing({ score }: { score: number }) {
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={stroke} />
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.34,1.56,0.64,1)', filter: `drop-shadow(0 0 8px ${color}99)` }} />
+          style={{ transition: 'stroke-dashoffset 0.8s ease', filter: `drop-shadow(0 0 6px ${color}88)` }} />
       </svg>
       <div style={{ position: 'relative', textAlign: 'center', zIndex: 10 }}>
-        <span style={{ fontSize: 38, fontFamily: FONT_DISPLAY, fontWeight: 900, lineHeight: 1, color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{score}</span>
-        <span style={{ display: 'block', color: C.t3, fontSize: 9, marginTop: 1, letterSpacing: '0.08em' }}>/100</span>
+        <span style={{ fontSize: 30, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1, color, fontVariantNumeric: 'tabular-nums' }}>{score}</span>
+        <span style={{ display: 'block', color: C.t3, fontSize: 10, marginTop: 2 }}>/100</span>
       </div>
     </div>
   )
@@ -1686,10 +1664,8 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
       const hoje = getTodayBR()
-      const hojeDate = new Date(hoje + 'T12:00:00-03:00')
-      const domingoSemana = new Date(hojeDate)
-      domingoSemana.setDate(hojeDate.getDate() - hojeDate.getDay())
-      const semStr = domingoSemana.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+      const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 7)
+      const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
       const { data: vinculos } = await supabase.from('vinculos').select('cliente_id').eq('profissional_id', session.user.id).eq('tipo', 'nutricionista').eq('ativo', true)
       if (!vinculos?.length) { setLoadingStats(false); return }
@@ -1951,26 +1927,6 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
                       {planoAntigo && <span style={{ fontSize: 11, color: C.t3, borderRadius: 99, padding: '2px 8px', flexShrink: 0 }}>{p.diasDesdeUltimoPlano}d sem revisão</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: C.t3, fontSize: 12 }}>
-                      {p.sonoScore != null && <span>Recup.: {p.sonoScore}/100</span>}
-                      {p.treinos7d > 0 && <span>{p.treinos7d}x treinos</span>}
-                      {p.kcal7d > 0 && <span>{p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal/sem.</span>}
-                    </div>
-                  </div>
-                  <span style={{ color: C.t3, flexShrink: 0 }}><ChevronRight size={14} /></span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      <button onClick={() => router.push('/nutricionista/pacientes')} style={glass({ width: '100%', color: C.t2, fontWeight: 600, padding: '14px', fontSize: 14, marginBottom: 12, cursor: 'pointer' })}>Ver todos os pacientes</button>
-      <button onClick={() => router.push('/convite')} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '16px', borderRadius: 20, fontSize: 14, border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Convidar paciente</button>
-    </div>
-    </div>
-    </div>
-  )
-} C.t3, fontSize: 12 }}>
                       {p.sonoScore != null && <span>Recup.: {p.sonoScore}/100</span>}
                       {p.treinos7d > 0 && <span>{p.treinos7d}x treinos</span>}
                       {p.kcal7d > 0 && <span>{p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal/sem.</span>}
