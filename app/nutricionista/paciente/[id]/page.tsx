@@ -144,6 +144,7 @@ export default function NutricionistaPaciente() {
     resumo: string; evolucao: string[]; alertas: string[]; recomendacoes: string[]
   } | null>(null)
   const [gerandoBriefing, setGerandoBriefing] = useState(false)
+  const [dataLoaded, setDataLoaded] = useState(false)
   const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
   const [loadingAnamnese, setLoadingAnamnese] = useState(false)
   const [modalAvaliacao, setModalAvaliacao] = useState(false)
@@ -282,9 +283,17 @@ export default function NutricionistaPaciente() {
       }
 
       setCarregando(false)
+      setDataLoaded(true)
     }
     carregar()
   }, [clienteId, router])
+
+  useEffect(() => {
+    if (dataLoaded && paciente && !briefingEstruturado && !gerandoBriefing) {
+      gerarBriefing()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataLoaded, paciente])
 
   // ── editor helpers ──────────────────────────────────────────────────────
   function iniciarEdicao(doZero = false) {
@@ -670,24 +679,32 @@ Responda APENAS JSON válido:
     const deltaPeso = medidasCP.length >= 2 && medidasCP[0].peso && medidasCP[medidasCP.length-1].peso
       ? ((medidasCP[medidasCP.length-1].peso ?? 0) - medidasCP[0].peso!).toFixed(1)
       : null
-    const prompt = `Analise este paciente e retorne um JSON com este formato exato (sem texto fora do JSON):
+    const atvsHojeTexto = atividadesHoje.length > 0
+      ? atividadesHoje.map(a => `${a.modalidade} ${a.duracao_min ?? '?'}min`).join(', ')
+      : 'nenhuma'
+    const calSemTexto = caloriasSemanais > 0 ? `${caloriasSemanais} kcal gastas na semana` : 'sem dados de gasto calórico'
+    const pesoAtual = medidasCP.length > 0 ? medidasCP[medidasCP.length-1].peso : paciente.peso
+    const pesoInicial = medidasCP.length >= 2 ? medidasCP[0].peso : null
+
+    const prompt = `Gere um briefing pré-consulta clínico conciso. Retorne APENAS este JSON (sem texto fora):
 {
-  "resumo": "1-2 frases descrevendo a situação atual do paciente",
-  "evolucao": ["item1", "item2", "item3"],
-  "alertas": ["alerta1", "alerta2"],
-  "recomendacoes": ["rec1", "rec2", "rec3"]
+  "resumo": "2 frases clínicas sobre a situação atual — mencione evolução recente e ponto de atenção principal",
+  "evolucao": ["conquista ou dado positivo relevante", "segundo ponto de evolução", "terceiro se houver"],
+  "alertas": ["alerta clínico prioritário se houver", "segundo alerta se houver"],
+  "recomendacoes": ["ajuste ou reforço para a consulta de hoje", "segunda recomendação prática"]
 }
 
-DADOS:
-Paciente: ${paciente.nome}, objetivo: ${paciente.objetivo ?? '?'}
-Peso atual: ${medidasCP.length >= 2 ? medidasCP[medidasCP.length-1].peso : paciente.peso}kg, variação total: ${deltaPeso ?? 'sem dados'}kg
-Gordura: ${medidasCP.length >= 2 ? `${medidasCP[medidasCP.length-1].gordura_pct}% (início ${medidasCP[0].gordura_pct}%)` : 'sem dados'}
-Massa muscular: ${medidasCP.length >= 2 ? `${medidasCP[medidasCP.length-1].massa_muscular}kg (início ${medidasCP[0].massa_muscular}kg)` : 'sem dados'}
-Plano: ${planoAtivo ? `${planoAtivo.calorias_meta} kcal, ${planoAtivo.proteina_meta}g prot` : 'sem plano'}
-Treinos esta semana: ${treinos7dDatas.length}
-Fase treino: ${periodizacaoFase ? `${periodizacaoFase.nome_bloco} (sem ${periodizacaoFase.semana_bloco}/${periodizacaoFase.total_semanas_bloco})` : 'não configurada'}
-Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).join('; ') || 'nenhum'}
-Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` : 'não registrado'}`
+DADOS DO PACIENTE (últimos 7 dias):
+Nome: ${paciente.nome} | Objetivo: ${paciente.objetivo ?? 'não definido'} | Idade: ${paciente.data_nascimento ? Math.floor((Date.now() - new Date(paciente.data_nascimento).getTime()) / 31557600000) + ' anos' : '?'}
+Peso: ${pesoAtual ?? '?'}kg${pesoInicial && pesoAtual ? ` (variação: ${((pesoAtual - pesoInicial) >= 0 ? '+' : '')}${((pesoAtual - pesoInicial)).toFixed(1)}kg desde início)` : ''}
+Gordura corporal: ${medidasCP.length >= 2 ? `${medidasCP[medidasCP.length-1].gordura_pct ?? '?'}% (era ${medidasCP[0].gordura_pct ?? '?'}%)` : 'sem dados'}
+Plano nutricional: ${planoAtivo ? `${planoAtivo.calorias_meta} kcal/dia, ${planoAtivo.proteina_meta}g proteína` : 'SEM PLANO PRESCRITO'}
+Gasto energético: ${calSemTexto}
+Treinos esta semana: ${treinos7dDatas.length} sessões
+Atividade hoje: ${atvsHojeTexto}
+Recuperação hoje (sono): ${sonoHoje?.score_recuperacao != null ? `${sonoHoje.score_recuperacao}/100` : 'não registrada'}
+Fase de treino: ${periodizacaoFase ? `${periodizacaoFase.nome_bloco} — semana ${periodizacaoFase.semana_bloco}/${periodizacaoFase.total_semanas_bloco}` : 'sem periodização'}
+Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).join('; ') || 'nenhum registrado'}`
 
     try {
       const res = await fetch('/api/kore-chat', {
@@ -1103,27 +1120,47 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               </div>{/* end grid cols-3 */}
             </div>{/* end dados de hoje */}
 
-            {/* ── 4. ANÁLISE IA — chamada para ação ────────────────────── */}
-            {briefingEstruturado ? (
-              <div className="rounded-2xl p-6" style={{ background: '#0b1610' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[11px] text-emerald-500/70 uppercase tracking-[0.2em] flex items-center gap-2"><span>✦</span> Análise IA</p>
-                  <button onClick={() => setAbaAtiva('ia')} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Ver completo →</button>
+            {/* ── 4. BRIEFING PRÉ-CONSULTA ─────────────────────────────── */}
+            {gerandoBriefing && !briefingEstruturado ? (
+              <div className="rounded-2xl p-6 animate-pulse" style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.10)' }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/40 animate-ping" />
+                  <p className="text-[11px] text-emerald-500/50 uppercase tracking-[0.2em]">Preparando briefing...</p>
                 </div>
-                <p className="text-zinc-200 text-base leading-relaxed">{briefingEstruturado.resumo}</p>
+                <div className="space-y-2">
+                  <div className="h-4 bg-white/[0.05] rounded-full w-full" />
+                  <div className="h-4 bg-white/[0.05] rounded-full w-4/5" />
+                  <div className="h-4 bg-white/[0.05] rounded-full w-3/5 mt-3" />
+                </div>
               </div>
-            ) : (
-              <button onClick={() => setAbaAtiva('ia')}
-                className="w-full rounded-2xl p-6 flex items-center gap-4 text-left transition-all hover:opacity-90 active:scale-[0.99]"
-                style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.12)' }}>
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 text-xl">✦</div>
-                <div>
-                  <p className="text-white text-base font-bold">Gerar análise inteligente</p>
-                  <p className="text-zinc-500 text-sm mt-0.5">Evolução, riscos e recomendações — gerados pela IA em segundos</p>
+            ) : briefingEstruturado ? (
+              <div className="rounded-2xl overflow-hidden" style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.14)' }}>
+                <div className="px-6 pt-5 pb-4 border-b border-emerald-500/10">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-emerald-500/60 uppercase tracking-[0.25em] flex items-center gap-1.5"><span>✦</span> Briefing pré-consulta</p>
+                    <div className="flex items-center gap-3">
+                      <button onClick={gerarBriefing} className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">↻ Regen</button>
+                      <button onClick={() => setAbaAtiva('ia')} className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors">Ver completo →</button>
+                    </div>
+                  </div>
+                  <p className="text-zinc-200 text-[15px] leading-relaxed mt-3">{briefingEstruturado.resumo}</p>
                 </div>
-                <span className="text-emerald-500/50 text-xl ml-auto">→</span>
-              </button>
-            )}
+                {briefingEstruturado.alertas?.filter(Boolean).length > 0 && (
+                  <div className="px-6 py-3 flex flex-wrap gap-2">
+                    {briefingEstruturado.alertas.filter(Boolean).map((a, i) => (
+                      <span key={i} className="text-[12px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1">⚠ {a}</span>
+                    ))}
+                  </div>
+                )}
+                {briefingEstruturado.recomendacoes?.filter(Boolean).length > 0 && (
+                  <div className="px-6 pb-4 pt-1 flex flex-wrap gap-2">
+                    {briefingEstruturado.recomendacoes.filter(Boolean).slice(0, 2).map((r, i) => (
+                      <span key={i} className="text-[12px] text-emerald-400/80 bg-emerald-500/8 border border-emerald-500/15 rounded-lg px-3 py-1">→ {r}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
 
           </div>
         )}
