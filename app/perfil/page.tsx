@@ -6,34 +6,89 @@ import { supabase } from '../lib/supabase'
 import NavBar from '../components/NavBar'
 import SidebarProfissional from '../components/SidebarProfissional'
 
+/* Design System: Energetic Precision */
+const C = {
+  energy: '#FF5A36', energy2: '#FF8A3D',
+  good: '#2DD4A7', sleep: '#60A5FA', recovery: '#A78BFA',
+  warn: '#F5B544', danger: '#FB7185',
+  t1: '#F5F6F8', t2: '#9AA0AD', t3: '#7A8290',
+}
+const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
+const FONT_BODY = "'Plus Jakarta Sans', system-ui, sans-serif"
+const FONT_DATA = "ui-monospace, 'SF Mono', 'Roboto Mono', monospace"
+
+const glass: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.065)',
+  backdropFilter: 'blur(16px) saturate(130%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(130%)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 20,
+  boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
+}
+
+const inputBase: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.10)',
+  borderRadius: 12,
+  color: C.t1,
+  colorScheme: 'dark',
+  fontFamily: FONT_BODY,
+  fontSize: 14,
+  padding: '12px 14px',
+  width: '100%',
+  outline: 'none',
+  transition: 'border-color .15s, box-shadow .15s',
+}
+
+function applyFocus(e: React.FocusEvent<HTMLInputElement>) {
+  e.target.style.borderColor = 'rgba(255,90,54,0.5)'
+  e.target.style.boxShadow = '0 0 0 3px rgba(255,90,54,0.12)'
+}
+function removeFocus(e: React.FocusEvent<HTMLInputElement>) {
+  e.target.style.borderColor = 'rgba(255,255,255,0.10)'
+  e.target.style.boxShadow = 'none'
+}
+
+function useIsDesktop() {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    const c = () => setV(window.innerWidth >= 1024)
+    c()
+    window.addEventListener('resize', c)
+    return () => window.removeEventListener('resize', c)
+  }, [])
+  return v
+}
+
 const objetivos = [
-  { valor: 'perder_peso',              emoji: '🔥', label: 'Perder peso' },
-  { valor: 'ganhar_massa',             emoji: '💪', label: 'Ganhar massa' },
-  { valor: 'melhorar_condicionamento', emoji: '⚡', label: 'Condicionamento' },
-  { valor: 'saude_geral',              emoji: '❤️', label: 'Saúde geral' },
+  { valor: 'perder_peso',              label: 'Perder peso',     cor: C.energy },
+  { valor: 'ganhar_massa',             label: 'Ganhar massa',    cor: C.energy2 },
+  { valor: 'melhorar_condicionamento', label: 'Condicionamento', cor: C.good },
+  { valor: 'saude_geral',              label: 'Saúde geral',     cor: C.danger },
 ]
 
 const niveis = [
-  { valor: 'iniciante',     emoji: '🌱', label: 'Iniciante',     desc: 'Menos de 1 ano treinando' },
-  { valor: 'intermediario', emoji: '📈', label: 'Intermediário', desc: '1 a 3 anos treinando' },
-  { valor: 'avancado',      emoji: '🏆', label: 'Avançado',      desc: 'Mais de 3 anos treinando' },
+  { valor: 'iniciante',     label: 'Iniciante',     desc: 'Menos de 1 ano treinando' },
+  { valor: 'intermediario', label: 'Intermediário', desc: '1 a 3 anos treinando' },
+  { valor: 'avancado',      label: 'Avançado',      desc: 'Mais de 3 anos treinando' },
 ]
 
 const modalidadesOpcoes = [
-  { valor: 'musculacao', label: 'Musculação', icon: '🏋️' },
-  { valor: 'corrida',    label: 'Corrida',    icon: '🏃' },
-  { valor: 'bike',       label: 'Bike',       icon: '🚴' },
-  { valor: 'natacao',    label: 'Natação',    icon: '🏊' },
-  { valor: 'crossfit',   label: 'Crossfit',   icon: '⚡' },
-  { valor: 'triatlon',   label: 'Triathlon',  icon: '🏅' },
-  { valor: 'futebol',    label: 'Futebol',    icon: '⚽' },
-  { valor: 'outro',      label: 'Outro',      icon: '🎯' },
+  { valor: 'musculacao', label: 'Musculação' },
+  { valor: 'corrida',    label: 'Corrida' },
+  { valor: 'bike',       label: 'Bike' },
+  { valor: 'natacao',    label: 'Natação' },
+  { valor: 'crossfit',   label: 'Crossfit' },
+  { valor: 'triatlon',   label: 'Triathlon' },
+  { valor: 'futebol',    label: 'Futebol' },
+  { valor: 'outro',      label: 'Outro' },
 ]
 
 function PerfilConteudo() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isNovo = searchParams.get('novo') === 'true'
+  const isDesktop = useIsDesktop()
 
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
@@ -77,7 +132,7 @@ function PerfilConteudo() {
   // Mostra toast quando Strava conecta/desconecta
   useEffect(() => {
     const stravaParam = searchParams.get('strava')
-    if (stravaParam === 'conectado') setSucesso('✓ Strava conectado! Suas atividades serão sincronizadas automaticamente.')
+    if (stravaParam === 'conectado') setSucesso('Strava conectado! Suas atividades serão sincronizadas automaticamente.')
     if (stravaParam === 'erro') setErro('Erro ao conectar com Strava. Tente novamente.')
   }, [])
 
@@ -152,10 +207,10 @@ function PerfilConteudo() {
   }
 
   function getStatusIMC(imc: number) {
-    if (imc < 18.5) return { label: 'Abaixo do peso', cor: 'text-blue-400' }
-    if (imc < 25)   return { label: 'Peso normal',    cor: 'text-emerald-400' }
-    if (imc < 30)   return { label: 'Sobrepeso',      cor: 'text-yellow-400' }
-    return                  { label: 'Obesidade',      cor: 'text-red-400' }
+    if (imc < 18.5) return { label: 'Abaixo do peso', cor: C.sleep }
+    if (imc < 25)   return { label: 'Peso normal',    cor: C.good }
+    if (imc < 30)   return { label: 'Sobrepeso',      cor: C.warn }
+    return                  { label: 'Obesidade',      cor: C.danger }
   }
 
   function toggleModalidade(val: string) {
@@ -182,6 +237,21 @@ function PerfilConteudo() {
     if (!userId) return
     await fetch(`/api/strava/status?usuarioId=${userId}`, { method: 'DELETE' })
     setWearableConectado(null)
+  }
+
+  async function handleSync() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const btn = document.getElementById('sync-btn')
+    if (btn) btn.textContent = 'Sincronizando...'
+    const res = await fetch('/api/strava/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuarioId: session.user.id }),
+    })
+    const data = await res.json()
+    if (btn) btn.textContent = data.inseridos > 0 ? `${data.inseridos} atividades` : 'Sincronizar'
+    setTimeout(() => { if (btn) btn.textContent = 'Sincronizar' }, 3000)
   }
 
   async function handleSalvar() {
@@ -228,35 +298,65 @@ function PerfilConteudo() {
   const zonas = calcularZonas()
   const fcmaxEstimada = getFCmaxEstimada()
   const tipoLabel = tipo === 'personal' ? 'Personal Trainer' : tipo === 'nutricionista' ? 'Nutricionista' : 'Atleta'
-  const tipoColor = tipo === 'personal' ? 'text-blue-400 border-blue-500/20 bg-blue-500/10' : tipo === 'nutricionista' ? 'text-green-400 border-green-500/20 bg-green-500/10' : 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
+  const tipoColor = tipo === 'personal' ? C.sleep : tipo === 'nutricionista' ? C.good : C.energy
   const isProf = tipo === 'personal' || tipo === 'nutricionista'
   const camposPreenchidos = isProf ? true : !!(dataNascimento && sexo && peso && altura && objetivo && nivel)
   const progresso = [dataNascimento, sexo, peso, altura, objetivo, nivel].filter(Boolean).length
 
+  const iniciais = (nome || email || '?').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase()
+
+  const labelStyle: React.CSSProperties = {
+    color: C.t2, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600,
+    display: 'block', marginBottom: 6,
+  }
+  const sectionTitle: React.CSSProperties = {
+    color: C.t3, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 14,
+  }
+
+  function GlassInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+    const { style, ...rest } = props
+    return <input {...rest} style={{ ...inputBase, ...(style || {}) }} onFocus={applyFocus} onBlur={removeFocus} />
+  }
+
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{
+        width: 34, height: 34, borderRadius: '50%',
+        border: '2.5px solid rgba(255,255,255,0.15)', borderTopColor: C.energy,
+        animation: 'spin 0.7s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </main>
   )
 
   return (
-    <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
+    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0, display: isProf ? 'flex' : 'block' }}>
       {isProf && <SidebarProfissional tipo={tipo as 'nutricionista' | 'personal'} />}
-      <div className="flex-1 md:overflow-y-auto md:h-screen">
-      <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8 md:max-w-lg md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{
+        maxWidth: isDesktop ? 800 : 520, margin: '0 auto',
+        padding: isDesktop ? '48px 32px 120px' : '0 16px 120px',
+        paddingTop: isDesktop ? 48 : 'max(48px, calc(env(safe-area-inset-top) + 24px))',
+      }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">KORE</p>
-            <h1 className="text-[1.85rem] font-black tracking-tight text-white">
-              {isNovo ? 'Bem-vindo! 👋' : 'Perfil'}
+            <p style={{ color: C.t3, fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 700 }}>KORE</p>
+            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: C.t1, lineHeight: 1.05 }}>
+              {isNovo ? 'Bem-vindo' : 'Perfil'}
             </h1>
-            {isNovo && <p className="text-zinc-500 text-xs mt-1">Complete seu perfil para a IA te ajudar melhor</p>}
+            {isNovo && <p style={{ color: C.t3, fontSize: 13, marginTop: 6 }}>Complete seu perfil para a IA te ajudar melhor</p>}
           </div>
           {!isNovo && (
             <button onClick={handleLogout}
-              className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">
+              style={{
+                fontSize: 10, color: C.t2, border: '1px solid rgba(255,255,255,0.14)',
+                borderRadius: 10, padding: '8px 14px', background: 'transparent',
+                textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer',
+                fontFamily: FONT_BODY, fontWeight: 600,
+              }}>
               Sair
             </button>
           )}
@@ -264,30 +364,39 @@ function PerfilConteudo() {
 
         {/* Progresso novo usuário */}
         {isNovo && (
-          <div className="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/5 mb-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-emerald-400 text-[11px] font-bold uppercase tracking-wider">Configuração do perfil</p>
-              <p className="text-emerald-400 text-[11px] font-bold">{progresso}/6</p>
+          <div style={{ ...glass, padding: 18, marginBottom: 18, borderColor: 'rgba(45,212,167,0.25)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ color: C.good, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Configuração do perfil</p>
+              <p style={{ color: C.good, fontSize: 11, fontWeight: 700, fontFamily: FONT_DATA }}>{progresso}/6</p>
             </div>
-            <div className="h-1.5 bg-white/[0.09] rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-400 rounded-full transition-all duration-500" style={{ width: `${(progresso / 6) * 100}%` }} />
+            <div style={{ height: 6, background: 'rgba(255,255,255,0.09)', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: `linear-gradient(90deg, ${C.energy}, ${C.energy2})`, borderRadius: 999, transition: 'width .5s', width: `${(progresso / 6) * 100}%` }} />
             </div>
-            <p className="text-zinc-600 text-[10px] mt-2">
-              {progresso === 6 ? '✓ Tudo preenchido! Salve para entrar.' : 'Dados básicos obrigatórios. Dados atléticos opcionais mas melhoram muito a IA.'}
+            <p style={{ color: C.t3, fontSize: 11, marginTop: 8 }}>
+              {progresso === 6 ? 'Tudo preenchido. Salve para entrar.' : 'Dados básicos obrigatórios. Dados atléticos opcionais mas melhoram muito a IA.'}
             </p>
           </div>
         )}
 
         {/* Card identidade */}
-        <div className="rounded-2xl p-5 mb-4" style={{ background: 'var(--surface-1)' }}>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/[0.09] border border-white/[0.14] flex items-center justify-center shrink-0">
-              <span className="text-xl font-black text-white">{(nome || email)[0]?.toUpperCase()}</span>
+        <div style={{ ...glass, padding: 20, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
+              background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(255,90,54,0.35)',
+            }}>
+              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 800, color: '#fff' }}>{iniciais}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-black text-lg leading-tight truncate">{nome || 'Sem nome'}</p>
-              <p className="text-zinc-500 text-xs truncate">{email}</p>
-              <div className={`inline-flex items-center mt-1.5 rounded-full px-3 py-1 border text-[11px] font-medium ${tipoColor}`}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: FONT_DISPLAY, color: C.t1, fontWeight: 700, fontSize: 18, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nome || 'Sem nome'}</p>
+              <p style={{ color: C.t3, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</p>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', marginTop: 8,
+                borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 600,
+                color: tipoColor, border: `1px solid ${tipoColor}33`, background: `${tipoColor}1A`,
+              }}>
                 {tipoLabel}
               </div>
             </div>
@@ -296,194 +405,216 @@ function PerfilConteudo() {
 
         {/* Stats */}
         {imc && (
-          <div className="rounded-2xl p-5 mb-4" style={{ background: 'var(--surface-1)' }}>
-            <div className="grid grid-cols-4 gap-3 text-center">
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">Idade</p>
-                <p className="text-white text-xl font-black">{idade}</p>
-                <p className="text-zinc-600 text-[10px]">anos</p>
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">IMC</p>
-                <p className="text-white text-xl font-black">{imc}</p>
-                <p className={`text-[9px] font-semibold ${statusIMC?.cor}`}>{statusIMC?.label}</p>
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">FCmax</p>
-                <p className={`text-xl font-black ${fcmax ? 'text-white' : 'text-zinc-500'}`}>{fcmaxEstimada ?? '—'}</p>
-                <p className="text-zinc-600 text-[9px]">{fcmax ? 'real' : 'estimada'}</p>
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">FTP</p>
-                <p className={`text-xl font-black ${ftp ? 'text-orange-400' : 'text-zinc-500'}`}>{ftp || '—'}</p>
-                <p className="text-zinc-600 text-[9px]">watts</p>
-              </div>
+          <div style={{ ...glass, padding: 20, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, textAlign: 'center' }}>
+              {[
+                { label: 'Idade', val: idade, sub: 'anos', cor: C.t1, subCor: C.t3 },
+                { label: 'IMC', val: imc, sub: statusIMC?.label, cor: C.t1, subCor: statusIMC?.cor ?? C.t3 },
+                { label: 'FCmax', val: fcmaxEstimada ?? '—', sub: fcmax ? 'real' : 'estimada', cor: fcmax ? C.t1 : C.t3, subCor: C.t3 },
+                { label: 'FTP', val: ftp || '—', sub: 'watts', cor: ftp ? C.energy : C.t3, subCor: C.t3 },
+              ].map((s, i) => (
+                <div key={i}>
+                  <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>{s.label}</p>
+                  <p style={{ fontFamily: FONT_DATA, fontVariantNumeric: 'tabular-nums', fontSize: 22, fontWeight: 700, color: s.cor }}>{s.val}</p>
+                  <p style={{ fontSize: 9, fontWeight: 600, color: s.subCor }}>{s.sub}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {/* Abas — só mostra aba atlética para clientes */}
         {!isProf && (
-          <div className="flex gap-1 p-1 rounded-2xl mb-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            {([['basico', '👤 Dados básicos'], ['atletico', '⚡ Dados atléticos']] as const).map(([id, label]) => (
-              <button key={id} onClick={() => setAbaAtiva(id)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${abaAtiva === id ? 'bg-white text-black' : 'text-zinc-500'}`}>
-                {label}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, marginBottom: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {([['basico', 'Dados básicos'], ['atletico', 'Dados atléticos']] as const).map(([id, label]) => {
+              const active = abaAtiva === id
+              return (
+                <button key={id} onClick={() => setAbaAtiva(id)}
+                  style={{
+                    flex: 1, padding: '10px 0', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                    border: 'none', cursor: 'pointer', fontFamily: FONT_BODY, transition: 'all .15s',
+                    background: active ? `linear-gradient(135deg, ${C.energy}, ${C.energy2})` : 'transparent',
+                    color: active ? '#fff' : C.t2,
+                    boxShadow: active ? '0 6px 18px rgba(255,90,54,0.3)' : 'none',
+                  }}>
+                  {label}
+                </button>
+              )
+            })}
           </div>
         )}
 
-        {/* PERFIL PROFISSIONAL — campos diferentes para nutri/personal */}
+        {/* PERFIL PROFISSIONAL */}
         {isProf && (
-          <div className="space-y-4 mb-4">
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-4">Informações profissionais</p>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">
-                    {tipo === 'nutricionista' ? 'CRN' : 'CREF'} — Registro profissional
-                  </label>
-                  <input type="text"
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={sectionTitle}>Informações profissionais</p>
+              <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: 16 }}>
+                <div style={{ gridColumn: isDesktop ? '1 / -1' : 'auto' }}>
+                  <label style={labelStyle}>{tipo === 'nutricionista' ? 'CRN' : 'CREF'} — Registro profissional</label>
+                  <GlassInput type="text"
                     placeholder={tipo === 'nutricionista' ? 'Ex: CRN 12345' : 'Ex: CREF 123456-G/SP'}
-                    value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Especialidade</label>
-                  <input type="text"
-                    placeholder={tipo === 'nutricionista' ? 'Ex: Nutrição esportiva, Emagrecimento' : 'Ex: Musculação, Funcional, Corrida'}
-                    value={especialidade} onChange={e => setEspecialidade(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                  <label style={labelStyle}>Especialidade</label>
+                  <GlassInput type="text"
+                    placeholder={tipo === 'nutricionista' ? 'Ex: Nutrição esportiva' : 'Ex: Musculação, Funcional'}
+                    value={especialidade} onChange={e => setEspecialidade(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Formação</label>
-                  <input type="text"
-                    placeholder="Ex: Nutrição — USP 2018, Pós em Esportiva"
-                    value={formacao} onChange={e => setFormacao(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                  <label style={labelStyle}>Formação</label>
+                  <GlassInput type="text"
+                    placeholder="Ex: Nutrição — USP 2018"
+                    value={formacao} onChange={e => setFormacao(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">WhatsApp</label>
-                  <input type="text"
+                  <label style={labelStyle}>WhatsApp</label>
+                  <GlassInput type="text"
                     placeholder="Ex: (11) 99999-9999"
-                    value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    value={whatsapp} onChange={e => setWhatsapp(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Instagram</label>
-                  <input type="text"
+                  <label style={labelStyle}>Instagram</label>
+                  <GlassInput type="text"
                     placeholder="@seu_perfil"
-                    value={instagram} onChange={e => setInstagram(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    value={instagram} onChange={e => setInstagram(e.target.value)} />
                 </div>
-                <div>
-                  <label className="text-zinc-400 text-[12px] font-medium block mb-1.5">Valor da consulta</label>
-                  <input type="text"
+                <div style={{ gridColumn: isDesktop ? '1 / -1' : 'auto' }}>
+                  <label style={labelStyle}>Valor da consulta</label>
+                  <GlassInput type="text"
                     placeholder="Ex: R$ 150 / consulta"
-                    value={valorConsulta} onChange={e => setValorConsulta(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-lg px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                    value={valorConsulta} onChange={e => setValorConsulta(e.target.value)} />
                 </div>
               </div>
             </div>
-            <p className="text-zinc-600 text-xs px-1">Estes dados aparecem para seus pacientes/alunos quando eles visualizam o time deles.</p>
+            <p style={{ color: C.t3, fontSize: 12, padding: '12px 4px 0' }}>Estes dados aparecem para seus pacientes/alunos quando eles visualizam o time deles.</p>
           </div>
         )}
 
-        {/* ABA BÁSICO — só para clientes */}
+        {/* ABA BÁSICO */}
         {abaAtiva === 'basico' && !isProf && (
-          <div className="space-y-4">
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Data de nascimento</p>
-              <input type="date" value={dataNascimento} onChange={e => setDataNascimento(e.target.value)}
-                className="w-full bg-white/[0.07] text-white rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
-            </div>
-
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Sexo</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[{ valor: 'masculino', label: 'Masculino', emoji: '♂️' }, { valor: 'feminino', label: 'Feminino', emoji: '♀️' }, { valor: 'outro', label: 'Outro', emoji: '⚧' }].map(s => (
-                  <button key={s.valor} onClick={() => setSexo(s.valor)}
-                    className={`py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${sexo === s.valor ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
-                    <div className="text-lg mb-0.5">{s.emoji}</div>
-                    <div className="text-xs">{s.label}</div>
-                  </button>
-                ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: 16 }}>
+              <div style={{ ...glass, padding: 20 }}>
+                <p style={sectionTitle}>Data de nascimento</p>
+                <GlassInput type="date" value={dataNascimento} onChange={e => setDataNascimento(e.target.value)} />
               </div>
-            </div>
 
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-xs uppercase tracking-[0.15em] mb-3">Medidas</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-zinc-600 text-xs mb-1.5 block">Peso (kg)</label>
-                  <input type="number" placeholder="75" value={peso} onChange={e => setPeso(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
-                </div>
-                <div>
-                  <label className="text-zinc-600 text-xs mb-1.5 block">Altura (cm)</label>
-                  <input type="number" placeholder="175" value={altura} onChange={e => setAltura(e.target.value)}
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-white/20 border border-white/[0.14]" />
+              <div style={{ ...glass, padding: 20 }}>
+                <p style={sectionTitle}>Sexo</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {[{ valor: 'masculino', label: 'Masc' }, { valor: 'feminino', label: 'Fem' }, { valor: 'outro', label: 'Outro' }].map(s => {
+                    const sel = sexo === s.valor
+                    return (
+                      <button key={s.valor} onClick={() => setSexo(s.valor)}
+                        style={{
+                          padding: '12px 0', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                          fontFamily: FONT_BODY, transition: 'all .15s',
+                          background: sel ? `linear-gradient(135deg, ${C.energy}, ${C.energy2})` : 'rgba(255,255,255,0.05)',
+                          color: sel ? '#fff' : C.t2,
+                          border: sel ? 'none' : '1px solid rgba(255,255,255,0.10)',
+                          boxShadow: sel ? '0 6px 18px rgba(255,90,54,0.3)' : 'none',
+                        }}>
+                        {s.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
 
-            {!isProf && (
-              <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Objetivo principal</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {objetivos.map(o => (
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={sectionTitle}>Medidas</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Peso (kg)</label>
+                  <GlassInput type="number" placeholder="75" value={peso} onChange={e => setPeso(e.target.value)} style={{ fontFamily: FONT_DATA }} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Altura (cm)</label>
+                  <GlassInput type="number" placeholder="175" value={altura} onChange={e => setAltura(e.target.value)} style={{ fontFamily: FONT_DATA }} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={sectionTitle}>Objetivo principal</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                {objetivos.map(o => {
+                  const sel = objetivo === o.valor
+                  return (
                     <button key={o.valor} onClick={() => setObjetivo(o.valor)}
-                      className={`py-4 px-3 rounded-xl border text-left transition-all active:scale-95 ${objetivo === o.valor ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-white border-white/[0.14]'}`}>
-                      <div className="text-2xl mb-1">{o.emoji}</div>
-                      <div className="text-xs font-semibold leading-tight">{o.label}</div>
+                      style={{
+                        padding: '16px 14px', borderRadius: 14, textAlign: 'left', cursor: 'pointer',
+                        fontFamily: FONT_BODY, transition: 'all .15s',
+                        background: sel ? `${o.cor}1F` : 'rgba(255,255,255,0.05)',
+                        color: sel ? o.cor : C.t1,
+                        border: sel ? `1px solid ${o.cor}66` : '1px solid rgba(255,255,255,0.10)',
+                        boxShadow: sel ? `0 0 0 3px ${o.cor}18` : 'none',
+                      }}>
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 999, background: o.cor, marginBottom: 8 }} />
+                      <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{o.label}</div>
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
-            )}
+            </div>
 
-            {!isProf && (
-              <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Nível de experiência</p>
-                <div className="space-y-2">
-                  {niveis.map(n => (
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={sectionTitle}>Nível de experiência</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {niveis.map(n => {
+                  const sel = nivel === n.valor
+                  return (
                     <button key={n.valor} onClick={() => setNivel(n.valor)}
-                      className={`w-full flex items-center gap-4 py-4 px-4 rounded-xl border text-left transition-all active:scale-95 ${nivel === n.valor ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-white border-white/[0.14]'}`}>
-                      <span className="text-2xl">{n.emoji}</span>
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                        padding: '14px 16px', borderRadius: 14, textAlign: 'left', cursor: 'pointer',
+                        fontFamily: FONT_BODY, transition: 'all .15s',
+                        background: sel ? 'linear-gradient(135deg, rgba(255,90,54,0.18), rgba(255,138,61,0.12))' : 'rgba(255,255,255,0.05)',
+                        border: sel ? `1px solid ${C.energy}66` : '1px solid rgba(255,255,255,0.10)',
+                        boxShadow: sel ? '0 0 0 3px rgba(255,90,54,0.12)' : 'none',
+                      }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 999, background: sel ? C.energy : C.t3, flexShrink: 0 }} />
                       <div>
-                        <p className="text-sm font-bold">{n.label}</p>
-                        <p className={`text-xs ${nivel === n.valor ? 'text-zinc-600' : 'text-zinc-500'}`}>{n.desc}</p>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{n.label}</p>
+                        <p style={{ fontSize: 12, color: C.t3 }}>{n.desc}</p>
                       </div>
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
-            )}
+            </div>
           </div>
         )}
 
         {/* ABA ATLÉTICO */}
         {abaAtiva === 'atletico' && (
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            <div className="flex items-start gap-3 bg-white/[0.02] rounded-2xl px-4 py-3">
-              <span className="text-lg shrink-0">💡</span>
-              <p className="text-zinc-500 text-xs leading-relaxed">Dados opcionais — mas quanto mais você preencher, mais precisa e personalizada será a análise da IA. A FCmax real é o dado mais importante.</p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'rgba(255,138,61,0.08)', border: '1px solid rgba(255,138,61,0.18)', borderRadius: 16, padding: '14px 16px' }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: C.energy2, marginTop: 6, flexShrink: 0 }} />
+              <p style={{ color: C.t2, fontSize: 12, lineHeight: 1.55 }}>Dados opcionais — mas quanto mais você preencher, mais precisa e personalizada será a análise da IA. A FCmax real é o dado mais importante.</p>
             </div>
 
             {/* Modalidades */}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">Modalidades que pratica</p>
-              <p className="text-zinc-600 text-xs mb-4">Selecione todas que fazem parte da sua rotina</p>
-              <div className="grid grid-cols-4 gap-2">
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={{ ...sectionTitle, marginBottom: 4 }}>Modalidades que pratica</p>
+              <p style={{ color: C.t3, fontSize: 12, marginBottom: 14 }}>Selecione todas que fazem parte da sua rotina</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                 {modalidadesOpcoes.map(m => {
                   const sel = modalidades.includes(m.valor)
                   return (
                     <button key={m.valor} onClick={() => toggleModalidade(m.valor)}
-                      className={`flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${sel ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.02] border-white/[0.11] text-zinc-500'}`}>
-                      <span className="text-xl mb-1">{m.icon}</span>
-                      <span className="text-[9px] font-semibold text-center leading-tight">{m.label}</span>
+                      style={{
+                        padding: '12px 4px', borderRadius: 12, cursor: 'pointer', fontFamily: FONT_BODY,
+                        fontSize: 11, fontWeight: 700, transition: 'all .15s', textAlign: 'center', lineHeight: 1.2,
+                        background: sel ? 'rgba(45,212,167,0.15)' : 'rgba(255,255,255,0.03)',
+                        color: sel ? C.good : C.t3,
+                        border: sel ? `1px solid ${C.good}66` : '1px solid rgba(255,255,255,0.10)',
+                      }}>
+                      {m.label}
                     </button>
                   )
                 })}
@@ -491,64 +622,62 @@ function PerfilConteudo() {
             </div>
 
             {/* FCmax */}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">❤️ Frequência cardíaca máxima (FCmax)</p>
-              <p className="text-zinc-600 text-xs mb-4 leading-relaxed">O dado mais importante para análise de zonas. Faça um teste de FCmax ou use o valor do seu Garmin/Apple Watch. Sem isso, estimamos pela fórmula 220-idade.</p>
-              <div className="flex items-center gap-3">
-                <input type="number" placeholder={fcmaxEstimada ? `Estimada: ${fcmaxEstimada}` : 'Ex: 185'} value={fcmax}
-                  onChange={e => setFcmax(e.target.value)}
-                  className="flex-1 bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500/30 transition-colors" />
-                <span className="text-zinc-500 text-sm shrink-0">bpm</span>
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={{ ...sectionTitle, marginBottom: 4, color: C.danger }}>Frequência cardíaca máxima (FCmax)</p>
+              <p style={{ color: C.t3, fontSize: 12, marginBottom: 14, lineHeight: 1.5 }}>O dado mais importante para análise de zonas. Faça um teste de FCmax ou use o valor do seu Garmin/Apple Watch. Sem isso, estimamos pela fórmula 220-idade.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <GlassInput type="number" placeholder={fcmaxEstimada ? `Estimada: ${fcmaxEstimada}` : 'Ex: 185'} value={fcmax}
+                  onChange={e => setFcmax(e.target.value)} style={{ flex: 1, fontFamily: FONT_DATA }} />
+                <span style={{ color: C.t3, fontSize: 14, flexShrink: 0 }}>bpm</span>
               </div>
               {fcmax && zonas && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-2">Suas zonas calculadas</p>
+                <div style={{ marginTop: 16 }}>
+                  <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Suas zonas calculadas</p>
                   {Object.entries(zonas).map(([zona, { min, max }]) => {
-                    const cores: Record<string, string> = { Z1: 'text-blue-400', Z2: 'text-emerald-400', Z3: 'text-yellow-400', Z4: 'text-orange-400', Z5: 'text-red-400' }
+                    const cores: Record<string, string> = { Z1: C.sleep, Z2: C.good, Z3: C.warn, Z4: C.energy2, Z5: C.danger }
                     const labels: Record<string, string> = { Z1: 'Recuperação', Z2: 'Base aeróbica', Z3: 'Tempo', Z4: 'Limiar', Z5: 'VO2max' }
                     return (
-                      <div key={zona} className="flex items-center justify-between py-2 border-b border-white/[0.14] last:border-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-black ${cores[zona]}`}>{zona}</span>
-                          <span className="text-zinc-600 text-[11px]">{labels[zona]}</span>
+                      <div key={zona} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: cores[zona], fontFamily: FONT_DATA }}>{zona}</span>
+                          <span style={{ color: C.t3, fontSize: 11 }}>{labels[zona]}</span>
                         </div>
-                        <span className={`text-sm font-bold ${cores[zona]}`}>{min}–{max} bpm</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: cores[zona], fontFamily: FONT_DATA, fontVariantNumeric: 'tabular-nums' }}>{min}–{max} bpm</span>
                       </div>
                     )
                   })}
                 </div>
               )}
               {!fcmax && idade && (
-                <p className="text-zinc-700 text-[10px] mt-2">Sem FCmax real, usaremos estimativa de {220 - idade}bpm (220 - {idade} anos)</p>
+                <p style={{ color: C.t3, fontSize: 10, marginTop: 8 }}>Sem FCmax real, usaremos estimativa de {220 - idade}bpm (220 - {idade} anos)</p>
               )}
             </div>
 
             {/* FTP bike */}
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-1">🚴 FTP — Limiar de Potência Funcional</p>
-              <p className="text-zinc-600 text-xs mb-4 leading-relaxed">Para ciclistas com medidor de potência. É a maior potência que você sustenta por 1 hora. Usado para calcular zonas de potência no bike.</p>
-              <div className="flex items-center gap-3">
-                <input type="number" placeholder="Ex: 220" value={ftp}
-                  onChange={e => setFtp(e.target.value)}
-                  className="flex-1 bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500/30 transition-colors" />
-                <span className="text-zinc-500 text-sm shrink-0">watts</span>
+            <div style={{ ...glass, padding: 20 }}>
+              <p style={{ ...sectionTitle, marginBottom: 4, color: C.energy }}>FTP — Limiar de Potência Funcional</p>
+              <p style={{ color: C.t3, fontSize: 12, marginBottom: 14, lineHeight: 1.5 }}>Para ciclistas com medidor de potência. É a maior potência que você sustenta por 1 hora. Usado para calcular zonas de potência no bike.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <GlassInput type="number" placeholder="Ex: 220" value={ftp}
+                  onChange={e => setFtp(e.target.value)} style={{ flex: 1, fontFamily: FONT_DATA }} />
+                <span style={{ color: C.t3, fontSize: 14, flexShrink: 0 }}>watts</span>
               </div>
               {ftp && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-2">Zonas de potência</p>
+                <div style={{ marginTop: 16 }}>
+                  <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Zonas de potência</p>
                   {[
-                    { zona: 'Z1', label: 'Recuperação ativa', min: 0,    max: Math.round(parseInt(ftp) * 0.55), cor: 'text-blue-400' },
-                    { zona: 'Z2', label: 'Endurance',          min: Math.round(parseInt(ftp) * 0.56), max: Math.round(parseInt(ftp) * 0.75), cor: 'text-emerald-400' },
-                    { zona: 'Z3', label: 'Tempo',              min: Math.round(parseInt(ftp) * 0.76), max: Math.round(parseInt(ftp) * 0.90), cor: 'text-yellow-400' },
-                    { zona: 'Z4', label: 'Limiar (FTP)',       min: Math.round(parseInt(ftp) * 0.91), max: Math.round(parseInt(ftp) * 1.05), cor: 'text-orange-400' },
-                    { zona: 'Z5', label: 'VO2max',             min: Math.round(parseInt(ftp) * 1.06), max: Math.round(parseInt(ftp) * 1.20), cor: 'text-red-400' },
+                    { zona: 'Z1', label: 'Recuperação ativa', min: 0,    max: Math.round(parseInt(ftp) * 0.55), cor: C.sleep },
+                    { zona: 'Z2', label: 'Endurance',          min: Math.round(parseInt(ftp) * 0.56), max: Math.round(parseInt(ftp) * 0.75), cor: C.good },
+                    { zona: 'Z3', label: 'Tempo',              min: Math.round(parseInt(ftp) * 0.76), max: Math.round(parseInt(ftp) * 0.90), cor: C.warn },
+                    { zona: 'Z4', label: 'Limiar (FTP)',       min: Math.round(parseInt(ftp) * 0.91), max: Math.round(parseInt(ftp) * 1.05), cor: C.energy2 },
+                    { zona: 'Z5', label: 'VO2max',             min: Math.round(parseInt(ftp) * 1.06), max: Math.round(parseInt(ftp) * 1.20), cor: C.danger },
                   ].map(z => (
-                    <div key={z.zona} className="flex items-center justify-between py-2 border-b border-white/[0.14] last:border-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-black ${z.cor}`}>{z.zona}</span>
-                        <span className="text-zinc-600 text-[11px]">{z.label}</span>
+                    <div key={z.zona} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: z.cor, fontFamily: FONT_DATA }}>{z.zona}</span>
+                        <span style={{ color: C.t3, fontSize: 11 }}>{z.label}</span>
                       </div>
-                      <span className={`text-sm font-bold ${z.cor}`}>{z.min}–{z.max}W</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: z.cor, fontFamily: FONT_DATA, fontVariantNumeric: 'tabular-nums' }}>{z.min}–{z.max}W</span>
                     </div>
                   ))}
                 </div>
@@ -558,120 +687,113 @@ function PerfilConteudo() {
           </div>
         )}
 
-        {erro && <p className="text-red-400 text-sm text-center mt-4">{erro}</p>}
-        {sucesso && <p className="text-emerald-400 text-sm text-center mt-4">✓ Perfil salvo!</p>}
+        {erro && <p style={{ color: C.danger, fontSize: 14, textAlign: 'center', marginTop: 16 }}>{erro}</p>}
+        {sucesso && <p style={{ color: C.good, fontSize: 14, textAlign: 'center', marginTop: 16 }}>Perfil salvo</p>}
 
         <button onClick={handleSalvar} disabled={salvando || !camposPreenchidos}
-          className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-30 text-sm tracking-widest uppercase mt-6">
-          {salvando ? 'Salvando...' : isNovo ? 'Entrar no KORE →' : 'Salvar perfil'}
+          style={{
+            width: '100%', padding: '16px 0', borderRadius: 16, marginTop: 24, border: 'none',
+            fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, letterSpacing: '0.12em',
+            textTransform: 'uppercase', cursor: salvando || !camposPreenchidos ? 'default' : 'pointer',
+            color: '#fff', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`,
+            boxShadow: salvando || !camposPreenchidos ? 'none' : '0 10px 30px rgba(255,90,54,0.4), 0 0 0 1px rgba(255,90,54,0.2)',
+            opacity: salvando || !camposPreenchidos ? 0.35 : 1, transition: 'opacity .15s',
+          }}>
+          {salvando ? 'Salvando...' : isNovo ? 'Entrar no KORE' : 'Salvar perfil'}
         </button>
 
         {isNovo && !camposPreenchidos && (
-          <p className="text-zinc-600 text-[11px] text-center mt-3">Preencha todos os campos básicos para continuar</p>
+          <p style={{ color: C.t3, fontSize: 11, textAlign: 'center', marginTop: 12 }}>Preencha todos os campos básicos para continuar</p>
         )}
         {isNovo && (
-          <button onClick={() => router.push('/dashboard')} className="w-full text-zinc-600 text-xs py-3 mt-2 hover:text-zinc-400 transition-colors">
+          <button onClick={() => router.push('/dashboard')} style={{ width: '100%', color: C.t3, fontSize: 12, padding: '12px 0', marginTop: 8, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: FONT_BODY }}>
             Pular por enquanto — completar depois
           </button>
         )}
 
-        {/* ── WEARABLE (só para clientes) ── */}
+        {/* WEARABLE (só para clientes) */}
         {!isNovo && !isProf && (
-          <div className="mt-6 rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-            <div className="px-5 py-4 border-b border-white/[0.07]">
-              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-0.5">Integração Strava</p>
-              <p className="text-zinc-400 text-xs">Atividades sincronizadas automaticamente no KORE</p>
+          <div style={{ ...glass, marginTop: 24, padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <p style={{ fontSize: 11, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 2, fontWeight: 700 }}>Integração Strava</p>
+              <p style={{ color: C.t2, fontSize: 12 }}>Atividades sincronizadas automaticamente no KORE</p>
             </div>
-            <div className="px-5 py-4">
+            <div style={{ padding: '16px 20px' }}>
               {wearableConectado ? (
-                <div className="flex items-center gap-4">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   {wearableConectado.athlete_photo ? (
-                    <img src={wearableConectado.athlete_photo} alt="Strava" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                    <img src={wearableConectado.athlete_photo} alt="Strava" style={{ width: 40, height: 40, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(252,76,2,0.10)', border: '1px solid rgba(252,76,2,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="#fc4c02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
                     </div>
                   )}
-                  <div className="flex-1">
-                    <p className="text-white font-semibold text-sm">{wearableConectado.athlete_name ?? 'Strava'}</p>
-                    <p className="text-zinc-500 text-xs">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: C.t1, fontWeight: 600, fontSize: 14 }}>{wearableConectado.athlete_name ?? 'Strava'}</p>
+                    <p style={{ color: C.t3, fontSize: 12 }}>
                       {wearableConectado.last_sync
                         ? `Sincronizado em ${new Date(wearableConectado.last_sync).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
                         : 'Aguardando primeira sincronização'}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-1.5 shrink-0">
-                    <button onClick={async () => {
-                      const { data: { session } } = await supabase.auth.getSession()
-                      if (!session) return
-                      const btn = document.getElementById('sync-btn')
-                      if (btn) btn.textContent = 'Sincronizando...'
-                      const res = await fetch('/api/strava/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ usuarioId: session.user.id }),
-                      })
-                      const data = await res.json()
-                      if (btn) btn.textContent = data.inseridos > 0 ? `✓ ${data.inseridos} atividades` : 'Sincronizar'
-                      setTimeout(() => { if (btn) btn.textContent = 'Sincronizar' }, 3000)
-                    }} id="sync-btn"
-                      className="text-xs text-[var(--accent)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 rounded-xl px-3 py-1.5 active:scale-95 transition-all">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                    <button onClick={handleSync} id="sync-btn"
+                      style={{ fontSize: 12, color: C.energy, border: '1px solid rgba(255,90,54,0.35)', background: 'rgba(255,90,54,0.12)', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', fontFamily: FONT_BODY, fontWeight: 600 }}>
                       Sincronizar
                     </button>
                     <button onClick={desconectarWearable}
-                      className="text-xs text-red-400/70 border border-red-500/20 rounded-xl px-3 py-1.5 active:scale-95 transition-all">
+                      style={{ fontSize: 12, color: C.danger, border: '1px solid rgba(251,113,133,0.30)', background: 'transparent', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', fontFamily: FONT_BODY, fontWeight: 600 }}>
                       Desconectar
                     </button>
                   </div>
                 </div>
               ) : (
                 <div>
-                  <div className="flex items-center gap-3 mb-4 p-3 rounded-xl" style={{ background: 'rgba(252,76,2,0.08)', border: '1px solid rgba(252,76,2,0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: 12, borderRadius: 12, background: 'rgba(252,76,2,0.08)', border: '1px solid rgba(252,76,2,0.2)' }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="#fc4c02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
                     <div>
-                      <p className="text-white text-sm font-semibold">Strava</p>
-                      <p className="text-zinc-500 text-xs">Corridas, pedaladas, natação e mais — sincronizados automaticamente</p>
+                      <p style={{ color: C.t1, fontSize: 14, fontWeight: 600 }}>Strava</p>
+                      <p style={{ color: C.t3, fontSize: 12 }}>Corridas, pedaladas, natação e mais — sincronizados automaticamente</p>
                     </div>
                   </div>
                   <button onClick={conectarWearable}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 text-white"
-                    style={{ background: '#fc4c02' }}>
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 0', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#fff', background: '#fc4c02', border: 'none', fontFamily: FONT_BODY }}>
                     Conectar com Strava
                   </button>
-                  <p className="text-zinc-600 text-[10px] text-center mt-2">Suas atividades aparecem automaticamente no KORE</p>
+                  <p style={{ color: C.t3, fontSize: 10, textAlign: 'center', marginTop: 8 }}>Suas atividades aparecem automaticamente no KORE</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Acesso rápido — só para clientes (não profissionais) */}
+        {/* Acesso rápido */}
         {!isNovo && !isProf && (
-          <div className="mt-5 space-y-2">
-            <p className="text-zinc-600 text-[10px] uppercase tracking-widest">Ficha de saúde</p>
-            <button onClick={() => router.push(`/anamnese/${userId}`)}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.98] transition-all text-left">
-              <span className="text-2xl shrink-0">📋</span>
-              <div className="flex-1">
-                <p className="text-white font-bold text-sm">Anamnese</p>
-                <p className="text-zinc-600 text-xs">Histórico de saúde, hábitos e objetivos</p>
-              </div>
-              <span className="text-zinc-700 text-sm shrink-0">→</span>
-            </button>
-            <button onClick={() => router.push(`/evolucao-medidas/${userId}`)}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.98] transition-all text-left">
-              <span className="text-2xl shrink-0">📏</span>
-              <div className="flex-1">
-                <p className="text-white font-bold text-sm">Evolução de medidas</p>
-                <p className="text-zinc-600 text-xs">Peso, composição e circunferências ao longo do tempo</p>
-              </div>
-              <span className="text-zinc-700 text-sm shrink-0">→</span>
-            </button>
+          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Ficha de saúde</p>
+            {[
+              { rota: `/anamnese/${userId}`, titulo: 'Anamnese', desc: 'Histórico de saúde, hábitos e objetivos' },
+              { rota: `/evolucao-medidas/${userId}`, titulo: 'Evolução de medidas', desc: 'Peso, composição e circunferências ao longo do tempo' },
+            ].map(item => (
+              <button key={item.rota} onClick={() => router.push(item.rota)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '16px', borderRadius: 16, textAlign: 'left', cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.05)',
+                  fontFamily: FONT_BODY, transition: 'all .15s',
+                }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ color: C.t1, fontWeight: 700, fontSize: 14 }}>{item.titulo}</p>
+                  <p style={{ color: C.t3, fontSize: 12 }}>{item.desc}</p>
+                </div>
+                <span style={{ color: C.t3, fontSize: 16, flexShrink: 0 }}>{'→'}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      {!isNovo && <div className="md:hidden"><NavBar tipo={tipo || 'cliente'} ativa="perfil" /></div>}
+      {!isNovo && <NavBar tipo={tipo || 'cliente'} ativa="perfil" />}
       </div>
     </main>
   )
@@ -680,8 +802,13 @@ function PerfilConteudo() {
 export default function Perfil() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          width: 34, height: 34, borderRadius: '50%',
+          border: '2.5px solid rgba(255,255,255,0.15)', borderTopColor: '#FF5A36',
+          animation: 'spin 0.7s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </main>
     }>
       <PerfilConteudo />

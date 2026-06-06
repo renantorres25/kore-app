@@ -89,7 +89,7 @@ export default function NavBar({ tipo, ativa }: { tipo: string; ativa: string })
         display: 'flex', flexDirection: 'column',
         borderRight: '1px solid rgba(255,255,255,0.08)',
         background: 'rgba(255,255,255,0.04)',
-        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         padding: '32px 16px',
       }}>
         {/* Logo */}
