@@ -145,7 +145,7 @@ export default function NutricionistaPaciente() {
     resumo: string; evolucao: string[]; alertas: string[]; recomendacoes: string[]
   } | null>(null)
   const [gerandoBriefing, setGerandoBriefing] = useState(false)
-  const [dataLoaded, setDataLoaded] = useState(false)
+  const [atividades7dCount, setAtividades7dCount] = useState(0)
   const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
   const [loadingAnamnese, setLoadingAnamnese] = useState(false)
   const [modalAvaliacao, setModalAvaliacao] = useState(false)
@@ -191,7 +191,7 @@ export default function NutricionistaPaciente() {
       const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
       const [
         { data: perfil }, { data: treinos7d },
-        { data: trHoje }, { data: atvsHoje }, { data: sono }, { data: bem }, { data: plano },
+        { data: trHoje }, { data: atvsHoje }, { count: atvsCount }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
         { data: anamneseData }, { data: ultimaAvalData }, { data: proximaConsultaData },
       ] = await Promise.all([
@@ -199,6 +199,7 @@ export default function NutricionistaPaciente() {
         supabase.from('treinos').select('data,calorias_estimadas').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
         supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
         supabase.from('atividades_livres').select('modalidade,duracao_min,calorias_wearable').eq('usuario_id', clienteId).eq('data', hoje),
+        supabase.from('atividades_livres').select('*', { count: 'exact', head: true }).eq('usuario_id', clienteId).gte('data', semStr),
         supabase.from('sono').select('score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
         supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
         supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
@@ -211,6 +212,7 @@ export default function NutricionistaPaciente() {
       ])
       if (perfil) setPaciente(perfil)
       setTreinos7dDatas((treinos7d ?? []).map((t: any) => t.data))
+      setAtividades7dCount(atvsCount ?? 0)
       const calSem = (treinos7d ?? []).reduce((s: number, t: any) => s + (t.calorias_estimadas ?? 0), 0)
       if (calSem > 0) setCaloriasSemanais(calSem)
       if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
@@ -285,17 +287,9 @@ export default function NutricionistaPaciente() {
       }
 
       setCarregando(false)
-      setDataLoaded(true)
     }
     carregar()
   }, [clienteId, router])
-
-  useEffect(() => {
-    if (dataLoaded && paciente && !briefingEstruturado && !gerandoBriefing) {
-      gerarBriefing()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataLoaded, paciente])
 
   // ── editor helpers ──────────────────────────────────────────────────────
   function iniciarEdicao(doZero = false) {
@@ -702,7 +696,7 @@ Peso: ${pesoAtual ?? '?'}kg${pesoInicial && pesoAtual ? ` (variação: ${((pesoA
 Gordura corporal: ${medidasCP.length >= 2 ? `${medidasCP[medidasCP.length-1].gordura_pct ?? '?'}% (era ${medidasCP[0].gordura_pct ?? '?'}%)` : 'sem dados'}
 Plano nutricional: ${planoAtivo ? `${planoAtivo.calorias_meta} kcal/dia, ${planoAtivo.proteina_meta}g proteína` : 'SEM PLANO PRESCRITO'}
 Gasto energético: ${calSemTexto}
-Treinos esta semana: ${treinos7dDatas.length} sessões
+Treinos esta semana: ${treinos7dDatas.length + atividades7dCount} sessões (${treinos7dDatas.length} plano + ${atividades7dCount} Strava)
 Atividade hoje: ${atvsHojeTexto}
 Recuperação hoje (sono): ${sonoHoje?.score_recuperacao != null ? `${sonoHoje.score_recuperacao}/100` : 'não registrada'}
 Fase de treino: ${periodizacaoFase ? `${periodizacaoFase.nome_bloco} — semana ${periodizacaoFase.semana_bloco}/${periodizacaoFase.total_semanas_bloco}` : 'sem periodização'}
@@ -1125,15 +1119,15 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
             {/* ── 4. BRIEFING PRÉ-CONSULTA ─────────────────────────────── */}
             {gerandoBriefing && !briefingEstruturado ? (
-              <div className="rounded-2xl p-6 animate-pulse" style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.10)' }}>
+              <div className="rounded-2xl p-6" style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.10)' }}>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/40 animate-ping" />
-                  <p className="text-[11px] text-emerald-500/50 uppercase tracking-[0.2em]">Preparando briefing...</p>
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60 animate-ping" />
+                  <p className="text-[11px] text-emerald-500/50 uppercase tracking-[0.2em]">Gerando briefing clínico...</p>
                 </div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-white/[0.05] rounded-full w-full" />
-                  <div className="h-4 bg-white/[0.05] rounded-full w-4/5" />
-                  <div className="h-4 bg-white/[0.05] rounded-full w-3/5 mt-3" />
+                <div className="space-y-2 animate-pulse">
+                  <div className="h-3.5 bg-white/[0.05] rounded-full w-full" />
+                  <div className="h-3.5 bg-white/[0.05] rounded-full w-4/5" />
+                  <div className="h-3.5 bg-white/[0.05] rounded-full w-3/5 mt-3" />
                 </div>
               </div>
             ) : briefingEstruturado ? (
@@ -1163,7 +1157,18 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   </div>
                 )}
               </div>
-            ) : null}
+            ) : (
+              <button onClick={gerarBriefing}
+                className="w-full rounded-2xl p-5 flex items-center gap-4 text-left transition-all hover:opacity-90 active:scale-[0.99]"
+                style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.10)' }}>
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 text-lg">✦</div>
+                <div>
+                  <p className="text-white text-sm font-bold">Preparar briefing pré-consulta</p>
+                  <p className="text-zinc-500 text-xs mt-0.5">Análise clínica dos últimos 7 dias — gere antes de cada consulta</p>
+                </div>
+                <span className="text-emerald-500/40 ml-auto">→</span>
+              </button>
+            )}
 
           </div>
         )}
