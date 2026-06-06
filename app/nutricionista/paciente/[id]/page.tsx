@@ -2302,43 +2302,71 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
         </div>
       )}
 
-      {paciente && (
-        <ProfissionalAIChat contexto={{
-          profissionalTipo: 'nutricionista',
-          profissionalNome: nutriNome,
-          paciente: {
-            nome: paciente.nome,
-            peso: paciente.peso,
-            altura: paciente.altura,
-            objetivo: paciente.objetivo,
-            nivel: paciente.nivel ?? null,
-            metaPeso: paciente.meta_peso,
-            metaDataLimite: paciente.meta_data_limite,
-            fcmax: paciente.fcmax ?? null,
-            ftp: paciente.ftp ?? null,
-          },
-          alertasClinicos: {
-            lesoes: anamneseLesoes,
-            restricoesFisicas: anamneseRestricaoFisica,
-            medicamentos: anamneseMedicamentos,
-            alergias: anamneseAlergias,
-          },
-          nutricao: {
-            caloriasPrescritas: planoAtivo?.calorias_meta ?? null,
-            proteinaPrescritas: planoAtivo?.proteina_meta ?? null,
-            caloriasSemanaisGastas: caloriasSemanais,
-            treinosSemana: treinos7dDatas.length,
-            periodizacao: periodizacaoFase ? `${periodizacaoFase.nome_bloco} (${periodizacaoFase.tipo_bloco}) semana ${periodizacaoFase.semana_bloco}/${periodizacaoFase.total_semanas_bloco}` : null,
-          },
-          composicao: medidasCP.length > 0 ? {
-            ultimoPeso: medidasCP[medidasCP.length - 1].peso,
-            gorduraPct: medidasCP[medidasCP.length - 1].gordura_pct,
-            massaMuscular: medidasCP[medidasCP.length - 1].massa_muscular,
-            data: medidasCP[medidasCP.length - 1].data,
-          } : null,
-          ultimaAvaliacao,
-        }} pacienteId={clienteId} />
-      )}
+      {paciente && (() => {
+        const hojeAI = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+        const dBaseAI = new Date(hojeAI + 'T12:00:00-03:00')
+        const currSunAI = new Date(dBaseAI)
+        currSunAI.setDate(dBaseAI.getDate() - dBaseAI.getDay())
+        const q7AI = currSunAI.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+        const atividadesSem = [
+          ...historicoTreinosDetalhado.filter(t => t.data >= q7AI).map(t => ({
+            data: t.data,
+            modalidade: 'musculação',
+            duracao_min: null as number | null,
+            distancia_km: null as number | null,
+            calorias: t.calorias,
+          })),
+          ...atividadesLivres14d.filter(a => a.data >= q7AI).map(a => ({
+            data: a.data,
+            modalidade: a.modalidade,
+            duracao_min: a.duracao_min,
+            distancia_km: a.distancia_km,
+            calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null,
+          })),
+        ].sort((a, b) => b.data.localeCompare(a.data))
+
+        const calTotalAI = atividadesSem.reduce((s, a) => s + (a.calorias ?? 0), 0)
+
+        return (
+          <ProfissionalAIChat contexto={{
+            profissionalTipo: 'nutricionista',
+            profissionalNome: nutriNome,
+            paciente: {
+              nome: paciente.nome,
+              peso: paciente.peso,
+              altura: paciente.altura,
+              objetivo: paciente.objetivo,
+              nivel: paciente.nivel ?? null,
+              metaPeso: paciente.meta_peso,
+              metaDataLimite: paciente.meta_data_limite,
+              fcmax: paciente.fcmax ?? null,
+              ftp: paciente.ftp ?? null,
+            },
+            alertasClinicos: {
+              lesoes: anamneseLesoes,
+              restricoesFisicas: anamneseRestricaoFisica,
+              medicamentos: anamneseMedicamentos,
+              alergias: anamneseAlergias,
+            },
+            nutricao: {
+              caloriasPrescritas: planoAtivo?.calorias_meta ?? null,
+              proteinaPrescritas: planoAtivo?.proteina_meta ?? null,
+              caloriasSemanaisGastas: calTotalAI > 0 ? calTotalAI : caloriasSemanais,
+              treinosSemana: atividadesSem.length,
+              periodizacao: periodizacaoFase ? `${periodizacaoFase.nome_bloco} (${periodizacaoFase.tipo_bloco}) semana ${periodizacaoFase.semana_bloco}/${periodizacaoFase.total_semanas_bloco}` : null,
+              atividadesSemana: atividadesSem,
+            },
+            composicao: medidasCP.length > 0 ? {
+              ultimoPeso: medidasCP[medidasCP.length - 1].peso,
+              gorduraPct: medidasCP[medidasCP.length - 1].gordura_pct,
+              massaMuscular: medidasCP[medidasCP.length - 1].massa_muscular,
+              data: medidasCP[medidasCP.length - 1].data,
+            } : null,
+            ultimaAvaliacao,
+          }} pacienteId={clienteId} />
+        )
+      })()}
     </main>
   )
 }

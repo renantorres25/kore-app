@@ -33,6 +33,7 @@ export type ContextoProfissional = {
     exerciciosMaxCarga: { nome: string; maxCarga: number; sessoes: number }[]
     planos?: { plano: string; nome: string; exercicios: { nome: string; series: number; repeticoes: number; carga: number | null; observacoes: string }[] }[]
     periodizacaoFase?: string | null
+    atividadesSemana?: { data: string; modalidade: string; duracao_min: number | null; distancia_km?: number | null; calorias: number | null }[]
   } | null
   nutricao?: {
     caloriasPrescritas: number | null
@@ -40,6 +41,7 @@ export type ContextoProfissional = {
     caloriasSemanaisGastas: number | null
     treinosSemana: number
     periodizacao: string | null
+    atividadesSemana?: { data: string; modalidade: string; duracao_min: number | null; distancia_km?: number | null; calorias: number | null }[]
   } | null
   composicao?: {
     ultimoPeso: number | null
@@ -94,6 +96,17 @@ function buildSystemPrompt(ctx: ContextoProfissional): string {
       ).join('\n\n')
     }
 
+    let atividadesPersonalTexto = ''
+    if (ctx.treinamento.atividadesSemana?.length) {
+      atividadesPersonalTexto = '\n\nATIVIDADES DESTA SEMANA:\n' + ctx.treinamento.atividadesSemana.map(a => {
+        const dataFmt = new Date(a.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+        const dur = a.duracao_min ? `${a.duracao_min}min` : '?'
+        const dist = a.distancia_km ? ` · ${a.distancia_km}km` : ''
+        const cal = a.calorias ? ` · ${a.calorias} kcal` : ''
+        return `- ${dataFmt}: ${a.modalidade} (${dur}${dist}${cal})`
+      }).join('\n')
+    }
+
     dadosEspecificos = `
 DADOS DE TREINO:
 - Treinos esta semana: ${ctx.treinamento.treinosSemana}
@@ -101,16 +114,27 @@ DADOS DE TREINO:
 - Score de recuperação hoje: ${ctx.treinamento.scoreRecuperacaoHoje ? `${ctx.treinamento.scoreRecuperacaoHoje}/100` : 'não registrado'}
 - Sono hoje: ${ctx.treinamento.sonoHorasHoje ? `${ctx.treinamento.sonoHorasHoje}h` : 'não registrado'}
 - Principais cargas históricas: ${ex}
-- Fase de periodização atual: ${ctx.treinamento.periodizacaoFase ?? 'não configurada'}${planosTexto}`
+- Fase de periodização atual: ${ctx.treinamento.periodizacaoFase ?? 'não configurada'}${planosTexto}${atividadesPersonalTexto}`
   }
 
   if (ctx.profissionalTipo === 'nutricionista' && ctx.nutricao) {
+    let atividadesTexto = ''
+    if (ctx.nutricao.atividadesSemana?.length) {
+      atividadesTexto = '\n\nATIVIDADES DESTA SEMANA (detalhado):\n' + ctx.nutricao.atividadesSemana.map(a => {
+        const dataFmt = new Date(a.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+        const dur = a.duracao_min ? `${a.duracao_min}min` : '?min'
+        const dist = a.distancia_km ? ` · ${a.distancia_km}km` : ''
+        const cal = a.calorias ? ` · ${a.calorias} kcal` : ' · sem calorias'
+        return `- ${dataFmt}: ${a.modalidade} (${dur}${dist}${cal})`
+      }).join('\n')
+    }
+
     dadosEspecificos = `
 DADOS NUTRICIONAIS:
 - Plano atual: ${ctx.nutricao.caloriasPrescritas ?? '?'} kcal/dia | proteína ${ctx.nutricao.proteinaPrescritas ?? '?'}g
-- Treinos esta semana: ${ctx.nutricao.treinosSemana}
+- Atividades esta semana: ${ctx.nutricao.treinosSemana} sessões
 - Calorias gastas nos treinos esta semana: ${ctx.nutricao.caloriasSemanaisGastas ? `${ctx.nutricao.caloriasSemanaisGastas} kcal` : 'sem dados'}
-- Fase de periodização: ${ctx.nutricao.periodizacao ?? 'não configurada'}`
+- Fase de periodização: ${ctx.nutricao.periodizacao ?? 'não configurada'}${atividadesTexto}`
   }
 
   return `Você é o KORE AI — assistente clínico integrado ao perfil de ${pacNome} para uso exclusivo do ${tipo} ${ctx.profissionalNome ?? ''}.
