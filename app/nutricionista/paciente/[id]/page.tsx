@@ -129,6 +129,7 @@ export default function NutricionistaPaciente() {
   const [treinoCarregando, setTreinoCarregando] = useState(false)
   const [backfillando, setBackfillando] = useState(false)
   const [backfillMsg, setBackfillMsg] = useState<string | null>(null)
+  const [profId, setProfId] = useState<string | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
   const [proximaConsulta, setProximaConsulta] = useState<string | null>(null)
   const [proximaFase, setProximaFase] = useState<string | null>(null)
@@ -183,6 +184,7 @@ export default function NutricionistaPaciente() {
     async function carregar() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
+      setProfId(session.user.id)
       supabase.from('perfis').select('nome').eq('id', session.user.id).single().then(({ data }) => { if (data?.nome) setNutriNome(data.nome) })
       const hoje = getTodayBR()
       const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 6)
@@ -711,7 +713,8 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mensagens: [{ role: 'user', content: prompt }],
-          systemPrompt: 'Você é um assistente clínico de nutrição. Responda APENAS com o JSON solicitado, sem texto adicional.'
+          systemPrompt: 'Você é um assistente clínico de nutrição. Responda APENAS com o JSON solicitado, sem texto adicional.',
+          usuarioId: profId,
         })
       })
       const data = await res.json()
