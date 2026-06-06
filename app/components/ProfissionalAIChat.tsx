@@ -258,7 +258,7 @@ export default function ProfissionalAIChat({ contexto, pacienteId }: { contexto:
       const res = await fetch('/api/kore-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagens: novasMensagens, systemPrompt: buildSystemPrompt(contexto) }),
+        body: JSON.stringify({ mensagens: novasMensagens, systemPrompt: buildSystemPrompt(contexto), usuarioId: profId }),
       })
       const data = await res.json()
       const resposta = data.resposta ?? 'Erro ao processar.'
