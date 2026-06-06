@@ -493,7 +493,11 @@ export default function NutricionistaPaciente() {
     setSalvandoNota(false)
   }
 
-  // Load detailed training data lazily when treino tab opens
+  // Load training data on mount (needed for AI chat context) and when treino tab opens
+  useEffect(() => {
+    carregarDadosTreino()
+  }, [])
+
   useEffect(() => {
     if (abaAtiva === 'treino') carregarDadosTreino()
   }, [abaAtiva])
