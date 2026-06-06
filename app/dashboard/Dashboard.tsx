@@ -1,11 +1,63 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import OnboardingTour from '../components/OnboardingTour'
 import SidebarProfissional from '../components/SidebarProfissional'
-import { Bell, AlertTriangle, ChevronRight } from 'lucide-react'
+import {
+  Bell, AlertTriangle, ChevronRight, X, Calendar, Moon, Sparkles,
+  Dumbbell, Utensils, Check, Plus, UserPlus, ClipboardList,
+} from 'lucide-react'
+
+/* ═════════════════════════════════════════════════════════════
+   KORE · Dashboard — "Energetic Precision"
+   Visual redesign · lógica de negócio 100% preservada.
+   ═════════════════════════════════════════════════════════════ */
+
+const C = {
+  energy:   '#FF5A36',
+  energy2:  '#FF8A3D',
+  good:     '#2DD4A7',
+  sleep:    '#60A5FA',
+  recovery: '#A78BFA',
+  warn:     '#F5B544',
+  danger:   '#FB7185',
+  t1:       '#F5F6F8',
+  t2:       '#9AA0AD',
+  t3:       '#7A8290',
+}
+
+const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
+const FONT_BODY    = "'Plus Jakarta Sans', system-ui, sans-serif"
+const FONT_MONO    = "var(--font-geist-mono), 'JetBrains Mono', monospace"
+
+/** Hook de breakpoint desktop (≥1024px) */
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 1024)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return isDesktop
+}
+
+/** Glass card padrão do design system. */
+function glass(extra?: CSSProperties, accent?: string): CSSProperties {
+  return {
+    background: 'rgba(255,255,255,0.065)',
+    backdropFilter: 'blur(16px) saturate(130%)',
+    WebkitBackdropFilter: 'blur(16px) saturate(130%)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 20,
+    boxShadow: accent
+      ? `0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${accent}, inset 0 1px 0 rgba(255,255,255,0.10)`
+      : '0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
+    ...extra,
+  }
+}
 
 type Perfil = {
   tipo: 'cliente' | 'personal' | 'nutricionista'
@@ -63,7 +115,7 @@ function getHourBR(): number {
   return parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10)
 }
 
-function MiniSparkline({ values, color = '#2DD4A7' }: { values: number[]; color?: string }) {
+function MiniSparkline({ values, color = C.good }: { values: number[]; color?: string }) {
   if (values.length < 2) return null
   const W = 64, H = 24, pad = 2
   const max = Math.max(...values), min = Math.min(...values), range = max - min || 1
@@ -71,10 +123,10 @@ function MiniSparkline({ values, color = '#2DD4A7' }: { values: number[]; color?
   const toY = (v: number) => H - pad - ((v - min) / range) * (H - pad * 2)
   const d = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${(pad + i * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
   const last = values[values.length - 1], first = values[0]
-  const trend = last > first ? '#2DD4A7' : last < first ? '#FB7185' : '#8A9894'
+  const trend = last > first ? C.good : last < first ? C.danger : C.t3
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0">
-      <path d={d} fill="none" stroke={trend} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ flexShrink: 0 }}>
+      <path d={d} fill="none" stroke={trend} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
     </svg>
   )
 }
@@ -132,9 +184,9 @@ function getMediaBemEstar(be: BemEstar): number | null {
 }
 
 function getCorMedia(media: number): string {
-  if (media <= 2) return 'text-red-400'
-  if (media === 3) return 'text-yellow-400'
-  return 'text-emerald-400'
+  if (media <= 2) return C.danger
+  if (media === 3) return C.warn
+  return C.good
 }
 
 function getLabelMedia(media: number): string {
@@ -153,18 +205,11 @@ function getScoreLabel(score: number): string {
   return 'Recuperação crítica. Descanse hoje'
 }
 
-function getScoreCores(score: number) {
-  if (score >= 80) return { text: 'text-emerald-400', bg: 'bg-emerald-400', border: 'border-emerald-400/20' }
-  if (score >= 60) return { text: 'text-yellow-400',  bg: 'bg-yellow-400',  border: 'border-yellow-400/20'  }
-  if (score >= 40) return { text: 'text-orange-400',  bg: 'bg-orange-400',  border: 'border-orange-400/20'  }
-  return              { text: 'text-red-400',     bg: 'bg-red-400',     border: 'border-red-400/20'     }
-}
-
 function getScoreHex(score: number): string {
-  if (score >= 80) return '#34d399'
-  if (score >= 60) return '#facc15'
-  if (score >= 40) return '#fb923c'
-  return '#f87171'
+  if (score >= 80) return C.good
+  if (score >= 60) return C.warn
+  if (score >= 40) return C.energy2
+  return C.danger
 }
 
 function calcularStreak(datas: string[]): number {
@@ -182,10 +227,10 @@ function calcularStreak(datas: string[]): number {
 
 // ─── CORES DO CARD DE DECISÃO ────────────────────────────────────────────────
 function getCoresDecisao(cor: 'verde' | 'amarelo' | 'laranja' | 'vermelho') {
-  if (cor === 'verde')    return { border: 'border-emerald-500/30', badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', dot: 'bg-emerald-400', glow: '#10B981' }
-  if (cor === 'amarelo')  return { border: 'border-yellow-500/30',  badge: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',    dot: 'bg-yellow-400',  glow: '#EAB308' }
-  if (cor === 'laranja')  return { border: 'border-orange-500/30',  badge: 'bg-orange-500/10 text-orange-400 border-orange-500/20',    dot: 'bg-orange-400',  glow: '#F97316' }
-  return                         { border: 'border-red-500/30',     badge: 'bg-red-500/10 text-red-400 border-red-500/20',            dot: 'bg-red-400',     glow: '#EF4444' }
+  if (cor === 'verde')    return { glow: C.good,    border: `${C.good}55`,    badgeBg: `${C.good}1a`,    badgeText: C.good }
+  if (cor === 'amarelo')  return { glow: C.warn,    border: `${C.warn}55`,    badgeBg: `${C.warn}1a`,    badgeText: C.warn }
+  if (cor === 'laranja')  return { glow: C.energy,  border: `${C.energy}55`,  badgeBg: `${C.energy}1a`,  badgeText: C.energy2 }
+  return                         { glow: C.danger,  border: `${C.danger}55`,  badgeBg: `${C.danger}1a`,  badgeText: C.danger }
 }
 
 // ─── NAV ICONS ────────────────────────────────────────────────────────────────
@@ -237,6 +282,7 @@ function getNavItems(tipo?: string): NavItem[] {
 
 export default function Dashboard() {
   const router = useRouter()
+  const isDesktop = useIsDesktop()
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [bemEstar, setBemEstar] = useState<BemEstar>(null)
   const [scoreRecuperacao, setScoreRecuperacao] = useState<number | null>(null)
@@ -502,49 +548,115 @@ Responda APENAS em JSON válido, sem markdown:
 
   if (carregando) {
     return (
-      <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-          <p className="text-zinc-600 text-[10px] tracking-[0.25em] uppercase">Carregando</p>
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_BODY }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 32, height: 32, border: `2px solid ${C.energy}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <p style={{ color: C.t3, fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase' }}>Carregando</p>
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </main>
     )
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d1117] text-white flex flex-col">
+    <main style={{ minHeight: '100dvh', color: C.t1, display: 'flex', flexDirection: isDesktop ? 'row' : 'column', fontFamily: FONT_BODY }}>
       {perfil?.tipo === 'cliente' && <OnboardingTour />}
+
+      {/* ── SIDEBAR DESKTOP ── */}
+      {isDesktop && (
+        <aside style={{
+          width: 220, flexShrink: 0,
+          position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
+          display: 'flex', flexDirection: 'column',
+          borderRight: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          padding: '32px 16px',
+        }}>
+          {/* Logo */}
+          <div style={{ marginBottom: 40, paddingLeft: 8 }}>
+            <span style={{
+              fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 900,
+              letterSpacing: '-0.04em',
+              background: `linear-gradient(135deg, #fff 0%, ${C.energy2} 40%, ${C.energy} 100%)`,
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            }}>KORE</span>
+          </div>
+
+          {/* Nav items */}
+          <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {getNavItems(perfil?.tipo).map(item => {
+              const active = activeTab === item.id
+              return (
+                <button key={item.id} onClick={() => {
+                  if (item.id === 'perfil') router.push('/perfil')
+                  else if (item.id === 'alunos') router.push('/personal')
+                  else if (item.id === 'pacientes') router.push('/nutricionista/pacientes')
+                  else if (item.id === 'agenda') router.push('/agenda')
+                  else if (item.id === 'treino') router.push('/treino')
+                  else if (item.id === 'evolucao') router.push('/evolucao')
+                  else if (item.id === 'nutri') router.push('/nutricao')
+                  else setActiveTab(item.id)
+                }} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', borderRadius: 12,
+                  background: active ? `rgba(255,90,54,0.12)` : 'transparent',
+                  border: `1px solid ${active ? 'rgba(255,90,54,0.25)' : 'transparent'}`,
+                  cursor: 'pointer', transition: 'all 150ms ease',
+                  color: active ? C.energy : C.t2,
+                }}>
+                  <item.Icon active={active} />
+                  <span style={{ fontSize: 13, fontWeight: active ? 600 : 500, letterSpacing: '0.01em' }}>
+                    {item.label}
+                  </span>
+                  {active && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: C.energy }} />}
+                </button>
+              )
+            })}
+          </nav>
+
+          {/* Logout */}
+          <button onClick={handleLogout} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 12px', borderRadius: 12, marginTop: 8,
+            background: 'none', border: '1px solid rgba(255,255,255,0.07)',
+            cursor: 'pointer', color: C.t3, transition: 'color 150ms ease',
+            fontSize: 13, fontWeight: 500,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            Sair
+          </button>
+        </aside>
+      )}
 
       {/* Painel de Notificações */}
       {showNotifs && (
-        <div className="fixed inset-0 z-[80] flex items-end" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowNotifs(false) }}>
-          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.14] px-5 pt-5 pb-10"
-            style={{ background: '#1c1c1c' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-black text-lg">Notificações</h2>
-              <button onClick={() => setShowNotifs(false)} className="text-zinc-500 hover:text-white text-xl leading-none">✕</button>
+          <div style={glass({ width: '100%', maxWidth: 448, margin: '0 auto', borderRadius: '24px 24px 0 0', padding: '20px 20px 40px' })}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h2 style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18 }}>Notificações</h2>
+              <button onClick={() => setShowNotifs(false)} style={{ color: C.t2, lineHeight: 0, background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             {notifs.length === 0 ? (
-              <div className="py-10 text-center">
-                <p className="text-3xl mb-3"><Bell size={18} /></p>
-                <p className="text-white font-bold mb-1">Tudo em dia!</p>
-                <p className="text-zinc-600 text-sm">Nenhuma notificação no momento.</p>
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: C.t3 }}><Bell size={26} /></div>
+                <p style={{ color: C.t1, fontWeight: 700, marginBottom: 4 }}>Tudo em dia!</p>
+                <p style={{ color: C.t3, fontSize: 14 }}>Nenhuma notificação no momento.</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {notifs.map(n => (
                   <button key={n.id} onClick={() => { setShowNotifs(false); if (n.link) router.push(n.link) }}
-                    className="w-full text-left rounded-2xl p-4 active:scale-[0.98] transition-all flex items-center gap-3"
-                    style={{ background: 'var(--surface-1)' }}>
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${n.tipo === 'agendamento' ? 'bg-blue-500/10' : n.tipo === 'alerta' ? 'bg-red-500/10' : 'bg-zinc-800'}`}>
-                      {n.icon}
+                    style={glass({ textAlign: 'left', padding: 16, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', borderRadius: 16, width: '100%' })}>
+                    <div style={{ width: 40, height: 40, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: n.tipo === 'agendamento' ? `${C.sleep}1a` : n.tipo === 'alerta' ? `${C.danger}1a` : 'rgba(255,255,255,0.06)', color: n.tipo === 'agendamento' ? C.sleep : n.tipo === 'alerta' ? C.danger : C.t2 }}>
+                      {n.tipo === 'agendamento' ? <Calendar size={18} /> : n.tipo === 'alerta' ? <AlertTriangle size={18} /> : <Bell size={18} />}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-bold text-sm">{n.titulo}</p>
-                      <p className="text-zinc-500 text-xs mt-0.5">{n.corpo}</p>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: C.t1, fontWeight: 700, fontSize: 14 }}>{n.titulo}</p>
+                      <p style={{ color: C.t2, fontSize: 12, marginTop: 2 }}>{n.corpo}</p>
                     </div>
-                    {n.link && <span className="text-zinc-600 text-sm shrink-0"><ChevronRight size={14} /></span>}
+                    {n.link && <span style={{ color: C.t3, flexShrink: 0 }}><ChevronRight size={16} /></span>}
                   </button>
                 ))}
               </div>
@@ -553,7 +665,7 @@ Responda APENAS em JSON válido, sem markdown:
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto pb-28">
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isDesktop ? 40 : 112, marginLeft: isDesktop ? 220 : 0 }}>
         {perfil?.tipo === 'cliente' && (
           <DashboardCliente
             perfil={perfil}
@@ -578,15 +690,15 @@ Responda APENAS em JSON válido, sem markdown:
             notifCount={notifs.length}
             planoNutriRefeicoes={planoNutriRefeicoes}
             fasePeriodizacao={fasePeriodizacao}
+            isDesktop={isDesktop}
           />
         )}
-        {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} />}
-        {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} />}
+        {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} isDesktop={isDesktop} />}
+        {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} isDesktop={isDesktop} />}
       </div>
 
-      <nav className={`fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.14] ${(perfil?.tipo === 'nutricionista' || perfil?.tipo === 'personal') ? 'md:hidden' : ''}`}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(13,17,23,0.97)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
-        <div className="max-w-md mx-auto flex items-center justify-around px-2 pt-2 pb-2">
+      {!isDesktop && <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, borderTop: '1px solid rgba(255,255,255,0.12)', paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(24px) saturate(130%)', WebkitBackdropFilter: 'blur(24px) saturate(130%)' }}>
+        <div style={{ maxWidth: 448, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 8px' }}>
           {getNavItems(perfil?.tipo).map((item) => {
             const active = activeTab === item.id
             return (
@@ -601,19 +713,19 @@ Responda APENAS em JSON válido, sem markdown:
                   else if (item.id === 'nutri') router.push('/nutricao')
                   else setActiveTab(item.id)
                 }}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-150 active:scale-90">
-                <span className={`transition-all duration-200 ${active ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 16, background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.15s' }}>
+                <span style={{ color: active ? C.energy : C.t3, transition: 'all 0.2s' }}>
                   <item.Icon active={active} />
                 </span>
-                <span className={`text-[9px] tracking-[0.1em] uppercase font-semibold transition-all ${active ? 'text-emerald-400' : 'text-zinc-700'}`}>
+                <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, color: active ? C.energy : C.t3 }}>
                   {item.label}
                 </span>
-                {active && <div className="w-1 h-1 rounded-full bg-emerald-400" />}
+                {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.energy }} />}
               </button>
             )
           })}
         </div>
-      </nav>
+      </nav>}
     </main>
   )
 }
@@ -621,8 +733,8 @@ Responda APENAS em JSON válido, sem markdown:
 function Metrica({ label, valor }: { label: string; valor: string }) {
   return (
     <div>
-      <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-0.5">{label}</p>
-      <p className="text-white text-sm font-bold">{valor}</p>
+      <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>{label}</p>
+      <p style={{ color: C.t1, fontSize: 14, fontWeight: 700, fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums' }}>{valor}</p>
     </div>
   )
 }
@@ -640,19 +752,18 @@ function CardDecisaoDia({
   if (!temSonoHoje) {
     return (
       <button onClick={() => router.push('/sono')}
-        className="w-full text-left rounded-3xl p-5 mb-3 relative overflow-hidden active:scale-[0.98] transition-all group"
-        style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-xl bg-white/[0.09] flex items-center justify-center shrink-0 text-lg">🌙</div>
+        style={glass({ width: '100%', textAlign: 'left', padding: 20, marginBottom: 12, position: 'relative', overflow: 'hidden', cursor: 'pointer' }, `${C.sleep}1f`)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 12, background: `${C.sleep}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: C.sleep }}><Moon size={18} /></div>
           <div>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em]">✦ Decisão do dia</p>
-            <p className="text-white font-black text-base group-hover:text-emerald-400 transition-colors">Registre seu sono</p>
+            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', display: 'flex', alignItems: 'center', gap: 4 }}><Sparkles size={10} /> Decisão do dia</p>
+            <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 16 }}>Registre seu sono</p>
           </div>
         </div>
-        <p className="text-zinc-600 text-xs leading-relaxed">Assim que você registrar como dormiu, a IA gera sua decisão do dia: o que treinar, o que comer e como se recuperar.</p>
-        <div className="mt-3 flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <p className="text-emerald-400 text-[11px] font-semibold">Registrar agora → 30 segundos</p>
+        <p style={{ color: C.t2, fontSize: 12, lineHeight: 1.6 }}>Assim que você registrar como dormiu, a IA gera sua decisão do dia: o que treinar, o que comer e como se recuperar.</p>
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.energy }} />
+          <p style={{ color: C.energy, fontSize: 11, fontWeight: 600 }}>Registrar agora → 30 segundos</p>
         </div>
       </button>
     )
@@ -661,17 +772,17 @@ function CardDecisaoDia({
   // Gerando...
   if (gerandoDecisao || (!decisao && temSonoHoje)) {
     return (
-      <div className="rounded-3xl p-5 mb-3 border border-emerald-500/20 relative overflow-hidden"
-        style={{ background: 'linear-gradient(145deg, #0a1410 0%, #080d0a 100%)' }}>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin shrink-0" />
-          <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">✦ Gerando decisão do dia...</p>
+      <div style={glass({ padding: 20, marginBottom: 12, position: 'relative', overflow: 'hidden', border: `1px solid ${C.good}33` })}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 16, height: 16, border: `2px solid ${C.energy}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+          <p style={{ color: C.good, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', display: 'flex', alignItems: 'center', gap: 4 }}><Sparkles size={10} /> Gerando decisão do dia...</p>
         </div>
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[1, 0.75, 0.55].map((w, i) => (
-            <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />
+            <div key={i} style={{ height: 12, background: 'rgba(255,255,255,0.09)', borderRadius: 99, animation: 'pulse 1.5s ease-in-out infinite', width: `${w * 100}%` }} />
           ))}
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } } @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }`}</style>
       </div>
     )
   }
@@ -681,27 +792,25 @@ function CardDecisaoDia({
   const cores = getCoresDecisao(decisao.cor)
 
   return (
-    <div className={`rounded-3xl p-5 mb-3 border ${cores.border} relative overflow-hidden`}
-      style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
-      <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl opacity-10"
-        style={{ background: cores.glow }} />
-      <div className="relative">
-        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em] mb-3">✦ Decisão do dia</p>
+    <div style={glass({ padding: 20, marginBottom: 12, position: 'relative', overflow: 'hidden', border: `1px solid ${cores.border}` }, `${cores.glow}2e`)}>
+      <div style={{ position: 'absolute', top: -40, right: -40, width: 192, height: 192, borderRadius: '50%', filter: 'blur(48px)', opacity: 0.18, background: cores.glow }} />
+      <div style={{ position: 'relative' }}>
+        <p style={{ color: cores.badgeText, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}><Sparkles size={11} /> Decisão do dia</p>
 
-        <p className="text-white font-black text-xl leading-tight mb-1">{decisao.decisao}</p>
-        <p className="text-zinc-500 text-xs mb-4 leading-relaxed">{decisao.motivo}</p>
+        <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, lineHeight: 1.15, marginBottom: 4 }}>{decisao.decisao}</p>
+        <p style={{ color: C.t2, fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>{decisao.motivo}</p>
 
-        <div className="space-y-2.5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
-            { icon: '🏋️', label: 'Treino', val: decisao.treino },
-            { icon: '🍽️', label: 'Nutrição', val: decisao.nutricao },
-            { icon: '💤', label: 'Sono', val: decisao.sono },
+            { Icon: Dumbbell, color: C.energy, label: 'Treino', val: decisao.treino },
+            { Icon: Utensils, color: C.good, label: 'Nutrição', val: decisao.nutricao },
+            { Icon: Moon, color: C.sleep, label: 'Sono', val: decisao.sono },
           ].map((item, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <span style={{ flexShrink: 0, marginTop: 1, color: item.color }}><item.Icon size={16} /></span>
               <div>
-                <span className="text-zinc-500 text-[10px] uppercase tracking-wider">{item.label}: </span>
-                <span className="text-zinc-300 text-xs">{item.val}</span>
+                <span style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{item.label}: </span>
+                <span style={{ color: C.t1, fontSize: 12, opacity: 0.85 }}>{item.val}</span>
               </div>
             </div>
           ))}
@@ -713,7 +822,7 @@ function CardDecisaoDia({
 
 function SonoMiniChart({ historico }: { historico: { data: string; score_recuperacao: number | null; qualidade: number | null }[] }) {
   const hoje = getTodayBR()
-  const dotColor = (s: number) => s >= 80 ? '#34d399' : s >= 60 ? '#facc15' : s >= 40 ? '#fb923c' : '#f87171'
+  const dotColor = (s: number) => getScoreHex(s)
 
   const dias = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(hoje + 'T12:00:00-03:00')
@@ -737,27 +846,27 @@ function SonoMiniChart({ historico }: { historico: { data: string; score_recuper
   const last = valid[valid.length - 1]
 
   return (
-    <div className="mt-4 pt-4 border-t border-white/[0.14]">
-      <p className="text-zinc-600 text-[9px] uppercase tracking-[0.18em] mb-2">Score de recuperação · 7 dias</p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" style={{ height: H }}>
+    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+      <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Score de recuperação · 7 dias</p>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, overflow: 'visible' }}>
         <defs>
           <linearGradient id="dashSonoGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#34d399" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+            <stop offset="0%" stopColor={C.good} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={C.good} stopOpacity="0" />
           </linearGradient>
         </defs>
         {area && <path d={area} fill="url(#dashSonoGrad)" />}
-        {valid.length > 1 && <path d={line} fill="none" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />}
+        {valid.length > 1 && <path d={line} fill="none" stroke={C.good} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.75" />}
         {valid.map((d, i) => <circle key={i} cx={d.x} cy={toY(d.score)} r="3" fill={dotColor(d.score)} />)}
         {last && <text x={last.x} y={toY(last.score) - 7} textAnchor="middle" fill={dotColor(last.score)} fontSize="9" fontWeight="bold">{last.score}</text>}
       </svg>
-      <div className="flex mt-0.5">
+      <div style={{ display: 'flex', marginTop: 2 }}>
         {withX.map((d, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-            <span className="font-bold text-[9px]" style={{ color: d.score != null ? dotColor(d.score) : 'transparent' }}>
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontWeight: 700, fontSize: 9, fontFamily: FONT_MONO, color: d.score != null ? dotColor(d.score) : 'transparent' }}>
               {d.score ?? 0}
             </span>
-            <span className="text-zinc-700 text-[8px] uppercase">{d.dayName}</span>
+            <span style={{ color: C.t3, fontSize: 8, textTransform: 'uppercase' }}>{d.dayName}</span>
           </div>
         ))}
       </div>
@@ -772,16 +881,16 @@ function ScoreRing({ score }: { score: number }) {
   const offset = circ - (score / 100) * circ
   const color = getScoreHex(score)
   return (
-    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: size, height: size }}>
       <svg width={size} height={size} style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={stroke} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={stroke} />
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+          style={{ transition: 'stroke-dashoffset 0.8s ease', filter: `drop-shadow(0 0 6px ${color}88)` }} />
       </svg>
-      <div className="relative text-center z-10">
-        <span className="text-3xl font-black leading-none" style={{ color, fontVariantNumeric: 'tabular-nums' }}>{score}</span>
-        <span className="block text-zinc-600 text-[10px] mt-0.5">/100</span>
+      <div style={{ position: 'relative', textAlign: 'center', zIndex: 10 }}>
+        <span style={{ fontSize: 30, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1, color, fontVariantNumeric: 'tabular-nums' }}>{score}</span>
+        <span style={{ display: 'block', color: C.t3, fontSize: 10, marginTop: 2 }}>/100</span>
       </div>
     </div>
   )
@@ -853,43 +962,47 @@ function CardMeta({
     setEditando(false)
   }
 
+  const labelStyle: CSSProperties = { color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }
+  const inputStyle: CSSProperties = {
+    width: '100%', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)',
+    borderRadius: 12, padding: '12px', color: C.t1, fontSize: 14, outline: 'none', fontFamily: FONT_BODY,
+  }
+
   if (!metaEfetiva && !editando) {
     return (
       <button onClick={() => setEditando(true)}
-        className="w-full text-left rounded-2xl p-5 mb-3 border border-dashed border-white/[0.15] active:scale-[0.98] transition-all"
-        style={{ background: 'var(--surface-1)' }}>
-        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-3">Meta pessoal</p>
-        <p className="text-white font-black text-xl mb-1.5">Definir minha meta →</p>
-        <p className="text-zinc-600 text-sm leading-relaxed">Onde você quer chegar? Defina seu peso-alvo e acompanhe cada kg de progresso.</p>
+        style={glass({ width: '100%', textAlign: 'left', padding: 20, marginBottom: 12, border: '1px dashed rgba(255,255,255,0.18)', cursor: 'pointer' })}>
+        <p style={{ ...labelStyle, marginBottom: 12 }}>Meta pessoal</p>
+        <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 20, marginBottom: 6 }}>Definir minha meta →</p>
+        <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6 }}>Onde você quer chegar? Defina seu peso-alvo e acompanhe cada kg de progresso.</p>
       </button>
     )
   }
 
   if (editando) {
     return (
-      <div className="rounded-2xl p-5 mb-3 border border-emerald-500/20" style={{ background: 'var(--surface-1)' }}>
-        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meta pessoal</p>
-        <div className="space-y-3">
+      <div style={glass({ padding: 20, marginBottom: 12, border: `1px solid ${C.good}33` })}>
+        <p style={{ ...labelStyle, marginBottom: 16 }}>Meta pessoal</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <label className="text-zinc-600 text-[10px] mb-1.5 block">Peso-alvo (kg)</label>
+            <label style={{ color: C.t3, fontSize: 10, marginBottom: 6, display: 'block' }}>Peso-alvo (kg)</label>
             <input type="number" step="0.5" placeholder="Ex: 80" value={formMeta.peso}
               onChange={e => setFormMeta(p => ({ ...p, peso: e.target.value }))}
-              className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/30 placeholder:text-zinc-700" />
+              style={inputStyle} />
           </div>
           <div>
-            <label className="text-zinc-600 text-[10px] mb-1.5 block">Data-limite</label>
+            <label style={{ color: C.t3, fontSize: 10, marginBottom: 6, display: 'block' }}>Data-limite</label>
             <input type="date" value={formMeta.data}
               onChange={e => setFormMeta(p => ({ ...p, data: e.target.value }))}
-              className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/30"
-              style={{ colorScheme: 'dark' }} />
+              style={{ ...inputStyle, colorScheme: 'dark' }} />
           </div>
-          <div className="flex gap-2 pt-1">
+          <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
             <button onClick={handleSalvar}
-              className="flex-1 bg-emerald-500 text-black font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+              style={{ flex: 1, background: C.good, color: '#06231b', fontWeight: 700, padding: '12px', borderRadius: 12, fontSize: 14, border: 'none', cursor: 'pointer' }}>
               Salvar meta
             </button>
             <button onClick={() => setEditando(false)}
-              className="px-4 py-3 border border-white/[0.1] rounded-xl text-zinc-500 text-sm active:scale-95 transition-all">
+              style={{ padding: '12px 16px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: C.t2, fontSize: 14, background: 'none', cursor: 'pointer' }}>
               Cancelar
             </button>
           </div>
@@ -898,81 +1011,81 @@ function CardMeta({
     )
   }
 
-  const C = 2 * Math.PI * 30 // circumference r=30 → ~188.5
+  const Circ = 2 * Math.PI * 30 // circumference r=30 → ~188.5
 
   return (
-    <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface-1)' }}>
+    <div style={glass({ padding: 20, marginBottom: 12 }, `${C.energy}1f`)}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Meta pessoal</p>
-          {ehSugestao && <span className="text-[9px] text-emerald-400 border border-emerald-500/30 rounded-md px-1.5 py-0.5 uppercase tracking-wider">IA</span>}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <p style={labelStyle}>Meta pessoal</p>
+          {ehSugestao && <span style={{ fontSize: 9, color: C.good, border: `1px solid ${C.good}4d`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>IA</span>}
         </div>
         <button onClick={() => setEditando(true)}
-          className="text-zinc-600 text-[10px] uppercase tracking-wider border border-white/[0.14] rounded-lg px-3 py-1.5 hover:text-white hover:border-white/20 transition-all active:scale-95">
+          style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '6px 12px', background: 'none', cursor: 'pointer' }}>
           {ehSugestao ? 'confirmar' : 'editar'}
         </button>
       </div>
 
       {atingiu ? (
-        <p className="text-[var(--accent)] font-black text-3xl mb-4">Meta atingida! 🎉</p>
+        <p style={{ color: C.good, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 30, marginBottom: 16 }}>Meta atingida!</p>
       ) : (
-        <div className="flex items-center gap-5 mb-4">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16 }}>
           {/* Gauge circular */}
-          <div className="relative shrink-0 w-[76px] h-[76px]">
+          <div style={{ position: 'relative', flexShrink: 0, width: 76, height: 76 }}>
             <svg width="76" height="76" viewBox="0 0 76 76">
-              <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5.5" />
+              <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5.5" />
               <circle cx="38" cy="38" r="30" fill="none"
-                stroke={ehSugestao ? '#34d399' : (pct > 0 && progredindo ? '#34d399' : pct === 0 ? '#52525b' : '#f87171')}
+                stroke={ehSugestao ? C.good : (pct > 0 && progredindo ? C.good : pct === 0 ? C.t3 : C.danger)}
                 strokeWidth="5.5" strokeLinecap="round"
-                strokeDasharray={`${(pct / 100) * C} ${C}`}
+                strokeDasharray={`${(pct / 100) * Circ} ${Circ}`}
                 transform="rotate(-90 38 38)"
                 style={{ transition: 'stroke-dasharray 0.7s ease' }}
               />
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-white font-black text-base leading-none">{pct}%</span>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 16, lineHeight: 1 }}>{pct}%</span>
             </div>
           </div>
 
           {/* Info direita */}
-          <div className="flex-1 min-w-0">
+          <div style={{ flex: 1, minWidth: 0 }}>
             {ehSugestao ? (
               <>
-                <p className="text-[var(--accent)] font-black text-2xl leading-tight mb-0.5">
+                <p style={{ color: C.energy, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 24, lineHeight: 1.1, marginBottom: 2 }}>
                   {totalGoal != null ? `${perder ? '-' : '+'}${totalGoal.toFixed(1)} kg` : '—'}
                 </p>
-                <p className="text-zinc-500 text-xs mb-3">objetivo sugerido pela IA</p>
+                <p style={{ color: C.t2, fontSize: 12, marginBottom: 12 }}>objetivo sugerido pela IA</p>
               </>
             ) : (
               <>
-                <p className="text-white font-black text-2xl leading-tight mb-0.5">
+                <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 24, lineHeight: 1.1, marginBottom: 2 }}>
                   {faltam != null ? `${faltam.toFixed(1)} kg` : '—'}
                 </p>
-                <p className="text-zinc-500 text-xs mb-3">
+                <p style={{ color: C.t2, fontSize: 12, marginBottom: 12 }}>
                   {deltaAlcancado > 0 && progredindo ? `${deltaAlcancado.toFixed(1)} kg já conquistados` : 'faltam para a meta'}
                 </p>
               </>
             )}
             {/* Chips INÍCIO · HOJE · META */}
-            <div className="flex items-center gap-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {!ehSugestao && pesoBase != null && (
                 <>
                   <div>
-                    <p className="text-zinc-400 text-xs font-bold leading-tight">{pesoBase} kg</p>
-                    <p className="text-zinc-600 text-[8px] uppercase tracking-wider">início</p>
+                    <p style={{ color: C.t2, fontSize: 12, fontWeight: 700, lineHeight: 1.1, fontFamily: FONT_MONO }}>{pesoBase} kg</p>
+                    <p style={{ color: C.t3, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>início</p>
                   </div>
-                  <span className="text-zinc-700 text-[10px]">→</span>
+                  <span style={{ color: C.t3, fontSize: 10 }}>→</span>
                 </>
               )}
               <div>
-                <p className="text-white text-xs font-black leading-tight">{pesoCurrent != null ? `${pesoCurrent} kg` : '—'}</p>
-                <p className="text-zinc-500 text-[8px] uppercase tracking-wider">hoje</p>
+                <p style={{ color: C.t1, fontSize: 12, fontWeight: 800, lineHeight: 1.1, fontFamily: FONT_MONO }}>{pesoCurrent != null ? `${pesoCurrent} kg` : '—'}</p>
+                <p style={{ color: C.t3, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>hoje</p>
               </div>
-              <span className="text-zinc-700 text-[10px]">→</span>
+              <span style={{ color: C.t3, fontSize: 10 }}>→</span>
               <div>
-                <p className="text-[var(--accent)] text-xs font-bold leading-tight">{metaEfetiva} kg</p>
-                <p className="text-zinc-600 text-[8px] uppercase tracking-wider">meta</p>
+                <p style={{ color: C.energy, fontSize: 12, fontWeight: 700, lineHeight: 1.1, fontFamily: FONT_MONO }}>{metaEfetiva} kg</p>
+                <p style={{ color: C.t3, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>meta</p>
               </div>
             </div>
           </div>
@@ -981,29 +1094,28 @@ function CardMeta({
 
       {/* Barra de progresso */}
       {!atingiu && (
-        <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden mb-4">
-          <div className={`h-full rounded-full transition-all duration-700 ${ehSugestao ? 'bg-emerald-400/30' : 'bg-emerald-400'}`}
-            style={{ width: `${pct}%` }} />
+        <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ height: '100%', borderRadius: 99, transition: 'width 0.7s ease', width: `${pct}%`, background: ehSugestao ? `${C.good}4d` : C.good }} />
         </div>
       )}
 
       {/* Rodapé */}
       {ehSugestao ? (
         <button onClick={() => setEditando(true)}
-          className="w-full bg-emerald-500/10 border border-emerald-500/20 text-[var(--accent)] font-bold py-3 rounded-xl text-sm active:scale-95 transition-all tracking-[0.04em]">
+          style={{ width: '100%', background: `${C.energy}1a`, border: `1px solid ${C.energy}33`, color: C.energy2, fontWeight: 700, padding: '12px', borderRadius: 12, fontSize: 14, letterSpacing: '0.04em', cursor: 'pointer' }}>
           Confirmar esta meta →
         </button>
       ) : (
-        <div className="flex items-center pt-3 border-t border-white/[0.14]">
+        <div style={{ display: 'flex', alignItems: 'center', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
           {!atingiu && faltam != null && (
-            <p className="text-zinc-500 text-xs flex-1">
+            <p style={{ color: C.t2, fontSize: 12, flex: 1 }}>
               {metaDataLimite && `até ${new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
               {dias != null && metaDataLimite && ` · `}
-              {dias != null && <span className="text-white font-semibold">{dias}d</span>}
+              {dias != null && <span style={{ color: C.t1, fontWeight: 600 }}>{dias}d</span>}
             </p>
           )}
           <button onClick={() => router.push('/evolucao-medidas/' + userId)}
-            className="text-[10px] text-zinc-600 uppercase tracking-wider hover:text-white transition-colors shrink-0 active:scale-95">
+            style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
             VER EVOLUÇÃO →
           </button>
         </div>
@@ -1015,7 +1127,7 @@ function CardMeta({
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, recentDays, sonoHistorico, vinculos, treinoHoje, nutricaoHoje,
   decisaoDia, gerandoDecisao, temSonoHoje, userId, pesoAtual, pesoDelta, onSalvarMeta,
-  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao,
+  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao, isDesktop,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
@@ -1026,11 +1138,12 @@ function DashboardCliente({
   onLogout: () => void; onOpenNotifs: () => void; notifCount: number
   planoNutriRefeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]
   fasePeriodizacao: { nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null
+  isDesktop?: boolean
 }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
-  const cores          = scoreRecuperacao ? getScoreCores(scoreRecuperacao) : null
+  const scoreColor     = scoreRecuperacao ? getScoreHex(scoreRecuperacao) : C.good
   const vinculoNutri   = vinculos.find(v => v?.tipo === 'nutricionista')
 
   function getRefeicaoAtual() {
@@ -1048,27 +1161,42 @@ function DashboardCliente({
   const refeicaoAtual = getRefeicaoAtual()
   const vinculoPersonal = vinculos.find(v => v?.tipo === 'personal')
 
+  const iconBtnStyle: CSSProperties = {
+    position: 'relative', width: 36, height: 36, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', transition: 'all 0.15s',
+  }
+
   return (
-    <div className="max-w-md mx-auto px-4" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <div style={{ maxWidth: isDesktop ? 1100 : 448, margin: '0 auto', padding: isDesktop ? '40px 40px' : '0 16px', paddingTop: isDesktop ? 40 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <p className="text-zinc-400 text-sm font-medium mb-1">{getGreeting()}</p>
-          <h1 className="text-[1.85rem] font-black tracking-tight leading-none text-white">{firstName}</h1>
-          <p className="text-zinc-600 text-[11px] mt-1.5">{getTodayString()}</p>
+          <p style={{ color: C.t2, fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{getGreeting()}</p>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, color: C.t1 }}>{firstName}</h1>
+          <p style={{ color: C.t3, fontSize: 11, marginTop: 6 }}>{getTodayString()}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center active:scale-90 transition-all">
-              <Bell size={16} className="text-zinc-400" />
-                          {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={onOpenNotifs} style={iconBtnStyle}>
+            <Bell size={16} style={{ color: C.t2 }} />
+            {notifCount > 0 && <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.energy, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
-          <button onClick={() => router.push('/perfil')} className="w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center active:scale-90 transition-all">
-            <span className="text-xs font-black text-white">{initials}</span>
+          <button onClick={() => router.push('/perfil')} style={{ width: 36, height: 36, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, border: 'none', cursor: 'pointer' }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', fontFamily: FONT_DISPLAY }}>{initials}</span>
           </button>
         </div>
       </div>
 
+      {/* ── GRID DESKTOP: 2 colunas / Mobile: 1 coluna ── */}
+      <div style={{
+        display: isDesktop ? 'grid' : 'block',
+        gridTemplateColumns: isDesktop ? '1.5fr 1fr' : undefined,
+        gap: isDesktop ? 24 : undefined,
+        alignItems: 'start',
+      }}>
+
+      {/* COLUNA ESQUERDA */}
+      <div>
       {/* Meta pessoal — primeiro da home, motivação central */}
       <CardMeta
         perfil={perfil}
@@ -1079,7 +1207,7 @@ function DashboardCliente({
         router={router}
       />
 
-      {/* ✦ Decisão do dia — só aparece quando há sono registrado */}
+      {/* Decisão do dia — só aparece quando há sono registrado */}
       {temSonoHoje && (
         <CardDecisaoDia
           decisao={decisaoDia}
@@ -1089,25 +1217,28 @@ function DashboardCliente({
         />
       )}
 
+      </div>{/* fim coluna esquerda */}
+
+      {/* COLUNA DIREITA */}
+      <div>
       {/* Score de recuperação */}
       {scoreRecuperacao ? (
         <button onClick={() => router.push('/sono')}
-          className={`w-full text-left rounded-3xl p-6 mb-3 border ${cores?.border} relative overflow-hidden active:scale-[0.98] transition-all duration-200`}
-          style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
-          <div className={`absolute -top-12 -right-12 w-56 h-56 rounded-full blur-3xl opacity-15 ${cores?.bg}`} />
-          <div className="relative">
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.22em] mb-4">Recuperação hoje</p>
-            <div className="flex items-center gap-5">
+          style={glass({ width: '100%', textAlign: 'left', padding: 24, marginBottom: 12, position: 'relative', overflow: 'hidden', cursor: 'pointer' }, `${scoreColor}26`)}>
+          <div style={{ position: 'absolute', top: -48, right: -48, width: 224, height: 224, borderRadius: '50%', filter: 'blur(48px)', opacity: 0.16, background: scoreColor }} />
+          <div style={{ position: 'relative' }}>
+            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 16 }}>Recuperação hoje</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               <ScoreRing score={scoreRecuperacao} />
-              <div className="flex-1 min-w-0">
-                <p className={`text-base font-black leading-tight mb-1 ${cores?.text}`}>{getScoreLabel(scoreRecuperacao)}</p>
-                <p className="text-zinc-600 text-[11px] mb-3">Ver análise completa →</p>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 16, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, color: scoreColor }}>{getScoreLabel(scoreRecuperacao)}</p>
+                <p style={{ color: C.t3, fontSize: 11, marginBottom: 12 }}>Ver análise completa →</p>
                 {bemEstar && (
-                  <div className="flex gap-4">
+                  <div style={{ display: 'flex', gap: 16 }}>
                     <Metrica label="Energia"   valor={`${bemEstar.energia}/5`} />
-                    <div className="w-px bg-white/[0.09]" />
+                    <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
                     <Metrica label="Humor"     valor={`${bemEstar.humor}/5`} />
-                    <div className="w-px bg-white/[0.09]" />
+                    <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
                     <Metrica label="Dor musc." valor={`${6 - bemEstar.dor_muscular}/5`} />
                   </div>
                 )}
@@ -1118,189 +1249,189 @@ function DashboardCliente({
         </button>
       ) : (
         <button onClick={() => router.push('/sono')}
-          className="w-full text-left rounded-3xl p-6 mb-3 relative overflow-hidden active:scale-[0.98] transition-all"
-          style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-zinc-600 text-[10px] uppercase tracking-[0.22em]">Recuperação hoje</p>
-            <span className="text-[9px] text-zinc-600 border border-white/[0.14] rounded-md px-1.5 py-0.5 uppercase tracking-wider">demo</span>
+          style={glass({ width: '100%', textAlign: 'left', padding: 24, marginBottom: 12, position: 'relative', overflow: 'hidden', cursor: 'pointer' })}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.22em' }}>Recuperação hoje</p>
+            <span style={{ fontSize: 9, color: C.t3, border: '1px solid rgba(255,255,255,0.14)', borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>demo</span>
           </div>
-          <div className="flex items-center gap-5 opacity-50">
-            <div className="relative w-[72px] h-[72px] shrink-0">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, opacity: 0.5 }}>
+            <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
               <svg width="72" height="72" viewBox="0 0 72 72" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-                <circle cx="36" cy="36" r="28" fill="none" stroke="#34d399" strokeWidth="6"
+                <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
+                <circle cx="36" cy="36" r="28" fill="none" stroke={C.good} strokeWidth="6"
                   strokeDasharray={`${2 * Math.PI * 28}`}
                   strokeDashoffset={`${2 * Math.PI * 28 * (1 - 72 / 100)}`}
                   strokeLinecap="round" />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-black text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>72</span>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 24, fontFamily: FONT_DISPLAY, fontWeight: 800, color: C.t1, fontVariantNumeric: 'tabular-nums' }}>72</span>
               </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-base font-black leading-tight mb-1 text-[var(--accent)]">Boa recuperação</p>
-              <div className="flex gap-4 mt-2">
-                <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Energia</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
-                <div className="w-px bg-white/[0.09]" />
-                <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Humor</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
-                <div className="w-px bg-white/[0.09]" />
-                <div><p className="text-zinc-600 text-[9px] uppercase tracking-wider">Dor musc.</p><p className="text-zinc-400 text-xs font-bold">4/5</p></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 16, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, color: C.good }}>Boa recuperação</p>
+              <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                <div><p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Energia</p><p style={{ color: C.t2, fontSize: 12, fontWeight: 700 }}>4/5</p></div>
+                <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                <div><p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Humor</p><p style={{ color: C.t2, fontSize: 12, fontWeight: 700 }}>4/5</p></div>
+                <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                <div><p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Dor musc.</p><p style={{ color: C.t2, fontSize: 12, fontWeight: 700 }}>4/5</p></div>
               </div>
             </div>
           </div>
-          <p className="text-zinc-600 text-xs mt-4">Registre seu sono para ativar seu score real →</p>
+          <p style={{ color: C.t3, fontSize: 12, marginTop: 16 }}>Registre seu sono para ativar seu score real →</p>
         </button>
       )}
 
       {/* Fase de periodização */}
       {fasePeriodizacao && (() => {
-        const CORES_FASE: Record<string, { text: string; bar: string; border: string }> = {
-          adaptacao:   { text: 'text-teal-400',    bar: 'bg-teal-400',    border: 'border-teal-500/20'    },
-          hipertrofia: { text: 'text-emerald-400', bar: 'bg-emerald-400', border: 'border-emerald-500/20' },
-          forca:       { text: 'text-blue-400',    bar: 'bg-blue-400',    border: 'border-blue-500/20'    },
-          deload:      { text: 'text-zinc-400',    bar: 'bg-zinc-400',    border: 'border-zinc-500/20'    },
-          potencia:    { text: 'text-orange-400',  bar: 'bg-orange-400',  border: 'border-orange-500/20'  },
-          resistencia: { text: 'text-purple-400',  bar: 'bg-purple-400',  border: 'border-purple-500/20'  },
+        const CORES_FASE: Record<string, string> = {
+          adaptacao:   C.good,
+          hipertrofia: C.good,
+          forca:       C.sleep,
+          deload:      C.t2,
+          potencia:    C.energy,
+          resistencia: C.recovery,
         }
-        const c = CORES_FASE[fasePeriodizacao.tipoBloco] ?? CORES_FASE.hipertrofia
+        const cor = CORES_FASE[fasePeriodizacao.tipoBloco] ?? C.good
         const pct = Math.min(100, (fasePeriodizacao.semanaBloco / fasePeriodizacao.semanasBloco) * 100)
         return (
-          <div className={`rounded-2xl p-5 mb-3 border ${c.border}`} style={{ background: 'var(--surface-1)' }}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Fase atual</p>
-              <span className={`text-[9px] font-bold uppercase tracking-wider ${c.text}`}>
+          <div style={glass({ padding: 20, marginBottom: 12, border: `1px solid ${cor}33` })}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Fase atual</p>
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: cor }}>
                 Sem. {fasePeriodizacao.semanaBloco}/{fasePeriodizacao.semanasBloco}
               </span>
             </div>
-            <p className={`text-xl font-black mb-3 ${c.text}`}>{fasePeriodizacao.nomeBloco}</p>
-            <div className="h-2 bg-white/[0.09] rounded-full overflow-hidden mb-2">
-              <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${pct}%` }} />
+            <p style={{ fontSize: 20, fontFamily: FONT_DISPLAY, fontWeight: 800, marginBottom: 12, color: cor }}>{fasePeriodizacao.nomeBloco}</p>
+            <div style={{ height: 8, background: 'rgba(255,255,255,0.09)', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
+              <div style={{ height: '100%', borderRadius: 99, background: cor, width: `${pct}%` }} />
             </div>
-            <div className="flex items-center justify-between">
-              <p className="text-zinc-600 text-[10px]">Semana {fasePeriodizacao.semanaTotal} de {fasePeriodizacao.totalSemanas} no ciclo</p>
-              {fasePeriodizacao.descricao && <p className="text-zinc-500 text-[10px] max-w-[60%] text-right truncate">{fasePeriodizacao.descricao}</p>}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ color: C.t3, fontSize: 10 }}>Semana {fasePeriodizacao.semanaTotal} de {fasePeriodizacao.totalSemanas} no ciclo</p>
+              {fasePeriodizacao.descricao && <p style={{ color: C.t2, fontSize: 10, maxWidth: '60%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fasePeriodizacao.descricao}</p>}
             </div>
           </div>
         )
       })()}
 
       {/* Treino de hoje */}
-      <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface-1)' }}>
-        <div className="flex items-start justify-between mb-1">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Treino de hoje</p>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${treinoHoje?.concluido ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
-            {treinoHoje?.concluido ? '✓' : 'TR'}
+      <div style={glass({ padding: 20, marginBottom: 12 })}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+          <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
+          <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${treinoHoje?.concluido ? `${C.good}33` : `${C.warn}33`}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: treinoHoje?.concluido ? `${C.good}1a` : `${C.warn}1a`, color: treinoHoje?.concluido ? C.good : C.warn }}>
+            {treinoHoje?.concluido ? <Check size={18} /> : <Dumbbell size={18} />}
           </div>
         </div>
-        <div className="mb-4">
-          <p className="text-white font-bold text-base mb-0.5">
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: FONT_DISPLAY }}>
             {treinoHoje ? treinoHoje.nome : 'Escolha seu treino'}
           </p>
           {treinoHoje?.concluido ? (
-            <p className="text-[var(--accent)] font-black text-sm">✓ Concluído hoje</p>
+            <p style={{ color: C.good, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}><Check size={14} /> Concluído hoje</p>
           ) : vinculoPersonal ? (
-            <p className="text-blue-400 font-black text-sm">{vinculoPersonal.nome ?? vinculoPersonal.email}</p>
+            <p style={{ color: C.sleep, fontWeight: 700, fontSize: 14 }}>{vinculoPersonal.nome ?? vinculoPersonal.email}</p>
           ) : (
-            <p className="text-zinc-600 text-xs">Seus planos estão prontos</p>
+            <p style={{ color: C.t3, fontSize: 12 }}>Seus planos estão prontos</p>
           )}
         </div>
         <button onClick={() => router.push('/treino')}
-          className="w-full bg-white text-black font-bold py-3.5 rounded-xl text-sm active:scale-95 hover:bg-zinc-100 transition-all tracking-[0.05em]">
+          style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, letterSpacing: '0.03em', border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44` }}>
           {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treino do dia →'}
         </button>
       </div>
 
       {/* Nutrição */}
       <button onClick={() => router.push('/nutricao')}
-        className="w-full text-left rounded-2xl p-5 mb-3 active:scale-[0.98] transition-all"
-        style={{ background: 'var(--surface-1)' }}>
-        <div className="flex items-start justify-between mb-1">
+        style={glass({ width: '100%', textAlign: 'left', padding: 20, marginBottom: 12, cursor: 'pointer' })}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
           <div>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Minha nutrição</p>
+            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Minha nutrição</p>
             {vinculoNutri && (
-              <p className="text-green-400 font-black text-sm mt-0.5">{vinculoNutri.nome ?? vinculoNutri.email}</p>
+              <p style={{ color: C.good, fontWeight: 700, fontSize: 14, marginTop: 2 }}>{vinculoNutri.nome ?? vinculoNutri.email}</p>
             )}
           </div>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.07] text-zinc-600 border-white/[0.11]'}`}>NU</div>
+          <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${vinculoNutri ? `${C.good}33` : 'rgba(255,255,255,0.11)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: vinculoNutri ? `${C.good}1a` : 'rgba(255,255,255,0.07)', color: vinculoNutri ? C.good : C.t3 }}><Utensils size={18} /></div>
         </div>
-        <div className="mb-4">
+        <div style={{ marginBottom: 16 }}>
           {vinculoNutri && refeicaoAtual ? (
             <>
-              <div className="flex items-baseline gap-2 mb-1">
-                <p className="text-white font-bold text-base">{refeicaoAtual.nome}</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, fontFamily: FONT_DISPLAY }}>{refeicaoAtual.nome}</p>
                 {refeicaoAtual.horario && (
-                  <span className="text-zinc-500 text-xs">{refeicaoAtual.horario}</span>
+                  <span style={{ color: C.t2, fontSize: 12 }}>{refeicaoAtual.horario}</span>
                 )}
               </div>
               {refeicaoAtual.alimentos?.length > 0 && (
-                <p className="text-zinc-400 text-xs leading-relaxed mb-2 line-clamp-2">
+                <p style={{ color: C.t2, fontSize: 12, lineHeight: 1.6, marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {refeicaoAtual.alimentos.slice(0, 3).map(a => a.nome).join(', ')}
                   {refeicaoAtual.alimentos.length > 3 ? ` +${refeicaoAtual.alimentos.length - 3} alimento${refeicaoAtual.alimentos.length - 3 > 1 ? 's' : ''}` : ''}
                 </p>
               )}
-              <div className="flex gap-3">
+              <div style={{ display: 'flex', gap: 12 }}>
                 {refeicaoAtual.calorias > 0 && (
-                  <span className="text-orange-400 text-xs font-bold">{refeicaoAtual.calorias} kcal</span>
+                  <span style={{ color: C.energy2, fontSize: 12, fontWeight: 700, fontFamily: FONT_MONO }}>{refeicaoAtual.calorias} kcal</span>
                 )}
                 {refeicaoAtual.proteina > 0 && (
-                  <span className="text-blue-400 text-xs">{refeicaoAtual.proteina}g prot</span>
+                  <span style={{ color: C.sleep, fontSize: 12, fontFamily: FONT_MONO }}>{refeicaoAtual.proteina}g prot</span>
                 )}
               </div>
             </>
           ) : (
             <>
-              <p className="text-white font-bold text-base mb-0.5">
+              <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: FONT_DISPLAY }}>
                 {vinculoNutri ? 'Plano ativo' : 'Sem plano alimentar'}
               </p>
               {!vinculoNutri && (
-                <p className="text-zinc-600 text-xs">Conecte um nutricionista para receber seu plano</p>
+                <p style={{ color: C.t3, fontSize: 12 }}>Conecte um nutricionista para receber seu plano</p>
               )}
             </>
           )}
         </div>
-        <div className="w-full bg-white/[0.09] text-white font-bold py-3.5 rounded-xl text-sm text-center tracking-[0.05em]">
+        <div style={{ width: '100%', background: 'rgba(255,255,255,0.09)', color: C.t1, fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, textAlign: 'center', letterSpacing: '0.03em' }}>
           Ver meu plano alimentar →
         </div>
       </button>
 
       {/* Meu time */}
-      <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface-1)' }}>
-        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Meu time</p>
-        <div className="space-y-3">
+      <div style={glass({ padding: 20, marginBottom: 12 })}>
+        <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 16 }}>Meu time</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            { tipo: 'personal',      sigla: 'PT', label: 'Personal Trainer', cor: 'bg-blue-500/10 text-blue-400 border-blue-500/20'   },
-            { tipo: 'nutricionista', sigla: 'NU', label: 'Nutricionista',    cor: 'bg-green-500/10 text-green-400 border-green-500/20' },
+            { tipo: 'personal',      label: 'Personal Trainer', cor: C.sleep, Icon: Dumbbell },
+            { tipo: 'nutricionista', label: 'Nutricionista',    cor: C.good,  Icon: Utensils },
           ].map((p, i) => {
             const vinculo = vinculos.find(v => v?.tipo === p.tipo)
             return (
               <div key={p.label}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${p.cor}`}>{p.sigla}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-zinc-500 text-[10px] uppercase tracking-wider">{p.label}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${p.cor}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${p.cor}1a`, color: p.cor }}><p.Icon size={18} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.label}</p>
                     {vinculo
-                      ? <p className={`font-black text-base mt-0.5 ${p.tipo === 'personal' ? 'text-blue-400' : 'text-green-400'}`}>{vinculo.nome ?? vinculo.email}</p>
-                      : <p className="text-zinc-600 text-sm mt-0.5">Não conectado</p>}
+                      ? <p style={{ fontWeight: 700, fontSize: 16, marginTop: 2, color: p.cor, fontFamily: FONT_DISPLAY }}>{vinculo.nome ?? vinculo.email}</p>
+                      : <p style={{ color: C.t3, fontSize: 14, marginTop: 2 }}>Não conectado</p>}
                   </div>
                   {!vinculo && (
                     <button onClick={() => router.push('/convite')}
-                      className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider shrink-0">
-                      + Conectar
+                      style={{ fontSize: 10, color: C.t2, border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '6px 12px', textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Plus size={11} /> Conectar
                     </button>
                   )}
-                  {vinculo && <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
+                  {vinculo && <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.good, flexShrink: 0 }} />}
                 </div>
-                {i === 0 && <div className="h-px bg-white/[0.07] mt-3" />}
+                {i === 0 && <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginTop: 12 }} />}
               </div>
             )
           })}
         </div>
       </div>
+      </div>{/* fim coluna direita */}
+      </div>{/* fim grid */}
     </div>
   )
 }
 
-function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { perfil: Perfil; activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number }) {
+function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDesktop }: { perfil: Perfil; activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number; isDesktop?: boolean }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
@@ -1374,64 +1505,64 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
   }, [])
 
   return (
-    <div className="md:flex md:h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="md:flex md:h-screen">
       <SidebarProfissional tipo="personal" />
       <div className="flex-1 md:overflow-y-auto">
-    <div className="max-w-md mx-auto px-4 md:max-w-[1100px] md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-md mx-auto md:max-w-[1100px] md:px-10" style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <p className="text-zinc-400 text-sm font-medium mb-1">{getGreeting()}</p>
-          <h1 className="text-[1.85rem] font-black tracking-tight text-white">{firstName}</h1>
-          <p className="text-zinc-600 text-[11px] mt-1">{getTodayString()}</p>
+          <p style={{ color: C.t2, fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{getGreeting()}</p>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: C.t1 }}>{firstName}</h1>
+          <p style={{ color: C.t3, fontSize: 11, marginTop: 4 }}>{getTodayString()}</p>
         </div>
-        <div className="flex items-center gap-2 md:hidden">
-          <button onClick={onOpenNotifs} className="relative w-9 h-9 rounded-2xl bg-zinc-900 flex items-center justify-center text-sm active:scale-90 transition-all">
-              <Bell size={16} className="text-zinc-400" />
-                          {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+        <div className="md:hidden" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={onOpenNotifs} style={{ position: 'relative', width: 36, height: 36, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer' }}>
+            <Bell size={16} style={{ color: C.t2 }} />
+            {notifCount > 0 && <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.energy, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
         </div>
       </div>
-      <div className="md:hidden inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 border border-emerald-500/20 bg-emerald-500/[0.07]">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-        <span className="text-emerald-400 text-[10px] uppercase tracking-[0.15em] font-semibold">Personal Trainer</span>
+      <div className="md:hidden" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 99, padding: '6px 12px', marginBottom: 24, border: `1px solid ${C.sleep}33`, background: `${C.sleep}12` }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.sleep, flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <span style={{ color: C.sleep, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Personal Trainer</span>
       </div>
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
         {[
-          { valor: loadingStats ? '—' : String(totalAlunos),   label: 'Alunos',    sub: 'ativos',         cor: 'text-white' },
-          { valor: loadingStats ? '—' : String(treinaramHoje), label: 'Treinaram', sub: 'hoje',           cor: treinaramHoje > 0 ? 'text-emerald-400' : 'text-white' },
-          { valor: loadingStats ? '—' : String(alertas),       label: 'Alertas',   sub: 'sem treinar 7d', cor: alertas > 0 ? 'text-orange-400' : 'text-white' },
+          { valor: loadingStats ? '—' : String(totalAlunos),   label: 'Alunos',    sub: 'ativos',         cor: C.t1 },
+          { valor: loadingStats ? '—' : String(treinaramHoje), label: 'Treinaram', sub: 'hoje',           cor: treinaramHoje > 0 ? C.good : C.t1 },
+          { valor: loadingStats ? '—' : String(alertas),       label: 'Alertas',   sub: 'sem treinar 7d', cor: alertas > 0 ? C.energy : C.t1 },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
-            <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-3">{m.label}</p>
-            <p className={`text-5xl font-black leading-none tracking-tight ${m.cor}`}>{m.valor}</p>
-            <div className="flex items-end justify-between mt-3">
-              <p className="text-zinc-600 text-xs">{m.sub}</p>
+          <div key={m.label} style={glass({ padding: 20 })}>
+            <p style={{ fontSize: 11, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>{m.label}</p>
+            <p style={{ fontSize: 44, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', color: m.cor, fontVariantNumeric: 'tabular-nums' }}>{m.valor}</p>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 12 }}>
+              <p style={{ color: C.t3, fontSize: 12 }}>{m.sub}</p>
             </div>
           </div>
         ))}
       </div>
       {!loadingStats && totalAlunos === 0 && (
-        <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#0f1a24' }}>
-          <div className="px-5 pt-5 pb-4 border-b border-blue-500/10">
-            <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Primeiros passos</p>
-            <p className="text-white font-black text-lg">Bem-vindo ao KORE, {firstName}!</p>
-            <p className="text-zinc-500 text-sm mt-1">Siga os passos abaixo para começar a acompanhar seus alunos.</p>
+        <div style={glass({ marginBottom: 16, overflow: 'hidden', border: `1px solid ${C.sleep}33` })}>
+          <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${C.sleep}1a` }}>
+            <p style={{ color: C.sleep, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700, marginBottom: 4 }}>Primeiros passos</p>
+            <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18 }}>Bem-vindo ao KORE, {firstName}!</p>
+            <p style={{ color: C.t2, fontSize: 14, marginTop: 4 }}>Siga os passos abaixo para começar a acompanhar seus alunos.</p>
           </div>
-          <div className="divide-y divide-blue-500/[0.08]">
+          <div>
             {[
               { num: '1', done: true,  label: 'Criar sua conta', desc: 'Feito! Você está dentro.' },
               { num: '2', done: false, label: 'Convidar seu primeiro aluno', desc: 'Envie um link por email — leva 30 segundos.', action: () => router.push('/convite'), actionLabel: 'Convidar agora →' },
               { num: '3', done: false, label: 'Montar o treino do aluno', desc: 'Após aceitar o convite, monte o plano de treino.', action: null, actionLabel: null },
-            ].map((s) => (
-              <div key={s.num} className="flex items-start gap-4 px-5 py-4">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-black ${s.done ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400' : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'}`}>
-                  {s.done ? '✓' : s.num}
+            ].map((s, idx) => (
+              <div key={s.num} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px 20px', borderTop: idx > 0 ? `1px solid ${C.sleep}14` : 'none' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, fontSize: 11, fontWeight: 800, background: s.done ? `${C.good}26` : `${C.sleep}1a`, border: `1px solid ${s.done ? `${C.good}4d` : `${C.sleep}33`}`, color: s.done ? C.good : C.sleep }}>
+                  {s.done ? <Check size={13} /> : s.num}
                 </div>
-                <div className="flex-1">
-                  <p className={`text-sm font-bold ${s.done ? 'text-zinc-500 line-through' : 'text-white'}`}>{s.label}</p>
-                  <p className="text-zinc-600 text-xs mt-0.5">{s.desc}</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: s.done ? C.t3 : C.t1, textDecoration: s.done ? 'line-through' : 'none' }}>{s.label}</p>
+                  <p style={{ color: C.t3, fontSize: 12, marginTop: 2 }}>{s.desc}</p>
                   {s.action && (
-                    <button onClick={s.action} className="mt-2 text-xs text-blue-400 font-semibold hover:text-blue-300 transition-colors">
+                    <button onClick={s.action} style={{ marginTop: 8, fontSize: 12, color: C.sleep, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
                       {s.actionLabel}
                     </button>
                   )}
@@ -1443,66 +1574,66 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount }: { per
       )}
 
       {alunosRecentes.length > 0 && (
-        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Seus alunos hoje</p>
-            <button onClick={() => router.push('/personal')} className="text-zinc-600 text-[10px] uppercase tracking-wider hover:text-white transition-colors">Ver todos →</button>
+        <div style={glass({ marginBottom: 16, overflow: 'hidden' })}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Seus alunos hoje</p>
+            <button onClick={() => router.push('/personal')} style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', background: 'none', border: 'none', cursor: 'pointer' }}>Ver todos →</button>
           </div>
-          <div className="divide-y divide-white/[0.04]">
+          <div>
             {alunosRecentes.map((a, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${a.treinouHoje ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/[0.07] text-zinc-500'}`}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 800, background: a.treinouHoje ? `${C.good}1a` : 'rgba(255,255,255,0.07)', color: a.treinouHoje ? C.good : C.t2 }}>
                   {(a.nome ?? a.email)[0].toUpperCase()}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold truncate">{a.nome ?? a.email.split('@')[0]}</p>
-                  <p className={`text-[11px] ${a.treinouHoje ? 'text-emerald-400' : 'text-zinc-600'}`}>{a.treinouHoje ? '✓ Treinou hoje' : 'Não treinou hoje'}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: C.t1, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.nome ?? a.email.split('@')[0]}</p>
+                  <p style={{ fontSize: 11, color: a.treinouHoje ? C.good : C.t3 }}>{a.treinouHoje ? '✓ Treinou hoje' : 'Não treinou hoje'}</p>
                 </div>
-                {a.score && <div className={`text-xs font-bold shrink-0 ${a.score >= 70 ? 'text-emerald-400' : a.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{a.score}/100</div>}
+                {a.score && <div style={{ fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: FONT_MONO, color: a.score >= 70 ? C.good : a.score >= 50 ? C.warn : C.danger }}>{a.score}/100</div>}
               </div>
             ))}
           </div>
         </div>
       )}
       {notifBlocos.length > 0 && (
-        <div className="rounded-2xl border border-blue-500/20 mb-4 overflow-hidden" style={{ background: '#0f1a24' }}>
-          <div className="px-5 py-3 border-b border-blue-500/10 flex items-center gap-2">
-            <span className="text-blue-400 text-sm">📅</span>
-            <p className="text-blue-300 text-[10px] uppercase tracking-[0.15em] font-bold">Prepare os próximos blocos</p>
+        <div style={glass({ marginBottom: 16, overflow: 'hidden', border: `1px solid ${C.sleep}33` })}>
+          <div style={{ padding: '12px 20px', borderBottom: `1px solid ${C.sleep}1a`, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: C.sleep }}><Calendar size={14} /></span>
+            <p style={{ color: C.sleep, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Prepare os próximos blocos</p>
           </div>
-          <div className="divide-y divide-blue-500/[0.08]">
+          <div>
             {notifBlocos.map((n, i) => (
               <button key={i} onClick={() => router.push(`/personal/aluno/${n.clienteId}`)}
-                className="w-full flex items-center gap-3 px-5 py-3.5 text-left active:scale-[0.98] transition-all">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-blue-400 text-xs font-black">{(n.nome ?? n.email)[0].toUpperCase()}</span>
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textAlign: 'left', background: 'none', border: 'none', borderTop: i > 0 ? `1px solid ${C.sleep}14` : 'none', cursor: 'pointer' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 12, background: `${C.sleep}1a`, border: `1px solid ${C.sleep}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: C.sleep, fontSize: 12, fontWeight: 800 }}>{(n.nome ?? n.email)[0].toUpperCase()}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold truncate">{n.nome ?? n.email.split('@')[0]}</p>
-                  <p className="text-zinc-500 text-[10px]">{n.blocoAtual} → <span className="text-blue-300 font-semibold">{n.proximoBloco}</span> em {n.diasRestantes}d</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: C.t1, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.nome ?? n.email.split('@')[0]}</p>
+                  <p style={{ color: C.t3, fontSize: 10 }}>{n.blocoAtual} → <span style={{ color: C.sleep, fontWeight: 600 }}>{n.proximoBloco}</span> em {n.diasRestantes}d</p>
                 </div>
-                <span className="text-zinc-600 text-sm shrink-0"><ChevronRight size={14} /></span>
+                <span style={{ color: C.t3, flexShrink: 0 }}><ChevronRight size={14} /></span>
               </button>
             ))}
           </div>
         </div>
       )}
       {alertas > 0 && (
-        <div className="rounded-2xl p-4 border border-orange-500/20 bg-orange-500/5 mb-4">
-          <p className="text-orange-400 text-[10px] uppercase tracking-[0.15em] mb-1"><AlertTriangle size={12} className="inline mr-1" /> {alertas} aluno{alertas > 1 ? 's' : ''} sem treinar há 7+ dias</p>
-          <p className="text-zinc-500 text-xs">Acesse a lista de alunos para ver quem precisa de atenção.</p>
-          <button onClick={() => router.push('/personal')} className="mt-3 text-[11px] border border-orange-500/30 text-orange-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all uppercase tracking-wider">Ver alunos →</button>
+        <div style={glass({ padding: 16, border: `1px solid ${C.energy}33`, marginBottom: 16 }, `${C.energy}1a`)}>
+          <p style={{ color: C.energy, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={12} /> {alertas} aluno{alertas > 1 ? 's' : ''} sem treinar há 7+ dias</p>
+          <p style={{ color: C.t2, fontSize: 12 }}>Acesse a lista de alunos para ver quem precisa de atenção.</p>
+          <button onClick={() => router.push('/personal')} style={{ marginTop: 12, fontSize: 11, border: `1px solid ${C.energy}4d`, color: C.energy, borderRadius: 8, padding: '6px 12px', textTransform: 'uppercase', letterSpacing: '0.08em', background: 'none', cursor: 'pointer' }}>Ver alunos →</button>
         </div>
       )}
-      <button onClick={() => router.push('/personal')} className="w-full bg-white/[0.06] border border-white/[0.15] text-zinc-300 font-semibold py-3.5 rounded-2xl hover:bg-white/[0.09] active:scale-95 transition-all text-sm mb-3">Ver todos os alunos</button>
-      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm">+ Convidar aluno</button>
+      <button onClick={() => router.push('/personal')} style={glass({ width: '100%', color: C.t2, fontWeight: 600, padding: '14px', fontSize: 14, marginBottom: 12, cursor: 'pointer' })}>Ver todos os alunos</button>
+      <button onClick={() => router.push('/convite')} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '16px', borderRadius: 20, fontSize: 14, border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Convidar aluno</button>
     </div>
       </div>
     </div>
   )
 }
 
-function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: { perfil: Perfil; activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number }) {
+function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, isDesktop }: { perfil: Perfil; activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number; isDesktop?: boolean }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
@@ -1624,39 +1755,39 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
   }, [])
 
   return (
-    <div className="md:flex md:h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="md:flex md:h-screen">
       <SidebarProfissional tipo="nutricionista" />
       <div className="flex-1 md:overflow-y-auto">
-    <div className="max-w-md mx-auto px-4 md:max-w-[1100px] md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-md mx-auto md:max-w-[1100px] md:px-10" style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
-          <p className="text-zinc-400 text-sm font-medium mb-1">{getGreeting()}</p>
-          <h1 className="text-4xl font-black tracking-tight text-white leading-none">{firstName}</h1>
-          <p className="text-zinc-500 text-sm mt-1.5">{getTodayString()}</p>
+          <p style={{ color: C.t2, fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{getGreeting()}</p>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.02em', color: C.t1, lineHeight: 1 }}>{firstName}</h1>
+          <p style={{ color: C.t3, fontSize: 14, marginTop: 6 }}>{getTodayString()}</p>
         </div>
-        <div className="flex items-center gap-2 md:hidden">
-          <button onClick={onOpenNotifs} className="relative w-10 h-10 rounded-2xl bg-white/[0.07] flex items-center justify-center text-sm active:scale-90 transition-all">
-              <Bell size={16} className="text-zinc-400" />
-                          {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+        <div className="md:hidden" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={onOpenNotifs} style={{ position: 'relative', width: 40, height: 40, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer' }}>
+            <Bell size={16} style={{ color: C.t2 }} />
+            {notifCount > 0 && <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.energy, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
         </div>
       </div>
-      <div className="md:hidden inline-flex items-center gap-2 rounded-full px-3 py-1.5 mb-6 border border-green-500/20 bg-green-500/[0.07]">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-        <span className="text-green-400 text-xs uppercase tracking-[0.15em] font-semibold">Nutricionista</span>
+      <div className="md:hidden" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 99, padding: '6px 12px', marginBottom: 24, border: `1px solid ${C.good}33`, background: `${C.good}12` }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.good, flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <span style={{ color: C.good, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Nutricionista</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
           { valor: loadingStats ? '—' : String(totalPacientes),  label: 'Pacientes',       sub: 'ativos',       spark: sparklines.pacientes },
           { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Boa recuperação', sub: 'hoje',         spark: sparklines.recuperacao },
           { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',       sub: 'essa semana',  spark: sparklines.treinos },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
-            <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-3">{m.label}</p>
-            <p className="text-white text-5xl font-black leading-none tracking-tight">{m.valor}</p>
-            <div className="flex items-end justify-between mt-3">
-              <p className="text-zinc-600 text-xs">{m.sub}</p>
+          <div key={m.label} style={glass({ padding: 20 })}>
+            <p style={{ fontSize: 11, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>{m.label}</p>
+            <p style={{ color: C.t1, fontSize: 44, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{m.valor}</p>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 12 }}>
+              <p style={{ color: C.t3, fontSize: 12 }}>{m.sub}</p>
               {m.spark.some(v => v > 0) && <MiniSparkline values={m.spark} />}
             </div>
           </div>
@@ -1665,21 +1796,21 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
 
       {/* Consultas de hoje */}
       {consultasHoje.length > 0 && (
-        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-          <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
-            <p className="text-white font-semibold text-sm">Consultas de hoje</p>
-            <span className="text-zinc-500 text-xs">{consultasHoje.length} agendada{consultasHoje.length !== 1 ? 's' : ''}</span>
+        <div style={glass({ marginBottom: 16, overflow: 'hidden' })}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={{ color: C.t1, fontWeight: 600, fontSize: 14, fontFamily: FONT_DISPLAY }}>Consultas de hoje</p>
+            <span style={{ color: C.t3, fontSize: 12 }}>{consultasHoje.length} agendada{consultasHoje.length !== 1 ? 's' : ''}</span>
           </div>
-          <div className="divide-y divide-white/[0.05]">
-            {consultasHoje.map(c => (
+          <div>
+            {consultasHoje.map((c, i) => (
               <button key={c.id} onClick={() => router.push(`/nutricionista/paciente/${c.clienteId}`)}
-                className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-white/[0.03] transition-all">
-                <span className="text-zinc-400 text-sm font-semibold w-10 shrink-0">{c.hora}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{c.clienteNome ?? 'Paciente'}</p>
-                  <p className="text-zinc-500 text-xs">{c.tipo}</p>
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textAlign: 'left', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', cursor: 'pointer' }}>
+                <span style={{ color: C.good, fontSize: 14, fontWeight: 700, width: 40, flexShrink: 0, fontFamily: FONT_MONO }}>{c.hora}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: C.t1, fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.clienteNome ?? 'Paciente'}</p>
+                  <p style={{ color: C.t3, fontSize: 12 }}>{c.tipo}</p>
                 </div>
-                <span className="text-zinc-600 text-xs shrink-0">→</span>
+                <span style={{ color: C.t3, flexShrink: 0 }}><ChevronRight size={14} /></span>
               </button>
             ))}
           </div>
@@ -1688,20 +1819,20 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
 
       {/* Pacientes em risco — sem registrar sono há 7d */}
       {semSono7d.length > 0 && (
-        <div className="rounded-2xl border border-amber-500/15 mb-4 overflow-hidden" style={{ background: '#1c1605' }}>
-          <div className="px-5 py-3 border-b border-amber-500/10 flex items-center gap-2">
-            <span className="text-amber-300 text-sm"><AlertTriangle size={13} /></span>
-              <p className="text-amber-200 text-xs font-semibold tracking-wide">Sem registro de sono — 7 dias</p>
+        <div style={glass({ marginBottom: 16, overflow: 'hidden', border: `1px solid ${C.warn}28` })}>
+          <div style={{ padding: '12px 20px', borderBottom: `1px solid ${C.warn}1a`, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: C.warn }}><AlertTriangle size={13} /></span>
+            <p style={{ color: C.warn, fontSize: 12, fontWeight: 600, letterSpacing: '0.02em' }}>Sem registro de sono — 7 dias</p>
           </div>
-          <div className="divide-y divide-amber-500/[0.07]">
-            {semSono7d.map(p => (
+          <div>
+            {semSono7d.map((p, i) => (
               <button key={p.id} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
-                className="w-full flex items-center gap-3 px-5 py-3 text-left">
-                <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <span className="text-amber-400 text-xs font-bold">{(p.nome ?? p.email)[0].toUpperCase()}</span>
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', textAlign: 'left', background: 'none', border: 'none', borderTop: i > 0 ? `1px solid ${C.warn}12` : 'none', cursor: 'pointer' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 10, background: `${C.warn}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: C.warn, fontSize: 12, fontWeight: 700 }}>{(p.nome ?? p.email)[0].toUpperCase()}</span>
                 </div>
-                <p className="text-zinc-300 text-sm flex-1 truncate">{p.nome ?? p.email}</p>
-                <span className="text-zinc-600 text-xs shrink-0">→</span>
+                <p style={{ color: C.t2, fontSize: 14, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome ?? p.email}</p>
+                <span style={{ color: C.t3, flexShrink: 0 }}><ChevronRight size={14} /></span>
               </button>
             ))}
           </div>
@@ -1709,35 +1840,35 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       )}
 
       {semPlano > 0 && (
-        <div className="rounded-2xl p-4 border border-yellow-500/20 bg-yellow-500/[0.05] mb-4">
-          <p className="text-yellow-400 text-xs uppercase tracking-[0.12em] mb-1">{semPlano} paciente{semPlano > 1 ? 's' : ''} sem plano alimentar</p>
-          <p className="text-zinc-500 text-xs mt-1">Crie um plano personalizado para completar o acompanhamento.</p>
-          <button onClick={() => router.push('/nutricionista/pacientes')} className="mt-3 text-xs border border-yellow-500/30 text-yellow-400 rounded-lg px-3 py-1.5 active:scale-95 transition-all">Ver pacientes →</button>
+        <div style={glass({ padding: 16, border: `1px solid ${C.warn}33`, marginBottom: 16 }, `${C.warn}14`)}>
+          <p style={{ color: C.warn, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{semPlano} paciente{semPlano > 1 ? 's' : ''} sem plano alimentar</p>
+          <p style={{ color: C.t2, fontSize: 12, marginTop: 4 }}>Crie um plano personalizado para completar o acompanhamento.</p>
+          <button onClick={() => router.push('/nutricionista/pacientes')} style={{ marginTop: 12, fontSize: 12, border: `1px solid ${C.warn}4d`, color: C.warn, borderRadius: 8, padding: '6px 12px', background: 'none', cursor: 'pointer' }}>Ver pacientes →</button>
         </div>
       )}
 
       {!loadingStats && totalPacientes === 0 && (
-        <div className="rounded-2xl border border-green-500/20 mb-4 overflow-hidden" style={{ background: '#141f18' }}>
-          <div className="px-5 pt-5 pb-4 border-b border-green-500/10">
-            <p className="text-green-400 text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Primeiros passos</p>
-            <p className="text-white font-black text-lg">Bem-vindo ao KORE, {firstName}!</p>
-            <p className="text-zinc-500 text-sm mt-1">Siga os passos abaixo para começar a acompanhar seus pacientes.</p>
+        <div style={glass({ marginBottom: 16, overflow: 'hidden', border: `1px solid ${C.good}33` })}>
+          <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${C.good}1a` }}>
+            <p style={{ color: C.good, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700, marginBottom: 4 }}>Primeiros passos</p>
+            <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18 }}>Bem-vindo ao KORE, {firstName}!</p>
+            <p style={{ color: C.t2, fontSize: 14, marginTop: 4 }}>Siga os passos abaixo para começar a acompanhar seus pacientes.</p>
           </div>
-          <div className="divide-y divide-green-500/[0.08]">
+          <div>
             {[
               { num: '1', done: true,  label: 'Criar sua conta', desc: 'Feito! Você está dentro.' },
               { num: '2', done: false, label: 'Convidar seu primeiro paciente', desc: 'Envie um link por email — leva 30 segundos.', action: () => router.push('/convite'), actionLabel: 'Convidar agora →' },
               { num: '3', done: false, label: 'Prescrever o plano alimentar', desc: 'Após aceitar o convite, monte o plano nutricional.', action: null, actionLabel: null },
-            ].map((s) => (
-              <div key={s.num} className="flex items-start gap-4 px-5 py-4">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-black ${s.done ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400' : 'bg-green-500/10 border border-green-500/20 text-green-400'}`}>
-                  {s.done ? '✓' : s.num}
+            ].map((s, idx) => (
+              <div key={s.num} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px 20px', borderTop: idx > 0 ? `1px solid ${C.good}14` : 'none' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, fontSize: 11, fontWeight: 800, background: s.done ? `${C.good}26` : `${C.good}1a`, border: `1px solid ${C.good}33`, color: C.good }}>
+                  {s.done ? <Check size={13} /> : s.num}
                 </div>
-                <div className="flex-1">
-                  <p className={`text-sm font-bold ${s.done ? 'text-zinc-500 line-through' : 'text-white'}`}>{s.label}</p>
-                  <p className="text-zinc-600 text-xs mt-0.5">{s.desc}</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: s.done ? C.t3 : C.t1, textDecoration: s.done ? 'line-through' : 'none' }}>{s.label}</p>
+                  <p style={{ color: C.t3, fontSize: 12, marginTop: 2 }}>{s.desc}</p>
                   {s.action && (
-                    <button onClick={s.action} className="mt-2 text-xs text-green-400 font-semibold hover:text-green-300 transition-colors">
+                    <button onClick={s.action} style={{ marginTop: 8, fontSize: 12, color: C.good, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
                       {s.actionLabel}
                     </button>
                   )}
@@ -1750,23 +1881,23 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
 
       {/* Planos para revisar */}
       {planosParaRevisar.length > 0 && (
-        <div className="rounded-2xl border border-green-500/20 mb-4 overflow-hidden" style={{ background: '#141f18' }}>
-          <div className="px-5 py-3 border-b border-green-500/10 flex items-center gap-2">
-            <span className="text-green-400 text-sm">📋</span>
-            <p className="text-green-300 text-[10px] uppercase tracking-[0.15em] font-bold">Planos para revisar</p>
+        <div style={glass({ marginBottom: 16, overflow: 'hidden', border: `1px solid ${C.good}33` })}>
+          <div style={{ padding: '12px 20px', borderBottom: `1px solid ${C.good}1a`, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: C.good }}><ClipboardList size={14} /></span>
+            <p style={{ color: C.good, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Planos para revisar</p>
           </div>
-          <div className="divide-y divide-green-500/[0.08]">
+          <div>
             {planosParaRevisar.map((p, i) => (
               <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.pacienteId}`)}
-                className="w-full flex items-center gap-3 px-5 py-3.5 text-left active:scale-[0.98] transition-all">
-                <div className="w-8 h-8 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-green-400 text-xs font-black">{(p.nome ?? p.email)[0].toUpperCase()}</span>
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', textAlign: 'left', background: 'none', border: 'none', borderTop: i > 0 ? `1px solid ${C.good}14` : 'none', cursor: 'pointer' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 12, background: `${C.good}1a`, border: `1px solid ${C.good}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: C.good, fontSize: 12, fontWeight: 800 }}>{(p.nome ?? p.email)[0].toUpperCase()}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
-                  <p className="text-zinc-500 text-[10px]">Plano sem revisão há <span className="text-amber-400 font-semibold">{p.diasDesdeRevisao} dias</span></p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: C.t1, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome ?? p.email.split('@')[0]}</p>
+                  <p style={{ color: C.t3, fontSize: 10 }}>Plano sem revisão há <span style={{ color: C.warn, fontWeight: 600 }}>{p.diasDesdeRevisao} dias</span></p>
                 </div>
-                <span className="text-zinc-600 text-sm shrink-0"><ChevronRight size={14} /></span>
+                <span style={{ color: C.t3, flexShrink: 0 }}><ChevronRight size={14} /></span>
               </button>
             ))}
           </div>
@@ -1774,33 +1905,33 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
       )}
 
       {pacientesRecentes.length > 0 && (
-        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
-            <p className="text-white font-semibold text-sm">Seus pacientes</p>
-            <button onClick={() => router.push('/nutricionista/pacientes')} className="text-zinc-500 text-xs hover:text-white transition-colors">Ver todos →</button>
+        <div style={glass({ marginBottom: 16, overflow: 'hidden' })}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <p style={{ color: C.t1, fontWeight: 600, fontSize: 14, fontFamily: FONT_DISPLAY }}>Seus pacientes</p>
+            <button onClick={() => router.push('/nutricionista/pacientes')} style={{ color: C.t3, fontSize: 12, background: 'none', border: 'none', cursor: 'pointer' }}>Ver todos →</button>
           </div>
-          <div className="divide-y divide-white/[0.05]">
+          <div>
             {pacientesRecentes.map((p, i) => {
               const planoAntigo = p.diasDesdeUltimoPlano != null && p.diasDesdeUltimoPlano >= 30
               return (
                 <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 mx-1 text-left hover:bg-white/[0.04] rounded-xl transition-all">
-                  <div className="w-9 h-9 rounded-xl bg-white/[0.07] flex items-center justify-center shrink-0">
-                    <span className="text-zinc-300 text-sm font-bold">{(p.nome ?? p.email)[0].toUpperCase()}</span>
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', textAlign: 'left', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', cursor: 'pointer' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 12, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ color: C.t2, fontSize: 14, fontWeight: 700 }}>{(p.nome ?? p.email)[0].toUpperCase()}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-white text-sm font-semibold truncate">{p.nome ?? p.email.split('@')[0]}</p>
-                      {!p.temPlano && <span className="text-xs text-amber-400 border border-amber-500/20 rounded-full px-2 py-0.5 shrink-0">Sem plano</span>}
-                      {planoAntigo && <span className="text-xs text-zinc-500 rounded-full px-2 py-0.5 shrink-0">{p.diasDesdeUltimoPlano}d sem revisão</span>}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <p style={{ color: C.t1, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome ?? p.email.split('@')[0]}</p>
+                      {!p.temPlano && <span style={{ fontSize: 11, color: C.warn, border: `1px solid ${C.warn}33`, borderRadius: 99, padding: '2px 8px', flexShrink: 0 }}>Sem plano</span>}
+                      {planoAntigo && <span style={{ fontSize: 11, color: C.t3, borderRadius: 99, padding: '2px 8px', flexShrink: 0 }}>{p.diasDesdeUltimoPlano}d sem revisão</span>}
                     </div>
-                    <div className="flex items-center gap-3 text-zinc-500 text-xs">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: C.t3, fontSize: 12 }}>
                       {p.sonoScore != null && <span>Recup.: {p.sonoScore}/100</span>}
                       {p.treinos7d > 0 && <span>{p.treinos7d}x treinos</span>}
                       {p.kcal7d > 0 && <span>{p.kcal7d >= 1000 ? `${(p.kcal7d/1000).toFixed(1)}k` : p.kcal7d} kcal/sem.</span>}
                     </div>
                   </div>
-                  <span className="text-zinc-600 text-sm shrink-0"><ChevronRight size={14} /></span>
+                  <span style={{ color: C.t3, flexShrink: 0 }}><ChevronRight size={14} /></span>
                 </button>
               )
             })}
@@ -1808,8 +1939,8 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount }: 
         </div>
       )}
 
-      <button onClick={() => router.push('/nutricionista/pacientes')} className="w-full bg-white/[0.06] border border-white/[0.15] text-zinc-300 font-semibold py-3.5 rounded-2xl hover:bg-white/[0.09] active:scale-95 transition-all text-sm mb-3">Ver todos os pacientes</button>
-      <button onClick={() => router.push('/convite')} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm">+ Convidar paciente</button>
+      <button onClick={() => router.push('/nutricionista/pacientes')} style={glass({ width: '100%', color: C.t2, fontWeight: 600, padding: '14px', fontSize: 14, marginBottom: 12, cursor: 'pointer' })}>Ver todos os pacientes</button>
+      <button onClick={() => router.push('/convite')} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '16px', borderRadius: 20, fontSize: 14, border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Convidar paciente</button>
     </div>
     </div>
     </div>
