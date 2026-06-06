@@ -1167,7 +1167,7 @@ function DashboardCliente({
   }
 
   return (
-    <div style={{ maxWidth: isDesktop ? 1100 : 448, margin: '0 auto', padding: isDesktop ? '40px 40px' : '0 16px', paddingTop: isDesktop ? 40 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <div style={{ maxWidth: isDesktop ? 1200 : 448, margin: '0 auto', padding: isDesktop ? '36px 32px' : '0 16px', paddingTop: isDesktop ? 36 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -1190,8 +1190,8 @@ function DashboardCliente({
       {/* ── GRID DESKTOP: 2 colunas / Mobile: 1 coluna ── */}
       <div style={{
         display: isDesktop ? 'grid' : 'block',
-        gridTemplateColumns: isDesktop ? '1.5fr 1fr' : undefined,
-        gap: isDesktop ? 24 : undefined,
+        gridTemplateColumns: isDesktop ? '1fr 1.4fr' : undefined,
+        gap: isDesktop ? 20 : undefined,
         alignItems: 'start',
       }}>
 
