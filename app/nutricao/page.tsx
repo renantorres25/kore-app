@@ -1,11 +1,60 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
 import NavBar from '../components/NavBar'
 
+/* ═════════════════════════════════════════════════════════════
+   KORE · Nutrição — "Energetic Precision"
+   Nutrição é VERDE (good). Laranja = energia/calorias.
+   Azul = carbo. Roxo = gordura.
+   ═════════════════════════════════════════════════════════════ */
+
+const C = {
+  energy: '#FF5A36',
+  energy2: '#FF8A3D',
+  good: '#2DD4A7',
+  sleep: '#60A5FA',
+  recovery: '#A78BFA',
+  warn: '#F5B544',
+  danger: '#FB7185',
+  t1: '#F5F6F8',
+  t2: '#9AA0AD',
+  t3: '#7A8290',
+}
+const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
+const FONT_BODY = "'Plus Jakarta Sans', system-ui, sans-serif"
+const FONT_MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+
+function alpha(hex: string, a: number) {
+  const n = parseInt(hex.slice(1), 16)
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
+}
+
+const glassCard: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.065)',
+  backdropFilter: 'blur(16px) saturate(130%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(130%)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 20,
+  boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
+}
+
+function useIsDesktop() {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    const c = () => setV(window.innerWidth >= 1024)
+    c(); window.addEventListener('resize', c)
+    return () => window.removeEventListener('resize', c)
+  }, [])
+  return v
+}
+
+/* ─────────────────────────────────────────────
+   LÓGICA / HELPERS (preservado)
+───────────────────────────────────────────── */
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
@@ -30,10 +79,10 @@ type PlanoEstruturado = {
 type PlanoNutricional = { id: string; conteudo: string; calorias_meta: number | null; proteina_meta: number | null; refeicoes_por_dia: number | null; created_at: string; criado_por: string | null }
 
 const QUALIDADE_OPCOES = [
-  { valor: 1, label: 'Ruim',    emoji: '😞', cor: 'border-red-500/40 bg-red-500/10 text-red-400' },
-  { valor: 2, label: 'Regular', emoji: '😐', cor: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' },
-  { valor: 3, label: 'Boa',     emoji: '🙂', cor: 'border-blue-500/40 bg-blue-500/10 text-blue-400' },
-  { valor: 4, label: 'Ótima',   emoji: '💪', cor: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' },
+  { valor: 1, label: 'Ruim',    cor: C.danger },
+  { valor: 2, label: 'Regular', cor: C.warn },
+  { valor: 3, label: 'Boa',     cor: C.sleep },
+  { valor: 4, label: 'Ótima',   cor: C.good },
 ]
 
 function getMetaProteina(peso: number | null, objetivo: string | null): number | null {
@@ -56,20 +105,95 @@ const OBJETIVO_LABEL: Record<string, string> = {
   melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
 }
 
+/* Ícone de refeição como inicial textual (sem emoji na UI) */
 const ICONE_REFEICAO: Record<string, string> = {
-  'café': '☀️', 'manhã': '☀️', 'almoço': '🍽️', 'lanche': '🍎',
-  'pré': '⚡', 'pós': '💪', 'jantar': '🌙', 'ceia': '🌙',
+  'café': 'CM', 'manhã': 'CM', 'almoço': 'AL', 'lanche': 'LN',
+  'pré': 'PR', 'pós': 'PO', 'jantar': 'JT', 'ceia': 'CE',
 }
 function getIconeRefeicao(nome: string): string {
   const lower = nome.toLowerCase()
   const key = Object.keys(ICONE_REFEICAO).find(k => lower.includes(k))
-  return key ? ICONE_REFEICAO[key] : '🥗'
+  return key ? ICONE_REFEICAO[key] : 'RF'
 }
 
+/* ─────────────────────────────────────────────
+   ÁTOMOS VISUAIS
+───────────────────────────────────────────── */
+function SparkLine({ data, color }: { data: number[]; color: string }) {
+  if (!data || data.length < 2) return null
+  const w = 70, h = 24
+  const min = Math.min(...data), max = Math.max(...data)
+  const range = max - min || 1
+  const xy = (v: number, i: number) => {
+    const x = (i / (data.length - 1)) * w
+    const y = h - ((v - min) / range) * (h - 5) - 2.5
+    return [x, y] as const
+  }
+  const pts = data.map((v, i) => xy(v, i).join(',')).join(' ')
+  const [lx, ly] = xy(data[data.length - 1], data.length - 1)
+  return (
+    <svg width={w} height={h} style={{ overflow: 'visible', display: 'block' }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
+      <circle cx={lx} cy={ly} r={3.6} fill={color} opacity={0.25} />
+      <circle cx={lx} cy={ly} r={2.4} fill={color} />
+    </svg>
+  )
+}
 
-function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
+/** Stat tile: número grande Sora + barra colorida + sparkline opcional */
+function StatTile({ label, value, unit, meta, color, sparkData }: {
+  label: string; value: number | string; unit?: string; meta?: number | null; color: string; sparkData?: number[]
+}) {
+  const num = typeof value === 'number' ? value : parseFloat(String(value)) || 0
+  const pct = meta ? Math.min(100, Math.round((num / meta) * 100)) : null
+  const pctColor = pct == null ? C.t3 : pct >= 90 ? C.good : pct >= 60 ? C.warn : C.danger
+  return (
+    <div style={{ ...glassCard, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 10.5, color: C.t2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: FONT_BODY }}>{label}</span>
+        {pct != null && (
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: pctColor, background: alpha(pctColor, 0.11), border: `1px solid ${alpha(pctColor, 0.25)}`, padding: '2px 8px', borderRadius: 999, fontFamily: FONT_MONO }}>{pct}%</span>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 700, color, letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+          {typeof value === 'number' ? value.toLocaleString('pt-BR') : value}
+        </span>
+        {unit && <span style={{ fontSize: 12, color: C.t2, fontWeight: 500, fontFamily: FONT_BODY }}>{unit}</span>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 24 }}>
+        {meta != null ? (
+          <span style={{ fontSize: 10.5, color: C.t3, fontFamily: FONT_MONO }}>meta {meta.toLocaleString('pt-BR')}{unit ?? ''}</span>
+        ) : <span />}
+        {sparkData && <SparkLine data={sparkData} color={color} />}
+      </div>
+      <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+        <div style={{ height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${color}, ${color}cc)`, boxShadow: `0 0 12px ${alpha(color, 0.4)}`, width: pct != null ? `${pct}%` : '0%', transition: 'width 1s cubic-bezier(0.22,1,0.36,1)' }} />
+      </div>
+    </div>
+  )
+}
+
+function MacroBadge({ value, unit, color, label }: { value: number | string; unit: string; color: string; label: string }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums', fontSize: 12.5, fontWeight: 700, color }}>
+      {value}{unit}<span style={{ fontSize: 9.5, fontWeight: 500, color: C.t3 }}>{label}</span>
+    </span>
+  )
+}
+
+function Chevron({ open, color }: { open: boolean; color: string }) {
+  return (
+    <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 280ms cubic-bezier(0.22,1,0.36,1)', color, fontSize: 10, flexShrink: 0 }}>▾</span>
+  )
+}
+
+/* ─────────────────────────────────────────────
+   ABA PLANO
+───────────────────────────────────────────── */
+function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta, isDesktop }: {
   plano: PlanoNutricional | null; gerandoPlano: boolean
-  vinculoNutri: { nome: string | null; id: string } | null; onIniciarConsulta: () => void
+  vinculoNutri: { nome: string | null; id: string } | null; onIniciarConsulta: () => void; isDesktop: boolean
 }) {
   const [refeicaoAberta, setRefeicaoAberta] = useState<number | null>(0)
   const [secaoAberta, setSecaoAberta] = useState<string | null>(null)
@@ -82,13 +206,13 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
   if (!vinculoNutri && !plano && !gerandoPlano) {
     return (
-      <div className="px-4 pt-4">
-        <div className="rounded-2xl border border-blue-500/20 p-6 text-center" style={{ background: 'linear-gradient(145deg,#111520,#10131a)' }}>
-          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-4 text-3xl">🥗</div>
-          <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">Nutricionista virtual · IA</p>
-          <p className="text-white font-black text-xl mb-2">Crie seu plano alimentar</p>
-          <p className="text-zinc-500 text-sm leading-relaxed mb-6">Responda uma consulta rápida e a IA monta um plano completo — refeições, gramas, macros, suplementos e hidratação personalizados.</p>
-          <button onClick={onIniciarConsulta} className="w-full bg-blue-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">✦ Iniciar consulta nutricional →</button>
+      <div style={{ padding: '4px 0' }}>
+        <div style={{ ...glassCard, padding: 28, textAlign: 'center', borderColor: alpha(C.good, 0.22), boxShadow: `0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${alpha(C.good, 0.1)}, inset 0 1px 0 rgba(255,255,255,0.10)` }}>
+          <div style={{ width: 60, height: 60, borderRadius: 18, background: alpha(C.good, 0.12), border: `1px solid ${alpha(C.good, 0.28)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, color: C.good }}>NU</div>
+          <p style={{ color: C.good, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600, marginBottom: 8, fontFamily: FONT_BODY }}>Nutricionista virtual · IA</p>
+          <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, marginBottom: 8 }}>Crie seu plano alimentar</p>
+          <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6, marginBottom: 24, fontFamily: FONT_BODY }}>Responda uma consulta rápida e a IA monta um plano completo — refeições, gramas, macros, suplementos e hidratação personalizados.</p>
+          <button onClick={onIniciarConsulta} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy2}, ${C.energy})`, color: '#fff', fontWeight: 700, padding: '15px 0', borderRadius: 16, fontSize: 14, border: 'none', cursor: 'pointer', fontFamily: FONT_BODY, boxShadow: `0 10px 30px ${alpha(C.energy, 0.3)}` }}>Iniciar consulta nutricional →</button>
         </div>
       </div>
     )
@@ -96,26 +220,27 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
 
   if (gerandoPlano) {
     return (
-      <div className="px-4 pt-4">
-        <div className="rounded-2xl border border-blue-500/20 p-6" style={{ background: '#111520' }}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-              <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      <div style={{ padding: '4px 0' }}>
+        <div style={{ ...glassCard, padding: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 13, background: alpha(C.good, 0.12), border: `1px solid ${alpha(C.good, 0.25)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 20, height: 20, border: `2px solid ${C.good}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             </div>
             <div>
-              <p className="text-blue-400 text-[10px] uppercase tracking-[0.2em] font-semibold">Montando seu plano</p>
-              <p className="text-white font-bold">A nutricionista IA está trabalhando...</p>
+              <p style={{ color: C.good, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600, fontFamily: FONT_BODY }}>Montando seu plano</p>
+              <p style={{ color: C.t1, fontWeight: 700, fontFamily: FONT_DISPLAY }}>A nutricionista IA está trabalhando...</p>
             </div>
           </div>
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {['Analisando perfil e objetivos', 'Calculando distribuição calórica ideal', 'Selecionando alimentos com quantidades', 'Definindo suplementação e hidratação', 'Criando estratégias personalizadas'].map((msg, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full border-2 border-blue-400/30 border-t-blue-400 animate-spin shrink-0" style={{ animationDelay: `${i * 0.15}s` }} />
-                <p className="text-zinc-500 text-sm">{msg}</p>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${alpha(C.good, 0.3)}`, borderTopColor: C.good, animation: 'spin 0.8s linear infinite', animationDelay: `${i * 0.15}s`, flexShrink: 0 }} />
+                <p style={{ color: C.t2, fontSize: 14, fontFamily: FONT_BODY }}>{msg}</p>
               </div>
             ))}
           </div>
         </div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     )
   }
@@ -128,171 +253,175 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
     const isPlanoProfissional = vinculoNutri && plano.criado_por === vinculoNutri.id
 
     return (
-      <div className="pb-6">
-        <div className="px-4 pt-4 mb-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                {isPlanoProfissional ? (
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-semibold">✦ Plano Alimentar · {vinculoNutri!.nome ?? 'Nutricionista'}</span>
-                ) : (
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-blue-400 font-semibold">✦ Plano Alimentar · IA</span>
-                )}
-                <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">Ativo</span>
-              </div>
-              <p className="text-zinc-600 text-[10px]">Criado em {dataCriacao}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Cabeçalho do plano */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.2em', color: C.good, fontWeight: 700, fontFamily: FONT_BODY }}>
+                Plano Alimentar · {isPlanoProfissional ? (vinculoNutri!.nome ?? 'Nutricionista') : 'IA'}
+              </span>
+              <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: C.good, background: alpha(C.good, 0.1), border: `1px solid ${alpha(C.good, 0.22)}`, borderRadius: 999, padding: '2px 8px', fontFamily: FONT_BODY, fontWeight: 600 }}>Ativo</span>
             </div>
-            {!isPlanoProfissional && (
-              <button onClick={onIniciarConsulta} className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/20 hover:text-zinc-300 transition-all active:scale-95 shrink-0">↻ Refazer</button>
-            )}
+            <p style={{ color: C.t3, fontSize: 10.5, fontFamily: FONT_BODY }}>Criado em {dataCriacao}</p>
           </div>
+          {!isPlanoProfissional && (
+            <button onClick={onIniciarConsulta} style={{ fontSize: 10.5, color: C.t2, background: 'transparent', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '7px 12px', cursor: 'pointer', flexShrink: 0, fontFamily: FONT_BODY }}>↻ Refazer</button>
+          )}
         </div>
 
+        {/* Nota da nutricionista — borda esquerda verde */}
         {e?.nota_nutri && (
-          <div className="mx-4 mb-4 rounded-2xl border border-blue-500/15 px-4 py-3.5" style={{ background: 'linear-gradient(135deg,#111520,#10131a)' }}>
-            <p className="text-blue-400 text-[9px] uppercase tracking-wider mb-1.5">📋 Nota da nutricionista</p>
-            <p className="text-zinc-300 text-sm leading-relaxed">{e.nota_nutri}</p>
+          <div style={{ ...glassCard, borderLeft: `3px solid ${C.good}`, padding: '16px 20px' }}>
+            <p style={{ color: C.good, fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 700, marginBottom: 8, fontFamily: FONT_BODY }}>Nota da nutricionista</p>
+            <p style={{ color: C.t2, fontSize: 13.5, lineHeight: 1.7, fontFamily: FONT_BODY }}>{e.nota_nutri}</p>
           </div>
         )}
 
-        <div className="mx-4 mb-4 rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-          <div className="px-4 py-3 border-b border-white/[0.14]">
-            <p className="text-zinc-500 text-[10px] uppercase tracking-wider">Resumo diário</p>
+        {/* Resumo diário */}
+        <div style={{ ...glassCard, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <p style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontFamily: FONT_BODY }}>Resumo diário</p>
           </div>
-          <div className="grid grid-cols-4 divide-x divide-white/[0.05]">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {[
-              { label: 'Kcal', val: totalCalDia || plano.calorias_meta || '—', cor: 'text-orange-400' },
-              { label: 'Prot.', val: totalProtDia ? `${totalProtDia}g` : plano.proteina_meta ? `${plano.proteina_meta}g` : '—', cor: 'text-blue-400' },
-              { label: 'Refs.', val: e ? e.refeicoes.length : plano.refeicoes_por_dia ?? '—', cor: 'text-emerald-400' },
-              { label: 'Água', val: e?.hidratacao ? `${e.hidratacao.litros_dia}L` : '—', cor: 'text-cyan-400' },
+              { label: 'Kcal', val: totalCalDia || plano.calorias_meta || '—', cor: C.energy },
+              { label: 'Prot.', val: totalProtDia ? `${totalProtDia}g` : plano.proteina_meta ? `${plano.proteina_meta}g` : '—', cor: C.good },
+              { label: 'Refs.', val: e ? e.refeicoes.length : plano.refeicoes_por_dia ?? '—', cor: C.recovery },
+              { label: 'Água', val: e?.hidratacao ? `${e.hidratacao.litros_dia}L` : '—', cor: C.sleep },
             ].map((m, i) => (
-              <div key={i} className="py-3 text-center">
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-0.5">{m.label}</p>
-                <p className={`text-sm font-black ${m.cor}`}>{m.val}</p>
+              <div key={i} style={{ padding: '14px 4px', textAlign: 'center', borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: FONT_BODY }}>{m.label}</p>
+                <p style={{ fontSize: 16, fontWeight: 800, color: m.cor, fontFamily: FONT_DISPLAY, fontVariantNumeric: 'tabular-nums' }}>{m.val}</p>
               </div>
             ))}
           </div>
           {totalCalDia > 0 && plano.calorias_meta && (
-            <div className="px-4 pb-3">
-              <div className="h-1 bg-white/[0.09] rounded-full overflow-hidden">
-                <div className="h-full bg-orange-400 rounded-full transition-all" style={{ width: `${Math.min(100, Math.round((totalCalDia / plano.calorias_meta) * 100))}%` }} />
+            <div style={{ padding: '0 18px 14px' }}>
+              <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden' }}>
+                <div style={{ height: '100%', background: `linear-gradient(90deg, ${C.energy2}, ${C.energy})`, borderRadius: 999, boxShadow: `0 0 12px ${alpha(C.energy, 0.4)}`, width: `${Math.min(100, Math.round((totalCalDia / plano.calorias_meta) * 100))}%`, transition: 'width 1s ease' }} />
               </div>
-              <p className="text-zinc-700 text-[9px] mt-1">{Math.round((totalCalDia / plano.calorias_meta) * 100)}% da meta calórica</p>
+              <p style={{ color: C.t3, fontSize: 9.5, marginTop: 6, fontFamily: FONT_MONO }}>{Math.round((totalCalDia / plano.calorias_meta) * 100)}% da meta calórica</p>
             </div>
           )}
         </div>
 
         {e ? (
-          <div className="px-4 space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Refeições — accordion glass */}
             {e.refeicoes.map((ref, i) => {
               const aberta = refeicaoAberta === i
               const vIdx = variacaoAtiva[i] ?? 0
               const alimentos = getAlimentos(ref, vIdx)
               const dica = ref.variacoes ? ref.variacoes[vIdx]?.dica : ref.dica
-              const totalCal = alimentos.reduce((s, a) => s + a.calorias, 0)
-              const totalProt = alimentos.reduce((s, a) => s + a.proteina, 0)
+              const totalCal = Math.round(alimentos.reduce((s, a) => s + a.calorias, 0))
+              const totalProt = Math.round(alimentos.reduce((s, a) => s + a.proteina, 0))
               const pctDia = totalCalDia > 0 ? Math.round((totalCal / totalCalDia) * 100) : 0
               const temVariacoes = ref.variacoes && ref.variacoes.length > 1
 
               return (
-                <div key={i} className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                <div key={i} style={{ ...glassCard, overflow: 'hidden', border: `1px solid ${aberta ? alpha(C.good, 0.3) : 'rgba(255,255,255,0.12)'}`, transition: 'border-color 240ms ease' }}>
                   <button onClick={() => setRefeicaoAberta(aberta ? null : i)}
-                    className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
-                    <div className="relative shrink-0">
-                      <div className="w-11 h-11 rounded-xl bg-white/[0.07] border border-white/[0.11] flex items-center justify-center text-xl">
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: `linear-gradient(135deg, ${alpha(C.good, 0.2)}, ${alpha(C.good, 0.1)})`, border: `1px solid ${alpha(C.good, 0.28)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 12, color: C.good }}>
                         {getIconeRefeicao(ref.nome)}
                       </div>
-                      <div className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-zinc-800 border border-white/[0.14] flex items-center justify-center">
-                        <span className="text-zinc-400 text-[8px] font-black">{i + 1}</span>
+                      <div style={{ position: 'absolute', top: -5, left: -5, width: 16, height: 16, borderRadius: '50%', background: '#1a1d28', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ color: C.t2, fontSize: 8, fontWeight: 800, fontFamily: FONT_MONO }}>{i + 1}</span>
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-white font-bold text-sm">{ref.nome}</p>
-                        <span className="text-zinc-600 text-[10px] bg-white/[0.07] border border-white/[0.11] px-1.5 py-0.5 rounded-md shrink-0">{ref.horario}</span>
-                        {temVariacoes && <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-1.5 py-0.5 shrink-0">{ref.variacoes!.length} opções</span>}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                        <p style={{ color: C.t1, fontWeight: 700, fontSize: 14, fontFamily: FONT_DISPLAY }}>{ref.nome}</p>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: C.t2, fontSize: 11, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', padding: '3px 9px', borderRadius: 999, fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums' }}>{ref.horario}</span>
+                        {temVariacoes && <span style={{ fontSize: 9, color: C.good, background: alpha(C.good, 0.1), border: `1px solid ${alpha(C.good, 0.22)}`, borderRadius: 999, padding: '2px 8px', fontFamily: FONT_BODY, fontWeight: 600 }}>{ref.variacoes!.length} opções</span>}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-orange-400 text-[11px] font-semibold">{totalCal} kcal</span>
-                        <span className="text-blue-400 text-[11px]">{totalProt}g prot</span>
-                        <span className="text-zinc-600 text-[10px]">{pctDia}% do dia</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <MacroBadge value={totalCal} unit="" color={C.energy} label="kcal" />
+                        <MacroBadge value={totalProt} unit="g" color={C.good} label="prot" />
+                        <span style={{ color: C.t3, fontSize: 10.5, fontFamily: FONT_MONO }}>{pctDia}% do dia</span>
                       </div>
                     </div>
-                    <span className={`text-zinc-600 text-[10px] transition-transform duration-200 shrink-0 ${aberta ? 'rotate-180' : ''}`}>▼</span>
+                    <Chevron open={aberta} color={aberta ? C.good : C.t3} />
                   </button>
 
-                  {aberta && (
-                    <div className="border-t border-white/[0.14]">
-                      {/* tabs de variações */}
-                      {temVariacoes && (
-                        <div className="flex items-center gap-1 px-4 pt-3 pb-1 overflow-x-auto">
-                          {ref.variacoes!.map((v, vi) => (
-                            <button key={vi}
-                              onClick={() => setVariacaoAtiva(prev => ({ ...prev, [i]: vi }))}
-                              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${vIdx === vi ? 'bg-white/[0.12] border-white/20 text-white' : 'border-white/[0.08] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.14]'}`}>
-                              {v.nome || `Opção ${String.fromCharCode(65 + vi)}`}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between px-4 py-2 bg-white/[0.02] border-b border-white/[0.03]">
-                        <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Alimento</span>
-                        <div className="flex gap-4">
-                          <span className="text-zinc-600 text-[9px] uppercase tracking-wider">Qtd.</span>
-                          <span className="text-zinc-600 text-[9px] uppercase tracking-wider w-14 text-right">Kcal</span>
-                          <span className="text-zinc-600 text-[9px] uppercase tracking-wider w-10 text-right">Prot</span>
-                        </div>
-                      </div>
-                      {alimentos.map((al, j) => (
-                        <div key={j} className="flex items-center justify-between px-4 py-3 border-b border-white/[0.03] last:border-0">
-                          <div className="flex-1 min-w-0 mr-3">
-                            <p className="text-zinc-200 text-sm font-medium leading-tight">{al.nome}</p>
+                  <div style={{ display: 'grid', gridTemplateRows: aberta ? '1fr' : '0fr', transition: 'grid-template-rows 320ms cubic-bezier(0.22,1,0.36,1)' }}>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                        {temVariacoes && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 16px 4px', overflowX: 'auto' }}>
+                            {ref.variacoes!.map((v, vi) => (
+                              <button key={vi} onClick={() => setVariacaoAtiva(prev => ({ ...prev, [i]: vi }))}
+                                style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: FONT_BODY, transition: 'all .15s',
+                                  border: `1px solid ${vIdx === vi ? alpha(C.good, 0.4) : 'rgba(255,255,255,0.1)'}`,
+                                  background: vIdx === vi ? alpha(C.good, 0.12) : 'transparent',
+                                  color: vIdx === vi ? C.good : C.t2 }}>
+                                {v.nome || `Opção ${String.fromCharCode(65 + vi)}`}
+                              </button>
+                            ))}
                           </div>
-                          <div className="flex items-center gap-4 shrink-0">
-                            <span className="text-zinc-500 text-[11px] text-right min-w-[60px]">{al.quantidade}</span>
-                            <span className="text-orange-400 text-[12px] font-bold w-14 text-right">{al.calorias}</span>
-                            <span className="text-blue-400 text-[11px] w-10 text-right">{al.proteina}g</span>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <span style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FONT_BODY }}>Alimento</span>
+                          <div style={{ display: 'flex', gap: 16 }}>
+                            <span style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FONT_BODY }}>Qtd.</span>
+                            <span style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', width: 50, textAlign: 'right', fontFamily: FONT_BODY }}>Kcal</span>
+                            <span style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', width: 40, textAlign: 'right', fontFamily: FONT_BODY }}>Prot</span>
                           </div>
                         </div>
-                      ))}
-                      <div className="flex items-center justify-between px-4 py-3 bg-white/[0.02] border-t border-white/[0.11]">
-                        <span className="text-zinc-400 text-[11px] font-bold uppercase tracking-wider">Total</span>
-                        <div className="flex items-center gap-4">
-                          <span className="text-zinc-600 text-[11px] w-[60px] text-right">—</span>
-                          <span className="text-orange-400 text-[13px] font-black w-14 text-right">{totalCal}</span>
-                          <span className="text-blue-400 text-[12px] font-bold w-10 text-right">{totalProt}g</span>
+                        {alimentos.map((al, j) => (
+                          <div key={j} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: j < alimentos.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                            <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
+                              <p style={{ color: C.t1, fontSize: 13.5, fontWeight: 500, lineHeight: 1.3, fontFamily: FONT_BODY }}>{al.nome}</p>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+                              <span style={{ color: C.t2, fontSize: 11, textAlign: 'right', minWidth: 56, fontFamily: FONT_MONO }}>{al.quantidade}</span>
+                              <span style={{ color: C.energy, fontSize: 12.5, fontWeight: 700, width: 50, textAlign: 'right', fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums' }}>{al.calorias}</span>
+                              <span style={{ color: C.good, fontSize: 11.5, width: 40, textAlign: 'right', fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums' }}>{al.proteina}g</span>
+                            </div>
+                          </div>
+                        ))}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                          <span style={{ color: C.t2, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FONT_BODY }}>Total</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <span style={{ color: C.t3, fontSize: 11, width: 56, textAlign: 'right', fontFamily: FONT_MONO }}>—</span>
+                            <span style={{ color: C.energy, fontSize: 13.5, fontWeight: 800, width: 50, textAlign: 'right', fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums' }}>{totalCal}</span>
+                            <span style={{ color: C.good, fontSize: 12.5, fontWeight: 700, width: 40, textAlign: 'right', fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums' }}>{totalProt}g</span>
+                          </div>
                         </div>
+                        {dica && (
+                          <div style={{ margin: '10px 16px 14px', borderRadius: 12, background: alpha(C.good, 0.07), border: `1px solid ${alpha(C.good, 0.2)}`, padding: '11px 13px' }}>
+                            <p style={{ color: C.good, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, fontWeight: 700, fontFamily: FONT_BODY }}>Dica</p>
+                            <p style={{ color: C.t2, fontSize: 11.5, lineHeight: 1.6, fontFamily: FONT_BODY }}>{dica}</p>
+                          </div>
+                        )}
                       </div>
-                      {dica && (
-                        <div className="mx-4 mb-3 mt-2 rounded-xl bg-white/[0.02] border border-white/[0.09] px-3 py-2.5">
-                          <p className="text-emerald-400 text-[9px] uppercase tracking-wider mb-1">💡 Dica</p>
-                          <p className="text-zinc-400 text-[11px] leading-relaxed">{dica}</p>
-                        </div>
-                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )
             })}
 
+            {/* Suplementação */}
             {e.suplementos && e.suplementos.length > 0 && (
-              <div className="rounded-2xl border border-purple-500/20 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+              <div style={{ ...glassCard, overflow: 'hidden', border: `1px solid ${secaoAberta === 'suplementos' ? alpha(C.recovery, 0.3) : 'rgba(255,255,255,0.12)'}` }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === 'suplementos' ? null : 'suplementos')}
-                  className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
-                  <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-xl shrink-0">💊</div>
-                  <div className="flex-1">
-                    <p className="text-white font-bold text-sm">Suplementação recomendada</p>
-                    <p className="text-zinc-500 text-[11px]">{e.suplementos.length} suplemento{e.suplementos.length !== 1 ? 's' : ''} · baseado no seu objetivo</p>
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: alpha(C.recovery, 0.12), border: `1px solid ${alpha(C.recovery, 0.25)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 12, color: C.recovery }}>SP</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: C.t1, fontWeight: 700, fontSize: 14, fontFamily: FONT_DISPLAY }}>Suplementação recomendada</p>
+                    <p style={{ color: C.t2, fontSize: 11, fontFamily: FONT_BODY }}>{e.suplementos.length} suplemento{e.suplementos.length !== 1 ? 's' : ''} · baseado no seu objetivo</p>
                   </div>
-                  <span className={`text-zinc-600 text-[10px] transition-transform duration-200 shrink-0 ${secaoAberta === 'suplementos' ? 'rotate-180' : ''}`}>▼</span>
+                  <Chevron open={secaoAberta === 'suplementos'} color={secaoAberta === 'suplementos' ? C.recovery : C.t3} />
                 </button>
                 {secaoAberta === 'suplementos' && (
-                  <div className="border-t border-white/[0.14] divide-y divide-white/[0.04]">
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                     {e.suplementos.map((s, i) => (
-                      <div key={i} className="px-4 py-3.5">
-                        <p className="text-white font-bold text-sm">{s.nome}</p>
-                        <p className="text-purple-400 text-[11px] mt-0.5">{s.dose} · {s.horario}</p>
-                        <p className="text-zinc-500 text-[11px] leading-relaxed mt-1.5">{s.motivo}</p>
+                      <div key={i} style={{ padding: '14px 16px', borderBottom: i < e!.suplementos!.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                        <p style={{ color: C.t1, fontWeight: 700, fontSize: 14, fontFamily: FONT_DISPLAY }}>{s.nome}</p>
+                        <p style={{ color: C.recovery, fontSize: 11, marginTop: 2, fontFamily: FONT_MONO }}>{s.dose} · {s.horario}</p>
+                        <p style={{ color: C.t2, fontSize: 11.5, lineHeight: 1.6, marginTop: 6, fontFamily: FONT_BODY }}>{s.motivo}</p>
                       </div>
                     ))}
                   </div>
@@ -300,51 +429,54 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
               </div>
             )}
 
+            {/* Hidratação */}
             {e.hidratacao && (
-              <div className="rounded-2xl border border-cyan-500/20 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+              <div style={{ ...glassCard, overflow: 'hidden', border: `1px solid ${secaoAberta === 'hidratacao' ? alpha(C.sleep, 0.3) : 'rgba(255,255,255,0.12)'}` }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === 'hidratacao' ? null : 'hidratacao')}
-                  className="w-full flex items-center gap-3 px-4 py-4 active:bg-white/[0.02] transition-all text-left">
-                  <div className="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-xl shrink-0">💧</div>
-                  <div className="flex-1">
-                    <p className="text-white font-bold text-sm">Hidratação personalizada</p>
-                    <p className="text-cyan-400 text-[11px]">{e.hidratacao.litros_dia}L por dia · baseado no seu peso e treino</p>
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: alpha(C.sleep, 0.12), border: `1px solid ${alpha(C.sleep, 0.25)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 12, color: C.sleep }}>H₂O</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: C.t1, fontWeight: 700, fontSize: 14, fontFamily: FONT_DISPLAY }}>Hidratação personalizada</p>
+                    <p style={{ color: C.sleep, fontSize: 11, fontFamily: FONT_MONO }}>{e.hidratacao.litros_dia}L por dia · baseado no seu peso e treino</p>
                   </div>
-                  <span className={`text-zinc-600 text-[10px] transition-transform duration-200 shrink-0 ${secaoAberta === 'hidratacao' ? 'rotate-180' : ''}`}>▼</span>
+                  <Chevron open={secaoAberta === 'hidratacao'} color={secaoAberta === 'hidratacao' ? C.sleep : C.t3} />
                 </button>
                 {secaoAberta === 'hidratacao' && (
-                  <div className="border-t border-white/[0.14] px-4 py-3.5">
-                    <p className="text-zinc-300 text-sm leading-relaxed">{e.hidratacao.orientacao}</p>
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '14px 16px' }}>
+                    <p style={{ color: C.t2, fontSize: 13.5, lineHeight: 1.7, fontFamily: FONT_BODY }}>{e.hidratacao.orientacao}</p>
                   </div>
                 )}
               </div>
             )}
 
+            {/* Estratégias */}
             {[
-              { key: 'treino', label: '⚡ Orientação de treino', sub: 'Pré e pós-treino com alimentos', cor: 'border-emerald-500/20 bg-emerald-500/5', textCor: 'text-emerald-400', val: e.orientacao_treino },
-              { key: 'desafio', label: '🎯 Estratégia para seu desafio', sub: 'Como superar seu maior obstáculo', cor: 'border-orange-500/20 bg-orange-500/5', textCor: 'text-orange-400', val: e.estrategia_desafio },
-              { key: 'fome', label: '💡 Controle de fome', sub: 'Estratégia para o período crítico', cor: 'border-blue-500/20 bg-blue-500/5', textCor: 'text-blue-400', val: e.dica_fome },
+              { key: 'treino', label: 'Orientação de treino', sub: 'Pré e pós-treino com alimentos', cor: C.good, val: e.orientacao_treino },
+              { key: 'desafio', label: 'Estratégia para seu desafio', sub: 'Como superar seu maior obstáculo', cor: C.energy, val: e.estrategia_desafio },
+              { key: 'fome', label: 'Controle de fome', sub: 'Estratégia para o período crítico', cor: C.sleep, val: e.dica_fome },
             ].filter(s => s.val).map((s) => (
-              <div key={s.key} className={`rounded-2xl border overflow-hidden ${s.cor}`}>
+              <div key={s.key} style={{ ...glassCard, overflow: 'hidden', border: `1px solid ${secaoAberta === s.key ? alpha(s.cor, 0.3) : 'rgba(255,255,255,0.12)'}` }}>
                 <button onClick={() => setSecaoAberta(secaoAberta === s.key ? null : s.key)}
-                  className="w-full flex items-center gap-3 px-4 py-4 transition-all text-left">
-                  <div className="flex-1">
-                    <p className={`font-bold text-sm ${s.textCor}`}>{s.label}</p>
-                    <p className="text-zinc-600 text-[11px] mt-0.5">{s.sub}</p>
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  <div style={{ width: 4, height: 36, borderRadius: 999, background: s.cor, flexShrink: 0, boxShadow: `0 0 10px ${alpha(s.cor, 0.5)}` }} />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: s.cor, fontWeight: 700, fontSize: 14, fontFamily: FONT_DISPLAY }}>{s.label}</p>
+                    <p style={{ color: C.t3, fontSize: 11, marginTop: 2, fontFamily: FONT_BODY }}>{s.sub}</p>
                   </div>
-                  <span className={`text-zinc-500 text-[10px] transition-transform duration-200 shrink-0 ${secaoAberta === s.key ? 'rotate-180' : ''}`}>▼</span>
+                  <Chevron open={secaoAberta === s.key} color={secaoAberta === s.key ? s.cor : C.t3} />
                 </button>
                 {secaoAberta === s.key && (
-                  <div className="px-4 pb-4 border-t border-white/[0.11]">
-                    <p className="text-zinc-300 text-sm leading-relaxed pt-3">{s.val}</p>
+                  <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <p style={{ color: C.t2, fontSize: 13.5, lineHeight: 1.7, paddingTop: 14, fontFamily: FONT_BODY }}>{s.val}</p>
                   </div>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <div className="mx-4 rounded-2xl border border-white/[0.11] p-5" style={{ background: 'var(--surface-1)' }}>
-            <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-line">{plano.conteudo}</p>
-            <button onClick={onIniciarConsulta} className="mt-4 w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all">✦ Gerar novo plano detalhado →</button>
+          <div style={{ ...glassCard, padding: 20 }}>
+            <p style={{ color: C.t2, fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-line', fontFamily: FONT_BODY }}>{plano.conteudo}</p>
+            <button onClick={onIniciarConsulta} style={{ marginTop: 16, width: '100%', background: `linear-gradient(135deg, ${C.energy2}, ${C.energy})`, color: '#fff', fontWeight: 700, padding: '13px 0', borderRadius: 12, fontSize: 14, border: 'none', cursor: 'pointer', fontFamily: FONT_BODY }}>Gerar novo plano detalhado →</button>
           </div>
         )}
       </div>
@@ -352,13 +484,13 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
   }
 
   return (
-    <div className="px-4 pt-4">
-      <div className="rounded-2xl border border-emerald-500/20 p-5" style={{ background: 'var(--surface-1)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-xs font-black text-green-400 shrink-0">NU</div>
+    <div style={{ padding: '4px 0' }}>
+      <div style={{ ...glassCard, padding: 20, borderLeft: `3px solid ${C.good}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: alpha(C.good, 0.12), border: `1px solid ${alpha(C.good, 0.22)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 12, color: C.good }}>NU</div>
           <div>
-            <p className="text-white font-bold">{vinculoNutri?.nome ?? 'Nutricionista'}</p>
-            <p className="text-emerald-400 text-xs">Plano profissional ativo</p>
+            <p style={{ color: C.t1, fontWeight: 700, fontFamily: FONT_DISPLAY }}>{vinculoNutri?.nome ?? 'Nutricionista'}</p>
+            <p style={{ color: C.good, fontSize: 12, fontFamily: FONT_BODY }}>Plano profissional ativo</p>
           </div>
         </div>
       </div>
@@ -366,6 +498,9 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta }: {
   )
 }
 
+/* ─────────────────────────────────────────────
+   ABA HOJE
+───────────────────────────────────────────── */
 function AbaHoje({ perfil, scoreHoje, treinouHoje, planoAtivo, vinculoNutri, userId, registroId, setRegistroId, qualidade, setQualidade, calorias, setCalorias, proteina, setProteina, coposAgua, setCoposAgua, observacoes, setObservacoes, jaRegistrou, setJaRegistrou }: {
   perfil: Perfil; scoreHoje: number | null; treinouHoje: boolean; planoAtivo: PlanoNutricional | null
   vinculoNutri: { nome: string | null; id: string } | null; userId: string; registroId: string | null
@@ -430,59 +565,73 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
+    borderRadius: 12, padding: '12px', color: C.t1, fontSize: 14, fontFamily: FONT_BODY,
+    outline: 'none', boxSizing: 'border-box',
+  }
+
   return (
-    <div className="px-4 pt-4 space-y-4 pb-4">
-      <div className="grid grid-cols-3 gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Stats topo */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         {[
-          { label: 'Recuperação', val: scoreHoje ?? '—', sub: '/100', cor: scoreHoje ? scoreHoje >= 70 ? 'text-emerald-400' : 'text-yellow-400' : 'text-zinc-600', bg: scoreHoje ? scoreHoje >= 70 ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-yellow-500/20 bg-yellow-500/5' : 'border-white/[0.11]' },
-          { label: 'Treino', val: treinouHoje ? '✓' : '—', sub: 'hoje', cor: treinouHoje ? 'text-emerald-400' : 'text-zinc-600', bg: treinouHoje ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/[0.11]' },
-          { label: 'Meta', val: metaCal ? `${Math.round(metaCal / 100) / 10}k` : '—', sub: 'kcal', cor: 'text-white', bg: 'border-white/[0.11]' },
+          { label: 'Recuperação', val: scoreHoje ?? '—', sub: '/100', cor: scoreHoje ? scoreHoje >= 70 ? C.good : C.warn : C.t3 },
+          { label: 'Treino', val: treinouHoje ? '✓' : '—', sub: 'hoje', cor: treinouHoje ? C.good : C.t3 },
+          { label: 'Meta', val: metaCal ? `${Math.round(metaCal / 100) / 10}k` : '—', sub: 'kcal', cor: C.energy },
         ].map((s, i) => (
-          <div key={i} className={`rounded-2xl p-3 border text-center ${s.bg}`}>
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-1">{s.label}</p>
-            <p className={`text-xl font-black ${s.cor}`}>{s.val}</p>
-            <p className="text-zinc-700 text-[9px]">{s.sub}</p>
+          <div key={i} style={{ ...glassCard, padding: 14, textAlign: 'center', borderColor: s.cor !== C.t3 ? alpha(s.cor, 0.22) : 'rgba(255,255,255,0.12)' }}>
+            <p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, fontFamily: FONT_BODY }}>{s.label}</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: s.cor, fontFamily: FONT_DISPLAY, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{s.val}</p>
+            <p style={{ color: C.t3, fontSize: 9, marginTop: 3, fontFamily: FONT_MONO }}>{s.sub}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-        <div className="px-5 pt-4 pb-3 border-b border-white/[0.14]">
-          <p className="text-white font-bold text-sm">Como foi hoje?</p>
-          <p className="text-zinc-600 text-[11px]">Avalie e registre em 30 segundos</p>
+      {/* Registro do dia */}
+      <div style={{ ...glassCard, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <p style={{ color: C.t1, fontWeight: 700, fontSize: 14, fontFamily: FONT_DISPLAY }}>Como foi hoje?</p>
+          <p style={{ color: C.t3, fontSize: 11, fontFamily: FONT_BODY }}>Avalie e registre em 30 segundos</p>
         </div>
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-4 gap-2">
-            {QUALIDADE_OPCOES.map(op => (
-              <button key={op.valor} onClick={() => setQualidade(op.valor)}
-                className={`flex flex-col items-center py-3 rounded-2xl border transition-all active:scale-95 ${qualidade === op.valor ? op.cor : 'border-white/[0.11] bg-white/[0.02] text-zinc-500'}`}>
-                <span className="text-2xl mb-1">{op.emoji}</span>
-                <span className="text-[10px] font-bold">{op.label}</span>
-              </button>
-            ))}
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            {QUALIDADE_OPCOES.map(op => {
+              const active = qualidade === op.valor
+              return (
+                <button key={op.valor} onClick={() => setQualidade(op.valor)}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 4px', borderRadius: 14, cursor: 'pointer', transition: 'all .15s',
+                    border: `1px solid ${active ? alpha(op.cor, 0.4) : 'rgba(255,255,255,0.1)'}`,
+                    background: active ? alpha(op.cor, 0.12) : 'rgba(255,255,255,0.02)',
+                    color: active ? op.cor : C.t2 }}>
+                  <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18 }}>{op.valor}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, fontFamily: FONT_BODY }}>{op.label}</span>
+                </button>
+              )
+            })}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {[
-              { label: 'Calorias', val: calorias, set: setCalorias, meta: metaCal, unit: 'kcal', pct: pctCal, barCor: pctCal >= 100 ? 'bg-emerald-400' : 'bg-orange-400' },
-              { label: 'Proteína', val: proteina, set: setProteina, meta: metaProt, unit: 'g', pct: pctProt, barCor: pctProt >= 100 ? 'bg-emerald-400' : 'bg-blue-400' },
+              { label: 'Calorias', val: calorias, set: setCalorias, meta: metaCal, unit: 'kcal', pct: pctCal, cor: C.energy },
+              { label: 'Proteína', val: proteina, set: setProteina, meta: metaProt, unit: 'g', pct: pctProt, cor: C.good },
             ].map((f, i) => (
               <div key={i}>
-                <div className="flex justify-between mb-1.5">
-                  <label className="text-zinc-500 text-[10px] uppercase tracking-wider">{f.label}</label>
-                  {f.meta && <span className="text-zinc-700 text-[9px]">meta {f.meta}{f.unit === 'g' ? 'g' : ''}</span>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FONT_BODY }}>{f.label}</label>
+                  {f.meta && <span style={{ color: C.t3, fontSize: 9, fontFamily: FONT_MONO }}>meta {f.meta}{f.unit === 'g' ? 'g' : ''}</span>}
                 </div>
-                <div className="relative">
+                <div style={{ position: 'relative' }}>
                   <input type="number" placeholder="0" value={f.val} onChange={e => f.set(e.target.value)}
-                    className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-3 text-white text-sm text-center font-bold focus:outline-none focus:border-white/20 placeholder:text-zinc-700" />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">{f.unit}</span>
+                    style={{ ...inputStyle, textAlign: 'center', fontWeight: 700, fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums' }} />
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.t3, fontSize: 9, fontFamily: FONT_MONO }}>{f.unit}</span>
                 </div>
                 {f.val && f.meta && (
-                  <div className="mt-1.5">
-                    <div className="h-1 bg-white/[0.09] rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${f.barCor}`} style={{ width: `${f.pct}%` }} />
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 999, background: f.pct >= 100 ? C.good : f.cor, boxShadow: `0 0 10px ${alpha(f.pct >= 100 ? C.good : f.cor, 0.4)}`, width: `${f.pct}%`, transition: 'width .4s ease' }} />
                     </div>
-                    <p className="text-zinc-700 text-[9px] text-center mt-1">{f.pct}%</p>
+                    <p style={{ color: C.t3, fontSize: 9, textAlign: 'center', marginTop: 5, fontFamily: FONT_MONO }}>{f.pct}%</p>
                   </div>
                 )}
               </div>
@@ -491,84 +640,100 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
 
           <textarea placeholder="Como foi? Algo que dificultou ou ajudou... (opcional — melhora a análise da IA)" value={observacoes}
             onChange={e => setObservacoes(e.target.value)} rows={2}
-            className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/20 placeholder:text-zinc-700 resize-none" />
+            style={{ ...inputStyle, resize: 'none' }} />
 
           <button onClick={salvarRegistro} disabled={!qualidade || salvando}
-            className={`w-full font-bold py-4 rounded-2xl text-sm active:scale-95 disabled:opacity-30 transition-all ${jaRegistrou ? 'bg-white/[0.09] border border-white/[0.10] text-zinc-300' : 'bg-white text-black'}`}>
+            style={{ width: '100%', fontWeight: 700, padding: '15px 0', borderRadius: 16, fontSize: 14, cursor: !qualidade || salvando ? 'default' : 'pointer', opacity: !qualidade || salvando ? 0.4 : 1, border: 'none', transition: 'all .15s', fontFamily: FONT_BODY,
+              ...(jaRegistrou
+                ? { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: C.t1 }
+                : { background: `linear-gradient(135deg, ${C.energy2}, ${C.energy})`, color: '#fff', boxShadow: `0 10px 30px ${alpha(C.energy, 0.3)}` }) }}>
             {salvando ? 'Salvando...' : jaRegistrou ? '✓ Registrado — atualizar' : 'Registrar →'}
           </button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.11] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-        <div className="px-5 py-4 border-b border-white/[0.14]">
-          <div className="flex items-center justify-between mb-2">
+      {/* Hidratação */}
+      <div style={{ ...glassCard, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div>
-              <p className="text-white font-bold text-sm">Hidratação</p>
-              <p className="text-zinc-600 text-[11px]">{coposAgua * 250}ml de 2000ml</p>
+              <p style={{ color: C.t1, fontWeight: 700, fontSize: 14, fontFamily: FONT_DISPLAY }}>Hidratação</p>
+              <p style={{ color: C.t3, fontSize: 11, fontFamily: FONT_MONO }}>{coposAgua * 250}ml de 2000ml</p>
             </div>
-            <p className={`text-2xl font-black ${coposAgua >= 8 ? 'text-emerald-400' : coposAgua >= 4 ? 'text-blue-400' : 'text-zinc-500'}`}>
-              {coposAgua}<span className="text-zinc-600 text-sm font-normal">/8</span>
+            <p style={{ fontSize: 24, fontWeight: 800, color: coposAgua >= 8 ? C.good : coposAgua >= 4 ? C.sleep : C.t2, fontFamily: FONT_DISPLAY, fontVariantNumeric: 'tabular-nums' }}>
+              {coposAgua}<span style={{ color: C.t3, fontSize: 14, fontWeight: 400 }}>/8</span>
             </p>
           </div>
-          <div className="h-1.5 bg-white/[0.09] rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${Math.min(100, (coposAgua / 8) * 100)}%` }} />
+          <div style={{ height: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 999, background: C.sleep, boxShadow: `0 0 10px ${alpha(C.sleep, 0.4)}`, width: `${Math.min(100, (coposAgua / 8) * 100)}%`, transition: 'width .3s ease' }} />
           </div>
         </div>
-        <div className="p-4 flex items-center gap-2">
-          <button onClick={() => atualizarAgua(coposAgua - 1)} className="w-10 h-10 rounded-xl bg-white/[0.09] border border-white/[0.14] flex items-center justify-center text-white text-lg font-bold active:scale-90 transition-all shrink-0">−</button>
-          <div className="flex-1 grid grid-cols-8 gap-1">
+        <div style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => atualizarAgua(coposAgua - 1)} style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', color: C.t1, fontSize: 18, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>−</button>
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4 }}>
             {Array.from({ length: 8 }, (_, i) => (
-              <button key={i} onClick={() => atualizarAgua(i + 1)} className={`h-7 rounded-lg transition-all active:scale-90 ${i < coposAgua ? 'bg-blue-400' : 'bg-white/[0.05] border border-white/[0.14]'}`} />
+              <button key={i} onClick={() => atualizarAgua(i + 1)} style={{ height: 28, borderRadius: 8, cursor: 'pointer', border: i < coposAgua ? 'none' : '1px solid rgba(255,255,255,0.14)', background: i < coposAgua ? C.sleep : 'rgba(255,255,255,0.05)', boxShadow: i < coposAgua ? `0 0 8px ${alpha(C.sleep, 0.3)}` : 'none', transition: 'all .15s' }} />
             ))}
           </div>
-          <button onClick={() => atualizarAgua(coposAgua + 1)} className="w-10 h-10 rounded-xl bg-white/[0.09] border border-white/[0.14] flex items-center justify-center text-white text-lg font-bold active:scale-90 transition-all shrink-0">+</button>
+          <button onClick={() => atualizarAgua(coposAgua + 1)} style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', color: C.t1, fontSize: 18, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>+</button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
-          <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0"><span className="text-[11px] font-black text-emerald-400">✦</span></div>
-          <div className="flex-1">
-            <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em] font-semibold">Feedback do dia · IA</p>
-            <p className="text-zinc-600 text-[10px]">Cruza treino, sono, recuperação e plano</p>
+      {/* Feedback IA */}
+      <div style={{ ...glassCard, overflow: 'hidden', border: `1px solid ${alpha(C.good, 0.22)}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ width: 30, height: 30, borderRadius: 10, background: alpha(C.good, 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: C.good, fontWeight: 800, fontSize: 12, fontFamily: FONT_DISPLAY }}>IA</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ color: C.good, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600, fontFamily: FONT_BODY }}>Feedback do dia · IA</p>
+            <p style={{ color: C.t3, fontSize: 10, fontFamily: FONT_BODY }}>Cruza treino, sono, recuperação e plano</p>
           </div>
-          {analise.carregando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />}
+          {analise.carregando && <div style={{ width: 16, height: 16, border: `2px solid ${C.good}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />}
         </div>
-        <div className="px-5 py-4">
+        <div style={{ padding: '16px 20px' }}>
           {!analise.gerado && !analise.carregando && (
-            <div className="space-y-3">
-              <p className="text-zinc-500 text-sm">{jaRegistrou ? 'Registro salvo. Gere o feedback personalizado.' : 'Registre sua alimentação acima primeiro.'}</p>
-              {jaRegistrou && <button onClick={gerarAnalise} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">✦ Gerar feedback do dia</button>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ color: C.t2, fontSize: 14, fontFamily: FONT_BODY }}>{jaRegistrou ? 'Registro salvo. Gere o feedback personalizado.' : 'Registre sua alimentação acima primeiro.'}</p>
+              {jaRegistrou && <button onClick={gerarAnalise} style={{ width: '100%', background: alpha(C.good, 0.12), border: `1px solid ${alpha(C.good, 0.3)}`, color: C.good, fontWeight: 700, padding: '12px 0', borderRadius: 12, fontSize: 14, cursor: 'pointer', fontFamily: FONT_BODY }}>Gerar feedback do dia</button>}
             </div>
           )}
-          {analise.carregando && <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
+          {analise.carregando && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[1, 0.8, 0.6].map((w, i) => <div key={i} style={{ height: 12, background: 'rgba(255,255,255,0.08)', borderRadius: 999, width: `${w * 100}%`, animation: 'pulse 1.2s ease infinite' }} />)}
+            </div>
+          )}
           {analise.gerado && !analise.carregando && (
             <div>
-              <p className="text-zinc-300 text-sm leading-relaxed">{analise.texto}</p>
-              <button onClick={gerarAnalise} className="mt-3 text-[10px] text-zinc-600 underline underline-offset-4 hover:text-zinc-400 transition-all">Nova análise</button>
+              <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.7, fontFamily: FONT_BODY }}>{analise.texto}</p>
+              <button onClick={gerarAnalise} style={{ marginTop: 12, fontSize: 10.5, color: C.t3, background: 'none', border: 'none', textDecoration: 'underline', textUnderlineOffset: 4, cursor: 'pointer', fontFamily: FONT_BODY }}>Nova análise</button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/[0.11] p-4" style={{ background: 'var(--surface-1)' }}>
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xs font-black shrink-0 ${vinculoNutri ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/[0.07] text-zinc-500 border-white/[0.14]'}`}>NU</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-semibold">Nutricionista</p>
-            <p className="text-zinc-600 text-xs">{vinculoNutri ? vinculoNutri.nome ?? 'Conectada' : 'Conecte para plano profissional'}</p>
+      {/* Nutricionista vínculo */}
+      <div style={{ ...glassCard, padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 12,
+            background: vinculoNutri ? alpha(C.good, 0.12) : 'rgba(255,255,255,0.06)', color: vinculoNutri ? C.good : C.t2, border: `1px solid ${vinculoNutri ? alpha(C.good, 0.22) : 'rgba(255,255,255,0.14)'}` }}>NU</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: C.t1, fontSize: 14, fontWeight: 600, fontFamily: FONT_BODY }}>Nutricionista</p>
+            <p style={{ color: C.t3, fontSize: 12, fontFamily: FONT_BODY }}>{vinculoNutri ? vinculoNutri.nome ?? 'Conectada' : 'Conecte para plano profissional'}</p>
           </div>
-          {!vinculoNutri && <button className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 uppercase tracking-wider shrink-0">+ Conectar</button>}
-          {vinculoNutri && <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
+          {!vinculoNutri && <button style={{ fontSize: 10, color: C.t2, background: 'transparent', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '7px 12px', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', flexShrink: 0, fontFamily: FONT_BODY }}>+ Conectar</button>}
+          {vinculoNutri && <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.good, boxShadow: `0 0 8px ${alpha(C.good, 0.6)}`, flexShrink: 0 }} />}
         </div>
       </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </div>
   )
 }
 
+/* ─────────────────────────────────────────────
+   PÁGINA PRINCIPAL
+───────────────────────────────────────────── */
 export default function Nutricao() {
   const router = useRouter()
+  const isDesktop = useIsDesktop()
   const [carregando, setCarregando] = useState(true)
   const [userId, setUserId] = useState('')
   const [perfil, setPerfil] = useState<Perfil>({ nome: null, peso: null, objetivo: null })
@@ -730,39 +895,77 @@ Responda APENAS JSON válido:
   }
 
   if (mostrarQuiz) return <QuizIA tipo="nutricao" onConcluir={gerarPlanoNutricional} onCancelar={() => setMostrarQuiz(false)} />
-  if (carregando) return <main className="min-h-screen bg-[#0d1117] flex items-center justify-center"><div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /></main>
+  if (carregando) return (
+    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, border: `2px solid ${C.good}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </main>
+  )
+
+  const periodo = isManha ? { label: 'Manhã', cor: C.warn } : isTarde ? { label: 'Tarde', cor: C.sleep } : { label: 'Noite', cor: C.recovery }
+
+  const abaPlanoEl = <AbaPlano plano={planoAtivo} gerandoPlano={gerandoPlano} vinculoNutri={vinculoNutri} onIniciarConsulta={() => setMostrarQuiz(true)} isDesktop={isDesktop} />
+  const abaHojeEl = <AbaHoje perfil={perfil} scoreHoje={scoreHoje} treinouHoje={treinouHoje} planoAtivo={planoAtivo} vinculoNutri={vinculoNutri} userId={userId} registroId={registroId} setRegistroId={setRegistroId} qualidade={qualidade} setQualidade={setQualidade} calorias={calorias} setCalorias={setCalorias} proteina={proteina} setProteina={setProteina} coposAgua={coposAgua} setCoposAgua={setCoposAgua} observacoes={observacoes} setObservacoes={setObservacoes} jaRegistrou={jaRegistrou} setJaRegistrou={setJaRegistrou} />
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d1117] text-white flex flex-col">
-      <div className="shrink-0 px-4" style={{ paddingTop: 'max(3rem,calc(env(safe-area-inset-top)+1.5rem))', background: 'rgba(8,8,8,0.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-        <div className="max-w-md mx-auto">
-          <div className="flex items-start justify-between mb-4">
+    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0, display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{ flexShrink: 0, padding: '0 16px', paddingTop: isDesktop ? 36 : 'max(3rem,calc(env(safe-area-inset-top)+1.5rem))', background: 'rgba(13,14,20,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+        <div style={{ maxWidth: isDesktop ? 1100 : 448, margin: '0 auto', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>
-              <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">KORE</p>
-              <h1 className="text-[1.85rem] font-black tracking-tight text-white leading-none">Nutrição</h1>
-              <p className="text-zinc-600 text-[11px] mt-1 capitalize">{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
+              <p style={{ color: C.t3, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 2, fontFamily: FONT_BODY }}>KORE</p>
+              <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.03em', color: C.t1, lineHeight: 1, fontFamily: FONT_DISPLAY }}>Nutrição</h1>
+              <p style={{ color: C.t3, fontSize: 11, marginTop: 6, textTransform: 'capitalize', fontFamily: FONT_BODY }}>{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
-            <div className={`mt-1 px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider ${isManha ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' : isTarde ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-purple-500/10 border-purple-500/20 text-purple-400'}`}>
-              {isManha ? '☀️ Manhã' : isTarde ? '🌤 Tarde' : '🌙 Noite'}
+            <div style={{ marginTop: 4, padding: '7px 13px', borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FONT_BODY, color: periodo.cor, background: alpha(periodo.cor, 0.1), border: `1px solid ${alpha(periodo.cor, 0.25)}` }}>
+              {periodo.label}
             </div>
           </div>
-          <div className="flex gap-1 p-1 rounded-2xl mb-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            {([['plano', '📋 Meu Plano'], ['hoje', '📝 Hoje']] as const).map(([id, label]) => (
-              <button key={id} onClick={() => setAba(id)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 relative ${aba === id ? 'bg-white text-black' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                {label}
-                {id === 'hoje' && jaRegistrou && aba !== 'hoje' && <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, marginBottom: 16, background: 'rgba(255,255,255,0.04)' }}>
+            {([['plano', 'Meu Plano'], ['hoje', 'Hoje']] as const).map(([id, label]) => {
+              const active = aba === id
+              return (
+                <button key={id} onClick={() => setAba(id)}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', position: 'relative', transition: 'all .15s', border: 'none', fontFamily: FONT_BODY,
+                    background: active ? `linear-gradient(135deg, ${C.energy2}, ${C.energy})` : 'transparent',
+                    color: active ? '#fff' : C.t2,
+                    boxShadow: active ? `0 6px 20px ${alpha(C.energy, 0.3)}` : 'none' }}>
+                  {label}
+                  {id === 'hoje' && jaRegistrou && aba !== 'hoje' && <span style={{ position: 'absolute', top: 6, right: 8, width: 6, height: 6, borderRadius: '50%', background: C.good }} />}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto pb-24">
-        <div className="max-w-md mx-auto">
-          {aba === 'plano' && <AbaPlano plano={planoAtivo} gerandoPlano={gerandoPlano} vinculoNutri={vinculoNutri} onIniciarConsulta={() => setMostrarQuiz(true)} />}
-          {aba === 'hoje' && <AbaHoje perfil={perfil} scoreHoje={scoreHoje} treinouHoje={treinouHoje} planoAtivo={planoAtivo} vinculoNutri={vinculoNutri} userId={userId} registroId={registroId} setRegistroId={setRegistroId} qualidade={qualidade} setQualidade={setQualidade} calorias={calorias} setCalorias={setCalorias} proteina={proteina} setProteina={setProteina} coposAgua={coposAgua} setCoposAgua={setCoposAgua} observacoes={observacoes} setObservacoes={setObservacoes} jaRegistrou={jaRegistrou} setJaRegistrou={setJaRegistrou} />}
+
+      {/* Conteúdo */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isDesktop ? 48 : 96 }}>
+        <div style={{ maxWidth: isDesktop ? 1100 : 448, margin: '0 auto', width: '100%', padding: '16px', boxSizing: 'border-box' }}>
+          {isDesktop ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 18, alignItems: 'start' }}>
+              {aba === 'plano' ? (
+                <>
+                  <div>{abaPlanoEl}</div>
+                  <div>{abaHojeEl}</div>
+                </>
+              ) : (
+                <>
+                  <div>{abaHojeEl}</div>
+                  <div>{abaPlanoEl}</div>
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              {aba === 'plano' && abaPlanoEl}
+              {aba === 'hoje' && abaHojeEl}
+            </>
+          )}
         </div>
       </div>
+
       <NavBar tipo="cliente" ativa="nutri" />
     </main>
   )

@@ -6,19 +6,63 @@ import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
 import NavBar from '../components/NavBar'
 
+/* ─────────────────────────────────────────────────────────
+   DESIGN SYSTEM — Energetic Precision
+   ───────────────────────────────────────────────────────── */
+const C = {
+  energy: '#FF5A36', energy2: '#FF8A3D',
+  good: '#2DD4A7', sleep: '#60A5FA', recovery: '#A78BFA',
+  warn: '#F5B544', danger: '#FB7185',
+  t1: '#F5F6F8', t2: '#9AA0AD', t3: '#7A8290',
+}
+
+const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
+const FONT_BODY = "'Plus Jakarta Sans', system-ui, sans-serif"
+const FONT_MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+
+const glass: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.065)',
+  backdropFilter: 'blur(16px) saturate(130%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(130%)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 20,
+  boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
+}
+
+const dataNum = (color = C.t1): React.CSSProperties => ({ fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums', color })
+
+function useIsDesktop() {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    const c = () => setV(window.innerWidth >= 1024)
+    c(); window.addEventListener('resize', c)
+    return () => window.removeEventListener('resize', c)
+  }, [])
+  return v
+}
+
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
-const indicadores = [
-  { id: 'energia',       label: 'Energia',       descricao: 'Como está seu nível de energia hoje?',    icones: ['😴','😕','😐','😊','⚡'], labels: ['Esgotado','Baixa','Normal','Boa','Máxima'] },
-  { id: 'humor',         label: 'Humor',          descricao: 'Como está seu estado emocional?',         icones: ['😢','😔','😐','🙂','😁'], labels: ['Péssimo','Ruim','Normal','Bom','Ótimo'] },
-  { id: 'dor_muscular',  label: 'Dor muscular',   descricao: 'Sente dor ou fadiga nos músculos?',       icones: ['🔴','🟠','🟡','🟢','✅'], labels: ['Intensa','Alta','Moderada','Leve','Nenhuma'] },
-  { id: 'qualidade_sono',label: 'Sono',           descricao: 'Como foi o sono da noite anterior?',      icones: ['😫','😪','😐','😴','🌙'], labels: ['Péssimo','Ruim','Regular','Bom','Ótimo'] },
+type Indicador = {
+  id: string
+  label: string
+  descricao: string
+  labels: string[]
+  cor: string
+}
+
+const indicadores: Indicador[] = [
+  { id: 'energia',        label: 'Energia',       descricao: 'Como está seu nível de energia hoje?', labels: ['Esgotado', 'Baixa', 'Normal', 'Boa', 'Máxima'],     cor: C.energy },
+  { id: 'humor',          label: 'Humor',          descricao: 'Como está seu estado emocional?',       labels: ['Péssimo', 'Ruim', 'Normal', 'Bom', 'Ótimo'],        cor: C.good },
+  { id: 'dor_muscular',   label: 'Dor muscular',   descricao: 'Sente dor ou fadiga nos músculos?',     labels: ['Intensa', 'Alta', 'Moderada', 'Leve', 'Nenhuma'],   cor: C.danger },
+  { id: 'qualidade_sono', label: 'Sono',           descricao: 'Como foi o sono da noite anterior?',    labels: ['Péssimo', 'Ruim', 'Regular', 'Bom', 'Ótimo'],       cor: C.sleep },
 ]
 
 export default function BemEstar() {
   const router = useRouter()
+  const isDesktop = useIsDesktop()
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [jaRegistrou, setJaRegistrou] = useState(false)
@@ -54,7 +98,7 @@ export default function BemEstar() {
     if (!vals.length) return null
     return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
   }
-  function getCorMedia(m: number) { return m <= 2 ? 'text-red-400' : m === 3 ? 'text-yellow-400' : 'text-emerald-400' }
+  function getCorMedia(m: number) { return m <= 2 ? C.danger : m === 3 ? C.warn : C.good }
   function getLabelMedia(m: number) { return m <= 1 ? 'Dia difícil' : m === 2 ? 'Abaixo do normal' : m === 3 ? 'Normal' : m === 4 ? 'Bem disposto' : 'No seu melhor!' }
 
   async function handleSalvar() {
@@ -88,85 +132,189 @@ export default function BemEstar() {
   const total = getTotalPreenchido()
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: isDesktop ? 220 : 0 }}>
+      <div style={{ width: 32, height: 32, border: `2px solid ${C.recovery}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </main>
   )
 
   if (sucesso) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="text-6xl">✅</div>
-        <p className="text-white font-bold text-lg">Registrado!</p>
-        <p className="text-zinc-500 text-sm">Voltando ao dashboard...</p>
+    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: isDesktop ? 220 : 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <div style={{
+          width: 76, height: 76, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(167,139,250,0.14)', border: `1px solid ${C.recovery}`,
+          boxShadow: `0 0 40px rgba(167,139,250,0.45)`,
+        }}>
+          <span style={{ fontSize: 38, fontWeight: 800, color: C.recovery, fontFamily: FONT_DISPLAY }}>✓</span>
+        </div>
+        <p style={{ color: C.t1, fontWeight: 800, fontSize: 18, fontFamily: FONT_DISPLAY }}>Registrado!</p>
+        <p style={{ color: C.t3, fontSize: 13, fontFamily: FONT_BODY }}>Voltando ao dashboard...</p>
       </div>
     </main>
   )
 
-  return (
-    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
-      <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.push('/dashboard')} className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95">←</button>
-          <div>
-            <h1 className="text-xl font-black tracking-tight">Como estou hoje</h1>
-            <p className="text-zinc-500 text-xs">{jaRegistrou ? 'Atualizar registro de hoje' : 'Registro diário de bem-estar'}</p>
-          </div>
-        </div>
-
+  /* ── Resumo (já registrado) — mostra valores em cards glass coloridos ── */
+  function ResumoView() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Estado geral */}
         {media && (
-          <div className="rounded-2xl p-5 mb-6" style={{ background: 'var(--surface-1)' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Seu estado geral hoje</p>
-                <p className={`text-xl font-black ${getCorMedia(media)}`}>{getLabelMedia(media)}</p>
-              </div>
-              <div className="text-right">
-                <p className={`text-4xl font-black ${getCorMedia(media)}`}>{media}</p>
-                <p className="text-zinc-600 text-xs">de 5</p>
+          <div style={{ ...glass, padding: 24, borderColor: 'rgba(167,139,250,0.30)' }}>
+            <p style={{ color: C.recovery, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.28em', marginBottom: 10, fontFamily: FONT_BODY, fontWeight: 700 }}>Seu estado geral hoje</p>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: 26, fontWeight: 800, color: getCorMedia(media), fontFamily: FONT_DISPLAY, lineHeight: 1 }}>{getLabelMedia(media)}</p>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: 48, fontWeight: 800, fontFamily: FONT_DISPLAY, ...dataNum(getCorMedia(media)), lineHeight: 0.9 }}>{media}</p>
+                <p style={{ color: C.t3, fontSize: 12, fontFamily: FONT_BODY }}>de 5</p>
               </div>
             </div>
-            <div className="mt-3 h-1.5 bg-white/[0.09] rounded-full">
-              <div className={`h-1.5 rounded-full transition-all duration-500 ${media <= 2 ? 'bg-red-400' : media === 3 ? 'bg-yellow-400' : 'bg-emerald-400'}`} style={{ width: `${(media / 5) * 100}%` }} />
+            <div style={{ marginTop: 16, height: 6, background: 'rgba(255,255,255,0.09)', borderRadius: 999 }}>
+              <div style={{ height: 6, borderRadius: 999, transition: 'all .5s', width: `${(media / 5) * 100}%`, background: getCorMedia(media), boxShadow: `0 0 12px ${getCorMedia(media)}` }} />
             </div>
           </div>
         )}
 
-        <div className="space-y-5 mb-6">
-          {indicadores.map((ind) => (
-            <div key={ind.id} className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-white font-bold text-sm mb-0.5">{ind.label}</p>
-              <p className="text-zinc-500 text-xs mb-4">{ind.descricao}</p>
-              <div className="flex justify-between gap-1">
-                {[1,2,3,4,5].map((v) => (
-                  <button key={v} onClick={() => setValor(ind.id, v)}
-                    className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all active:scale-95 ${valores[ind.id] === v ? 'bg-white border-white' : 'bg-white/[0.07] border-white/[0.14] hover:border-white/20'}`}>
-                    <span className="text-xl">{ind.icones[v-1]}</span>
-                    <span className={`text-[9px] font-semibold leading-tight text-center ${valores[ind.id] === v ? 'text-black' : 'text-zinc-500'}`}>{ind.labels[v-1]}</span>
-                  </button>
-                ))}
+        {/* Cards coloridos por indicador */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {indicadores.map((ind) => {
+            const v = valores[ind.id]
+            return (
+              <div key={ind.id} style={{ ...glass, padding: 18, borderColor: `${ind.cor}55` }}>
+                <p style={{ color: ind.cor, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 10, fontFamily: FONT_BODY, fontWeight: 700 }}>{ind.label}</p>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+                  <p style={{ fontSize: 40, fontWeight: 800, fontFamily: FONT_DISPLAY, ...dataNum(ind.cor), lineHeight: 0.9 }}>{v}</p>
+                  <p style={{ color: C.t3, fontSize: 12, fontFamily: FONT_BODY, marginBottom: 4 }}>/5</p>
+                </div>
+                <p style={{ color: C.t2, fontSize: 13, fontFamily: FONT_BODY, fontWeight: 600, marginTop: 4 }}>{ind.labels[v - 1]}</p>
+                <div style={{ marginTop: 12, display: 'flex', gap: 4 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <div key={n} style={{ flex: 1, height: 4, borderRadius: 999, background: n <= v ? ind.cor : 'rgba(255,255,255,0.10)' }} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
-        <div className="mb-6">
-          <label className="text-zinc-400 text-[10px] uppercase tracking-widest mb-2 block">Observações <span className="text-zinc-600 normal-case">(opcional)</span></label>
-          <textarea placeholder="Algo específico que quer registrar?" value={notas} onChange={(e) => setNotas(e.target.value)} rows={3}
-            className="w-full bg-white/[0.07] text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/20 border border-white/[0.14] resize-none" />
-        </div>
-
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex gap-1">
-            {[0,1,2,3].map((i) => <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < total ? 'bg-white' : 'bg-white/[0.15]'}`} />)}
+        {notas && (
+          <div style={{ ...glass, padding: 20 }}>
+            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.24em', marginBottom: 8, fontFamily: FONT_BODY, fontWeight: 700 }}>Observações</p>
+            <p style={{ color: C.t1, fontSize: 14, fontFamily: FONT_BODY, lineHeight: 1.6 }}>{notas}</p>
           </div>
-          <p className="text-zinc-500 text-xs">{total} de 4 preenchidos</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0 }}>
+      <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 16px', paddingBottom: 120, paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+          <button onClick={() => router.push('/dashboard')} style={{
+            width: 40, height: 40, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: C.t2,
+            cursor: 'pointer', fontSize: 18, fontFamily: FONT_BODY, transition: 'all .15s',
+          }}>←</button>
+          <div>
+            <p style={{ color: C.recovery, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.3em', fontFamily: FONT_BODY, fontWeight: 700, marginBottom: 4 }}>Bem-estar</p>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: C.t1, fontFamily: FONT_DISPLAY, lineHeight: 1 }}>Como estou hoje</h1>
+            <p style={{ color: C.t3, fontSize: 12, fontFamily: FONT_BODY, marginTop: 4 }}>{jaRegistrou ? 'Atualizar registro de hoje' : 'Registro diário de bem-estar'}</p>
+          </div>
         </div>
 
-        {erro && <p className="text-red-400 text-sm text-center mb-4">{erro}</p>}
+        {jaRegistrou && <div style={{ marginBottom: 28 }}><ResumoView /></div>}
 
-        <button onClick={handleSalvar} disabled={salvando || total < 4}
-          className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-30 text-sm tracking-widest uppercase">
+        {/* Check-in — sliders por métrica */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+          {indicadores.map((ind) => {
+            const v = valores[ind.id]
+            return (
+              <div key={ind.id} style={{ ...glass, padding: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18 }}>
+                  <div>
+                    <p style={{ color: ind.cor, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: FONT_BODY, fontWeight: 800, marginBottom: 4 }}>{ind.label}</p>
+                    <p style={{ color: C.t3, fontSize: 12, fontFamily: FONT_BODY }}>{ind.descricao}</p>
+                  </div>
+                  <div style={{ textAlign: 'right', minWidth: 64 }}>
+                    <p style={{ fontSize: 40, fontWeight: 800, fontFamily: FONT_DISPLAY, ...dataNum(v ? ind.cor : C.t3), lineHeight: 0.9 }}>{v || '–'}</p>
+                  </div>
+                </div>
+
+                {/* Slider visual */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    const ativo = v === n
+                    const preenchido = v >= n
+                    return (
+                      <button key={n} onClick={() => setValor(ind.id, n)} style={{
+                        flex: 1, height: ativo ? 14 : 10, borderRadius: 999, cursor: 'pointer', border: 'none', padding: 0,
+                        background: preenchido ? ind.cor : 'rgba(255,255,255,0.10)',
+                        boxShadow: ativo ? `0 0 16px ${ind.cor}` : 'none',
+                        transition: 'all .18s', alignSelf: 'center',
+                      }} aria-label={`${ind.label} nível ${n}`} />
+                    )
+                  })}
+                </div>
+
+                {/* Label descritivo */}
+                <p style={{
+                  marginTop: 14, fontSize: 15, fontWeight: 700, fontFamily: FONT_DISPLAY,
+                  color: v ? ind.cor : C.t3, transition: 'color .18s',
+                }}>{v ? ind.labels[v - 1] : 'Toque para avaliar'}</p>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Observações */}
+        <div style={{ ...glass, padding: 22, marginBottom: 24 }}>
+          <label style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.24em', marginBottom: 12, display: 'block', fontFamily: FONT_BODY, fontWeight: 700 }}>
+            Observações <span style={{ textTransform: 'none', color: C.t3, opacity: 0.7 }}>(opcional)</span>
+          </label>
+          <textarea
+            placeholder="Algo específico que quer registrar?"
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={3}
+            style={{
+              width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
+              borderRadius: 14, padding: '14px 16px', color: C.t1, fontSize: 14, fontFamily: FONT_BODY,
+              outline: 'none', resize: 'none', boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        {/* Progresso */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} style={{
+                width: 8, height: 8, borderRadius: '50%', transition: 'all .2s',
+                background: i < total ? C.recovery : 'rgba(255,255,255,0.15)',
+                boxShadow: i < total ? `0 0 10px ${C.recovery}` : 'none',
+              }} />
+            ))}
+          </div>
+          <p style={{ color: C.t3, fontSize: 12, fontFamily: FONT_BODY }}>{total} de 4 preenchidos</p>
+        </div>
+
+        {erro && <p style={{ color: C.danger, fontSize: 14, textAlign: 'center', marginBottom: 18, fontFamily: FONT_BODY }}>{erro}</p>}
+
+        {/* Botão salvar — roxo com glow */}
+        <button
+          onClick={handleSalvar}
+          disabled={salvando || total < 4}
+          style={{
+            width: '100%', padding: '18px 0', borderRadius: 18, border: 'none', cursor: salvando || total < 4 ? 'not-allowed' : 'pointer',
+            fontSize: 15, fontWeight: 800, fontFamily: FONT_DISPLAY, letterSpacing: '0.06em', color: '#fff',
+            background: total < 4 ? 'rgba(167,139,250,0.25)' : `linear-gradient(135deg, ${C.recovery}, #8B6FE8)`,
+            boxShadow: total < 4 ? 'none' : `0 8px 32px rgba(167,139,250,0.45), inset 0 1px 0 rgba(255,255,255,0.25)`,
+            opacity: salvando ? 0.6 : 1, transition: 'all .2s',
+          }}
+        >
           {salvando ? 'Salvando...' : jaRegistrou ? 'Atualizar registro' : 'Registrar bem-estar'}
         </button>
       </div>

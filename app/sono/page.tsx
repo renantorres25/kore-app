@@ -6,6 +6,37 @@ import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
 import NavBar from '../components/NavBar'
 
+/* ── Design System: Energetic Precision ──────────────────────── */
+const C = {
+  energy: '#FF5A36', energy2: '#FF8A3D',
+  good: '#2DD4A7', sleep: '#60A5FA', recovery: '#A78BFA',
+  warn: '#F5B544', danger: '#FB7185',
+  t1: '#F5F6F8', t2: '#9AA0AD', t3: '#7A8290',
+}
+const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
+const FONT_BODY = "'Plus Jakarta Sans', system-ui, sans-serif"
+const FONT_MONO = "ui-monospace, 'SF Mono', Menlo, monospace"
+
+const glassCard: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.065)',
+  backdropFilter: 'blur(16px) saturate(130%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(130%)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 20,
+  boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
+}
+
+function useIsDesktop() {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    const c = () => setV(window.innerWidth >= 1024)
+    c()
+    window.addEventListener('resize', c)
+    return () => window.removeEventListener('resize', c)
+  }, [])
+  return v
+}
+
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
@@ -70,16 +101,22 @@ function getScoreRecuperacao(sono: DadosSono, bemEstar: DadosBemEstar | null) {
 function HrvAjuda() {
   const [aberto, setAberto] = useState(false)
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       <button type="button" onClick={() => setAberto(!aberto)}
-        className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors underline underline-offset-2">
+        style={{
+          fontFamily: FONT_BODY, fontSize: 10, color: C.t3, background: 'none',
+          border: 'none', cursor: 'pointer', textDecoration: 'underline',
+          textUnderlineOffset: 2, padding: 0,
+        }}>
         Onde encontro?
       </button>
       {aberto && (
-        <div className="absolute right-0 bottom-6 z-10 w-64 rounded-2xl border border-white/[0.1] p-4 shadow-2xl"
-          style={{ background: '#1c1c1c' }}>
-          <p className="text-zinc-400 text-[10px] uppercase tracking-wider mb-3">Como encontrar o HRV</p>
-          <div className="space-y-2.5">
+        <div style={{
+          position: 'absolute', right: 0, bottom: 26, zIndex: 10, width: 256,
+          ...glassCard, borderRadius: 16, padding: 16,
+        }}>
+          <p style={{ fontFamily: FONT_BODY, color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>Como encontrar o HRV</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
               { device: 'Apple Watch', path: 'Saúde → Frequência Cardíaca → Variabilidade da FC' },
               { device: 'Garmin',      path: 'Garmin Connect → Saúde → HRV' },
@@ -88,14 +125,14 @@ function HrvAjuda() {
               { device: 'Fitbit',      path: 'App Fitbit → Hoje → Frequência Cardíaca' },
             ].map((d, i) => (
               <div key={i}>
-                <p className="text-white text-[11px] font-semibold">{d.device}</p>
-                <p className="text-zinc-600 text-[10px] leading-relaxed">{d.path}</p>
+                <p style={{ fontFamily: FONT_BODY, color: C.t1, fontSize: 11, fontWeight: 600 }}>{d.device}</p>
+                <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 10, lineHeight: 1.5 }}>{d.path}</p>
               </div>
             ))}
           </div>
           <button type="button" onClick={() => setAberto(false)}
-            className="mt-3 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">
-            Fechar ✕
+            style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 10, color: C.t3, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            Fechar
           </button>
         </div>
       )}
@@ -104,14 +141,66 @@ function HrvAjuda() {
 }
 
 function getCorScore(score: number) {
-  if (score >= 80) return { cor: 'text-emerald-400', bg: 'bg-emerald-400', border: 'border-emerald-400/20', label: 'Excelente recuperação' }
-  if (score >= 60) return { cor: 'text-yellow-400',  bg: 'bg-yellow-400',  border: 'border-yellow-400/20',  label: 'Boa recuperação' }
-  if (score >= 40) return { cor: 'text-orange-400',  bg: 'bg-orange-400',  border: 'border-orange-400/20',  label: 'Recuperação regular' }
-  return              { cor: 'text-red-400',     bg: 'bg-red-400',     border: 'border-red-400/20',     label: 'Recuperação baixa' }
+  if (score >= 80) return { cor: C.good, label: 'Excelente recuperação' }
+  if (score >= 60) return { cor: C.warn, label: 'Boa recuperação' }
+  if (score >= 40) return { cor: C.energy2, label: 'Recuperação regular' }
+  return { cor: C.danger, label: 'Recuperação baixa' }
+}
+
+/* ── Anel SVG animado (azul) ─────────────────────────────────── */
+function ScoreRing({ score, cor, size = 168 }: { score: number; cor: string; size?: number }) {
+  const stroke = 12
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const [offset, setOffset] = useState(c)
+  useEffect(() => {
+    const t = setTimeout(() => setOffset(c - (score / 100) * c), 120)
+    return () => clearTimeout(t)
+  }, [score, c])
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+      <defs>
+        <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={C.sleep} />
+          <stop offset="100%" stopColor={C.recovery} />
+        </linearGradient>
+      </defs>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#ringGrad)" strokeWidth={stroke}
+        strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset}
+        style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)' }} />
+    </svg>
+  )
+}
+
+/* ── Reusable bits ───────────────────────────────────────────── */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p style={{ fontFamily: FONT_BODY, color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{children}</p>
+}
+
+function inputStyle(focused: boolean): React.CSSProperties {
+  return {
+    width: '100%', boxSizing: 'border-box',
+    background: 'rgba(255,255,255,0.05)',
+    border: `1px solid ${focused ? C.sleep : 'rgba(255,255,255,0.12)'}`,
+    color: C.t1, borderRadius: 12, padding: '12px 16px',
+    fontFamily: FONT_MONO, fontSize: 14, outline: 'none',
+    transition: 'border-color 150ms ease',
+    boxShadow: focused ? `0 0 0 3px rgba(96,165,250,0.15)` : 'none',
+  }
+}
+
+function GlassInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <input {...props} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+      style={{ ...inputStyle(focused), ...(props.style || {}) }} />
+  )
 }
 
 export default function Sono() {
   const router = useRouter()
+  const isDesktop = useIsDesktop()
   const [carregando, setCarregando] = useState(true)
   const [analisando, setAnalisando] = useState(false)
   const [userId, setUserId] = useState('')
@@ -230,321 +319,466 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
   const duracaoRef = sono.duracao_minutos ?? totalEstagio
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: '50%',
+        border: `3px solid rgba(96,165,250,0.2)`, borderTopColor: C.sleep,
+        animation: 'koreSpin 0.8s linear infinite',
+      }} />
+      <style>{`@keyframes koreSpin { to { transform: rotate(360deg) } }`}</style>
     </main>
   )
 
-  return (
-    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
-      <div className="max-w-md mx-auto px-4 pb-28" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+  /* ── Sub-blocos reutilizáveis ─────────────────────────────── */
 
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/dashboard')} className="w-9 h-9 rounded-xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95">←</button>
-            <div>
-              <h1 className="text-xl font-black tracking-tight">Sono & Recuperação</h1>
-              <p className="text-zinc-500 text-xs capitalize">{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
-            </div>
+  const scoreCard = temDadosSono && score && !editando ? (
+    <div style={{
+      ...glassCard, padding: 28, position: 'relative', overflow: 'hidden',
+      border: `1px solid rgba(96,165,250,0.28)`,
+      boxShadow: `${glassCard.boxShadow}, 0 0 50px rgba(96,165,250,0.18)`,
+    }}>
+      <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: C.sleep, filter: 'blur(80px)', opacity: 0.18 }} />
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <p style={{ fontFamily: FONT_BODY, color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 20 }}>Score de recuperação</p>
+        <div style={{ position: 'relative', width: 168, height: 168, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ScoreRing score={score} cor={C.sleep} />
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 52, fontWeight: 800, lineHeight: 1, color: C.t1, letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>{score}</span>
+            <span style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 13 }}>/ 100</span>
           </div>
-          {temDadosSono && (
-            <button onClick={() => setEditando(!editando)} className="text-[10px] text-zinc-400 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white transition-all uppercase tracking-wider active:scale-95">
-              {editando ? 'Cancelar' : 'Editar'}
-            </button>
-          )}
         </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, marginTop: 18, color: C.sleep }}>{corScore?.label}</p>
+      </div>
+    </div>
+  ) : null
 
-        {temDadosSono && score && !editando && (
-          <div className={`rounded-3xl p-6 mb-4 border ${corScore?.border} relative overflow-hidden`} style={{ background: 'linear-gradient(145deg, #111 0%, #0d0d0d 100%)' }}>
-            <div className={`absolute -top-12 -right-12 w-56 h-56 rounded-full blur-3xl opacity-10 ${corScore?.bg}`} />
-            <div className="relative">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.22em] mb-3">Score de recuperação</p>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className={`text-[5rem] font-black leading-none ${corScore?.cor}`} style={{ letterSpacing: '-0.04em' }}>{score}</span>
-                <span className="text-zinc-600 text-xl font-light">/100</span>
-              </div>
-              <p className={`text-sm font-bold mb-4 ${corScore?.cor}`}>{corScore?.label}</p>
-              <div className="h-[3px] bg-white/[0.05] rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${corScore?.bg} transition-all duration-700`} style={{ width: `${score}%` }} />
-              </div>
-            </div>
+  const dadosNoiteCard = temDadosSono && !editando ? (
+    <div style={{ ...glassCard, overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <SectionLabel>Dados da noite</SectionLabel>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+        {[
+          { label: 'Duração', val: formatarDuracao(sono.duracao_minutos) },
+          { label: 'Qualidade', val: sono.qualidade ? `${sono.qualidade}/5` : '—' },
+          { label: 'FC Repouso', val: sono.fc_repouso ? `${sono.fc_repouso} bpm` : '—' },
+          { label: 'HRV', val: sono.hrv ? `${sono.hrv} ms` : '—' },
+        ].map((d, i) => (
+          <div key={i} style={{
+            padding: 16,
+            borderRight: i % 2 === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+            borderTop: i >= 2 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+          }}>
+            <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>{d.label}</p>
+            <p style={{ fontFamily: FONT_DISPLAY, color: C.t1, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{d.val}</p>
+          </div>
+        ))}
+        {sono.spo2 && (
+          <div style={{ padding: 16, gridColumn: '1 / -1', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>SpO2</p>
+            <p style={{ fontFamily: FONT_DISPLAY, color: C.t1, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{sono.spo2}%</p>
           </div>
         )}
+      </div>
+    </div>
+  ) : null
 
-        {temDadosSono && !editando && (
-          <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-            <div className="px-5 py-4 border-b border-white/[0.14]">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Dados da noite</p>
-            </div>
-            <div className="grid grid-cols-2 divide-x divide-y divide-white/[0.05]">
-              <div className="p-4"><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">Duração</p><p className="text-white text-xl font-black">{formatarDuracao(sono.duracao_minutos)}</p></div>
-              <div className="p-4"><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">Qualidade</p><p className="text-white text-xl font-black">{sono.qualidade ? `${sono.qualidade}/5` : '—'}</p></div>
-              <div className="p-4"><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">FC Repouso</p><p className="text-white text-xl font-black">{sono.fc_repouso ? `${sono.fc_repouso} bpm` : '—'}</p></div>
-              <div className="p-4"><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">HRV</p><p className="text-white text-xl font-black">{sono.hrv ? `${sono.hrv} ms` : '—'}</p></div>
-              {sono.spo2 && <div className="p-4 col-span-2"><p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-1">SpO2</p><p className="text-white text-xl font-black">{sono.spo2}%</p></div>}
-            </div>
+  const estagiosCard = temDadosSono && !editando && (sono.sono_leve || sono.sono_profundo || sono.sono_rem) ? (
+    <div style={{ ...glassCard, overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <SectionLabel>Estágios do sono</SectionLabel>
+      </div>
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {duracaoRef > 0 && (
+          <div style={{ height: 24, borderRadius: 12, overflow: 'hidden', display: 'flex', gap: 2, marginBottom: 8 }}>
+            {sono.sono_leve && <div style={{ width: `${(sono.sono_leve / duracaoRef) * 100}%`, background: C.sleep, opacity: 0.55, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 }} />}
+            {sono.sono_profundo && <div style={{ width: `${(sono.sono_profundo / duracaoRef) * 100}%`, background: C.sleep }} />}
+            {sono.sono_rem && <div style={{ width: `${(sono.sono_rem / duracaoRef) * 100}%`, background: C.recovery, opacity: 0.85, borderTopRightRadius: 12, borderBottomRightRadius: 12 }} />}
           </div>
         )}
-
-        {temDadosSono && !editando && (sono.sono_leve || sono.sono_profundo || sono.sono_rem) && (
-          <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-            <div className="px-5 py-4 border-b border-white/[0.14]">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Estágios do sono</p>
+        {[
+          { label: 'Sono leve', val: sono.sono_leve, cor: C.sleep, op: 0.55, ideal: '50–60%', desc: 'Transição e processamento' },
+          { label: 'Sono profundo', val: sono.sono_profundo, cor: C.sleep, op: 1, ideal: '15–25%', desc: 'Recuperação muscular e imunidade' },
+          { label: 'REM', val: sono.sono_rem, cor: C.recovery, op: 0.85, ideal: '20–25%', desc: 'Memória, aprendizado e emoções' },
+        ].map((estagio, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, flexShrink: 0, background: estagio.cor, opacity: estagio.op }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: FONT_BODY, color: C.t1, fontSize: 14, fontWeight: 600 }}>{estagio.label}</p>
+              <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 10 }}>{estagio.desc} · ideal {estagio.ideal}</p>
             </div>
-            <div className="p-5 space-y-3">
-              {duracaoRef > 0 && (
-                <div className="h-6 rounded-xl overflow-hidden flex gap-0.5 mb-4">
-                  {sono.sono_leve && <div className="rounded-l-xl" style={{ width: `${(sono.sono_leve / duracaoRef) * 100}%`, background: '#6366f1', opacity: 0.7 }} />}
-                  {sono.sono_profundo && <div style={{ width: `${(sono.sono_profundo / duracaoRef) * 100}%`, background: '#1d4ed8', opacity: 0.9 }} />}
-                  {sono.sono_rem && <div className="rounded-r-xl" style={{ width: `${(sono.sono_rem / duracaoRef) * 100}%`, background: '#7c3aed', opacity: 0.8 }} />}
-                </div>
-              )}
-              {[
-                { label: 'Sono leve', val: sono.sono_leve, cor: '#6366f1', ideal: '50–60%', desc: 'Transição e processamento' },
-                { label: 'Sono profundo', val: sono.sono_profundo, cor: '#1d4ed8', ideal: '15–25%', desc: 'Recuperação muscular e imunidade' },
-                { label: 'REM', val: sono.sono_rem, cor: '#7c3aed', ideal: '20–25%', desc: 'Memória, aprendizado e emoções' },
-              ].map((estagio, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-sm shrink-0" style={{ background: estagio.cor }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold">{estagio.label}</p>
-                    <p className="text-zinc-600 text-[10px]">{estagio.desc} · ideal {estagio.ideal}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-white text-sm font-bold">{formatarDuracao(estagio.val)}</p>
-                    {estagio.val && duracaoRef > 0 && <p className="text-zinc-600 text-[10px]">{Math.round((estagio.val / duracaoRef) * 100)}%</p>}
-                  </div>
-                </div>
-              ))}
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <p style={{ fontFamily: FONT_MONO, color: C.t1, fontSize: 14, fontWeight: 700 }}>{formatarDuracao(estagio.val)}</p>
+              {estagio.val && duracaoRef > 0 && <p style={{ fontFamily: FONT_MONO, color: C.t3, fontSize: 10 }}>{Math.round((estagio.val / duracaoRef) * 100)}%</p>}
             </div>
           </div>
-        )}
+        ))}
+      </div>
+    </div>
+  ) : null
 
-        {bemEstar && !editando && (
-          <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-            <div className="px-5 py-4 border-b border-white/[0.14]">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Cruzamento com bem-estar</p>
+  const bemEstarCard = bemEstar && !editando ? (
+    <div style={{ ...glassCard, overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <SectionLabel>Cruzamento com bem-estar</SectionLabel>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
+        {[
+          { label: 'Energia', valor: bemEstar.energia },
+          { label: 'Humor', valor: bemEstar.humor },
+          { label: 'Dor musc.', valor: 6 - bemEstar.dor_muscular },
+        ].map((item, i) => (
+          <div key={item.label} style={{ padding: 16, textAlign: 'center', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+            <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>{item.label}</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 3, marginBottom: 6 }}>
+              {[1, 2, 3, 4, 5].map((n) => <div key={n} style={{ width: 8, height: 8, borderRadius: '50%', background: n <= item.valor ? C.recovery : 'rgba(255,255,255,0.10)' }} />)}
             </div>
-            <div className="grid grid-cols-3 divide-x divide-white/[0.05]">
-              {[
-                { label: 'Energia', valor: bemEstar.energia },
-                { label: 'Humor', valor: bemEstar.humor },
-                { label: 'Dor musc.', valor: 6 - bemEstar.dor_muscular },
-              ].map((item) => (
-                <div key={item.label} className="p-4 text-center">
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-widest mb-2">{item.label}</p>
-                  <div className="flex justify-center gap-0.5 mb-1">
-                    {[1,2,3,4,5].map((i) => <div key={i} className={`w-2 h-2 rounded-full ${i <= item.valor ? 'bg-emerald-400' : 'bg-white/[0.08]'}`} />)}
-                  </div>
-                  <p className="text-white text-sm font-bold">{item.valor}/5</p>
-                </div>
-              ))}
-            </div>
+            <p style={{ fontFamily: FONT_MONO, color: C.t1, fontSize: 14, fontWeight: 700 }}>{item.valor}/5</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null
+
+  const iaCard = temDadosSono && !editando ? (
+    <div style={{ ...glassCard, overflow: 'hidden', border: `1px solid rgba(167,139,250,0.25)` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 10, background: 'rgba(167,139,250,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: C.recovery }}>✦</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontFamily: FONT_BODY, color: C.recovery, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em' }}>Análise da IA</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 10 }}>Sono, bem-estar e perfil · Powered by Claude</p>
+        </div>
+        {analisando && <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid rgba(167,139,250,0.25)`, borderTopColor: C.recovery, animation: 'koreSpin 0.8s linear infinite', flexShrink: 0 }} />}
+      </div>
+      <div style={{ padding: '16px 20px' }}>
+        {analisando && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[1, 0.8, 0.6].map((w, i) => <div key={i} style={{ height: 12, background: 'rgba(255,255,255,0.09)', borderRadius: 999, width: `${w * 100}%`, animation: 'korePulse 1.4s ease-in-out infinite' }} />)}
           </div>
         )}
-
-        {temDadosSono && !editando && (
-          <div className="rounded-2xl border border-emerald-500/20 mb-4 overflow-hidden" style={{ background: 'linear-gradient(145deg, #131b2e 0%, #141414 100%)' }}>
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.14]">
-              <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <span className="text-[11px] font-black text-emerald-400">✦</span>
-              </div>
-              <div className="flex-1">
-                <p className="text-emerald-400 text-[10px] uppercase tracking-[0.2em]">Análise da IA</p>
-                <p className="text-zinc-600 text-[10px]">Sono, bem-estar e perfil · Powered by Claude</p>
-              </div>
-              {analisando && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin shrink-0" />}
-            </div>
-            <div className="px-5 py-4">
-              {analisando && <div className="space-y-2">{[1, 0.8, 0.6].map((w, i) => <div key={i} className="h-3 bg-white/[0.09] rounded-full animate-pulse" style={{ width: `${w * 100}%` }} />)}</div>}
-              {analiseIA && !analisando && (
-                <>
-                  <p className="text-zinc-300 text-sm leading-relaxed">{analiseIA}</p>
-                  <button onClick={gerarAnaliseIA} className="mt-4 text-[10px] text-zinc-600 underline underline-offset-4 hover:text-zinc-400 transition-all">Gerar nova análise</button>
-                </>
-              )}
-              {!analiseIA && !analisando && (
-                <div className="flex flex-col items-center py-4 gap-3">
-                  <p className="text-zinc-600 text-sm text-center">A IA vai cruzar seus dados de sono, estágios, bem-estar e perfil para uma análise personalizada.</p>
-                  <button onClick={gerarAnaliseIA} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold py-3 rounded-xl text-sm active:scale-95 hover:bg-emerald-500/20 transition-all">✦ Gerar análise</button>
-                </div>
-              )}
-            </div>
+        {analiseIA && !analisando && (
+          <>
+            <p style={{ fontFamily: FONT_BODY, color: '#D6DAE2', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{analiseIA}</p>
+            <button onClick={gerarAnaliseIA} style={{ marginTop: 16, fontFamily: FONT_BODY, fontSize: 10, color: C.t3, textDecoration: 'underline', textUnderlineOffset: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Gerar nova análise</button>
+          </>
+        )}
+        {!analiseIA && !analisando && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', gap: 12 }}>
+            <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 14, textAlign: 'center', lineHeight: 1.5 }}>A IA vai cruzar seus dados de sono, estágios, bem-estar e perfil para uma análise personalizada.</p>
+            <button onClick={gerarAnaliseIA} style={{
+              width: '100%', background: 'rgba(167,139,250,0.12)', border: `1px solid rgba(167,139,250,0.32)`,
+              color: C.recovery, fontFamily: FONT_BODY, fontWeight: 700, padding: '12px', borderRadius: 12, fontSize: 14, cursor: 'pointer',
+            }}>✦ Gerar análise</button>
           </div>
         )}
+      </div>
+    </div>
+  ) : null
 
-        {historico.length > 0 && !editando && (
-          <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.14]">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">Últimos 7 dias</p>
-              <p className="text-zinc-700 text-[10px]">score de recuperação</p>
-            </div>
-            <div className="px-5 pt-4 pb-3">
-              {(() => {
-                const sorted = historico.slice().reverse()
-                const W = 300, H = 72, padX = 6, padY = 8
-                const items = sorted.map((d, i) => {
-                  const score = d.score_recuperacao ?? (d.qualidade ? Math.round((d.qualidade / 5) * 100) : null)
-                  const x = padX + (sorted.length > 1 ? (i / (sorted.length - 1)) : 0.5) * (W - 2 * padX)
-                  const y = score != null ? H - padY - (score / 100) * (H - 2 * padY) : null
-                  return { d, score, x, y }
-                })
-                const valid = items.filter(it => it.y != null) as { d: any; score: number; x: number; y: number }[]
-                if (!valid.length) return null
-                const line = valid.map((it, i) => `${i === 0 ? 'M' : 'L'}${it.x.toFixed(1)},${it.y.toFixed(1)}`).join(' ')
-                const area = `${line} L${valid[valid.length-1].x.toFixed(1)},${H} L${valid[0].x.toFixed(1)},${H} Z`
-                const dotColor = (s: number) => s >= 80 ? '#34d399' : s >= 60 ? '#facc15' : s >= 40 ? '#fb923c' : '#f87171'
-                return (
-                  <div>
-                    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
-                      <defs>
-                        <linearGradient id="sonoAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#34d399" stopOpacity="0.2" />
-                          <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
-                        </linearGradient>
-                      </defs>
-                      <path d={area} fill="url(#sonoAreaGrad)" />
-                      <path d={line} fill="none" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
-                      {valid.map((it, i) => (
-                        <circle key={i} cx={it.x} cy={it.y} r="3" fill={dotColor(it.score)} />
-                      ))}
-                    </svg>
-                    <div className="flex justify-between mt-2">
-                      {sorted.map((d, i) => (
-                        <span key={i} className="text-[8px] text-zinc-700 uppercase">
-                          {new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').slice(0, 3)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-        )}
-
-        {editando && (
-          <div className="space-y-4">
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Duração do sono</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-zinc-600 text-xs mb-1.5 block">Horas</label>
-                  <input type="number" placeholder="8" value={horasSono} onChange={e => setHorasSono(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
-                </div>
-                <div>
-                  <label className="text-zinc-600 text-xs mb-1.5 block">Minutos</label>
-                  <input type="number" placeholder="30" value={minutosSono} onChange={e => setMinutosSono(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] mb-4">Qualidade do sono</p>
-              <div className="flex gap-2">
-                {[{v:1,emoji:'😫',label:'Péssimo'},{v:2,emoji:'😪',label:'Ruim'},{v:3,emoji:'😐',label:'Regular'},{v:4,emoji:'😴',label:'Bom'},{v:5,emoji:'🌙',label:'Ótimo'}].map((q) => (
-                  <button key={q.v} onClick={() => setQualidade(q.v)}
-                    className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-all active:scale-95 ${qualidade === q.v ? 'bg-white border-white' : 'bg-white/[0.05] border-white/[0.14]'}`}>
-                    <span className="text-xl">{q.emoji}</span>
-                    <span className={`text-[9px] mt-1 font-semibold ${qualidade === q.v ? 'text-black' : 'text-zinc-600'}`}>{q.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-indigo-500/20 p-5" style={{ background: 'var(--surface-1)' }}>
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-indigo-400 text-[10px] uppercase tracking-[0.15em]">🌙 Estágios do sono</p>
-                <span className="text-[9px] text-indigo-400/60 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider">Opcional</span>
-              </div>
-              <p className="text-zinc-600 text-xs mb-4 leading-relaxed">Dados do seu wearable (Garmin, Apple Watch, Whoop...). Quanto mais info, mais precisa a análise da IA.</p>
-              <div className="space-y-3">
-                {[
-                  { label: 'Sono leve', placeholder: 'Ex: 240', val: sonoLeve, set: setSonoLeve, cor: '#6366f1', desc: 'Fase 1 e 2 — transição e processamento leve' },
-                  { label: 'Sono profundo', placeholder: 'Ex: 90', val: sonoProfundo, set: setSonoProfundo, cor: '#1d4ed8', desc: 'Fase 3 — recuperação muscular e imunidade' },
-                  { label: 'REM', placeholder: 'Ex: 100', val: sonoRem, set: setSonoRem, cor: '#7c3aed', desc: 'Sonhos, memória e processamento emocional' },
-                ].map((estagio, i) => (
-                  <div key={i}>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: estagio.cor }} />
-                      <label className="text-zinc-400 text-xs font-semibold">{estagio.label}</label>
-                      {estagio.val && <span className="text-zinc-600 text-[10px] ml-auto">{formatarDuracao(parseInt(estagio.val))}</span>}
-                    </div>
-                    <p className="text-zinc-700 text-[10px] mb-1.5">{estagio.desc}</p>
-                    <div className="flex items-center gap-2">
-                      <input type="number" placeholder={estagio.placeholder} value={estagio.val}
-                        onChange={e => estagio.set(e.target.value)}
-                        className="flex-1 bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/30 transition-colors" />
-                      <span className="text-zinc-600 text-xs shrink-0">min</span>
-                    </div>
-                  </div>
-                ))}
-                {(sonoLeve || sonoProfundo || sonoRem) && (() => {
-                  const l = parseInt(sonoLeve || '0')
-                  const p = parseInt(sonoProfundo || '0')
-                  const r = parseInt(sonoRem || '0')
-                  const total = l + p + r
-                  if (total === 0) return null
+  const historicoCard = historico.length > 0 && !editando ? (
+    <div style={{ ...glassCard, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <SectionLabel>Últimos 7 dias</SectionLabel>
+        <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 10 }}>score de recuperação</p>
+      </div>
+      <div style={{ padding: '16px 20px 12px' }}>
+        {(() => {
+          const sorted = historico.slice().reverse()
+          const W = 300, H = 80, padX = 10, padY = 10
+          const items = sorted.map((d, i) => {
+            const sc = d.score_recuperacao ?? (d.qualidade ? Math.round((d.qualidade / 5) * 100) : null)
+            const max = sorted.length > 1 ? (i / (sorted.length - 1)) : 0.5
+            const barW = (W - 2 * padX) / sorted.length - 6
+            const x = padX + max * (W - 2 * padX - barW)
+            const h = sc != null ? (sc / 100) * (H - 2 * padY) : 0
+            return { d, sc, x, barW, h }
+          })
+          const hasData = items.some(it => it.sc != null)
+          if (!hasData) return null
+          const barColor = (s: number | null) => {
+            if (s == null) return 'rgba(255,255,255,0.06)'
+            return s >= 60 ? C.sleep : s >= 40 ? C.recovery : C.danger
+          }
+          return (
+            <div>
+              <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H }}>
+                <defs>
+                  <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.sleep} stopOpacity="0.95" />
+                    <stop offset="100%" stopColor={C.sleep} stopOpacity="0.45" />
+                  </linearGradient>
+                </defs>
+                {items.map((it, i) => {
+                  const fill = it.sc != null && it.sc >= 60 ? 'url(#barGrad)' : barColor(it.sc)
                   return (
-                    <div className="mt-3">
-                      <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Distribuição</p>
-                      <div className="h-4 rounded-lg overflow-hidden flex gap-0.5">
-                        {l > 0 && <div className="rounded-l-lg" style={{ width: `${(l/total)*100}%`, background: '#6366f1', opacity: 0.7 }} />}
-                        {p > 0 && <div style={{ width: `${(p/total)*100}%`, background: '#1d4ed8' }} />}
-                        {r > 0 && <div className="rounded-r-lg" style={{ width: `${(r/total)*100}%`, background: '#7c3aed', opacity: 0.85 }} />}
-                      </div>
-                      <div className="flex gap-3 mt-1.5">
-                        {l > 0 && <span className="text-[9px]" style={{ color: '#6366f1' }}>Leve {Math.round((l/total)*100)}%</span>}
-                        {p > 0 && <span className="text-[9px]" style={{ color: '#1d4ed8' }}>Profundo {Math.round((p/total)*100)}%</span>}
-                        {r > 0 && <span className="text-[9px]" style={{ color: '#7c3aed' }}>REM {Math.round((r/total)*100)}%</span>}
-                      </div>
-                    </div>
+                    <g key={i}>
+                      <rect x={it.x} y={H - padY - (H - 2 * padY)} width={it.barW} height={H - 2 * padY} rx={5} fill="rgba(255,255,255,0.04)" />
+                      {it.sc != null && (
+                        <rect x={it.x} y={H - padY - it.h} width={it.barW} height={it.h} rx={5} fill={fill} />
+                      )}
+                    </g>
                   )
-                })()}
+                })}
+              </svg>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                {sorted.map((d, i) => (
+                  <span key={i} style={{ fontFamily: FONT_BODY, fontSize: 8, color: C.t3, textTransform: 'uppercase', flex: 1, textAlign: 'center' }}>
+                    {new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').slice(0, 3)}
+                  </span>
+                ))}
               </div>
             </div>
+          )
+        })()}
+      </div>
+    </div>
+  ) : null
 
-            <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em]">⌚ Dados do wearable</p>
-                <span className="text-[9px] text-zinc-600 border border-white/[0.14] rounded-full px-2 py-0.5 uppercase tracking-wider">Opcional</span>
-              </div>
-              <p className="text-zinc-600 text-xs mb-4">FC, HRV e SpO2 melhoram muito a precisão do score.</p>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-zinc-600 text-xs mb-1.5 block">FC em repouso (bpm)</label>
-                  <input type="number" placeholder="Ex: 55" value={fcRepouso} onChange={e => setFcRepouso(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-zinc-600 text-xs">HRV (ms) — variabilidade cardíaca</label>
-                    <HrvAjuda />
-                  </div>
-                  <input type="number" placeholder="Ex: 65" value={hrv} onChange={e => setHrv(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
-                </div>
-                <div>
-                  <label className="text-zinc-600 text-xs mb-1.5 block">SpO2 (%) — saturação de oxigênio</label>
-                  <input type="number" placeholder="Ex: 97" value={spo2} onChange={e => setSpo2(e.target.value)} className="w-full bg-white/[0.07] border border-white/[0.14] text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors" />
-                </div>
-              </div>
-            </div>
+  const wearableCta = !editando ? (
+    <div style={{ ...glassCard, padding: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 12, background: 'rgba(96,165,250,0.12)', border: `1px solid rgba(96,165,250,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.sleep} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="6" width="12" height="12" rx="3" /><path d="M9 6V3h6v3M9 18v3h6v-3" /></svg>
+        </div>
+        <div>
+          <p style={{ fontFamily: FONT_BODY, color: C.t1, fontSize: 14, fontWeight: 700 }}>Conectar wearable</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12 }}>Apple Watch, Garmin, Whoop, Polar e mais</p>
+        </div>
+      </div>
+      <button style={{
+        width: '100%', border: '1px solid rgba(255,255,255,0.12)', background: 'transparent',
+        color: C.t2, fontFamily: FONT_BODY, fontWeight: 600, padding: '12px', borderRadius: 12, fontSize: 13,
+        textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer',
+      }}>Em breve</button>
+    </div>
+  ) : null
 
-            <button onClick={handleSalvar} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all text-sm tracking-widest uppercase">
-              Salvar dados de sono
-            </button>
+  /* ── Formulário de registro ───────────────────────────────── */
+  const qualOpts = [
+    { v: 1, label: 'Péssimo' }, { v: 2, label: 'Ruim' }, { v: 3, label: 'Regular' },
+    { v: 4, label: 'Bom' }, { v: 5, label: 'Ótimo' },
+  ]
+
+  const formulario = editando ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Duração */}
+      <div style={{ ...glassCard, padding: 20 }}>
+        <p style={{ ...{ fontFamily: FONT_BODY, color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }, marginBottom: 16 }}>Duração do sono</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, marginBottom: 6, display: 'block' }}>Horas</label>
+            <GlassInput type="number" placeholder="8" value={horasSono} onChange={e => setHorasSono(e.target.value)} />
           </div>
-        )}
+          <div>
+            <label style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, marginBottom: 6, display: 'block' }}>Minutos</label>
+            <GlassInput type="number" placeholder="30" value={minutosSono} onChange={e => setMinutosSono(e.target.value)} />
+          </div>
+        </div>
+      </div>
 
-        {!editando && (
-          <div className="rounded-2xl p-5 mt-4" style={{ background: 'var(--surface-1)' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">⌚</span>
-              <div>
-                <p className="text-white text-sm font-bold">Conectar wearable</p>
-                <p className="text-zinc-600 text-xs">Apple Watch, Garmin, Whoop, Polar e mais</p>
+      {/* Qualidade — slider estilizado */}
+      <div style={{ ...glassCard, padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
+          <p style={{ fontFamily: FONT_BODY, color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Qualidade do sono</p>
+          <span style={{ fontFamily: FONT_MONO, color: qualidade ? C.sleep : C.t3, fontSize: 14, fontWeight: 700 }}>{qualidade ? `${qualidade}/5` : '—'}</span>
+        </div>
+        {/* trilha do slider */}
+        <div style={{ position: 'relative', height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.08)', marginBottom: 16 }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 999, width: `${(qualidade / 5) * 100}%`, background: `linear-gradient(90deg, ${C.sleep}, ${C.recovery})`, transition: 'width 200ms ease' }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {qualOpts.map((q) => {
+            const sel = qualidade === q.v
+            return (
+              <button key={q.v} onClick={() => setQualidade(q.v)}
+                style={{
+                  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 4px', borderRadius: 12,
+                  background: sel ? 'rgba(96,165,250,0.18)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${sel ? C.sleep : 'rgba(255,255,255,0.12)'}`,
+                  cursor: 'pointer', transition: 'all 150ms ease',
+                }}>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 800, color: sel ? C.sleep : C.t2 }}>{q.v}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 9, marginTop: 4, fontWeight: 600, color: sel ? C.t1 : C.t3 }}>{q.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Estágios do sono */}
+      <div style={{ ...glassCard, padding: 20, border: `1px solid rgba(167,139,250,0.22)` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <p style={{ fontFamily: FONT_BODY, color: C.recovery, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Estágios do sono</p>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 9, color: C.recovery, border: `1px solid rgba(167,139,250,0.25)`, borderRadius: 999, padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Opcional</span>
+        </div>
+        <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, marginBottom: 16, lineHeight: 1.5 }}>Dados do seu wearable (Garmin, Apple Watch, Whoop...). Quanto mais info, mais precisa a análise da IA.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[
+            { label: 'Sono leve', placeholder: 'Ex: 240', val: sonoLeve, set: setSonoLeve, cor: C.sleep, op: 0.55, desc: 'Fase 1 e 2 — transição e processamento leve' },
+            { label: 'Sono profundo', placeholder: 'Ex: 90', val: sonoProfundo, set: setSonoProfundo, cor: C.sleep, op: 1, desc: 'Fase 3 — recuperação muscular e imunidade' },
+            { label: 'REM', placeholder: 'Ex: 100', val: sonoRem, set: setSonoRem, cor: C.recovery, op: 0.85, desc: 'Sonhos, memória e processamento emocional' },
+          ].map((estagio, i) => (
+            <div key={i}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: estagio.cor, opacity: estagio.op }} />
+                <label style={{ fontFamily: FONT_BODY, color: C.t2, fontSize: 12, fontWeight: 600 }}>{estagio.label}</label>
+                {estagio.val && <span style={{ fontFamily: FONT_MONO, color: C.t3, fontSize: 10, marginLeft: 'auto' }}>{formatarDuracao(parseInt(estagio.val))}</span>}
+              </div>
+              <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 10, marginBottom: 6 }}>{estagio.desc}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <GlassInput type="number" placeholder={estagio.placeholder} value={estagio.val} onChange={e => estagio.set(e.target.value)} style={{ flex: 1 }} />
+                <span style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, flexShrink: 0 }}>min</span>
               </div>
             </div>
-            <button className="w-full border border-white/[0.14] text-zinc-500 font-semibold py-3 rounded-xl text-sm hover:border-white/20 hover:text-zinc-300 active:scale-95 transition-all uppercase tracking-wider">Em breve</button>
+          ))}
+          {(sonoLeve || sonoProfundo || sonoRem) && (() => {
+            const l = parseInt(sonoLeve || '0')
+            const p = parseInt(sonoProfundo || '0')
+            const r = parseInt(sonoRem || '0')
+            const total = l + p + r
+            if (total === 0) return null
+            return (
+              <div style={{ marginTop: 4 }}>
+                <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Distribuição</p>
+                <div style={{ height: 16, borderRadius: 8, overflow: 'hidden', display: 'flex', gap: 2 }}>
+                  {l > 0 && <div style={{ width: `${(l / total) * 100}%`, background: C.sleep, opacity: 0.55, borderTopLeftRadius: 8, borderBottomLeftRadius: 8 }} />}
+                  {p > 0 && <div style={{ width: `${(p / total) * 100}%`, background: C.sleep }} />}
+                  {r > 0 && <div style={{ width: `${(r / total) * 100}%`, background: C.recovery, opacity: 0.85, borderTopRightRadius: 8, borderBottomRightRadius: 8 }} />}
+                </div>
+                <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                  {l > 0 && <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.sleep }}>Leve {Math.round((l / total) * 100)}%</span>}
+                  {p > 0 && <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.sleep }}>Profundo {Math.round((p / total) * 100)}%</span>}
+                  {r > 0 && <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.recovery }}>REM {Math.round((r / total) * 100)}%</span>}
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+      </div>
+
+      {/* Wearable */}
+      <div style={{ ...glassCard, padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <p style={{ fontFamily: FONT_BODY, color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Dados do wearable</p>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 9, color: C.t3, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 999, padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Opcional</span>
+        </div>
+        <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, marginBottom: 16 }}>FC, HRV e SpO2 melhoram muito a precisão do score.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, marginBottom: 6, display: 'block' }}>FC em repouso (bpm)</label>
+            <GlassInput type="number" placeholder="Ex: 55" value={fcRepouso} onChange={e => setFcRepouso(e.target.value)} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12 }}>HRV (ms) — variabilidade cardíaca</label>
+              <HrvAjuda />
+            </div>
+            <GlassInput type="number" placeholder="Ex: 65" value={hrv} onChange={e => setHrv(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, marginBottom: 6, display: 'block' }}>SpO2 (%) — saturação de oxigênio</label>
+            <GlassInput type="number" placeholder="Ex: 97" value={spo2} onChange={e => setSpo2(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <button onClick={handleSalvar} style={{
+        width: '100%', background: `linear-gradient(135deg, ${C.sleep}, ${C.recovery})`,
+        color: '#0A1020', fontFamily: FONT_BODY, fontWeight: 800, padding: '16px', borderRadius: 16, fontSize: 13,
+        letterSpacing: '0.1em', textTransform: 'uppercase', border: 'none', cursor: 'pointer',
+        boxShadow: '0 8px 30px rgba(96,165,250,0.3)',
+      }}>
+        Salvar dados de sono
+      </button>
+    </div>
+  ) : null
+
+  /* ── Header ───────────────────────────────────────────────── */
+  const header = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {!isDesktop && (
+          <button onClick={() => router.push('/dashboard')} style={{
+            width: 36, height: 36, borderRadius: 12, background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: C.t2, cursor: 'pointer', fontSize: 16,
+          }}>←</button>
+        )}
+        <div>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', color: C.t1, margin: 0 }}>Sono & Recuperação</h1>
+          <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, textTransform: 'capitalize', margin: 0 }}>{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        </div>
+      </div>
+      {temDadosSono && (
+        <button onClick={() => setEditando(!editando)} style={{
+          fontFamily: FONT_BODY, fontSize: 10, color: C.t2, border: '1px solid rgba(255,255,255,0.14)',
+          borderRadius: 10, padding: '6px 12px', background: 'transparent', textTransform: 'uppercase',
+          letterSpacing: '0.1em', cursor: 'pointer',
+        }}>
+          {editando ? 'Cancelar' : 'Editar'}
+        </button>
+      )}
+    </div>
+  )
+
+  /* ── Layout ───────────────────────────────────────────────── */
+  return (
+    <main style={{
+      minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY,
+      paddingLeft: isDesktop ? 220 : 0,
+    }}>
+      <style>{`
+        @keyframes koreSpin { to { transform: rotate(360deg) } }
+        @keyframes korePulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }
+      `}</style>
+
+      <div style={{
+        maxWidth: isDesktop ? 1100 : 448, margin: '0 auto',
+        padding: isDesktop ? '48px 32px 48px' : '0 16px 112px',
+        paddingTop: isDesktop ? 48 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))',
+      }}>
+        {header}
+
+        {isDesktop ? (
+          editando ? (
+            /* Formulário em coluna única centralizada no desktop */
+            <div style={{ maxWidth: 680, margin: '0 auto' }}>
+              {temDadosSono && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 }}>
+                  {scoreCard}
+                </div>
+              )}
+              {formulario}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+              {/* Coluna esquerda: score + histórico */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {scoreCard}
+                {historicoCard}
+                {estagiosCard}
+              </div>
+              {/* Coluna direita: dados + bem-estar + IA + wearable */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {dadosNoiteCard}
+                {bemEstarCard}
+                {iaCard}
+                {wearableCta}
+              </div>
+            </div>
+          )
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {scoreCard}
+            {dadosNoiteCard}
+            {estagiosCard}
+            {bemEstarCard}
+            {iaCard}
+            {historicoCard}
+            {formulario}
+            {wearableCta}
           </div>
         )}
       </div>
