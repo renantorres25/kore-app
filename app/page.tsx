@@ -536,28 +536,34 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Phone + badges */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: 480, height: 600 }}>
-              {/* Phone centralizado */}
-              <div className="kore-phone" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-                <PhoneMockup visible={vis} />
-              </div>
+          {/* Phone + badges — layout estruturado */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
 
-              {/* Badges posicionados com mais espaço e melhor distribuição */}
-              <div className="kore-floatA" style={{ position: 'absolute', top: 40, left: 0 }}>
+            {/* Coluna esquerda de badges */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-end' }}>
+              <div className="kore-floatA">
                 <BadgeChip Icon={IconHeart} color={C.energy} title="Score 85" sub="Recuperação ótima" delay={1000} visible={vis} />
               </div>
-              <div className="kore-floatB" style={{ position: 'absolute', top: 160, right: 0 }}>
-                <BadgeChip Icon={IconChart} color={C.sleep} title="HRV 68ms" sub="Acima da média" delay={1200} visible={vis} />
-              </div>
-              <div className="kore-floatA" style={{ position: 'absolute', bottom: 160, left: 0 }}>
+              <div className="kore-floatB">
                 <BadgeChip Icon={IconDumbbell} color={C.energy2} title="Treino feito" sub="410 kcal · hoje" delay={1400} visible={vis} />
               </div>
-              <div className="kore-floatB" style={{ position: 'absolute', bottom: 60, right: 0 }}>
+            </div>
+
+            {/* Telefone centralizado */}
+            <div className="kore-phone">
+              <PhoneMockup visible={vis} />
+            </div>
+
+            {/* Coluna direita de badges */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-start' }}>
+              <div className="kore-floatB">
+                <BadgeChip Icon={IconChart} color={C.sleep} title="HRV 68ms" sub="Acima da média" delay={1200} visible={vis} />
+              </div>
+              <div className="kore-floatA">
                 <BadgeChip Icon={IconMoon} color={C.recovery} title="8.2h · Sono" sub="Sono profundo" delay={1600} visible={vis} />
               </div>
             </div>
+
           </div>
         </div>
       </section>
