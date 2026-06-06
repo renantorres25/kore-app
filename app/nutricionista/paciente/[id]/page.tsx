@@ -2283,12 +2283,12 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
       {/* Modal nota clínica avulsa */}
       {abaAtiva === 'visao-geral' && (
-        <div className="fixed bottom-20 right-4 z-50">
+        <div className="fixed bottom-20 left-4 z-50">
           <details className="group">
             <summary className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center cursor-pointer text-blue-300 text-xl list-none active:scale-95 transition-all">
               📝
             </summary>
-            <div className="absolute bottom-14 right-0 w-72 rounded-2xl border border-blue-500/20 p-4 space-y-3" style={{ background: '#101825' }}>
+            <div className="absolute bottom-14 left-0 w-72 rounded-2xl border border-blue-500/20 p-4 space-y-3" style={{ background: '#101825' }}>
               <p className="text-blue-300 text-[10px] uppercase tracking-[0.15em] font-bold">Nota clínica</p>
               <textarea
                 value={notaAvulsa}

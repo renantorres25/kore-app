@@ -313,7 +313,7 @@ export default function ProfissionalAIChat({ contexto, pacienteId }: { contexto:
         <div className="fixed inset-0 z-50 flex flex-col md:flex-row md:justify-end"
           style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
           onClick={e => { if (e.target === e.currentTarget) setAberto(false) }}>
-          <div className="mt-auto md:mt-0 bg-[#141414] rounded-t-3xl md:rounded-none md:rounded-l-3xl flex flex-col md:w-[440px] md:h-full md:border-l md:border-white/[0.11]" style={{ height: '88dvh' }}>
+          <div className="bg-[#141414] flex flex-col w-full h-full md:w-[580px] md:rounded-l-3xl md:border-l md:border-white/[0.11]">
 
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.11] shrink-0">
               <div className="flex items-center gap-3">
