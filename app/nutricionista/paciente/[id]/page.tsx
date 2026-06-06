@@ -1680,17 +1680,24 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
               const totalHoras = (minAtividades + treinosUlt7.length * 60) / 60
               const mediaDiaria = Math.round(totalCal / 7)
 
-              // Distribuição por modalidade (contagem de sessões)
-              const modalMap: Record<string, number> = {}
-              if (treinosUlt7.length > 0) modalMap['Musculação'] = treinosUlt7.length
+              // Distribuição por modalidade — por tempo (mais relevante clinicamente)
+              const modalMap: Record<string, { min: number; sessoes: number }> = {}
+              if (treinosUlt7.length > 0) modalMap['Musculação'] = { min: treinosUlt7.length * 60, sessoes: treinosUlt7.length }
               atividadesUlt7.forEach(a => {
                 const m = a.modalidade ? (a.modalidade.charAt(0).toUpperCase() + a.modalidade.slice(1).toLowerCase()) : 'Outro'
-                modalMap[m] = (modalMap[m] ?? 0) + 1
+                if (!modalMap[m]) modalMap[m] = { min: 0, sessoes: 0 }
+                modalMap[m].min += a.duracao_min ?? 0
+                modalMap[m].sessoes += 1
               })
-              const totalSessoes = Object.values(modalMap).reduce((s, v) => s + v, 0)
+              const totalSessoes = Object.values(modalMap).reduce((s, v) => s + v.sessoes, 0)
+              const totalMinModal = Object.values(modalMap).reduce((s, v) => s + v.min, 0)
               const modais = Object.entries(modalMap)
-                .map(([nome, count]) => ({ nome, count, pct: totalSessoes > 0 ? Math.round(count / totalSessoes * 100) : 0 }))
-                .sort((a, b) => b.count - a.count)
+                .map(([nome, { min, sessoes }]) => ({
+                  nome, sessoes,
+                  horas: min >= 60 ? `${Math.floor(min / 60)}h${min % 60 > 0 ? `${min % 60}min` : ''}` : `${min}min`,
+                  pct: totalMinModal > 0 ? Math.round(min / totalMinModal * 100) : 0,
+                }))
+                .sort((a, b) => b.pct - a.pct)
 
               if (totalSessoes === 0 && totalCal === 0) return null
 
@@ -1720,15 +1727,18 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                     </div>
                     {modais.length > 0 && (
                       <div>
-                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Distribuição por modalidade</p>
-                        <div className="space-y-2">
+                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Distribuição por modalidade · por tempo de atividade</p>
+                        <div className="space-y-2.5">
                           {modais.map(m => (
-                            <div key={m.nome} className="flex items-center gap-3">
-                              <p className="text-zinc-400 text-xs w-24 shrink-0 truncate">{m.nome}</p>
-                              <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
-                                <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${m.pct}%` }} />
+                            <div key={m.nome}>
+                              <div className="flex items-center gap-3 mb-1">
+                                <p className="text-zinc-300 text-xs w-24 shrink-0 truncate font-medium">{m.nome}</p>
+                                <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${m.pct}%` }} />
+                                </div>
+                                <p className="text-zinc-400 text-xs w-8 text-right shrink-0 font-semibold">{m.pct}%</p>
                               </div>
-                              <p className="text-zinc-500 text-xs w-8 text-right shrink-0">{m.pct}%</p>
+                              <p className="text-zinc-600 text-[10px] pl-[6.5rem]">{m.horas} · {m.sessoes} sessão{m.sessoes !== 1 ? 'ões' : ''}</p>
                             </div>
                           ))}
                         </div>
