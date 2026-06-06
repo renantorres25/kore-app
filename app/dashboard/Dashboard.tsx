@@ -843,19 +843,13 @@ function SonoMiniChart({ historico }: { historico: { data: string; score_recuper
   const valid = withX.filter(d => d.score != null) as (typeof withX[0] & { score: number })[]
   const last = valid[valid.length - 1]
   const lineColor = last ? dotColor(last.score) : C.good
-
-  // Curva suave via cubic bezier
   const smoothLine = valid.reduce((acc, pt, i) => {
     if (i === 0) return `M${pt.x.toFixed(1)},${toY(pt.score).toFixed(1)}`
     const prev = valid[i - 1]
     const cpX = (prev.x + pt.x) / 2
     return `${acc} C${cpX.toFixed(1)},${toY(prev.score).toFixed(1)} ${cpX.toFixed(1)},${toY(pt.score).toFixed(1)} ${pt.x.toFixed(1)},${toY(pt.score).toFixed(1)}`
   }, '')
-  const area = valid.length > 1
-    ? `${smoothLine} L${valid[valid.length-1].x.toFixed(1)},${H} L${valid[0].x.toFixed(1)},${H} Z`
-    : ''
-
-  // Clamp label Y para não clipar no topo
+  const area = valid.length > 1 ? `${smoothLine} L${valid[valid.length-1].x.toFixed(1)},${H} L${valid[0].x.toFixed(1)},${H} Z` : ''
   const labelY = (pt: typeof valid[0]) => Math.max(10, toY(pt.score) - 7)
 
   return (
@@ -871,7 +865,6 @@ function SonoMiniChart({ historico }: { historico: { data: string; score_recuper
             <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
           </linearGradient>
         </defs>
-        {/* Linha de referência central */}
         <line x1={padX} y1={toY(50)} x2={W - padX} y2={toY(50)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" />
         {area && <path d={area} fill="url(#dashSonoGrad)" />}
         {valid.length > 1 && <path d={smoothLine} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />}
@@ -1527,9 +1520,6 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDeskt
   }, [])
 
   return (
-    <div className="md:flex md:h-screen">
-      <SidebarProfissional tipo="personal" />
-      <div className="flex-1 md:overflow-y-auto">
     <div className="max-w-md mx-auto md:max-w-[1100px] md:px-10" style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
@@ -1649,8 +1639,6 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDeskt
       )}
       <button onClick={() => router.push('/personal')} style={glass({ width: '100%', color: C.t2, fontWeight: 600, padding: '14px', fontSize: 14, marginBottom: 12, cursor: 'pointer' })}>Ver todos os alunos</button>
       <button onClick={() => router.push('/convite')} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '16px', borderRadius: 20, fontSize: 14, border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Convidar aluno</button>
-    </div>
-      </div>
     </div>
   )
 }
@@ -1780,9 +1768,6 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
   }, [])
 
   return (
-    <div className="md:flex md:h-screen">
-      <SidebarProfissional tipo="nutricionista" />
-      <div className="flex-1 md:overflow-y-auto">
     <div className="max-w-md mx-auto md:max-w-[1100px] md:px-10" style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))', paddingBottom: '7rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
@@ -1804,16 +1789,17 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { valor: loadingStats ? '—' : String(totalPacientes),  label: 'Pacientes',       sub: 'ativos',       spark: sparklines.pacientes },
-          { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Boa recuperação', sub: 'hoje',         spark: sparklines.recuperacao },
-          { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',       sub: 'essa semana',  spark: sparklines.treinos },
+          { valor: loadingStats ? '—' : String(totalPacientes),  label: 'Pacientes',       sub: 'ativos',      spark: sparklines.pacientes,    cor: C.sleep },
+          { valor: loadingStats ? '—' : String(boaRecuperacao),  label: 'Boa recuperação', sub: 'hoje',        spark: sparklines.recuperacao,  cor: C.good },
+          { valor: loadingStats ? '—' : String(treinaram7d),     label: 'Treinaram',       sub: 'essa semana', spark: sparklines.treinos,      cor: C.energy },
         ].map((m) => (
-          <div key={m.label} style={glass({ padding: 20 })}>
-            <p style={{ fontSize: 11, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>{m.label}</p>
-            <p style={{ color: C.t1, fontSize: 44, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{m.valor}</p>
+          <div key={m.label} style={glass({ padding: 20, position: 'relative', overflow: 'hidden', border: `1px solid ${m.cor}22` })}>
+            <div style={{ position: 'absolute', top: -32, right: -32, width: 96, height: 96, borderRadius: '50%', background: m.cor, opacity: 0.07, filter: 'blur(24px)', pointerEvents: 'none' }} />
+            <p style={{ fontSize: 10, color: m.cor, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10, fontWeight: 600, opacity: 0.9 }}>{m.label}</p>
+            <p style={{ color: m.cor, fontSize: 44, fontFamily: FONT_DISPLAY, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', textShadow: `0 0 32px ${m.cor}44` }}>{m.valor}</p>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 12 }}>
-              <p style={{ color: C.t3, fontSize: 12 }}>{m.sub}</p>
-              {m.spark.some(v => v > 0) && <MiniSparkline values={m.spark} />}
+              <p style={{ color: C.t3, fontSize: 11 }}>{m.sub}</p>
+              {m.spark.some(v => v > 0) && <MiniSparkline values={m.spark} color={m.cor} />}
             </div>
           </div>
         ))}
@@ -1967,8 +1953,6 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
       <button onClick={() => router.push('/nutricionista/pacientes')} style={glass({ width: '100%', color: C.t2, fontWeight: 600, padding: '14px', fontSize: 14, marginBottom: 12, cursor: 'pointer' })}>Ver todos os pacientes</button>
       <button onClick={() => router.push('/convite')} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '16px', borderRadius: 20, fontSize: 14, border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Convidar paciente</button>
     </div>
-    </div>
-    </div>
   )
 } C.t3, fontSize: 12 }}>
                       {p.sonoScore != null && <span>Recup.: {p.sonoScore}/100</span>}
@@ -1986,8 +1970,6 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
 
       <button onClick={() => router.push('/nutricionista/pacientes')} style={glass({ width: '100%', color: C.t2, fontWeight: 600, padding: '14px', fontSize: 14, marginBottom: 12, cursor: 'pointer' })}>Ver todos os pacientes</button>
       <button onClick={() => router.push('/convite')} style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '16px', borderRadius: 20, fontSize: 14, border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><UserPlus size={16} /> Convidar paciente</button>
-    </div>
-    </div>
     </div>
   )
 }
