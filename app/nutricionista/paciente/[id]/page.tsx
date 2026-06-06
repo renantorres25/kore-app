@@ -795,7 +795,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
       {/* ── HEADER FIXO ─────────────────────────────────────────────── */}
       <div className="shrink-0 sticky top-0 z-20 border-b"
-           style={{ background: 'rgba(22,24,34,0.92)', backdropFilter: 'blur(24px) saturate(140%)', WebkitBackdropFilter: 'blur(24px) saturate(140%)', borderColor: 'rgba(255,255,255,0.10)', paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+           style={{ background: 'linear-gradient(135deg, rgba(28,22,30,0.96) 0%, rgba(20,22,34,0.96) 100%)', backdropFilter: 'blur(24px) saturate(140%)', WebkitBackdropFilter: 'blur(24px) saturate(140%)', borderColor: 'rgba(255,255,255,0.10)', paddingTop: 'max(0.75rem, env(safe-area-inset-top))', boxShadow: '0 1px 0 rgba(255,90,54,0.08)' }}>
         <div className="px-4 md:px-8 pb-4">
           <button onClick={() => router.push('/nutricionista/pacientes')}
             style={{ color: '#7A8290', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', transition: 'color 150ms' }}
@@ -1548,14 +1548,14 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               </>
 
             ) : (
-              <div className="rounded-2xl border border-green-500/20 p-6 text-center" style={{ background: 'linear-gradient(145deg,#111520,#10131a)' }}>
-                <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4 text-3xl">🥗</div>
-                <p className="text-green-400 text-[10px] uppercase tracking-[0.2em] font-semibold mb-2">Plano alimentar</p>
-                <p className="text-white font-black text-xl mb-2">Criar dieta personalizada</p>
-                <p className="text-zinc-500 text-sm leading-relaxed mb-6">Monte manualmente com alimentos e gramas, ou deixe a IA gerar um plano completo.</p>
-                <div className="flex gap-2">
-                  <button onClick={() => iniciarEdicao(true)} className="flex-1 border border-white/[0.12] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all hover:border-white/25">✏️ Manual</button>
-                  <button onClick={() => setConfirmandoIA(true)} className="flex-1 bg-green-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">✦ Gerar IA</button>
+              <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,90,54,0.15)', borderRadius: 20, padding: 24, textAlign: 'center' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(255,90,54,0.10)', border: '1px solid rgba(255,90,54,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28 }}>🥗</div>
+                <p style={{ color: '#FF8A3D', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700, marginBottom: 8 }}>Plano alimentar</p>
+                <p style={{ color: '#F5F6F8', fontWeight: 900, fontSize: 20, marginBottom: 8, fontFamily: "'Sora', system-ui" }}>Criar dieta personalizada</p>
+                <p style={{ color: '#9AA0AD', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>Monte manualmente com alimentos e gramas, ou deixe a IA gerar um plano completo.</p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => iniciarEdicao(true)} style={{ flex: 1, border: '1px solid rgba(255,255,255,0.14)', color: '#9AA0AD', fontWeight: 700, padding: '14px 0', borderRadius: 16, fontSize: 13, background: 'transparent', cursor: 'pointer', transition: 'all 150ms' }}>✏️ Manual</button>
+                  <button onClick={() => setConfirmandoIA(true)} style={{ flex: 1, background: 'linear-gradient(135deg, #FF5A36, #FF8A3D)', color: '#fff', fontWeight: 700, padding: '14px 0', borderRadius: 16, fontSize: 13, border: 'none', cursor: 'pointer', boxShadow: '0 6px 20px rgba(255,90,54,0.35)' }}>✦ Gerar IA</button>
                 </div>
               </div>
             )}
@@ -1644,9 +1644,9 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 )}
 
                 {/* Métricas semanais com comparação vs semana anterior (dom–sáb) */}
-                <p className="text-[10px] text-zinc-600 -mb-1">
+                <p style={{ fontSize: 10, color: '#9AA0AD', marginBottom: -4, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>
                   {new Date(q7CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')} – {new Date(hoje + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}
-                  <span className="text-zinc-700 ml-2">vs {new Date(q14CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}–{new Date(new Date(q7CurrStr + 'T12:00:00-03:00').setDate(new Date(q7CurrStr + 'T12:00:00-03:00').getDate() - 1)).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}</span>
+                  <span style={{ color: '#7A8290', marginLeft: 8 }}>vs {new Date(q14CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}–{new Date(new Date(q7CurrStr + 'T12:00:00-03:00').setDate(new Date(q7CurrStr + 'T12:00:00-03:00').getDate() - 1)).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}</span>
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {([
@@ -1676,7 +1676,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                           {m.delta > 0 ? '↑' : m.delta < 0 ? '↓' : '→'} {m.delta > 0 ? '+' : ''}{m.delta}%
                         </p>
                       ) : (
-                        <p className="text-zinc-700 text-[10px] mt-1">sem ant.</p>
+                        <p style={{ color: '#4A5060', fontSize: 10, marginTop: 4 }}>sem ant.</p>
                       )}
                     </div>
                   ))}
@@ -1943,26 +1943,26 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 <p className="text-zinc-500 text-sm">Análise inteligente do paciente baseada em todos os dados disponíveis</p>
               </div>
               <button onClick={gerarBriefing} disabled={gerandoBriefing}
-                className="flex items-center gap-2 text-sm text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded-xl px-5 py-2.5 active:scale-95 transition-all disabled:opacity-50 font-semibold">
+                style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#fff', background: 'linear-gradient(135deg, #FF5A36, #FF8A3D)', border: 'none', borderRadius: 14, padding: '10px 20px', cursor: 'pointer', fontWeight: 700, boxShadow: '0 4px 16px rgba(255,90,54,0.35)', opacity: gerandoBriefing ? 0.6 : 1, transition: 'all 150ms' }}>
                 {gerandoBriefing ? (
-                  <><div className="w-4 h-4 border-2 border-[#2DD4A7] border-t-transparent rounded-full animate-spin" /> Analisando...</>
+                  <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Analisando...</>
                 ) : briefingEstruturado ? '↻ Reanalisar' : '✦ Gerar análise'}
               </button>
             </div>
 
             {!briefingEstruturado && !briefingIA && (
-              <div className="rounded-2xl border border-emerald-500/15 p-10 text-center" style={{ background: '#0a1510' }}>
-                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-3xl mx-auto mb-4">✦</div>
-                <p className="text-white font-bold text-lg mb-2">Análise Inteligente do Paciente</p>
-                <p className="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed">A IA vai analisar composição corporal, plano alimentar, treinos, alertas clínicos e gerar insights acionáveis para a consulta.</p>
+              <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,90,54,0.12)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(255,90,54,0.08)', border: '1px solid rgba(255,90,54,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 16px' }}>✦</div>
+                <p style={{ color: '#F5F6F8', fontWeight: 800, fontSize: 18, marginBottom: 8, fontFamily: "'Sora', system-ui" }}>Análise Inteligente do Paciente</p>
+                <p style={{ color: '#9AA0AD', fontSize: 13, maxWidth: 400, margin: '0 auto', lineHeight: 1.6 }}>A IA vai analisar composição corporal, plano alimentar, treinos, alertas clínicos e gerar insights acionáveis para a consulta.</p>
               </div>
             )}
 
             {briefingEstruturado ? (
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Resumo */}
-                <div className="md:col-span-2 rounded-2xl border border-emerald-500/20 p-6" style={{ background: '#0a1510' }}>
-                  <p className="text-[#2DD4A7] text-xs uppercase tracking-wider mb-2">Situação atual</p>
+                <div className="md:col-span-2" style={{ background: 'rgba(255,90,54,0.05)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,90,54,0.15)', borderRadius: 20, padding: 24 }}>
+                  <p style={{ color: '#FF8A3D', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 8, fontWeight: 700 }}>Situação atual</p>
                   <p className="text-white text-lg leading-relaxed">{briefingEstruturado.resumo}</p>
                 </div>
 
@@ -1980,7 +1980,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 </div>
 
                 {/* Alertas */}
-                <div className="rounded-2xl border border-amber-500/15 p-5" style={{ background: '#1a1308' }}>
+                <div style={{ background: 'rgba(245,181,68,0.05)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(245,181,68,0.18)', borderRadius: 20, padding: 20 }}>
                   <p className="text-amber-400/80 text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><span>⚠</span> Pontos de atenção</p>
                   <ul className="space-y-2">
                     {briefingEstruturado.alertas.map((item, i) => (
@@ -2343,24 +2343,33 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
         </div>
       )}
 
-      {/* Modal nota clínica avulsa */}
+      {/* Nota clínica — card integrado no conteúdo */}
       {abaAtiva === 'visao-geral' && (
-        <div className="fixed bottom-20 left-4 z-50">
-          <details className="group">
-            <summary className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center cursor-pointer text-blue-300 text-xl list-none active:scale-95 transition-all">
-              📝
-            </summary>
-            <div className="absolute bottom-14 left-0 w-72 rounded-2xl border border-blue-500/20 p-4 space-y-3" style={{ background: '#101825' }}>
-              <p className="text-blue-300 text-[10px] uppercase tracking-[0.15em] font-bold">Nota clínica</p>
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 50, width: 280 }}>
+          <details>
+            <summary style={{
+              width: 44, height: 44, borderRadius: 14, cursor: 'pointer', listStyle: 'none',
+              background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 18, marginLeft: 'auto', transition: 'all 150ms',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            }}>📝</summary>
+            <div style={{
+              position: 'absolute', bottom: 52, right: 0, width: 280,
+              background: 'rgba(22,24,34,0.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.12)', borderRadius: 18, padding: 16,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}>
+              <p style={{ color: '#FF8A3D', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 10 }}>Nota clínica</p>
               <textarea
                 value={notaAvulsa}
                 onChange={e => setNotaAvulsa(e.target.value)}
                 placeholder="Anotações sobre o paciente, observações da consulta..."
                 rows={5}
-                className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/30 resize-none"
+                style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12, padding: '10px 12px', color: '#F5F6F8', fontSize: 13, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
               <button onClick={salvarNotaAvulsa} disabled={salvandoNota}
-                className="w-full bg-blue-500/20 border border-blue-500/30 text-blue-300 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition-all disabled:opacity-40">
+                style={{ width: '100%', marginTop: 10, background: 'rgba(255,138,61,0.15)', border: '1px solid rgba(255,138,61,0.25)', color: '#FF8A3D', fontWeight: 700, padding: '10px 0', borderRadius: 12, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', opacity: salvandoNota ? 0.5 : 1, transition: 'all 150ms' }}>
                 {salvandoNota ? 'Salvando...' : 'Salvar nota'}
               </button>
             </div>
