@@ -820,10 +820,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   })()}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-1">
-                  {paciente?.peso && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{paciente.peso} kg</span>}}
-                  {paciente?.objetivo && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}}
-                  {paciente?.meta_peso && <span style={{ fontSize: 11, color: '#2DD4A7', background: 'rgba(45,212,167,0.1)', border: '1px solid rgba(45,212,167,0.2)', borderRadius: 99, padding: '3px 10px' }}>Meta: {paciente.meta_peso} kg</span>}}
-                  {metaCal && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px', display: 'none' }} className="md:inline-block">{metaCal} kcal/dia</span>}}
+                  {paciente?.peso && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{paciente.peso} kg</span>}
+                  {paciente?.objetivo && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {paciente?.meta_peso && <span style={{ fontSize: 11, color: '#2DD4A7', background: 'rgba(45,212,167,0.1)', border: '1px solid rgba(45,212,167,0.2)', borderRadius: 99, padding: '3px 10px' }}>Meta: {paciente.meta_peso} kg</span>}
+                  {metaCal && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px', display: 'none' }} className="md:inline-block">{metaCal} kcal/dia</span>}
                 </div>
               </div>
             </div>
@@ -1030,7 +1030,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             {/* Recuperação */}
             <div style={{ background: 'rgba(45,212,167,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(45,212,167,0.18)', borderRadius: 20, padding: 20, position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: -30, right: -30, width: 80, height: 80, borderRadius: '50%', background: '#2DD4A7', opacity: 0.07, filter: 'blur(20px)' }} />
-              <p style={{ fontSize: 10, color: '#2DD4A7', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }>Recuperação</p>
+              <p style={{ fontSize: 10, color: '#2DD4A7', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }}>Recuperação</p>
               {sonoHoje?.score_recuperacao != null ? (
                 <>
                   <div className="flex items-baseline gap-1 mb-3">
@@ -1058,7 +1058,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             {/* Treino hoje */}
             <div style={{ background: 'rgba(255,90,54,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,90,54,0.18)', borderRadius: 20, padding: 20, position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: -30, right: -30, width: 80, height: 80, borderRadius: '50%', background: '#FF5A36', opacity: 0.07, filter: 'blur(20px)' }} />
-              <p style={{ fontSize: 10, color: '#FF8A3D', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }>Treino hoje</p>
+              <p style={{ fontSize: 10, color: '#FF8A3D', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }}>Treino hoje</p>
               {treinoHoje ? (
                 <>
                   <p className="text-5xl font-black text-emerald-400 leading-none mb-3">✓</p>
@@ -1087,7 +1087,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             {/* Bem-estar */}
             <div style={{ background: 'rgba(96,165,250,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(96,165,250,0.18)', borderRadius: 20, padding: 20, position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: -30, right: -30, width: 80, height: 80, borderRadius: '50%', background: '#60A5FA', opacity: 0.07, filter: 'blur(20px)' }} />
-              <p style={{ fontSize: 10, color: '#60A5FA', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }>Bem-estar</p>
+              <p style={{ fontSize: 10, color: '#60A5FA', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }}>Bem-estar</p>
               {bemEstar ? (
                 <>
                   {(() => {
