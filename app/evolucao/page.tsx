@@ -117,18 +117,24 @@ function ModDot({ tipo, size = 36 }: { tipo: string; size?: number }) {
 }
 
 /* ─── SPARKLINE / GRÁFICO DE ÁREA ──────────────────────────── */
-function Sparkline({ data, color, height = 60, showEndDots = true }: { data: (number | null)[]; color: string; height?: number; showEndDots?: boolean }) {
+function Sparkline({ data, color, height = 60, showEndDots = true, domain }: {
+  data: (number | null)[]; color: string; height?: number; showEndDots?: boolean
+  domain?: [number, number]
+}) {
   const width = 320
   const valid = data.map((v, i) => ({ v, i })).filter(x => x.v !== null)
   if (valid.length < 2) return null
-  const min = Math.min(...valid.map(x => x.v!))
-  const max = Math.max(...valid.map(x => x.v!))
+  const rawMin = Math.min(...valid.map(x => x.v!))
+  const rawMax = Math.max(...valid.map(x => x.v!))
+  const min = domain ? domain[0] : rawMin
+  const max = domain ? domain[1] : rawMax
   const range = max - min || 1
   const uid = Math.random().toString(36).slice(2, 8)
+  const padY = 10
   const xy = (i: number, v: number) => {
     const x = (i / (data.length - 1)) * width
-    const y = height - ((v - min) / range) * (height - 12) - 6
-    return [x, y] as const
+    const y = height - padY - ((v - min) / range) * (height - 2 * padY)
+    return [x, Math.max(padY, Math.min(height - padY, y))] as const
   }
   const pts = valid.map(({ v, i }) => xy(i, v!))
   const pathD = pts.reduce((acc, [cx, cy], i) => {
@@ -137,23 +143,24 @@ function Sparkline({ data, color, height = 60, showEndDots = true }: { data: (nu
     const cpx = (px + cx) / 2
     return `${acc} C ${cpx},${py} ${cpx},${cy} ${cx},${cy}`
   }, '')
-  const areaD = `${pathD} L ${width},${height} L 0,${height} Z`
+  // Area fecha no último ponto válido (não na borda direita)
   const first = pts[0]
   const last = pts[pts.length - 1]
+  const areaD = `${pathD} L ${last[0]},${height} L ${first[0]},${height} Z`
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height, display: 'block' }} preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height, display: 'block', overflow: 'visible' }} preserveAspectRatio="none">
       <defs>
         <linearGradient id={`g-${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.28" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={areaD} fill={`url(#g-${uid})`} />
-      <path d={pathD} fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={pathD} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       {showEndDots && <>
-        <circle cx={first[0]} cy={first[1]} r="3.2" fill={color} opacity="0.55" />
-        <circle cx={last[0]} cy={last[1]} r="4.5" fill={color} />
-        <circle cx={last[0]} cy={last[1]} r="8" fill="none" stroke={color} strokeWidth="1.5" opacity="0.4" />
+        <circle cx={first[0]} cy={first[1]} r="3" fill={color} opacity="0.5" />
+        <circle cx={last[0]} cy={last[1]} r="4.5" fill={color} style={{ filter: `drop-shadow(0 0 6px ${color}99)` }} />
+        <circle cx={last[0]} cy={last[1]} r="8" fill="none" stroke={color} strokeWidth="1.2" opacity="0.35" />
       </>}
     </svg>
   )
@@ -479,41 +486,41 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
     : C.good
 
   const ScoreCard = scores.some(s => s.score !== null) ? (
-    <div style={{ ...glass, overflow: 'hidden', border: `1px solid ${scoreColor}22` }}>
-      {/* Header com score hero */}
-      <div style={{ padding: '24px 24px 0', position: 'relative', overflow: 'hidden' }}>
-        {/* Glow atrás do número */}
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: scoreColor, opacity: 0.07, filter: 'blur(50px)', pointerEvents: 'none' }} />
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, position: 'relative' }}>
+    <div style={{ ...glass, overflow: 'hidden', border: `1px solid ${scoreColor}28` }}>
+      {/* Glow de fundo */}
+      <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: scoreColor, opacity: 0.06, filter: 'blur(60px)', pointerEvents: 'none' }} />
+      {/* Header */}
+      <div style={{ padding: '22px 22px 0', position: 'relative' }}>
+        <p style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.t3, margin: '0 0 12px' }}>Score de recuperação</p>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.t3, margin: '0 0 10px' }}>Score de recuperação</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
               {mediaScore != null && (
-                <p style={{ fontFamily: FONT_DISPLAY, fontSize: 56, fontWeight: 800, lineHeight: 1, margin: 0, color: scoreColor, letterSpacing: '-0.03em' }}>
+                <p style={{ fontFamily: FONT_DISPLAY, fontSize: 60, fontWeight: 900, lineHeight: 1, margin: 0, color: scoreColor, letterSpacing: '-0.04em', textShadow: `0 0 40px ${scoreColor}55` }}>
                   {mediaScore}
                 </p>
               )}
-              <span style={{ fontFamily: FONT_BODY, fontSize: 18, fontWeight: 300, color: C.t3 }}>/100</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 16, fontWeight: 300, color: C.t3, marginBottom: 6 }}>/100</span>
             </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.t2, margin: '6px 0 0' }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.t2, margin: '4px 0 0' }}>
               {mediaScore != null && (mediaScore >= 70 ? 'Boa recuperação · pode treinar forte' : mediaScore >= 50 ? 'Recuperação moderada · treine com cuidado' : 'Recuperação baixa · priorize descanso')}
             </p>
           </div>
           {melhorScore != null && (
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <p style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.t3, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>máximo</p>
-              <p style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 800, color: C.t2, margin: 0 }}>{melhorScore}</p>
+            <div style={{ textAlign: 'right', flexShrink: 0, paddingBottom: 4 }}>
+              <p style={{ fontFamily: FONT_MONO, fontSize: 8, color: C.t3, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.12em' }}>máx 14d</p>
+              <p style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 800, color: scoreColor, opacity: 0.7, margin: 0 }}>{melhorScore}</p>
             </div>
           )}
         </div>
       </div>
-      {/* Gráfico */}
-      <div style={{ padding: '4px 4px 0' }}>
-        <Sparkline data={scoreValues} color={scoreColor} height={90} />
+      {/* Gráfico — domínio fixo 40-100 para escala honesta */}
+      <div style={{ padding: '12px 0 0' }}>
+        <Sparkline data={scoreValues} color={scoreColor} height={88} domain={[40, 100]} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 20px 18px' }}>
-        <p style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.t3, margin: 0 }}>{formatDate(scores[0].data)}</p>
-        <p style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.t3, margin: 0 }}>{formatDate(scores[scores.length - 1].data)}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 20px 16px' }}>
+        <p style={{ fontFamily: FONT_MONO, fontSize: 8, color: C.t3, margin: 0 }}>{formatDate(scores[0].data)}</p>
+        <p style={{ fontFamily: FONT_MONO, fontSize: 8, color: C.t3, margin: 0 }}>{formatDate(scores[scores.length - 1].data)}</p>
       </div>
     </div>
   ) : null
@@ -823,7 +830,142 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
       <div style={{ padding: '16px 22px' }}>
         {!analise.gerado && !analise.carregando && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.t2, margin: 0, lineHeight: 1.55 }}>A IA analisa todas suas atividades junto com recuperação e consistência.</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.t2, margin: 0, lineHeight: 1.55 }}>A IA analisa todas suas atividades junto com recuperação e consistência.</p>s atividades junto com recuperação e consistência.</p>
+            <button onClick={gerarAnaliseIA} style={{
+              width: '100%', padding: '13px', borderRadius: 12, cursor: 'pointer',
+              fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
+              color: C.energy, background: `${C.energy}1A`, border: `1px solid ${C.energy}4D`,
+              transition: 'background .15s ease',
+            }}>Analisar minha evolução</button>
+          </div>
+        )}
+        {analise.carregando && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[1, 0.85, 0.65].map((w, i) => (
+              <div key={i} style={{ height: 12, borderRadius: 999, background: 'rgba(255,255,255,0.09)', width: `${w * 100}%`, animation: 'pulse 1.5s ease-in-out infinite' }} />
+            ))}
+          </div>
+        )}
+        {analise.gerado && !analise.carregando && (
+          <div>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: C.t1, margin: 0, lineHeight: 1.7 }}>{analise.texto}</p>
+            <button onClick={gerarAnaliseIA} style={{
+              marginTop: 16, fontFamily: FONT_MONO, fontSize: 10, color: C.t3, background: 'none', border: 'none',
+              textDecoration: 'underline', textUnderlineOffset: 4, cursor: 'pointer',
+            }}>Nova análise</button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const HistoricoCard = (
+    <div style={{ ...glass, overflow: 'hidden' }}>
+      <div style={{ padding: '20px 22px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <p style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.t2, margin: 0 }}>Histórico de atividades</p>
+      </div>
+      <div>
+        {Object.entries(atividadesPorData).map(([data, ativsDia]) => (
+          <div key={data}>
+            <div style={{ padding: '12px 22px 4px' }}>
+              <p style={{ ...labelUpper, fontWeight: 600, margin: 0 }}>{formatDateFull(data)}</p>
+            </div>
+            {ativsDia.map((a, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 22px' }}>
+                <ModDot tipo={a.tipo} size={38} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: C.t1, margin: 0 }}>{a.nome}</p>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: C.t3, margin: 0 }}>{a.detalhe}</p>
+                </div>
+                {a.calorias && (
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p style={{ ...dataNum(C.energy2), fontSize: 13, fontWeight: 700, margin: 0 }}>~{a.calorias}</p>
+                    <p style={{ fontFamily: FONT_MONO, fontSize: 9, color: C.t3, margin: 0 }}>kcal</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0 }}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}`}</style>
+      <div style={{
+        maxWidth: isDesktop ? 1100 : 480, margin: '0 auto',
+        padding: isDesktop ? '48px 32px 48px' : '0 16px 112px',
+        paddingTop: isDesktop ? 48 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))',
+      }}>
+
+        {/* HEADER */}
+        <div style={{ marginBottom: 28 }}>
+          <p style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: C.energy, margin: '0 0 4px' }}>KORE</p>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: isDesktop ? 36 : 30, fontWeight: 800, letterSpacing: '-0.02em', color: C.t1, margin: 0 }}>Evolução</h1>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.t3, margin: '6px 0 0' }}>Últimos 30 dias</p>
+        </div>
+
+        {!temDados ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0', gap: 16 }}>
+            <div style={{ width: 64, height: 64, borderRadius: 22, ...glassSubtle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <path d="M3 17l5-6 4 4 6-8" stroke={C.energy} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 7v4h-4" stroke={C.energy} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 700, color: C.t1, margin: '0 0 4px' }}>Sem dados ainda</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.t3, margin: 0 }}>Registre sua primeira atividade para ver sua evolução</p>
+            </div>
+            <button onClick={() => router.push('/treino')} style={{
+              marginTop: 8, padding: '12px 24px', borderRadius: 12, cursor: 'pointer',
+              fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: '#0c0d10',
+              background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, border: 'none',
+            }}>Ir para treinos →</button>
+          </div>
+        ) : isDesktop ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Stat tiles full width no topo */}
+            {StatTiles}
+            {/* Grid 2 colunas abaixo */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignItems: 'start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {ScoreCard}
+                {ConsistenciaCard}
+                {MusculacaoCard}
+                {ComposicaoCard}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {SemanaCard}
+                {CircunferenciasCard}
+                {NutriCard}
+                {IACard}
+              </div>
+            </div>
+            {HistoricoCard}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {StatTiles}
+            {ScoreCard}
+            {ConsistenciaCard}
+            {SemanaCard}
+            {MusculacaoCard}
+            {ComposicaoCard}
+            {CircunferenciasCard}
+            {NutriCard}
+            {IACard}
+            {HistoricoCard}
+          </div>
+        )}
+      </div>
+
+      <NavBar tipo="cliente" ativa="evolucao" />
+    </main>
+  )
+}
             <button onClick={gerarAnaliseIA} style={{
               width: '100%', padding: '13px', borderRadius: 12, cursor: 'pointer',
               fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700,
