@@ -531,16 +531,19 @@ export default function NutricionistaPaciente() {
     if (!force && (treinoCarregando || historicoTreinosDetalhado.length > 0)) return
     setTreinoCarregando(true)
     const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
-    const sete = new Date(); sete.setDate(sete.getDate() - 7)
-    const quatorze = new Date(); quatorze.setDate(quatorze.getDate() - 14)
     const q30 = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    const q7 = sete.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    const q14 = quatorze.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    // Semana calendário dom–sáb
+    const todayLoadStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const dLoadBase = new Date(todayLoadStr + 'T12:00:00-03:00')
+    const currSundayLoad = new Date(dLoadBase); currSundayLoad.setDate(dLoadBase.getDate() - dLoadBase.getDay())
+    const prevSundayLoad = new Date(currSundayLoad); prevSundayLoad.setDate(currSundayLoad.getDate() - 7)
+    const currWeekStartLoad = currSundayLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const prevWeekStartLoad = prevSundayLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
     const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalLink }] = await Promise.all([
       supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
       supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
-      supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', q14).order('data', { ascending: true }),
+      supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', prevWeekStartLoad).order('data', { ascending: true }),
       supabase.from('vinculos').select('profissional_id, perfis(nome)').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle(),
     ])
 
@@ -568,8 +571,8 @@ export default function NutricionistaPaciente() {
     if (ativs?.length) setAtividadesLivres14d(ativs as any)
     if (sonoHist?.length) {
       const sonoArr = sonoHist as any[]
-      const curr7 = sonoArr.filter(s => s.data >= q7)
-      const prev7 = sonoArr.filter(s => s.data < q7)
+      const curr7 = sonoArr.filter(s => s.data >= currWeekStartLoad)
+      const prev7 = sonoArr.filter(s => s.data >= prevWeekStartLoad && s.data < currWeekStartLoad)
       setRecuperacao7d(curr7.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao })))
       setRecuperacaoPrev7d(prev7.map((s: any) => ({ data: s.data, score: s.score_recuperacao })))
     }
@@ -1479,21 +1482,18 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
           const caloriasBase = planoAtivo?.calorias_meta
           const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
           const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
+          // Semana calendário dom–sáb
+          const dBase = new Date(hoje + 'T12:00:00-03:00')
+          const currSunday = new Date(dBase); currSunday.setDate(dBase.getDate() - dBase.getDay())
+          const prevSunday = new Date(currSunday); prevSunday.setDate(currSunday.getDate() - 7)
+          const q7CurrStr = currSunday.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const q14CurrStr = prevSunday.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
           const calSemTotal = [
-            ...historicoTreinosDetalhado.map(t => t.calorias ?? 0),
-            ...atividadesLivres14d.filter(a => {
-              const d = new Date(a.data); const sete = new Date(); sete.setDate(sete.getDate() - 7)
-              return d >= sete
-            }).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
+            ...historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr).map(t => t.calorias ?? 0),
+            ...atividadesLivres14d.filter(a => a.data >= q7CurrStr).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
           ].reduce((acc, v) => acc + v, 0)
           const scoreMedia = recuperacao7d.length ? Math.round(recuperacao7d.filter(r => r.score != null).reduce((a, r) => a + (r.score ?? 0), 0) / recuperacao7d.filter(r => r.score != null).length) : null
-
-          // Comparação semana anterior
-          const dBase = new Date(hoje + 'T12:00:00-03:00')
-          const dq7Ini = new Date(dBase); dq7Ini.setDate(dq7Ini.getDate() - 6)
-          const dq14Ini = new Date(dBase); dq14Ini.setDate(dq14Ini.getDate() - 13)
-          const q7CurrStr = dq7Ini.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-          const q14CurrStr = dq14Ini.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
           const treinosCurr = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr)
           const treinosPrev = historicoTreinosDetalhado.filter(t => t.data >= q14CurrStr && t.data < q7CurrStr)
@@ -1548,7 +1548,11 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                   <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
                 )}
 
-                {/* Métricas semanais com comparação vs semana anterior */}
+                {/* Métricas semanais com comparação vs semana anterior (dom–sáb) */}
+                <p className="text-[10px] text-zinc-600 -mb-1">
+                  {new Date(q7CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')} – {new Date(hoje + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}
+                  <span className="text-zinc-700 ml-2">vs {new Date(q14CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}–{new Date(new Date(q7CurrStr + 'T12:00:00-03:00').setDate(new Date(q7CurrStr + 'T12:00:00-03:00').getDate() - 1)).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}</span>
+                </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {([
                     {
@@ -1636,10 +1640,8 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
 
             {/* ── 3. RESUMO SEMANAL DE TREINO ── */}
             {!treinoCarregando && (() => {
-              const seteAtras = new Date(); seteAtras.setDate(seteAtras.getDate() - 6)
-              const q7 = seteAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-              const treinosUlt7 = historicoTreinosDetalhado.filter(t => t.data >= q7)
-              const atividadesUlt7 = atividadesLivres14d.filter(a => a.data >= q7)
+              const treinosUlt7 = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr)
+              const atividadesUlt7 = atividadesLivres14d.filter(a => a.data >= q7CurrStr)
 
               const calTreinos = treinosUlt7.reduce((s, t) => s + (t.calorias ?? 0), 0)
               const calAtividades = atividadesUlt7.reduce((s, a) => s + (a.calorias_wearable ?? a.calorias_estimadas ?? 0), 0)
