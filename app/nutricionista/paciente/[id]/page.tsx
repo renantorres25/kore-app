@@ -18,7 +18,7 @@ type Paciente = {
   nivel: string | null; fcmax: number | null; ftp: number | null
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
-type Sono = { score_recuperacao: number | null; duracao: number | null }
+type Sono = { score_recuperacao: number | null; duracao_minutos: number | null }
 type BemEstar = { humor: number; energia: number; motivacao: number }
 type PlanoNutricional = {
   id: string; conteudo: string; calorias_meta: number | null
@@ -102,6 +102,7 @@ export default function NutricionistaPaciente() {
   const [paciente, setPaciente] = useState<Paciente | null>(null)
   const [treinos7dDatas, setTreinos7dDatas] = useState<string[]>([])
   const [treinoHoje, setTreinoHoje] = useState<TreinoDia | null>(null)
+  const [atividadesHoje, setAtividadesHoje] = useState<{ modalidade: string; duracao_min: number | null; calorias_wearable: number | null }[]>([])
   const [sonoHoje, setSonoHoje] = useState<Sono | null>(null)
   const [bemEstar, setBemEstar] = useState<BemEstar | null>(null)
   const [planoAtivo, setPlanoAtivo] = useState<PlanoNutricional | null>(null)
@@ -187,15 +188,16 @@ export default function NutricionistaPaciente() {
       const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
       const [
         { data: perfil }, { data: treinos7d },
-        { data: trHoje }, { data: sono }, { data: bem }, { data: plano },
+        { data: trHoje }, { data: atvsHoje }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
         { data: anamneseData }, { data: ultimaAvalData }, { data: proximaConsultaData },
       ] = await Promise.all([
         supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp').eq('id', clienteId).single(),
         supabase.from('treinos').select('data,calorias_estimadas').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
         supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
-        supabase.from('sono').select('score_recuperacao,duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
-        supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).single(),
+        supabase.from('atividades_livres').select('modalidade,duracao_min,calorias_wearable').eq('usuario_id', clienteId).eq('data', hoje),
+        supabase.from('sono').select('score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
+        supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
         supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
         supabase.from('evolucao_medidas').select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20),
         supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
@@ -234,6 +236,7 @@ export default function NutricionistaPaciente() {
       }
 
       setTreinoHoje(trHoje ?? null)
+      setAtividadesHoje(atvsHoje ?? [])
       setSonoHoje(sono ?? null)
       setBemEstar(bem ?? null)
       if (plano) { setPlanoAtivo(plano); setAbaAtiva('plano') }
@@ -1023,7 +1026,7 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                   <p className={`text-sm font-medium ${sonoHoje.score_recuperacao >= 70 ? 'text-emerald-400' : sonoHoje.score_recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
                     {sonoHoje.score_recuperacao >= 85 ? 'Excelente' : sonoHoje.score_recuperacao >= 70 ? 'Boa' : sonoHoje.score_recuperacao >= 55 ? 'Moderada' : 'Baixa'}
                   </p>
-                  {sonoHoje.duracao && <p className="text-zinc-600 text-xs mt-0.5">{sonoHoje.duracao}h de sono</p>}
+                  {sonoHoje.duracao_minutos && <p className="text-zinc-600 text-xs mt-0.5">{Math.round(sonoHoje.duracao_minutos / 60 * 10) / 10}h de sono</p>}
                 </>
               ) : (
                 <div className="mt-4">
@@ -1044,6 +1047,13 @@ Sono hoje: ${sonoHoje?.score_recuperacao ? `${sonoHoje.score_recuperacao}/100` :
                   {treinoHoje.calorias_estimadas != null && treinoHoje.calorias_estimadas > 0 && (
                     <p className="text-orange-400 text-2xl font-black mt-3 leading-none">{treinoHoje.calorias_estimadas}<span className="text-zinc-600 text-xs font-normal ml-1">kcal</span></p>
                   )}
+                </>
+              ) : atividadesHoje.length > 0 ? (
+                <>
+                  <p className="text-5xl font-black text-emerald-400 leading-none mb-3">✓</p>
+                  <p className="text-white text-sm font-semibold capitalize">{atividadesHoje[0].modalidade}{atividadesHoje.length > 1 ? ` +${atividadesHoje.length - 1}` : ''}</p>
+                  <p className="text-emerald-400/70 text-xs mt-0.5">Strava · {atividadesHoje.reduce((s, a) => s + (a.duracao_min ?? 0), 0)}min</p>
+                  {(() => { const cal = atividadesHoje.reduce((s, a) => s + (a.calorias_wearable ?? 0), 0); return cal > 0 ? <p className="text-orange-400 text-2xl font-black mt-3 leading-none">{cal}<span className="text-zinc-600 text-xs font-normal ml-1">kcal</span></p> : null })()}
                 </>
               ) : (
                 <div className="mt-4">

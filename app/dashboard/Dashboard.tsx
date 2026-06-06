@@ -1664,8 +1664,10 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
       const hoje = getTodayBR()
-      const semanaAtras = new Date(); semanaAtras.setDate(semanaAtras.getDate() - 7)
-      const semStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+      const hojeDate = new Date(hoje + 'T12:00:00-03:00')
+      const domingoSemana = new Date(hojeDate)
+      domingoSemana.setDate(hojeDate.getDate() - hojeDate.getDay())
+      const semStr = domingoSemana.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
       const { data: vinculos } = await supabase.from('vinculos').select('cliente_id').eq('profissional_id', session.user.id).eq('tipo', 'nutricionista').eq('ativo', true)
       if (!vinculos?.length) { setLoadingStats(false); return }
