@@ -81,7 +81,10 @@ export default function NavBar({ tipo, ativa }: { tipo: string; ativa: string })
     router.push('/login')
   }
 
-  /* ── SIDEBAR DESKTOP ──────────────────────────────────────── */
+  /* Profissionais no desktop: SidebarProfissional cuida da nav → retorna null */
+  if (isDesktop && (tipo === 'nutricionista' || tipo === 'personal')) return null
+
+  /* ── SIDEBAR DESKTOP (clientes) ──────────────────────────────────────── */
   if (isDesktop) {
     return (
       <aside style={{

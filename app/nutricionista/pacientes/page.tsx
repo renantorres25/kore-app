@@ -196,7 +196,7 @@ export default function NutricionistaPacientes() {
   }, [router])
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+    <main className="min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -214,7 +214,7 @@ export default function NutricionistaPacientes() {
   const temAlerta = counts.vermelho > 0 || counts.amarelo > 0
 
   return (
-    <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
+    <main className="min-h-[100dvh] text-white md:flex">
       <SidebarProfissional tipo="nutricionista" />
       <div className="flex-1 md:overflow-y-auto md:h-screen">
         <div className="max-w-md mx-auto px-4 pb-28 md:max-w-3xl md:px-8"
