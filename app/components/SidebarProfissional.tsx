@@ -7,35 +7,35 @@ import { Home, Users, Calendar, User, LogOut } from 'lucide-react'
 
 type Props = { tipo: 'nutricionista' | 'personal' }
 
-const IconHome = () => <Home size={16} />
-const IconUsers = () => <Users size={16} />
-const IconCalendar = () => <Calendar size={16} />
-const IconUser = () => <User size={16} />
-const IconLogout = () => <LogOut size={15} />
+const C = {
+  energy: '#FF5A36', energy2: '#FF8A3D',
+  good:   '#2DD4A7', sleep:   '#60A5FA',
+  t1: '#F5F6F8', t2: '#9AA0AD', t3: '#7A8290',
+}
+const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
+const FONT_BODY    = "'Plus Jakarta Sans', system-ui, sans-serif"
 
 export default function SidebarProfissional({ tipo }: Props) {
-  const router = useRouter()
+  const router   = useRouter()
   const pathname = usePathname()
-  const [nome, setNome] = useState<string | null>(null)
+  const [nome, setNome]       = useState<string | null>(null)
   const [initials, setInitials] = useState('?')
 
-  const isNutri = tipo === 'nutricionista'
-  const accent = isNutri
-    ? { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', dot: 'bg-emerald-400' }
-    : { text: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    dot: 'bg-blue-400'    }
+  const isNutri  = tipo === 'nutricionista'
+  const accent   = isNutri ? C.good : C.sleep
 
   const navItems = isNutri
     ? [
-        { icon: <IconHome />,     label: 'Início',     href: '/dashboard' },
-        { icon: <IconUsers />,    label: 'Pacientes',  href: '/nutricionista/pacientes' },
-        { icon: <IconCalendar />, label: 'Agenda',     href: '/agenda' },
-        { icon: <IconUser />,     label: 'Perfil',     href: '/perfil' },
+        { icon: <Home size={16} />,     label: 'Início',     href: '/dashboard' },
+        { icon: <Users size={16} />,    label: 'Pacientes',  href: '/nutricionista/pacientes' },
+        { icon: <Calendar size={16} />, label: 'Agenda',     href: '/agenda' },
+        { icon: <User size={16} />,     label: 'Perfil',     href: '/perfil' },
       ]
     : [
-        { icon: <IconHome />,     label: 'Início',     href: '/dashboard' },
-        { icon: <IconUsers />,    label: 'Alunos',     href: '/personal' },
-        { icon: <IconCalendar />, label: 'Agenda',     href: '/agenda' },
-        { icon: <IconUser />,     label: 'Perfil',     href: '/perfil' },
+        { icon: <Home size={16} />,     label: 'Início',     href: '/dashboard' },
+        { icon: <Users size={16} />,    label: 'Alunos',     href: '/personal' },
+        { icon: <Calendar size={16} />, label: 'Agenda',     href: '/agenda' },
+        { icon: <User size={16} />,     label: 'Perfil',     href: '/perfil' },
       ]
 
   useEffect(() => {
@@ -65,75 +65,83 @@ export default function SidebarProfissional({ tipo }: Props) {
   }
 
   return (
-    <aside
-      className="hidden md:flex md:flex-col md:w-[220px] md:shrink-0 md:h-screen md:sticky md:top-0 border-r"
-      style={{ background: 'var(--bg-base)', borderColor: 'rgba(255,255,255,0.10)' }}
-    >
+    <aside style={{
+      width: 220, flexShrink: 0, height: '100vh', position: 'sticky', top: 0,
+      display: 'flex', flexDirection: 'column',
+      background: 'rgba(255,255,255,0.04)',
+      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+      borderRight: '1px solid rgba(255,255,255,0.08)',
+      padding: '28px 14px 20px',
+    }}>
       {/* Logo */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-xl ${accent.bg} border ${accent.border} flex items-center justify-center shrink-0`}>
-            <span className={`${accent.text} font-black text-sm`}>K</span>
-          </div>
-          <div>
-            <p className="text-white font-black text-[15px] tracking-tight leading-none">KORE</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className={`w-1.5 h-1.5 rounded-full ${accent.dot}`} />
-              <p className={`text-[12px] font-medium ${accent.text}`}>
-                {isNutri ? 'Nutricionista' : 'Personal Trainer'}
-              </p>
-            </div>
-          </div>
+      <div style={{ paddingLeft: 10, marginBottom: 36 }}>
+        <span style={{
+          fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 900,
+          letterSpacing: '-0.04em',
+          background: `linear-gradient(135deg, #fff 0%, ${C.energy2} 40%, ${C.energy} 100%)`,
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+        }}>KORE</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent, boxShadow: `0 0 6px ${accent}` }} />
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: accent, letterSpacing: '0.05em' }}>
+            {isNutri ? 'Nutricionista' : 'Personal Trainer'}
+          </span>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
         {navItems.map((item) => {
           const active = isActive(item.href)
           return (
             <button
               key={item.href}
               onClick={() => router.push(item.href)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all active:scale-[0.97] text-left ${
-                active
-                  ? `${accent.bg} ${accent.text} font-semibold`
-                  : 'text-zinc-400 hover:text-white font-normal'
-              }`}
-              style={active ? {} : { ':hover': { background: 'rgba(255,255,255,0.05)' } } as React.CSSProperties}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px', borderRadius: 12,
+                background: active ? `${accent}18` : 'transparent',
+                border: `1px solid ${active ? `${accent}30` : 'transparent'}`,
+                cursor: 'pointer', transition: 'all 150ms ease',
+                color: active ? accent : C.t2,
+                fontFamily: FONT_BODY, fontSize: 13,
+                fontWeight: active ? 600 : 400,
+                width: '100%', textAlign: 'left',
+              }}
               onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)' }}
-              onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = '' }}
+              onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
             >
-              <span className={active ? accent.text : 'text-zinc-500'}>{item.icon}</span>
+              <span style={{ color: active ? accent : C.t3, flexShrink: 0 }}>{item.icon}</span>
               {item.label}
+              {active && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: accent, boxShadow: `0 0 6px ${accent}` }} />}
             </button>
           )
         })}
       </nav>
 
       {/* User */}
-      <div className="px-3 py-4 border-t space-y-0.5" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <button
           onClick={() => router.push('/perfil')}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-[0.97]"
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 150ms' }}
           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-          onMouseLeave={e => (e.currentTarget.style.background = '')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <div className="w-7 h-7 rounded-lg bg-white/[0.10] flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-bold">{initials}</span>
+          <div style={{ width: 30, height: 30, borderRadius: 10, background: `${accent}20`, border: `1px solid ${accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ color: accent, fontSize: 11, fontWeight: 800, fontFamily: FONT_DISPLAY }}>{initials}</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-medium truncate leading-tight">{nome ?? 'Usuário'}</p>
-            <p className="text-zinc-600 text-[11px] leading-tight mt-0.5">Configurações</p>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: C.t1, fontSize: 13, fontWeight: 600, fontFamily: FONT_BODY, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome ?? 'Usuário'}</p>
+            <p style={{ color: C.t3, fontSize: 10, fontFamily: FONT_BODY, margin: 0, marginTop: 1 }}>Configurações</p>
           </div>
         </button>
         <button
           onClick={sair}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-zinc-500 hover:text-zinc-300 transition-all text-sm active:scale-[0.97]"
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
-          onMouseLeave={e => (e.currentTarget.style.background = '')}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, background: 'none', border: 'none', cursor: 'pointer', color: C.t3, fontFamily: FONT_BODY, fontSize: 12, width: '100%', textAlign: 'left', transition: 'all 150ms' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLButtonElement).style.color = C.t2 }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = C.t3 }}
         >
-          <IconLogout />
+          <LogOut size={14} />
           Sair
         </button>
       </div>

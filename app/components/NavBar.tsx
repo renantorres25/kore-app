@@ -81,8 +81,8 @@ export default function NavBar({ tipo, ativa }: { tipo: string; ativa: string })
     router.push('/login')
   }
 
-  /* ── SIDEBAR DESKTOP ──────────────────────────────────────── */
-  if (isDesktop) {
+  /* ── SIDEBAR DESKTOP — só para clientes; profissionais usam SidebarProfissional ── */
+  if (isDesktop && tipo !== 'nutricionista' && tipo !== 'personal') {
     return (
       <aside style={{
         position: 'fixed', top: 0, left: 0, bottom: 0, width: 220, zIndex: 50,
