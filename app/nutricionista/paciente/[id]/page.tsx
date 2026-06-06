@@ -768,7 +768,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+    <main className="min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
@@ -791,7 +791,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
   }, 0)
 
   return (
-    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row" style={{ background: 'var(--bg-base)' }}>
+    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row">
 
       {/* ── SIDEBAR — só desktop ─────────────────────────────────────── */}
       <SidebarProfissional tipo="nutricionista" />
@@ -800,22 +800,24 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
       <div className="flex-1 flex flex-col min-w-0 md:overflow-hidden md:h-screen">
 
       {/* ── HEADER FIXO ─────────────────────────────────────────────── */}
-      <div className="shrink-0 sticky top-0 z-20 backdrop-blur-sm border-b"
-           style={{ background: 'rgba(12,16,26,0.97)', borderColor: 'rgba(255,255,255,0.09)', paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+      <div className="shrink-0 sticky top-0 z-20 border-b"
+           style={{ background: 'rgba(22,24,34,0.92)', backdropFilter: 'blur(24px) saturate(140%)', WebkitBackdropFilter: 'blur(24px) saturate(140%)', borderColor: 'rgba(255,255,255,0.10)', paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
         <div className="px-4 md:px-8 pb-4">
           <button onClick={() => router.push('/nutricionista/pacientes')}
-            className="text-zinc-500 text-xs uppercase tracking-widest mb-3 flex items-center gap-1 hover:text-zinc-300 transition-colors">
-            ← Pacientes
+            style={{ color: '#7A8290', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', transition: 'color 150ms' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#F5F6F8')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#7A8290')}>
+            ← Dashboard
           </button>
           <div className="flex items-center justify-between gap-6">
             {/* Avatar + nome + dados primários */}
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <span className="text-[var(--accent)] font-black text-base">{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
+              <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(45,212,167,0.12)', border: '1px solid rgba(45,212,167,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 20px rgba(45,212,167,0.15)' }}>
+                <span style={{ color: '#2DD4A7', fontWeight: 900, fontSize: 16, fontFamily: "'Sora', system-ui" }}>{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
+                  <h1 style={{ fontFamily: "'Sora', system-ui", fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#F5F6F8', lineHeight: 1 }}>{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
                   {paciente?.data_nascimento && (() => {
                     const hoje2 = new Date()
                     const nasc = new Date(paciente.data_nascimento)
@@ -824,10 +826,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   })()}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-1">
-                  {paciente?.peso && <span className="text-xs text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">{paciente.peso} kg</span>}
-                  {paciente?.objetivo && <span className="text-xs text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
-                  {paciente?.meta_peso && <span className="text-xs text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/15 rounded-full px-2.5 py-0.5">Meta: {paciente.meta_peso} kg</span>}
-                  {metaCal && <span className="hidden md:inline text-xs text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">{metaCal} kcal/dia</span>}
+                  {paciente?.peso && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{paciente.peso} kg</span>}
+                  {paciente?.objetivo && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
+                  {paciente?.meta_peso && <span style={{ fontSize: 11, color: '#2DD4A7', background: 'rgba(45,212,167,0.1)', border: '1px solid rgba(45,212,167,0.2)', borderRadius: 99, padding: '3px 10px' }}>Meta: {paciente.meta_peso} kg</span>}
+                  {metaCal && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px', display: 'none' }} className="md:inline-block">{metaCal} kcal/dia</span>}
                 </div>
               </div>
             </div>
@@ -843,7 +845,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               {proximaConsulta && (
                 <div className="text-right">
                   <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Próxima consulta</p>
-                  <p className="text-[var(--accent)] text-sm font-medium mt-0.5">{new Date(proximaConsulta).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>
+                  <p className="text-[#2DD4A7] text-sm font-medium mt-0.5">{new Date(proximaConsulta).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>
                 </div>
               )}
               {medidasCP.length >= 2 && (() => {
@@ -866,7 +868,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
       </div>
 
       {/* ── BARRA DE ABAS ────────────────────────────────────────────── */}
-      <div className="shrink-0 border-b overflow-x-auto" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+      <div className="shrink-0 overflow-x-auto" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="flex px-4 md:px-8 min-w-max">
           {([
             { id: 'visao-geral', label: 'Visão Geral',  Icon: LayoutDashboard },
@@ -885,11 +887,13 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 }
                 setAbaAtiva(tab.id as any); setEditandoPlano(false)
               }}
-              className={`px-4 py-3.5 text-sm border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${
-                abaAtiva === tab.id
-                  ? 'border-[var(--accent)] text-white font-semibold'
-                  : 'border-transparent text-zinc-500 hover:text-zinc-300 font-normal'
-              }`}>
+              style={{
+                padding: '12px 16px', fontSize: 13, borderBottom: `2px solid ${abaAtiva === tab.id ? '#FF5A36' : 'transparent'}`,
+                color: abaAtiva === tab.id ? '#F5F6F8' : '#7A8290', fontWeight: abaAtiva === tab.id ? 700 : 400,
+                whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6,
+                background: 'none', border: 'none', borderBottom: `2px solid ${abaAtiva === tab.id ? '#FF5A36' : 'transparent'}`,
+                cursor: 'pointer', transition: 'all 150ms',
+              }}>
               <tab.Icon size={15} />
               {tab.label}
             </button>
@@ -909,8 +913,8 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
           <div className="space-y-8">
 
             {/* ── 1. PERFIL NUTRICIONAL — bloco prioritário ────────────── */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-              <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center gap-2">
+            <div style={ background: 'rgba(45,212,167,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(45,212,167,0.18)', borderRadius: 20, overflow: 'hidden' }>
+              <div style={ padding: '12px 20px', borderBottom: '1px solid rgba(45,212,167,0.10)', display: 'flex', alignItems: 'center', gap: 8 }>
                 <Salad size={13} className="text-emerald-400 shrink-0" />
                 <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-semibold">Perfil nutricional</p>
                 {paciente?.meta_data_limite && (
@@ -982,7 +986,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 { label: 'Músculo', val: ultima.massa_muscular, unit: 'kg', delta: primeira?.massa_muscular ? Math.round(((ultima.massa_muscular ?? 0) - primeira.massa_muscular) * 10) / 10 : null, inv: false },
               ].filter(m => m.val != null)
               return (
-                <div className="rounded-2xl px-5 py-4 flex items-center gap-0" style={{ background: 'var(--surface-1)' }}>
+                <div style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: '16px 20px', display: 'flex', alignItems: 'center' }>
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                       <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">Composição corporal</p>
@@ -1006,13 +1010,13 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                     </div>
                   </div>
                   <button onClick={() => setAbaAtiva('evolucao')}
-                    className="text-xs text-zinc-600 hover:text-[var(--accent)] transition-colors shrink-0">
+                    className="text-xs text-zinc-600 hover:text-[#2DD4A7] transition-colors shrink-0">
                     Ver evolução →
                   </button>
                 </div>
               )
             })() : (
-              <div className="rounded-3xl p-8 flex items-center gap-5" style={{ background: 'var(--surface-1)' }}>
+              <div style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 28, display: 'flex', alignItems: 'center', gap: 20 }>
                 <div className="w-14 h-14 rounded-2xl bg-white/[0.05] flex items-center justify-center text-2xl shrink-0">📏</div>
                 <div>
                   <p className="text-white font-bold mb-1">Sem avaliações corporais</p>
@@ -1026,12 +1030,13 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
             {/* ── 3. DADOS DE HOJE — 3 colunas, números grandes ────────── */}
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-[0.2em] mb-4">Dados de hoje</p>
+              <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Dados de hoje</p>
               <div className="grid grid-cols-3 gap-4">
 
             {/* Recuperação */}
-            <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Recuperação</p>
+            <div style={ background: 'rgba(45,212,167,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(45,212,167,0.18)', borderRadius: 20, padding: 20, position: 'relative', overflow: 'hidden' }>
+              <div style={ position: 'absolute', top: -30, right: -30, width: 80, height: 80, borderRadius: '50%', background: '#2DD4A7', opacity: 0.07, filter: 'blur(20px)' } />
+              <p style={ fontSize: 10, color: '#2DD4A7', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }>Recuperação</p>
               {sonoHoje?.score_recuperacao != null ? (
                 <>
                   <div className="flex items-baseline gap-1 mb-3">
@@ -1057,8 +1062,9 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             </div>
 
             {/* Treino hoje */}
-            <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Treino hoje</p>
+            <div style={ background: 'rgba(255,90,54,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,90,54,0.18)', borderRadius: 20, padding: 20, position: 'relative', overflow: 'hidden' }>
+              <div style={ position: 'absolute', top: -30, right: -30, width: 80, height: 80, borderRadius: '50%', background: '#FF5A36', opacity: 0.07, filter: 'blur(20px)' } />
+              <p style={ fontSize: 10, color: '#FF8A3D', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }>Treino hoje</p>
               {treinoHoje ? (
                 <>
                   <p className="text-5xl font-black text-emerald-400 leading-none mb-3">✓</p>
@@ -1085,8 +1091,9 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             </div>
 
             {/* Bem-estar */}
-            <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
-              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em] mb-5">Bem-estar</p>
+            <div style={ background: 'rgba(96,165,250,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(96,165,250,0.18)', borderRadius: 20, padding: 20, position: 'relative', overflow: 'hidden' }>
+              <div style={ position: 'absolute', top: -30, right: -30, width: 80, height: 80, borderRadius: '50%', background: '#60A5FA', opacity: 0.07, filter: 'blur(20px)' } />
+              <p style={ fontSize: 10, color: '#60A5FA', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 16, fontWeight: 700 }>Bem-estar</p>
               {bemEstar ? (
                 <>
                   {(() => {
@@ -1125,7 +1132,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
             {/* ── 4. BRIEFING PRÉ-CONSULTA ─────────────────────────────── */}
             {gerandoBriefing && !briefingEstruturado ? (
-              <div className="rounded-2xl p-6 animate-pulse" style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.10)' }}>
+              <div className="animate-pulse" style={ background: 'rgba(45,212,167,0.05)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(45,212,167,0.15)', borderRadius: 20, padding: 24 }>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-3 h-3 rounded-full bg-emerald-500/40 animate-ping" />
                   <p className="text-[11px] text-emerald-500/50 uppercase tracking-[0.2em]">Preparando briefing...</p>
@@ -1137,7 +1144,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 </div>
               </div>
             ) : briefingEstruturado ? (
-              <div className="rounded-2xl overflow-hidden" style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.14)' }}>
+              <div style={ background: 'rgba(45,212,167,0.05)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(45,212,167,0.15)', borderRadius: 20, overflow: 'hidden' }>
                 <div className="px-6 pt-5 pb-4 border-b border-emerald-500/10">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] text-emerald-500/60 uppercase tracking-[0.25em] flex items-center gap-1.5"><span>✦</span> Briefing pré-consulta</p>
@@ -1189,7 +1196,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               const primeiro = comCal[0], ultimo = comCal[comCal.length - 1]
               const deltaCal = (ultimo.calorias_meta ?? 0) - (primeiro.calorias_meta ?? 0)
               return (
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Evolução das metas nutricionais</p>
                     <p className="text-zinc-600 text-[9px]">{historicoMetas.length} planos</p>
@@ -1245,7 +1252,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   const refCal = sumAl(varAtiva?.alimentos ?? [], 'calorias')
                   const refProt = sumAl(varAtiva?.alimentos ?? [], 'proteina')
                   return (
-                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                    <div key={rIdx} className="rounded-2xl border border-white/[0.14] overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                       {/* header refeição */}
                       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.14]" style={{ background: '#1c1c1c' }}>
                         <div className="flex items-center gap-2">
@@ -1275,7 +1282,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                           {ref.variacoes.map((v, vi) => (
                             <button key={vi}
                               onClick={() => setVariacaoAtivaEditor(p => ({ ...p, [rIdx]: vi }))}
-                              className={`px-3 py-1.5 rounded-t-lg text-xs font-semibold border-b-2 transition-all ${vIdx === vi ? 'text-white border-[var(--accent)]' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}>
+                              className={`px-3 py-1.5 rounded-t-lg text-xs font-semibold border-b-2 transition-all ${vIdx === vi ? 'text-white border-[#2DD4A7]' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}>
                               {v.nome || `Opção ${String.fromCharCode(65 + vi)}`}
                             </button>
                           ))}
@@ -1401,7 +1408,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 )}
 
                 {/* Seções extras opcionais */}
-                <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--surface-1)' }}>
+                <div className="rounded-2xl p-4 space-y-3" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                   <p className="text-zinc-500 text-[9px] uppercase tracking-wider">Orientações complementares (opcional)</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
@@ -1458,7 +1465,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             ) : planoAtivo && planoEstruturado ? (
               <>
                 {/* header plano ativo */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                   <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
@@ -1601,7 +1608,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
           return (
           <div className="space-y-5">
             {/* ── 1. PERSONAL TRAINER + PERIODIZAÇÃO ── */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+            <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
               <div className="px-5 py-4 border-b border-white/[0.07]">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1621,10 +1628,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                         <p className="text-white text-lg font-black">{periodizacaoFase.nome_bloco}</p>
                         <p className="text-zinc-500 text-sm">Semana {periodizacaoFase.semana_bloco} de {periodizacaoFase.total_semanas_bloco}</p>
                       </div>
-                      <span className="text-[var(--accent)] text-2xl font-black">{Math.round(pct)}%</span>
+                      <span className="text-[#2DD4A7] text-2xl font-black">{Math.round(pct)}%</span>
                     </div>
                     <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'var(--accent)' }} />
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: '#2DD4A7' }} />
                     </div>
                   </div>
                 ) : (
@@ -1675,7 +1682,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   <div className="rounded-xl px-4 py-3 border border-emerald-500/20" style={{ background: 'rgba(45,212,167,0.05)' }}>
                     <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Ajuste calórico sugerido · {periodizacaoFase?.nome_bloco}</p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-[var(--accent)] text-2xl font-black">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
+                      <span className="text-[#2DD4A7] text-2xl font-black">{caloriasAjustadas?.toLocaleString('pt-BR')} kcal</span>
                       <span className="text-zinc-500 text-sm">({ajuste.pct > 0 ? '+' : ''}{Math.round(ajuste.pct * 100)}%)</span>
                     </div>
                     <p className="text-zinc-600 text-xs mt-0.5">{ajuste.label}</p>
@@ -1685,7 +1692,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 {proximaFase && diasAteProximaFase !== null && (
                   <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08]" style={{ background: 'rgba(255,255,255,0.03)' }}>
                     <span className="text-zinc-400 text-sm">Próxima fase:</span>
-                    <span className="text-[var(--accent)] font-semibold text-sm">{proximaFase} <span className="text-zinc-600 font-normal">em {diasAteProximaFase}d</span></span>
+                    <span className="text-[#2DD4A7] font-semibold text-sm">{proximaFase} <span className="text-zinc-600 font-normal">em {diasAteProximaFase}d</span></span>
                   </div>
                 )}
               </div>
@@ -1693,7 +1700,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
             {/* ── 2. TENDÊNCIA DE RECUPERAÇÃO ── */}
             {recuperacao7d.length > 0 && (
-              <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+              <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                 <div className="px-5 py-4 border-b border-white/[0.07]">
                   <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Recuperação — últimos 7 dias</p>
                 </div>
@@ -1702,7 +1709,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                     {recuperacao7d.map((r, i) => {
                       const score = r.score ?? 0
                       const h = Math.max(4, Math.round((score / 100) * 56))
-                      const cor = score >= 70 ? 'var(--accent)' : score >= 50 ? '#F59E0B' : '#FB7185'
+                      const cor = score >= 70 ? '#2DD4A7' : score >= 50 ? '#F59E0B' : '#FB7185'
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center gap-1">
                           <div className="w-full rounded-sm" style={{ height: `${h}px`, background: cor, opacity: 0.8 }} title={`${r.data}: ${score}/100`} />
@@ -1756,7 +1763,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               if (totalSessoes === 0 && totalCal === 0) return null
 
               return (
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                   <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
                     <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Resumo semanal de treino</p>
                     <span className="text-zinc-600 text-[10px]">{totalSessoes} sessão{totalSessoes !== 1 ? 'ões' : ''}</span>
@@ -1788,7 +1795,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                               <div className="flex items-center gap-3 mb-1">
                                 <p className="text-zinc-300 text-xs w-24 shrink-0 truncate font-medium">{m.nome}</p>
                                 <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
-                                  <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${m.pct}%` }} />
+                                  <div className="h-full rounded-full bg-[#2DD4A7] transition-all" style={{ width: `${m.pct}%` }} />
                                 </div>
                                 <p className="text-zinc-400 text-xs w-8 text-right shrink-0 font-semibold">{m.pct}%</p>
                               </div>
@@ -1805,14 +1812,14 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
             {/* ── 4. HISTÓRICO DE TREINOS (30 dias) ── */}
             {treinoCarregando ? (
-              <div className="rounded-2xl p-8 flex items-center justify-center gap-3" style={{ background: 'var(--surface-1)' }}>
+              <div className="rounded-2xl p-8 flex items-center justify-center gap-3" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                 <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
                 <p className="text-zinc-500 text-sm">Carregando histórico...</p>
               </div>
             ) : (
               <>
                 {/* ── TREINOS DE MUSCULAÇÃO ── */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                   <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
                     <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Treinos de musculação — 30 dias</p>
                     <span className="text-zinc-600 text-xs">{historicoTreinosDetalhado.length > 0 ? `${historicoTreinosDetalhado.length} sessões` : 'sem registros'}</span>
@@ -1858,7 +1865,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 </div>
 
                 {/* ── ATIVIDADES LIVRES ── */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                   <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 flex-wrap">
                       <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Atividades livres — 30 dias</p>
@@ -1933,7 +1940,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               <button onClick={gerarBriefing} disabled={gerandoBriefing}
                 className="flex items-center gap-2 text-sm text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded-xl px-5 py-2.5 active:scale-95 transition-all disabled:opacity-50 font-semibold">
                 {gerandoBriefing ? (
-                  <><div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /> Analisando...</>
+                  <><div className="w-4 h-4 border-2 border-[#2DD4A7] border-t-transparent rounded-full animate-spin" /> Analisando...</>
                 ) : briefingEstruturado ? '↻ Reanalisar' : '✦ Gerar análise'}
               </button>
             </div>
@@ -1950,12 +1957,12 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Resumo */}
                 <div className="md:col-span-2 rounded-2xl border border-emerald-500/20 p-6" style={{ background: '#0a1510' }}>
-                  <p className="text-[var(--accent)] text-xs uppercase tracking-wider mb-2">Situação atual</p>
+                  <p className="text-[#2DD4A7] text-xs uppercase tracking-wider mb-2">Situação atual</p>
                   <p className="text-white text-lg leading-relaxed">{briefingEstruturado.resumo}</p>
                 </div>
 
                 {/* Evolução */}
-                <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
+                <div className="rounded-2xl p-6" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                   <p className="text-zinc-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><span>📈</span> Evolução recente</p>
                   <ul className="space-y-2">
                     {briefingEstruturado.evolucao.map((item, i) => (
@@ -1999,11 +2006,11 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             ) : null}
 
             {/* Chat referência */}
-            <div className="rounded-2xl border border-white/[0.07] p-5 flex items-center gap-4" style={{ background: 'var(--surface-1)' }}>
+            <div className="rounded-2xl border border-white/[0.07] p-5 flex items-center gap-4" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-lg">✦</div>
               <div>
                 <p className="text-white text-sm font-semibold">Chat clínico disponível</p>
-                <p className="text-zinc-500 text-xs mt-0.5">Use o botão <span className="text-[var(--accent)]">✦</span> no canto inferior direito para perguntas específicas sobre {paciente?.nome?.split(' ')[0] ?? 'este paciente'}</p>
+                <p className="text-zinc-500 text-xs mt-0.5">Use o botão <span className="text-[#2DD4A7]">✦</span> no canto inferior direito para perguntas específicas sobre {paciente?.nome?.split(' ')[0] ?? 'este paciente'}</p>
               </div>
             </div>
           </div>
@@ -2025,10 +2032,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
             {loadingAnamnese ? (
               <div className="flex items-center justify-center py-16">
-                <div className="w-7 h-7 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+                <div className="w-7 h-7 border-2 border-[#2DD4A7] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : !anamneseCompleta ? (
-              <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
+              <div className="rounded-2xl p-10 text-center" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                 <p className="text-3xl mb-3">📋</p>
                 <p className="text-white font-semibold mb-1">Anamnese não preenchida</p>
                 <p className="text-zinc-500 text-sm mb-4">Preencha a anamnese do paciente para registrar histórico clínico</p>
@@ -2041,7 +2048,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Saúde */}
                 {(anamneseCompleta.patologias || anamneseCompleta.medicamentos || anamneseCompleta.alergias || anamneseCompleta.historico_familiar) && (
-                  <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
+                  <div className="rounded-2xl p-6" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🏥 Saúde</p>
                     <div className="space-y-3">
                       {anamneseCompleta.patologias && <div><p className="text-zinc-600 text-xs mb-1">Patologias</p><p className="text-zinc-200 text-sm">{anamneseCompleta.patologias}</p></div>}
@@ -2053,7 +2060,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 )}
                 {/* Estilo de vida */}
                 {(anamneseCompleta.nivel_atividade || anamneseCompleta.horas_sono || anamneseCompleta.nivel_estresse) && (
-                  <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
+                  <div className="rounded-2xl p-6" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🌿 Estilo de vida</p>
                     <div className="space-y-3">
                       {anamneseCompleta.nivel_atividade && <div><p className="text-zinc-600 text-xs mb-1">Atividade física</p><p className="text-zinc-200 text-sm capitalize">{anamneseCompleta.nivel_atividade.replace('_', ' ')}</p></div>}
@@ -2076,7 +2083,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 )}
                 {/* Nutrição */}
                 {(anamneseCompleta.restricoes_alimentares || anamneseCompleta.suplementos || anamneseCompleta.habitos_alimentares) && (
-                  <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
+                  <div className="rounded-2xl p-6" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-4 flex items-center gap-2">🥗 Nutrição</p>
                     <div className="space-y-3">
                       {anamneseCompleta.restricoes_alimentares && <div><p className="text-zinc-600 text-xs mb-1">Restrições alimentares</p><p className="text-amber-300 text-sm">{anamneseCompleta.restricoes_alimentares}</p></div>}
@@ -2088,7 +2095,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 )}
                 {/* Objetivos */}
                 {anamneseCompleta.objetivo_detalhado && (
-                  <div className="md:col-span-2 rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
+                  <div className="md:col-span-2 rounded-2xl p-5" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">🎯 Objetivos</p>
                     <p className="text-zinc-200 text-sm leading-relaxed">{anamneseCompleta.objetivo_detalhado}</p>
                     {anamneseCompleta.motivacao && <p className="text-zinc-500 text-xs mt-2">Motivação: {anamneseCompleta.motivacao}</p>}
@@ -2108,18 +2115,18 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 <p className="text-zinc-500 text-sm">{medidasCP.length} avaliações registradas</p>
               </div>
               <button onClick={() => setModalAvaliacao(true)}
-                className="flex items-center gap-1.5 text-sm text-[var(--accent)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 rounded-xl px-4 py-2 active:scale-95 transition-all font-medium">
+                className="flex items-center gap-1.5 text-sm text-[#2DD4A7] border border-[#2DD4A7]/25 bg-[#2DD4A7]/10 rounded-xl px-4 py-2 active:scale-95 transition-all font-medium">
                 + Nova avaliação
               </button>
             </div>
 
             {medidasCP.length === 0 ? (
-              <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
+              <div className="rounded-2xl p-10 text-center" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                 <p className="text-3xl mb-3">📏</p>
                 <p className="text-white font-semibold mb-1">Sem avaliações registradas</p>
                 <p className="text-zinc-500 text-sm mb-4">Adicione a primeira avaliação corporal do paciente</p>
                 <button onClick={() => setModalAvaliacao(true)}
-                  className="bg-[var(--accent)] text-black font-bold px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-all">
+                  className="bg-[#2DD4A7] text-black font-bold px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-all">
                   Registrar primeira avaliação
                 </button>
               </div>
@@ -2162,7 +2169,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               return (
                 <>
                   {/* Resumo da última avaliação */}
-                  <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
+                  <div className="rounded-2xl p-6" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-zinc-400 text-xs uppercase tracking-wider">Última avaliação</p>
                       <p className="text-zinc-500 text-xs">{new Date(ultima.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</p>
@@ -2192,7 +2199,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                       const pts = medidasCP.filter(d => d[m.key] != null)
                       if (pts.length < 2) return null
                       return (
-                        <div key={m.label} className="rounded-2xl p-6" style={{ background: 'var(--surface-1)' }}>
+                        <div key={m.label} className="rounded-2xl p-6" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                           <div className="flex items-center justify-between mb-3">
                             <div>
                               <p className="text-zinc-400 text-xs uppercase tracking-wider">{m.label}</p>
@@ -2215,11 +2222,11 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   </div>
 
                   {/* Histórico de avaliações — accordion clicável */}
-                  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                  <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
                     <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
                       <p className="text-zinc-400 text-xs uppercase tracking-wider">Histórico de avaliações</p>
                       <button onClick={() => setModalAvaliacao(true)}
-                        className="flex items-center gap-1.5 text-xs text-[var(--accent)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 rounded-xl px-3 py-1.5 active:scale-95 transition-all font-medium">
+                        className="flex items-center gap-1.5 text-xs text-[#2DD4A7] border border-[#2DD4A7]/25 bg-[#2DD4A7]/10 rounded-xl px-3 py-1.5 active:scale-95 transition-all font-medium">
                         + Nova avaliação
                       </button>
                     </div>
@@ -2288,7 +2295,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
       </div>
       {/* ── FIM CONTEÚDO PRINCIPAL ───────────────────────────────────── */}
 
-      <div className="md:hidden"><NavBar tipo="nutricionista" ativa="pacientes" /></div>
+      {/* NavBar mobile removido — SidebarProfissional cuida da navegação */}
 
       {/* ── MODAL AVALIAÇÃO COMPLETA ─────────────────────────────────── */}
       {modalAvaliacao && paciente && (
@@ -2462,7 +2469,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const MealIcon = MEAL_ICONS[idx % MEAL_ICONS.length] ?? UtensilsCrossed
   const alimentos: any[] = ref.alimentos ?? []
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+    <div className="rounded-2xl overflow-hidden" style={ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }>
       <button onClick={() => setAberta(p => !p)}
         className="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-white/[0.03] active:bg-white/[0.02] transition-colors min-h-[56px]">
         <div className="w-9 h-9 rounded-xl bg-white/[0.07] flex items-center justify-center shrink-0">
@@ -2479,7 +2486,7 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
           </div>
           <div className="flex gap-3 mt-0.5">
             <span className="text-[var(--data-energy)] text-xs font-semibold mono">{ref.calorias} kcal</span>
-            <span className="text-[var(--accent)] text-xs mono">{ref.proteina}g prot</span>
+            <span className="text-[#2DD4A7] text-xs mono">{ref.proteina}g prot</span>
             {alimentos.length > 0 && (
               <span className="text-zinc-500 text-xs bg-white/[0.05] px-1.5 rounded">
                 {alimentos.length} item{alimentos.length > 1 ? 's' : ''}
