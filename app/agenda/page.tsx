@@ -169,22 +169,26 @@ export default function Agenda() {
       <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
-        <div className="flex items-center justify-between mb-4">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
-            <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase mb-0.5">KORE</p>
-            <h1 className="text-[1.85rem] font-black tracking-tight">Agenda</h1>
+            <p style={{ color: '#7A8290', fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 700 }}>KORE</p>
+            <h1 style={{ fontFamily: "'Sora', system-ui, sans-serif", fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F5F6F8', lineHeight: 1 }}>Agenda</h1>
           </div>
           <button onClick={() => setShowModal(true)}
-            className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center text-xl font-black active:scale-95 transition-all">
+            style={{ width: 40, height: 40, borderRadius: 14, background: 'linear-gradient(135deg, #FF5A36, #FF8A3D)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, border: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,90,54,0.4)' }}>
             +
           </button>
         </div>
 
         {/* Toggle semana / mês */}
-        <div className="flex gap-1 p-1 rounded-2xl mb-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, background: 'rgba(255,255,255,0.05)', marginBottom: 20 }}>
           {(['semana', 'mes'] as const).map(v => (
             <button key={v} onClick={() => setVistaCalendario(v)}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${vistaCalendario === v ? 'bg-white/90 text-black font-semibold' : 'text-zinc-400'}`}>
+              style={{ flex: 1, padding: '8px 0', borderRadius: 12, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 150ms',
+                background: vistaCalendario === v ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: vistaCalendario === v ? '#F5F6F8' : '#7A8290',
+                boxShadow: vistaCalendario === v ? '0 1px 0 rgba(255,255,255,0.08) inset' : 'none',
+              }}>
               {v === 'semana' ? 'Semana' : 'Mês'}
             </button>
           ))}
@@ -267,10 +271,10 @@ export default function Agenda() {
         })()}
 
         {Object.keys(grupos).length === 0 ? (
-          <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--surface-1)' }}>
-            <div className="w-12 h-12 rounded-2xl bg-white/[0.05] flex items-center justify-center mb-3 mx-auto"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-            <p className="text-white font-bold mb-1">Agenda vazia</p>
-            <p className="text-zinc-500 text-sm">Clique em + para criar um agendamento.</p>
+          <div style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20, padding: '48px 24px', textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', color: '#7A8290' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <p style={{ color: '#F5F6F8', fontWeight: 700, marginBottom: 4 }}>Agenda vazia</p>
+            <p style={{ color: '#7A8290', fontSize: 13 }}>Clique em + para criar um agendamento.</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -338,7 +342,7 @@ export default function Agenda() {
         )}
       </div>
 
-      <div className="md:hidden"><NavBar tipo={tipo || 'nutricionista'} ativa="agenda" /></div>
+      {tipo !== 'nutricionista' && tipo !== 'personal' && <div className="md:hidden"><NavBar tipo={tipo || 'cliente'} ativa="agenda" /></div>}
 
       {/* Modal */}
       {showModal && (

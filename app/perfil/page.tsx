@@ -331,7 +331,7 @@ function PerfilConteudo() {
   )
 
   return (
-    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0, display: isProf ? 'flex' : 'block' }}>
+    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, display: isProf ? 'flex' : 'block' }}>
       {isProf && <SidebarProfissional tipo={tipo as 'nutricionista' | 'personal'} />}
       <div style={{ flex: 1, overflowY: 'auto' }}>
       <div style={{
