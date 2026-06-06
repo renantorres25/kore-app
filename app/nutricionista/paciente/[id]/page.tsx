@@ -1717,7 +1717,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                       const cor = score >= 70 ? '#2DD4A7' : score >= 50 ? '#F59E0B' : '#FB7185'
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <div className="w-full rounded-sm" style={{ height: `${h}px`, background: cor, opacity: 0.8 }} title={`${r.data}: ${score}/100`}} />
+                          <div className="w-full rounded-sm" style={{ height: `${h}px`, background: cor, opacity: 0.8 }} title={`${r.data}: ${score}/100`} />
                           <p className="text-zinc-700 text-[9px]">{r.data.slice(8,10)}/{r.data.slice(5,7)}</p>
                         </div>
                       )
