@@ -20,6 +20,13 @@ type ContextoAtleta = {
   evolucaoExercicios: { nome: string; maxCarga: number; sessoes: number }[]
   personal: { nome: string | null; email: string } | null
   nutricionista: { nome: string | null; email: string } | null
+  planoNutricional: {
+    caloriasMeta: number | null; proteinaMeta: number | null; carboidratoMeta: number | null; gorduraMeta: number | null
+    refeicoesPorDia: number | null; observacoes: string | null
+    refeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: string[] }[]
+    suplementos: string[]
+    orientacaoTreino: string | null
+  } | null
 }
 
 function getTodayBR(): string {
@@ -66,7 +73,11 @@ MUSCULAÇÃO — EVOLUÇÃO DE CARGA:
 ${ctx.evolucaoExercicios.length ? ctx.evolucaoExercicios.map(e => `${e.nome}: ${e.sessoes}x, máx ${e.maxCarga}kg`).join(' | ') : 'sem dados'}
 
 NUTRIÇÃO ÚLTIMOS 7 DIAS:
-${ctx.nutricao7d.length ? ctx.nutricao7d.map(n => `${n.data}: ${n.calorias ?? '?'}kcal proteína ${n.proteina ?? '?'}g`).join(' | ') : 'sem dados'}`
+${ctx.nutricao7d.length ? ctx.nutricao7d.map(n => `${n.data}: ${n.calorias ?? '?'}kcal proteína ${n.proteina ?? '?'}g`).join(' | ') : 'sem dados'}
+
+PLANO ALIMENTAR PRESCRITO:
+${ctx.planoNutricional ? `Meta: ${ctx.planoNutricional.caloriasMeta ?? '?'}kcal | proteína ${ctx.planoNutricional.proteinaMeta ?? '?'}g | carbo ${ctx.planoNutricional.carboidratoMeta ?? '?'}g | gordura ${ctx.planoNutricional.gorduraMeta ?? '?'}g | ${ctx.planoNutricional.refeicoesPorDia ?? ctx.planoNutricional.refeicoes.length} refeições/dia
+${ctx.planoNutricional.refeicoes.map(r => `${r.nome} (${r.horario}, ~${r.calorias}kcal/${r.proteina}g prot): ${r.alimentos.join(', ')}`).join('\n')}${ctx.planoNutricional.suplementos.length ? `\nSuplementos: ${ctx.planoNutricional.suplementos.join(', ')}` : ''}${ctx.planoNutricional.orientacaoTreino ? `\nOrientação de treino: ${ctx.planoNutricional.orientacaoTreino}` : ''}${ctx.planoNutricional.observacoes ? `\nObservações da nutricionista: ${ctx.planoNutricional.observacoes}` : ''}` : 'sem plano alimentar prescrito ainda'}`
 }
 
 function KoreIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
@@ -116,7 +127,7 @@ export default function KoreAIChat() {
       { data: perfil }, { data: sonoHoje }, { data: be }, { data: macros },
       { data: treinos }, { data: atividadesLivres }, { data: scores30d },
       { data: nutricao7d }, { data: vinculos }, { data: perfilTipo },
-      { data: historico }, { data: seriesData }, { data: treinosIds },
+      { data: historico }, { data: seriesData }, { data: treinosIds }, { data: plano },
     ] = await Promise.all([
       supabase.from('perfis').select('nome, objetivo, peso, altura, nivel').eq('id', session.user.id).single(),
       supabase.from('sono').select('score_recuperacao, duracao_minutos, qualidade, hrv, fc_repouso').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -131,6 +142,7 @@ export default function KoreAIChat() {
       supabase.from('chat_historico').select('role, content').eq('usuario_id', session.user.id).gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order('created_at', { ascending: true }).limit(50),
       supabase.from('series_registradas').select('carga, exercicios_treino(nome), treino_id').in('treino_id', []),
       supabase.from('treinos').select('id').eq('cliente_id', session.user.id).eq('concluido', true),
+      supabase.from('planos_nutricionais').select('conteudo, calorias_meta, proteina_meta, carboidrato_meta, gordura_meta, refeicoes_por_dia, observacoes').eq('usuario_id', session.user.id).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
     ])
 
     setTipo(perfilTipo?.tipo ?? null)
@@ -164,6 +176,31 @@ export default function KoreAIChat() {
       }
     }
 
+    // Plano nutricional prescrito
+    let planoNutricional: ContextoAtleta['planoNutricional'] = null
+    if (plano) {
+      let refeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: string[] }[] = []
+      let suplementos: string[] = []
+      let orientacaoTreino: string | null = null
+      try {
+        const conteudo = plano.conteudo ? JSON.parse(plano.conteudo) : null
+        if (Array.isArray(conteudo?.refeicoes)) {
+          refeicoes = conteudo.refeicoes.map((r: any) => ({
+            nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
+            alimentos: (r.alimentos ?? []).map((a: any) => `${a.nome} (${a.quantidade})`),
+          }))
+        }
+        if (Array.isArray(conteudo?.suplementos)) suplementos = conteudo.suplementos.map((s: any) => `${s.nome} ${s.dose} — ${s.horario}`)
+        orientacaoTreino = conteudo?.orientacao_treino ?? null
+      } catch {}
+      planoNutricional = {
+        caloriasMeta: plano.calorias_meta ?? null, proteinaMeta: plano.proteina_meta ?? null,
+        carboidratoMeta: plano.carboidrato_meta ?? null, gorduraMeta: plano.gordura_meta ?? null,
+        refeicoesPorDia: plano.refeicoes_por_dia ?? null, observacoes: plano.observacoes ?? null,
+        refeicoes, suplementos, orientacaoTreino,
+      }
+    }
+
     // Streak
     const treinadosDatas = new Set([...(treinos?.map((t: any) => t.data) ?? []), ...(atividadesLivres?.map((a: any) => a.data) ?? [])])
     let streak = 0
@@ -188,6 +225,7 @@ export default function KoreAIChat() {
       evolucaoExercicios,
       personal,
       nutricionista,
+      planoNutricional,
     }
 
     setContexto(ctx)
