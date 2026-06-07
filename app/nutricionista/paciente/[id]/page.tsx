@@ -58,6 +58,12 @@ function limparAlerta(val: string | null): string | null {
     .filter(v => v.length > 1 && !TERMOS_VAZIOS.test(v))
   return partes.length ? partes.join(' · ') : null
 }
+function formatarGeradoEm(d: Date | null): string | null {
+  if (!d) return null
+  const data = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+  return `Gerado em ${data} às ${hora}`
+}
 function getMetaCalorias(peso: number | null, objetivo: string | null) {
   if (!peso) return null
   const tdee = Math.round((10 * peso + 6.25 * 170 - 5 * 25 + 5) * 1.55)
@@ -157,6 +163,7 @@ export default function NutricionistaPaciente() {
   const [briefingEstruturado, setBriefingEstruturado] = useState<{
     resumo: string; evolucao: string[]; alertas: string[]; recomendacoes: string[]
   } | null>(null)
+  const [briefingGeradoEm, setBriefingGeradoEm] = useState<Date | null>(null)
   const [gerandoBriefing, setGerandoBriefing] = useState(false)
   const [atividades7dCount, setAtividades7dCount] = useState(0)
   const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
@@ -710,13 +717,17 @@ export default function NutricionistaPaciente() {
     setTreinoCarregando(true)
     const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
     const q30 = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    // Semana calendário dom–sáb
+    // Janela móvel: últimos 7 dias completos (ontem e os 6 anteriores) vs os 7 dias completos anteriores a esses
     const todayLoadStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const dLoadBase = new Date(todayLoadStr + 'T12:00:00-03:00')
-    const currSundayLoad = new Date(dLoadBase); currSundayLoad.setDate(dLoadBase.getDate() - dLoadBase.getDay())
-    const prevSundayLoad = new Date(currSundayLoad); prevSundayLoad.setDate(currSundayLoad.getDate() - 7)
-    const currWeekStartLoad = currSundayLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    const prevWeekStartLoad = prevSundayLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const currEndLoad = new Date(dLoadBase); currEndLoad.setDate(dLoadBase.getDate() - 1)
+    const currStartLoad = new Date(dLoadBase); currStartLoad.setDate(dLoadBase.getDate() - 7)
+    const prevEndLoad = new Date(dLoadBase); prevEndLoad.setDate(dLoadBase.getDate() - 8)
+    const prevStartLoad = new Date(dLoadBase); prevStartLoad.setDate(dLoadBase.getDate() - 14)
+    const currWeekStartLoad = currStartLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const currWeekEndLoad = currEndLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const prevWeekStartLoad = prevStartLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const prevWeekEndLoad = prevEndLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
     const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalNomeRpc }] = await Promise.all([
       supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
@@ -750,8 +761,8 @@ export default function NutricionistaPaciente() {
     if (ativs?.length) setAtividadesLivres14d(ativs as any)
     if (sonoHist?.length) {
       const sonoArr = sonoHist as any[]
-      const curr7 = sonoArr.filter(s => s.data >= currWeekStartLoad)
-      const prev7 = sonoArr.filter(s => s.data >= prevWeekStartLoad && s.data < currWeekStartLoad)
+      const curr7 = sonoArr.filter(s => s.data >= currWeekStartLoad && s.data <= currWeekEndLoad)
+      const prev7 = sonoArr.filter(s => s.data >= prevWeekStartLoad && s.data <= prevWeekEndLoad)
       setRecuperacao7d(curr7.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao_minutos })))
       setRecuperacaoPrev7d(prev7.map((s: any) => ({ data: s.data, score: s.score_recuperacao })))
     }
@@ -859,14 +870,18 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
           if (parsed.resumo && parsed.evolucao && parsed.alertas && parsed.recomendacoes) {
             setBriefingEstruturado(parsed)
             setBriefingIA(parsed.resumo) // keep for compatibility
+            setBriefingGeradoEm(new Date())
           } else {
             setBriefingIA(resposta)
+            setBriefingGeradoEm(new Date())
           }
         } else {
           setBriefingIA(resposta)
+          setBriefingGeradoEm(new Date())
         }
       } catch {
         setBriefingIA(resposta)
+        setBriefingGeradoEm(new Date())
       }
     } catch { setBriefingIA('Erro ao gerar briefing.') }
     setGerandoBriefing(false)
@@ -907,6 +922,9 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
   const metaCal = getMetaCalorias(paciente?.peso ?? null, paciente?.objetivo ?? null)
   const metaProt = getMetaProteina(paciente?.peso ?? null, paciente?.objetivo ?? null)
+  // Peso exibido no cabeçalho: usa o registro mais recente de evolucao_medidas (fonte de verdade
+  // da composição corporal); cai para perfis.peso só quando não há nenhuma avaliação registrada.
+  const pesoHeader = medidasCP.length > 0 ? medidasCP[medidasCP.length - 1].peso ?? paciente?.peso ?? null : paciente?.peso ?? null
   const hoje = getTodayBR()
   const dias7d = getDias7d(hoje)
 
@@ -958,7 +976,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   })()}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-1">
-                  {paciente?.peso && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{paciente.peso} kg</span>}
+                  {pesoHeader != null && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{pesoHeader} kg</span>}
                   {paciente?.objetivo && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
                   {paciente?.meta_peso && <span style={{ fontSize: 11, color: '#2DD4A7', background: 'rgba(45,212,167,0.1)', border: '1px solid rgba(45,212,167,0.2)', borderRadius: 99, padding: '3px 10px' }}>Meta: {paciente.meta_peso} kg</span>}
                   {metaCal && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px', display: 'none' }} className="md:inline-block">{metaCal} kcal/dia</span>}
@@ -1302,6 +1320,9 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                       <span key={i} className="text-[12px] text-emerald-400/80 bg-emerald-500/8 border border-emerald-500/15 rounded-lg px-3 py-1">→ {r}</span>
                     ))}
                   </div>
+                )}
+                {briefingGeradoEm && (
+                  <p className="px-6 pb-4 text-[11px] text-zinc-600">{formatarGeradoEm(briefingGeradoEm)}</p>
                 )}
               </div>
             ) : (
@@ -1798,23 +1819,27 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
           const caloriasBase = planoAtivo?.calorias_meta
           const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
           const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
-          // Semana calendário dom–sáb
+          // Janela móvel: últimos 7 dias completos (ontem e os 6 anteriores) vs os 7 dias completos anteriores a esses
           const dBase = new Date(hoje + 'T12:00:00-03:00')
-          const currSunday = new Date(dBase); currSunday.setDate(dBase.getDate() - dBase.getDay())
-          const prevSunday = new Date(currSunday); prevSunday.setDate(currSunday.getDate() - 7)
-          const q7CurrStr = currSunday.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-          const q14CurrStr = prevSunday.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const currEnd = new Date(dBase); currEnd.setDate(dBase.getDate() - 1)
+          const currStart = new Date(dBase); currStart.setDate(dBase.getDate() - 7)
+          const prevEnd = new Date(dBase); prevEnd.setDate(dBase.getDate() - 8)
+          const prevStart = new Date(dBase); prevStart.setDate(dBase.getDate() - 14)
+          const q7CurrStr = currStart.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const q7CurrEndStr = currEnd.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const q14CurrStr = prevStart.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const q14CurrEndStr = prevEnd.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
           const calSemTotal = [
-            ...historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr).map(t => t.calorias ?? 0),
-            ...atividadesLivres14d.filter(a => a.data >= q7CurrStr).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
+            ...historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr && t.data <= q7CurrEndStr).map(t => t.calorias ?? 0),
+            ...atividadesLivres14d.filter(a => a.data >= q7CurrStr && a.data <= q7CurrEndStr).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
           ].reduce((acc, v) => acc + v, 0)
           const scoreMedia = recuperacao7d.length ? Math.round(recuperacao7d.filter(r => r.score != null).reduce((a, r) => a + (r.score ?? 0), 0) / recuperacao7d.filter(r => r.score != null).length) : null
 
-          const treinosCurr = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr)
-          const treinosPrev = historicoTreinosDetalhado.filter(t => t.data >= q14CurrStr && t.data < q7CurrStr)
-          const ativsCurr = atividadesLivres14d.filter(a => a.data >= q7CurrStr)
-          const ativsPrev = atividadesLivres14d.filter(a => a.data >= q14CurrStr && a.data < q7CurrStr)
+          const treinosCurr = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr && t.data <= q7CurrEndStr)
+          const treinosPrev = historicoTreinosDetalhado.filter(t => t.data >= q14CurrStr && t.data <= q14CurrEndStr)
+          const ativsCurr = atividadesLivres14d.filter(a => a.data >= q7CurrStr && a.data <= q7CurrEndStr)
+          const ativsPrev = atividadesLivres14d.filter(a => a.data >= q14CurrStr && a.data <= q14CurrEndStr)
 
           const semSessoes = treinosCurr.length + ativsCurr.length
           const prevSessoes = treinosPrev.length + ativsPrev.length
@@ -1864,10 +1889,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
                 )}
 
-                {/* Métricas semanais com comparação vs semana anterior (dom–sáb) */}
+                {/* Métricas: últimos 7 dias completos vs os 7 dias completos anteriores (janela móvel, não semana civil) */}
                 <p style={{ fontSize: 10, color: '#9AA0AD', marginBottom: -4, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>
-                  {new Date(q7CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')} – {new Date(hoje + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}
-                  <span style={{ color: '#7A8290', marginLeft: 8 }}>vs {new Date(q14CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}–{new Date(new Date(q7CurrStr + 'T12:00:00-03:00').setDate(new Date(q7CurrStr + 'T12:00:00-03:00').getDate() - 1)).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}</span>
+                  {new Date(q7CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')} – {new Date(q7CurrEndStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}
+                  <span style={{ color: '#7A8290', marginLeft: 8 }}>vs {new Date(q14CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}–{new Date(q14CurrEndStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}</span>
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {([
@@ -2230,6 +2255,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 <p className="text-zinc-200 text-base leading-relaxed">{briefingIA}</p>
               </div>
             ) : null}
+
+            {(briefingEstruturado || briefingIA) && briefingGeradoEm && (
+              <p className="text-[11px] text-zinc-600 -mt-2">{formatarGeradoEm(briefingGeradoEm)} · análise é um snapshot, não tempo real</p>
+            )}
 
             {/* Chat referência */}
             <div className="rounded-2xl border border-white/[0.07] p-5 flex items-center gap-4" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }}>
@@ -2786,6 +2815,9 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const [aberta, setAberta] = useState(false)
   const MealIcon = MEAL_ICONS[idx % MEAL_ICONS.length] ?? UtensilsCrossed
   const alimentos: any[] = ref.alimentos ?? []
+  // Refeição sem nome, sem horário, sem alimentos e com calorias/proteína zeradas é registro
+  // incompleto (placeholder vazio salvo no plano) — nunca mostrar como se fosse uma refeição válida de 0 kcal
+  const incompleta = !ref.nome && !ref.horario && alimentos.length === 0 && !ref.calorias && !ref.proteina
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }}>
       <button onClick={() => setAberta(p => !p)}
@@ -2795,22 +2827,30 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-white font-semibold text-sm">{ref.nome}</p>
+            <p className="text-white font-semibold text-sm">{ref.nome || (incompleta ? 'Refeição incompleta' : 'Sem nome')}</p>
             {ref.horario && (
               <span className="text-zinc-300 text-[11px] font-medium bg-white/[0.10] px-2 py-0.5 rounded-md shrink-0 mono">
                 {ref.horario}
               </span>
             )}
           </div>
-          <div className="flex gap-3 mt-0.5">
-            <span className="text-[var(--data-energy)] text-xs font-semibold mono">{ref.calorias} kcal</span>
-            <span className="text-[#2DD4A7] text-xs mono">{ref.proteina}g prot</span>
-            {alimentos.length > 0 && (
-              <span className="text-zinc-500 text-xs bg-white/[0.05] px-1.5 rounded">
-                {alimentos.length} item{alimentos.length > 1 ? 's' : ''}
+          {incompleta ? (
+            <div className="flex gap-2 mt-0.5">
+              <span className="text-amber-400 text-[11px] font-medium bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                ⚠ Dados incompletos — nenhum alimento cadastrado
               </span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex gap-3 mt-0.5">
+              <span className="text-[var(--data-energy)] text-xs font-semibold mono">{ref.calorias} kcal</span>
+              <span className="text-[#2DD4A7] text-xs mono">{ref.proteina}g prot</span>
+              {alimentos.length > 0 && (
+                <span className="text-zinc-500 text-xs bg-white/[0.05] px-1.5 rounded">
+                  {alimentos.length} item{alimentos.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-200 shrink-0 ${aberta ? 'rotate-180' : ''}`} />
       </button>
