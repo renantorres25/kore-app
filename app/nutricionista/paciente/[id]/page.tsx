@@ -16,6 +16,7 @@ type Paciente = {
   altura: number | null; sexo: string | null; data_nascimento: string | null
   meta_peso: number | null; meta_data_limite: string | null
   nivel: string | null; fcmax: number | null; ftp: number | null
+  whatsapp: string | null
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao_minutos: number | null }
@@ -57,6 +58,18 @@ function limparAlerta(val: string | null): string | null {
   const partes = val.split(/\s*[·,;]\s*/).map(v => v.trim())
     .filter(v => v.length > 1 && !TERMOS_VAZIOS.test(v))
   return partes.length ? partes.join(' · ') : null
+}
+function linkWhatsapp(numero: string): string | null {
+  const digitos = numero.replace(/\D/g, '')
+  if (!digitos) return null
+  return `https://wa.me/55${digitos}`
+}
+function IconWhatsapp({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.71.46 3.39 1.32 4.86L2 22l5.36-1.41a9.9 9.9 0 0 0 4.68 1.19h.01c5.46 0 9.91-4.45 9.91-9.91A9.84 9.84 0 0 0 12.04 2zm5.79 14.21c-.24.68-1.42 1.3-1.96 1.38-.5.08-1.13.11-1.83-.11-.42-.13-.96-.31-1.65-.6-2.91-1.26-4.81-4.18-4.95-4.37-.14-.19-1.18-1.57-1.18-3 0-1.43.75-2.13 1.02-2.42.27-.29.58-.36.78-.36.19 0 .39 0 .56.01.18.01.42-.07.66.5.24.58.83 2 .9 2.15.07.15.12.32.02.51-.1.19-.15.31-.29.48-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.36 1.45.3.15.47.13.65-.08.18-.21.76-.88.96-1.18.2-.3.4-.25.67-.15.27.1 1.7.8 1.99.95.29.15.48.22.55.34.07.13.07.73-.17 1.41z"/>
+    </svg>
+  )
 }
 function formatarGeradoEm(d: Date | null): string | null {
   if (!d) return null
@@ -222,7 +235,7 @@ export default function NutricionistaPaciente() {
         { data: anamneseData }, { data: ultimaAvalData }, { data: proximaConsultaData },
         { data: anamneseCompletaData },
       ] = await Promise.all([
-        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp').eq('id', clienteId).single(),
+        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp,whatsapp').eq('id', clienteId).single(),
         supabase.from('treinos').select('data,calorias_estimadas').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
         supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
         supabase.from('atividades_livres').select('modalidade,duracao_min,calorias_wearable').eq('usuario_id', clienteId).eq('data', hoje),
@@ -968,6 +981,16 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 style={{ fontFamily: "'Sora', system-ui", fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#F5F6F8', lineHeight: 1 }}>{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>
+                  {paciente?.whatsapp && linkWhatsapp(paciente.whatsapp) && (
+                    <a href={linkWhatsapp(paciente.whatsapp)!} target="_blank" rel="noopener noreferrer"
+                      title="Conversar no WhatsApp"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-full transition-colors shrink-0"
+                      style={{ color: '#2DD4A7', background: 'rgba(45,212,167,0.10)', border: '1px solid rgba(45,212,167,0.20)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(45,212,167,0.18)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(45,212,167,0.10)')}>
+                      <IconWhatsapp size={14} />
+                    </a>
+                  )}
                   {paciente?.data_nascimento && (() => {
                     const hoje2 = new Date()
                     const nasc = new Date(paciente.data_nascimento)

@@ -525,6 +525,16 @@ function PerfilConteudo() {
             </div>
 
             <div style={{ ...glass, padding: 20 }}>
+              <p style={sectionTitle}>Contato</p>
+              <div>
+                <label style={labelStyle}>WhatsApp</label>
+                <GlassInput type="text"
+                  placeholder="(11) 99999-9999"
+                  value={whatsapp} onChange={e => setWhatsapp(e.target.value)} />
+              </div>
+            </div>
+
+            <div style={{ ...glass, padding: 20 }}>
               <p style={sectionTitle}>Medidas</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                 <div>
