@@ -50,6 +50,24 @@ export type ContextoProfissional = {
     data: string | null
   } | null
   ultimaAvaliacao: string | null
+  proximaConsulta?: { data: string; hora: string | null; tipo: string | null } | null
+  anamneseCompleta?: Record<string, any> | null
+  sono?: {
+    hoje: { score: number | null; duracaoMin: number | null } | null
+    historico7d: { data: string; score: number | null; duracaoMin: number | null }[]
+  } | null
+  bemEstarHoje?: { humor: number | null; energia: number | null; dorMuscular: number | null; notas: string | null } | null
+  planoAlimentar?: {
+    calorias: number | null
+    proteina: number | null
+    refeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: string[] }[]
+    suplementos: string[]
+    hidratacao: string | null
+    orientacaoTreino: string | null
+    observacoes: string | null
+  } | null
+  treinosRegistrados?: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[]
+  medidasHistorico?: { data: string | null; peso: number | null; gorduraPct: number | null; massaMuscular: number | null }[]
 }
 
 const TERMOS_IRRELEVANTES = /^(nenhum[ao]?|nada|não|nao|sem|ok|okay|oke?|n\/a|-)$/i
@@ -57,6 +75,54 @@ function filtrarAlerta(val: string | null): string | null {
   if (!val) return null
   const partes = val.split(/\s*[·,]\s*/).map(v => v.trim()).filter(v => v && !TERMOS_IRRELEVANTES.test(v))
   return partes.length ? partes.join(' · ') : null
+}
+
+function formatAnamnese(a: Record<string, any> | null | undefined): string | null {
+  if (!a) return null
+  const linhas: (string | false | null)[] = [
+    a.objetivo_detalhado && `Objetivo detalhado: ${a.objetivo_detalhado}`,
+    a.motivacao && `Motivação: ${a.motivacao}`,
+    a.prazo_semanas && `Prazo desejado: ${a.prazo_semanas} semanas`,
+    a.nivel_atividade && `Nível de atividade: ${a.nivel_atividade}`,
+    a.historico_esportivo && `Histórico esportivo: ${a.historico_esportivo}`,
+    a.patologias && `Patologias: ${a.patologias}`,
+    a.cirurgias && `Cirurgias: ${a.cirurgias}`,
+    a.historico_familiar && `Histórico familiar: ${a.historico_familiar}`,
+    a.suplementos && `Suplementos em uso: ${a.suplementos}`,
+    a.intolerancias && `Intolerâncias: ${a.intolerancias}`,
+    a.preferencias_alimentares && `Preferências alimentares: ${a.preferencias_alimentares}`,
+    a.aversoes_alimentares && `Aversões alimentares: ${a.aversoes_alimentares}`,
+    a.habitos_alimentares && `Hábitos alimentares: ${a.habitos_alimentares}`,
+    a.refeicoes_por_dia && `Refeições por dia (relatado): ${a.refeicoes_por_dia}`,
+    a.horarios_refeicoes && `Horários das refeições: ${a.horarios_refeicoes}`,
+    a.onde_come && `Onde costuma comer: ${a.onde_come}`,
+    a.quem_prepara && `Quem prepara as refeições: ${a.quem_prepara}`,
+    a.consumo_agua_litros && `Consumo de água: ${a.consumo_agua_litros}L/dia`,
+    a.consumo_ultraprocessados && `Consumo de ultraprocessados: ${a.consumo_ultraprocessados}`,
+    a.funcionamento_intestinal && `Funcionamento intestinal: ${a.funcionamento_intestinal}`,
+    a.horas_sono && `Horas de sono (relatado): ${a.horas_sono}h`,
+    a.qualidade_sono && `Qualidade do sono (relatado): ${a.qualidade_sono}`,
+    a.nivel_estresse && `Nível de estresse: ${a.nivel_estresse}/10`,
+    a.fuma != null && `Fumante: ${a.fuma ? 'sim' : 'não'}`,
+    a.alcool && `Consumo de álcool: ${a.alcool}`,
+    a.rotina_trabalho && `Rotina de trabalho: ${a.rotina_trabalho}`,
+    a.profissao && `Profissão: ${a.profissao}`,
+    a.modalidade_treino && `Modalidade de treino preferida: ${a.modalidade_treino}`,
+    a.frequencia_treino && `Frequência de treino (relatado): ${a.frequencia_treino}`,
+    a.horario_treino && `Horário de treino preferido: ${a.horario_treino}`,
+    a.peso_maximo && `Peso máximo já registrado: ${a.peso_maximo}kg`,
+    a.peso_minimo && `Peso mínimo já registrado: ${a.peso_minimo}kg`,
+    a.peso_habitual && `Peso habitual: ${a.peso_habitual}kg`,
+    a.efeito_sanfona != null && `Efeito sanfona relatado: ${a.efeito_sanfona ? 'sim' : 'não'}`,
+    a.tentativas_emagrecimento && `Tentativas anteriores de emagrecimento: ${a.tentativas_emagrecimento}`,
+    a.exames_laboratoriais && `Exames laboratoriais relevantes: ${a.exames_laboratoriais}`,
+    a.ciclo_regular != null && `Ciclo regular: ${a.ciclo_regular ? 'sim' : 'não'}`,
+    a.fase_ciclo && `Fase do ciclo: ${a.fase_ciclo}`,
+    a.sintomas_ciclo && `Sintomas do ciclo: ${a.sintomas_ciclo}`,
+    a.observacoes && `Observações gerais: ${a.observacoes}`,
+  ]
+  const texto = linhas.filter(Boolean).join('\n')
+  return texto || null
 }
 
 function buildSystemPrompt(ctx: ContextoProfissional): string {
@@ -137,6 +203,69 @@ DADOS NUTRICIONAIS:
 - Fase de periodização: ${ctx.nutricao.periodizacao ?? 'não configurada'}${atividadesTexto}`
   }
 
+  let secoesAdicionais = ''
+
+  const anamneseTexto = formatAnamnese(ctx.anamneseCompleta)
+  if (anamneseTexto) {
+    secoesAdicionais += `\n\nANAMNESE / HISTÓRICO CLÍNICO COMPLETO:\n${anamneseTexto}`
+  }
+
+  if (ctx.sono) {
+    const hojeSono = ctx.sono.hoje
+      ? `Score ${ctx.sono.hoje.score ?? '?'}/100${ctx.sono.hoje.duracaoMin ? ` · ${(ctx.sono.hoje.duracaoMin / 60).toFixed(1)}h` : ''}`
+      : 'sem registro hoje'
+    let historicoTexto = ''
+    if (ctx.sono.historico7d?.length) {
+      historicoTexto = '\n' + ctx.sono.historico7d.map(s => {
+        const dataFmt = new Date(s.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+        const dur = s.duracaoMin ? `${(s.duracaoMin / 60).toFixed(1)}h` : '?'
+        return `- ${dataFmt}: score ${s.score ?? '?'}/100 · ${dur}`
+      }).join('\n')
+    }
+    secoesAdicionais += `\n\nSONO E RECUPERAÇÃO:\nHoje: ${hojeSono}${historicoTexto}`
+  }
+
+  if (ctx.bemEstarHoje) {
+    const b = ctx.bemEstarHoje
+    secoesAdicionais += `\n\nBEM-ESTAR HOJE:\nHumor ${b.humor ?? '?'}/10 · Energia ${b.energia ?? '?'}/10 · Dor muscular ${b.dorMuscular ?? '?'}/10${b.notas ? ` · Notas: ${b.notas}` : ''}`
+  }
+
+  if (ctx.planoAlimentar) {
+    const pa = ctx.planoAlimentar
+    let refeicoesTexto = ''
+    if (pa.refeicoes?.length) {
+      refeicoesTexto = '\n' + pa.refeicoes.map(r =>
+        `- ${r.nome} (${r.horario}): ${r.calorias} kcal · ${r.proteina}g proteína${r.alimentos?.length ? ` — ${r.alimentos.join(', ')}` : ''}`
+      ).join('\n')
+    }
+    const supTexto = pa.suplementos?.length ? `\nSuplementos prescritos: ${pa.suplementos.join(', ')}` : ''
+    const hidTexto = pa.hidratacao ? `\nHidratação: ${pa.hidratacao}` : ''
+    const orientTexto = pa.orientacaoTreino ? `\nOrientação para treino: ${pa.orientacaoTreino}` : ''
+    const obsTexto = pa.observacoes ? `\nObservações da nutricionista: ${pa.observacoes}` : ''
+    secoesAdicionais += `\n\nPLANO ALIMENTAR PRESCRITO (${pa.calorias ?? '?'} kcal/dia · ${pa.proteina ?? '?'}g proteína):${refeicoesTexto}${supTexto}${hidTexto}${orientTexto}${obsTexto}`
+  }
+
+  if (ctx.treinosRegistrados?.length) {
+    secoesAdicionais += '\n\nTREINOS REGISTRADOS (últimos 30 dias):\n' + ctx.treinosRegistrados.slice(0, 12).map(t => {
+      const dataFmt = new Date(t.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+      const cal = t.calorias ? ` · ${t.calorias} kcal` : ''
+      const exs = t.exercicios?.length ? ` — ${t.exercicios.slice(0, 5).join(', ')}` : ''
+      return `- ${dataFmt}: ${t.nome}${cal} · volume ${t.volume}kg${exs}`
+    }).join('\n')
+  }
+
+  if (ctx.medidasHistorico?.length) {
+    secoesAdicionais += '\n\nEVOLUÇÃO DE MEDIDAS:\n' + ctx.medidasHistorico.slice(0, 8).map(m => {
+      const dataFmt = m.data ? new Date(m.data).toLocaleDateString('pt-BR') : '?'
+      return `- ${dataFmt}: ${m.peso ?? '?'}kg · gordura ${m.gorduraPct ?? '?'}% · massa muscular ${m.massaMuscular ?? '?'}kg`
+    }).join('\n')
+  }
+
+  if (ctx.proximaConsulta) {
+    const dataFmtConsulta = new Date(ctx.proximaConsulta.data).toLocaleDateString('pt-BR')
+    secoesAdicionais += `\n\nPRÓXIMA CONSULTA AGENDADA: ${dataFmtConsulta}${ctx.proximaConsulta.hora ? ` às ${ctx.proximaConsulta.hora}` : ''}${ctx.proximaConsulta.tipo ? ` (${ctx.proximaConsulta.tipo})` : ''}`
+  }
+
   return `Você é o KORE AI — assistente clínico integrado ao perfil de ${pacNome} para uso exclusivo do ${tipo} ${ctx.profissionalNome ?? ''}.
 
 Você não é um chatbot genérico. Você conhece os dados reais deste paciente/aluno e responde como consultor clínico especializado que está ao lado do profissional durante uma consulta ou montagem de plano.
@@ -161,7 +290,7 @@ ${alertas}
 
 COMPOSIÇÃO CORPORAL:
 ${composicao}
-${dadosEspecificos}`
+${dadosEspecificos}${secoesAdicionais}`
 }
 
 function KoreIcon({ size = 20, className = '' }: { size?: number; className?: string }) {

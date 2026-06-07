@@ -19,7 +19,7 @@ type Paciente = {
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao_minutos: number | null }
-type BemEstar = { humor: number; energia: number; motivacao: number }
+type BemEstar = { humor: number; energia: number; motivacao: number; dor_muscular?: number | null; notas?: string | null }
 type PlanoNutricional = {
   id: string; conteudo: string; calorias_meta: number | null
   proteina_meta: number | null; created_at: string
@@ -132,6 +132,7 @@ export default function NutricionistaPaciente() {
   const [profId, setProfId] = useState<string | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
   const [proximaConsulta, setProximaConsulta] = useState<string | null>(null)
+  const [proximaConsultaInfo, setProximaConsultaInfo] = useState<{ data: string; hora: string | null; tipo: string | null } | null>(null)
   const [proximaFase, setProximaFase] = useState<string | null>(null)
   const [diasAteProximaFase, setDiasAteProximaFase] = useState<number | null>(null)
   const [anamneseLesoes, setAnamneseLesoes] = useState<string | null>(null)
@@ -194,6 +195,7 @@ export default function NutricionistaPaciente() {
         { data: trHoje }, { data: atvsHoje }, { count: atvsCount }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
         { data: anamneseData }, { data: ultimaAvalData }, { data: proximaConsultaData },
+        { data: anamneseCompletaData },
       ] = await Promise.all([
         supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp').eq('id', clienteId).single(),
         supabase.from('treinos').select('data,calorias_estimadas').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
@@ -201,7 +203,7 @@ export default function NutricionistaPaciente() {
         supabase.from('atividades_livres').select('modalidade,duracao_min,calorias_wearable').eq('usuario_id', clienteId).eq('data', hoje),
         supabase.from('atividades_livres').select('*', { count: 'exact', head: true }).eq('usuario_id', clienteId).gte('data', semStr),
         supabase.from('sono').select('score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
-        supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
+        supabase.from('bem_estar').select('humor,energia,motivacao,dor_muscular,notas').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
         supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
         supabase.from('evolucao_medidas').select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20),
         supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
@@ -209,6 +211,7 @@ export default function NutricionistaPaciente() {
         supabase.from('anamneses').select('lesoes,restricoes_fisicas,medicamentos,alergias,restricoes_alimentares,fase_ciclo').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
         supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('agendamentos').select('data,hora,tipo').eq('cliente_id', clienteId).eq('status', 'agendado').gte('data', hoje).order('data').limit(1).maybeSingle(),
+        supabase.from('anamneses').select('*').eq('cliente_id', clienteId).order('atualizado_em', { ascending: false }).limit(1).maybeSingle(),
       ])
       if (perfil) setPaciente(perfil)
       setTreinos7dDatas((treinos7d ?? []).map((t: any) => t.data))
@@ -216,7 +219,10 @@ export default function NutricionistaPaciente() {
       const calSem = (treinos7d ?? []).reduce((s: number, t: any) => s + (t.calorias_estimadas ?? 0), 0)
       if (calSem > 0) setCaloriasSemanais(calSem)
       if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
-      if (proximaConsultaData?.data) setProximaConsulta(proximaConsultaData.data)
+      if (proximaConsultaData?.data) {
+        setProximaConsulta(proximaConsultaData.data)
+        setProximaConsultaInfo({ data: proximaConsultaData.data, hora: proximaConsultaData.hora ?? null, tipo: proximaConsultaData.tipo ?? null })
+      }
       const lesoes = (anamneseData ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
       const rf = (anamneseData ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
       const meds = (anamneseData ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
@@ -229,6 +235,7 @@ export default function NutricionistaPaciente() {
       if (alerg) setAnamneseAlergias(alerg)
       if (restAlim) setAnamneseRestricaoAlimentar(restAlim)
       if (faseCiclo) setAnamneseFaseCiclo(faseCiclo)
+      if (anamneseCompletaData) setAnamneseCompleta(anamneseCompletaData)
 
       // Nota clínica avulsa — armazenada na anamnese do profissional
       const { data: anamnesePropria } = await supabase
@@ -584,7 +591,7 @@ export default function NutricionistaPaciente() {
     const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalLink }] = await Promise.all([
       supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
       supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
-      supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', prevWeekStartLoad).order('data', { ascending: true }),
+      supabase.from('sono').select('data,score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).gte('data', prevWeekStartLoad).order('data', { ascending: true }),
       supabase.from('vinculos').select('profissional_id, perfis(nome)').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle(),
     ])
 
@@ -614,7 +621,7 @@ export default function NutricionistaPaciente() {
       const sonoArr = sonoHist as any[]
       const curr7 = sonoArr.filter(s => s.data >= currWeekStartLoad)
       const prev7 = sonoArr.filter(s => s.data >= prevWeekStartLoad && s.data < currWeekStartLoad)
-      setRecuperacao7d(curr7.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao })))
+      setRecuperacao7d(curr7.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao_minutos })))
       setRecuperacaoPrev7d(prev7.map((s: any) => ({ data: s.data, score: s.score_recuperacao })))
     }
     setTreinoCarregando(false)
@@ -2439,6 +2446,27 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               data: medidasCP[medidasCP.length - 1].data,
             } : null,
             ultimaAvaliacao,
+            proximaConsulta: proximaConsultaInfo,
+            anamneseCompleta,
+            sono: {
+              hoje: sonoHoje ? { score: sonoHoje.score_recuperacao, duracaoMin: sonoHoje.duracao_minutos } : null,
+              historico7d: recuperacao7d.map(r => ({ data: r.data, score: r.score, duracaoMin: r.duracao })),
+            },
+            bemEstarHoje: bemEstar ? { humor: bemEstar.humor, energia: bemEstar.energia, dorMuscular: bemEstar.dor_muscular ?? null, notas: bemEstar.notas ?? null } : null,
+            planoAlimentar: planoEstruturado ? {
+              calorias: planoAtivo?.calorias_meta ?? null,
+              proteina: planoAtivo?.proteina_meta ?? null,
+              refeicoes: (planoEstruturado.refeicoes ?? []).map((r: any) => ({
+                nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
+                alimentos: (r.alimentos ?? []).map((a: any) => a.nome).filter(Boolean),
+              })),
+              suplementos: (planoEstruturado.suplementos ?? []).map((s: any) => typeof s === 'string' ? s : s?.nome).filter(Boolean),
+              hidratacao: planoEstruturado.hidratacao ?? null,
+              orientacaoTreino: planoEstruturado.orientacao_treino ?? null,
+              observacoes: planoEstruturado.nota_nutri ?? null,
+            } : null,
+            treinosRegistrados: historicoTreinosDetalhado,
+            medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
           }} pacienteId={clienteId} />
         )
       })()}
