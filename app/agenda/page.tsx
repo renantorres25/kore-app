@@ -237,7 +237,7 @@ export default function Agenda() {
           })
           const mesLabel = new Date(mesY, mesM - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
           return (
-            <div className="rounded-2xl p-4 mb-5" style={{ background: 'var(--surface-1)' }}>
+            <div className="rounded-2xl p-4 mb-5" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20 }}>
               <div className="flex items-center justify-between mb-4">
                 <button onClick={() => { const d = new Date(mesY, mesM - 2, 1); setMesAtual(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`) }}
                   className="w-8 h-8 rounded-xl bg-white/[0.09] text-zinc-400 flex items-center justify-center active:scale-90 transition-all">‹</button>
@@ -287,7 +287,7 @@ export default function Agenda() {
                 </div>
                 <div className="space-y-2">
                   {ags.map(ag => (
-                    <div key={ag.id} className={`rounded-2xl border overflow-hidden ${ag.status === 'realizado' ? 'border-white/[0.14] opacity-60' : 'border-white/[0.14]'}`} style={{ background: 'var(--surface-1)' }}>
+                    <div key={ag.id} className={`rounded-2xl border overflow-hidden ${ag.status === 'realizado' ? 'border-white/[0.14] opacity-60' : 'border-white/[0.14]'}`} style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20 }}>
                       <div className="flex items-center gap-3 px-4 py-3.5">
                         <div className="text-center shrink-0 w-12">
                           <p className="text-white font-black text-base leading-none">{formatHora(ag.hora)}</p>
