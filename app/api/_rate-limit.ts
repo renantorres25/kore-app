@@ -12,6 +12,7 @@ const LIMITES: Record<string, { hora: number; dia: number }> = {
   analise: { hora: 20, dia: 80  },  // análise de sono/treino
   plano:   { hora: 5,  dia: 20  },  // geração de plano nutricional — mais caro
   briefing:{ hora: 10, dia: 40  },  // briefing IA clínica
+  substituicoes: { hora: 20, dia: 80 },  // sugestões de substituição de alimento
 }
 
 export async function checkRateLimit(

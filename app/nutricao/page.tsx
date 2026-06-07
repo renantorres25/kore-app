@@ -63,7 +63,8 @@ function getHourBR(): number {
 }
 
 type Perfil = { nome: string | null; peso: number | null; objetivo: string | null }
-type Alimento = { nome: string; quantidade: string; calorias: number; proteina: number; carboidrato?: number; gordura?: number }
+type Substituto = { nome: string; quantidade: string }
+type Alimento = { nome: string; quantidade: string; calorias: number; proteina: number; carboidrato?: number; gordura?: number; substituicoes?: Substituto[] }
 type Suplemento = { nome: string; dose: string; horario: string; motivo: string }
 type VariacaoPlano = { nome: string; dica?: string; alimentos: Alimento[] }
 type Refeicao = { nome: string; horario: string; calorias: number; proteina: number; alimentos: Alimento[]; dica?: string; variacoes?: VariacaoPlano[] }
@@ -374,6 +375,15 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta, isDesk
                           <div key={j} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: j < alimentos.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                             <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
                               <p style={{ color: C.t1, fontSize: 13.5, fontWeight: 500, lineHeight: 1.3, fontFamily: FONT_BODY }}>{al.nome}</p>
+                              {al.substituicoes && al.substituicoes.length > 0 && (
+                                <div style={{ marginTop: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                  {al.substituicoes.map((s, si) => (
+                                    <p key={si} style={{ color: C.t3, fontSize: 11, fontStyle: 'italic', lineHeight: 1.4, fontFamily: FONT_BODY }}>
+                                      ou {s.nome}{s.quantidade ? ` (${s.quantidade})` : ''}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
                               <span style={{ color: C.t2, fontSize: 11, textAlign: 'right', minWidth: 56, fontFamily: FONT_MONO }}>{al.quantidade}</span>
