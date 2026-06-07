@@ -16,10 +16,10 @@ type Monitor = {
   treinosSemana: number
   ultimoTreino: string | null
 }
-type Execucao = { id: string; nome: string; plano: string; data: string; volume: number; seriesFeitas: number; exercicios: { nome: string; maxCarga: number; series: number }[] }
+type Execucao = { id: string; nome: string; plano: string; data: string; calorias: number | null; volume: number; seriesFeitas: number; exercicios: { nome: string; maxCarga: number; series: number }[] }
 type CargaPonto = { data: string; carga: number }
 type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null }
-type PlanoNutri = { calorias_meta: number | null; proteina_meta: number | null; created_at: string }
+type PlanoNutri = { id?: string; conteudo?: string | null; calorias_meta: number | null; proteina_meta: number | null; created_at: string }
 
 function getInitials(nome: string | null, email: string): string {
   if (nome) { const p = nome.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0][0].toUpperCase() }
@@ -75,7 +75,13 @@ export default function PersonalAluno() {
   const [lesoes, setLesoes] = useState<string | null>(null)
   const [restricaoFisica, setRestricaoFisica] = useState<string | null>(null)
   const [medicamentos, setMedicamentos] = useState<string | null>(null)
+  const [alergias, setAlergias] = useState<string | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
+  const [proximaConsultaInfo, setProximaConsultaInfo] = useState<{ data: string; hora: string | null; tipo: string | null } | null>(null)
+  const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
+  const [sonoHojeInfo, setSonoHojeInfo] = useState<{ score: number | null; duracaoMin: number | null } | null>(null)
+  const [sonoHistorico7d, setSonoHistorico7d] = useState<{ data: string; score: number | null; duracaoMin: number | null }[]>([])
+  const [bemEstarHojeInfo, setBemEstarHojeInfo] = useState<{ humor: number | null; energia: number | null; dorMuscular: number | null; notas: string | null } | null>(null)
   const [fasePeriodizacaoChat, setFasePeriodizacaoChat] = useState<string | null>(null)
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
@@ -101,8 +107,8 @@ export default function PersonalAluno() {
     const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }] = await Promise.all([
       supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
-      supabase.from('sono').select('score_recuperacao, duracao').eq('usuario_id', clienteId).eq('data', hoje).single(),
-      supabase.from('bem_estar').select('humor, energia, motivacao, dor_muscular').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
+      supabase.from('sono').select('score_recuperacao, duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).single(),
+      supabase.from('bem_estar').select('data, humor, energia, motivacao, dor_muscular, notas').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
       supabase.from('treinos').select('data, concluido').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }),
       supabase.from('perfis').select('nome').eq('id', session.user.id).single(),
     ])
@@ -114,9 +120,13 @@ export default function PersonalAluno() {
       ? Math.round(bemEstarData.slice(0, 7).reduce((acc, b) => acc + ((b.humor + b.energia + b.motivacao) / 3), 0) / Math.min(bemEstarData.length, 7))
       : null
 
+    setSonoHojeInfo({ score: sonoHoje?.score_recuperacao ?? null, duracaoMin: sonoHoje?.duracao_minutos ?? null })
+    const bemHoje = (bemEstarData ?? []).find((b: any) => b.data === hoje)
+    if (bemHoje) setBemEstarHojeInfo({ humor: bemHoje.humor ?? null, energia: bemHoje.energia ?? null, dorMuscular: bemHoje.dor_muscular ?? null, notas: bemHoje.notas ?? null })
+
     setMonitor({
       scoreRecuperacao: sonoHoje?.score_recuperacao ?? null,
-      sonoHoras: sonoHoje?.duracao ?? null,
+      sonoHoras: sonoHoje?.duracao_minutos ? Math.round((sonoHoje.duracao_minutos / 60) * 10) / 10 : null,
       bemEstarMedia: bemMedia,
       totalTreinos: treinosHist?.length ?? 0,
       treinosSemana: treinosHist?.filter(t => t.data >= semanaStr).length ?? 0,
@@ -134,26 +144,40 @@ export default function PersonalAluno() {
     // Histórico de execuções + evolução de carga + calendário + composição corporal
     const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
     const trintaStr = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    const [{ data: treinosCompletos }, { data: atvsLivres30 }, { data: medidasData }, { data: planoNutriData }, { data: anamneseNutri }, { data: ultimaAvalData }] = await Promise.all([
-      supabase.from('treinos').select('id, nome, plano, data').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
+    const seteAtras = new Date(); seteAtras.setDate(seteAtras.getDate() - 6)
+    const seteStr = seteAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const [
+      { data: treinosCompletos }, { data: atvsLivres30 }, { data: medidasData },
+      { data: planoNutriData }, { data: anamneseNutri }, { data: ultimaAvalData },
+      { data: anamneseCompletaData }, { data: sonoHistData }, { data: proximaConsultaData },
+    ] = await Promise.all([
+      supabase.from('treinos').select('id, nome, plano, data, calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
       supabase.from('atividades_livres').select('data, modalidade').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
       supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
-      supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
-      supabase.from('anamneses').select('restricoes_alimentares,suplementos,lesoes,restricoes_fisicas,medicamentos').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
+      supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
+      supabase.from('anamneses').select('restricoes_alimentares,suplementos,lesoes,restricoes_fisicas,medicamentos,alergias').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
       supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('profissional_id', session.user.id).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('anamneses').select('*').eq('cliente_id', clienteId).order('atualizado_em', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('sono').select('data,score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).gte('data', seteStr).order('data', { ascending: true }),
+      supabase.from('agendamentos').select('data,hora,tipo').eq('cliente_id', clienteId).eq('status', 'agendado').gte('data', hoje).order('data').limit(1).maybeSingle(),
     ])
 
     if (medidasData?.length) setMedidasCP(medidasData as MedidaCP[])
     if (planoNutriData) setPlanoNutri(planoNutriData)
+    if (anamneseCompletaData) setAnamneseCompleta(anamneseCompletaData)
+    if (sonoHistData?.length) setSonoHistorico7d(sonoHistData.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracaoMin: s.duracao_minutos })))
+    if (proximaConsultaData?.data) setProximaConsultaInfo({ data: proximaConsultaData.data, hora: proximaConsultaData.hora ?? null, tipo: proximaConsultaData.tipo ?? null })
     // Collect food restrictions from any professional's anamnese
     const restricoes = (anamneseNutri ?? []).map((a: any) => a.restricoes_alimentares).filter(Boolean).join(' · ')
     if (restricoes) setRestricaoNutri(restricoes)
     const lesoesCombined = (anamneseNutri ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
     const rfCombined = (anamneseNutri ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
     const medsCombined = (anamneseNutri ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
+    const alergiasCombined = (anamneseNutri ?? []).map((a: any) => a.alergias).filter(Boolean).join(' · ')
     if (lesoesCombined) setLesoes(lesoesCombined)
     if (rfCombined) setRestricaoFisica(rfCombined)
     if (medsCombined) setMedicamentos(medsCombined)
+    if (alergiasCombined) setAlergias(alergiasCombined)
     if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
 
     const diasMap = new Map<string, 'treino' | 'livre'>()
@@ -182,7 +206,7 @@ export default function PersonalAluno() {
           cur.series++
         }
         const exerciciosExec = Array.from(exMap.entries()).map(([nome, v]) => ({ nome, maxCarga: v.maxCarga, series: v.series })).slice(0, 4)
-        return { id: t.id, nome: t.nome, plano: t.plano, data: t.data, volume: Math.round(vol), seriesFeitas: srsT.length, exercicios: exerciciosExec }
+        return { id: t.id, nome: t.nome, plano: t.plano, data: t.data, calorias: t.calorias_estimadas ?? null, volume: Math.round(vol), seriesFeitas: srsT.length, exercicios: exerciciosExec }
       })
       setExecucoes(execData)
       const cargaMap: Record<string, CargaPonto[]> = {}
@@ -988,6 +1012,7 @@ export default function PersonalAluno() {
             lesoes,
             restricoesFisicas: restricaoFisica,
             medicamentos,
+            alergias,
             restricoesAlimentares: restricaoNutri,
           },
           treinamento: {
@@ -1030,6 +1055,31 @@ export default function PersonalAluno() {
             data: medidasCP[medidasCP.length - 1].data,
           } : null,
           ultimaAvaliacao,
+          proximaConsulta: proximaConsultaInfo,
+          anamneseCompleta,
+          sono: { hoje: sonoHojeInfo, historico7d: sonoHistorico7d },
+          bemEstarHoje: bemEstarHojeInfo,
+          planoAlimentar: (() => {
+            if (!planoNutri?.conteudo) return null
+            try {
+              const p = JSON.parse(planoNutri.conteudo)
+              if (!p.refeicoes) return null
+              return {
+                calorias: planoNutri.calorias_meta,
+                proteina: planoNutri.proteina_meta,
+                refeicoes: (p.refeicoes ?? []).map((r: any) => ({
+                  nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
+                  alimentos: (r.alimentos ?? []).map((a: any) => a.nome).filter(Boolean),
+                })),
+                suplementos: (p.suplementos ?? []).map((s: any) => typeof s === 'string' ? s : s?.nome).filter(Boolean),
+                hidratacao: p.hidratacao ?? null,
+                orientacaoTreino: p.orientacao_treino ?? null,
+                observacoes: p.nota_nutri ?? null,
+              }
+            } catch { return null }
+          })(),
+          treinosRegistrados: execucoes.map(e => ({ data: e.data, nome: e.nome, calorias: e.calorias, volume: e.volume, exercicios: e.exercicios.map(ex => ex.nome) })),
+          medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
         }} pacienteId={clienteId} />
       )}
 

@@ -19,7 +19,7 @@ type Paciente = {
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao_minutos: number | null }
-type BemEstar = { humor: number; energia: number; motivacao: number }
+type BemEstar = { humor: number; energia: number; qualidade_sono: number; dor_muscular?: number | null; notas?: string | null }
 type PlanoNutricional = {
   id: string; conteudo: string; calorias_meta: number | null
   proteina_meta: number | null; created_at: string
@@ -27,10 +27,13 @@ type PlanoNutricional = {
 type MedidaCP = { id?: string; data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null; abdomen?: number | null; peitoral?: number | null; braco_esq?: number | null; coxa_esq?: number | null; panturrilha_dir?: number | null; panturrilha_esq?: number | null; observacoes?: string | null }
 type PeriodizacaoFase = { nome_ciclo: string; nome_bloco: string; tipo_bloco: string; semana_bloco: number; total_semanas_bloco: number; semana_total: number; total_semanas: number; descricao: string | null; plano_associado: string | null }
 type MetaHistorico = { calorias_meta: number | null; proteina_meta: number | null; created_at: string }
+type SubstitutoEd = { nome: string; quantidade: string }
+type SugestaoSub = { nome: string; quantidade: string; calorias: number; proteina: number }
+type EstadoSugestoes = { itens: SugestaoSub[]; selecionados: boolean[]; carregando: boolean; erro?: string }
 type AlimentoEd = {
   nome: string; quantidade: string; calorias: string; proteina: string
   kcal_100g?: number | null; prot_100g?: number | null; carbo_100g?: number | null
-  gramas?: string
+  gramas?: string; substituicoes?: SubstitutoEd[]
 }
 type VariacaoEd = { nome: string; dica: string; alimentos: AlimentoEd[] }
 type RefeicaoEd = { nome: string; horario: string; variacoes: VariacaoEd[] }
@@ -55,6 +58,12 @@ function limparAlerta(val: string | null): string | null {
     .filter(v => v.length > 1 && !TERMOS_VAZIOS.test(v))
   return partes.length ? partes.join(' · ') : null
 }
+function formatarGeradoEm(d: Date | null): string | null {
+  if (!d) return null
+  const data = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+  return `Gerado em ${data} às ${hora}`
+}
 function getMetaCalorias(peso: number | null, objetivo: string | null) {
   if (!peso) return null
   const tdee = Math.round((10 * peso + 6.25 * 170 - 5 * 25 + 5) * 1.55)
@@ -75,6 +84,15 @@ function getInitials(nome: string | null, email: string) {
 const OBJETIVO_LABEL: Record<string, string> = {
   perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa',
   melhorar_condicionamento: 'Condicionamento', saude_geral: 'Saúde geral',
+}
+type TemplatePlano = { id: string; nome: string; descricao: string | null; objetivo: string; conteudo: any }
+const OBJETIVO_TEMPLATE_LABEL: Record<string, string> = {
+  perda_peso: 'Perda de peso',
+  ganho_massa: 'Ganho de massa',
+  manutencao: 'Manutenção',
+  performance: 'Performance esportiva',
+  low_carb: 'Low carb',
+  vegetariano: 'Vegetariano',
 }
 const FASE_CICLO_LABEL: Record<string, string> = {
   menstrual: 'Menstrual (dias 1–5)',
@@ -132,6 +150,7 @@ export default function NutricionistaPaciente() {
   const [profId, setProfId] = useState<string | null>(null)
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<string | null>(null)
   const [proximaConsulta, setProximaConsulta] = useState<string | null>(null)
+  const [proximaConsultaInfo, setProximaConsultaInfo] = useState<{ data: string; hora: string | null; tipo: string | null } | null>(null)
   const [proximaFase, setProximaFase] = useState<string | null>(null)
   const [diasAteProximaFase, setDiasAteProximaFase] = useState<number | null>(null)
   const [anamneseLesoes, setAnamneseLesoes] = useState<string | null>(null)
@@ -144,6 +163,7 @@ export default function NutricionistaPaciente() {
   const [briefingEstruturado, setBriefingEstruturado] = useState<{
     resumo: string; evolucao: string[]; alertas: string[]; recomendacoes: string[]
   } | null>(null)
+  const [briefingGeradoEm, setBriefingGeradoEm] = useState<Date | null>(null)
   const [gerandoBriefing, setGerandoBriefing] = useState(false)
   const [atividades7dCount, setAtividades7dCount] = useState(0)
   const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
@@ -179,6 +199,12 @@ export default function NutricionistaPaciente() {
   const [notaEd, setNotaEd] = useState('')
   const [extrasEd, setExtrasEd] = useState<ExtrasEd>(EXTRAS_VAZIO)
   const [variacaoAtivaEditor, setVariacaoAtivaEditor] = useState<Record<number, number>>({})
+  const [mostrarModelos, setMostrarModelos] = useState(false)
+  const [templates, setTemplates] = useState<TemplatePlano[]>([])
+  const [carregandoTemplates, setCarregandoTemplates] = useState(false)
+  const [filtroObjetivoModelo, setFiltroObjetivoModelo] = useState<string | null>(null)
+  const [substAbertas, setSubstAbertas] = useState<Record<string, boolean>>({})
+  const [sugestoesPorAlimento, setSugestoesPorAlimento] = useState<Record<string, EstadoSugestoes>>({})
 
   useEffect(() => {
     async function carregar() {
@@ -194,6 +220,7 @@ export default function NutricionistaPaciente() {
         { data: trHoje }, { data: atvsHoje }, { count: atvsCount }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
         { data: anamneseData }, { data: ultimaAvalData }, { data: proximaConsultaData },
+        { data: anamneseCompletaData },
       ] = await Promise.all([
         supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp').eq('id', clienteId).single(),
         supabase.from('treinos').select('data,calorias_estimadas').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
@@ -201,14 +228,15 @@ export default function NutricionistaPaciente() {
         supabase.from('atividades_livres').select('modalidade,duracao_min,calorias_wearable').eq('usuario_id', clienteId).eq('data', hoje),
         supabase.from('atividades_livres').select('*', { count: 'exact', head: true }).eq('usuario_id', clienteId).gte('data', semStr),
         supabase.from('sono').select('score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
-        supabase.from('bem_estar').select('humor,energia,motivacao').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
-        supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
+        supabase.from('bem_estar').select('humor,energia,qualidade_sono,dor_muscular,notas').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
+        supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('evolucao_medidas').select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20),
         supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
         supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1),
         supabase.from('anamneses').select('lesoes,restricoes_fisicas,medicamentos,alergias,restricoes_alimentares,fase_ciclo').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
         supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('agendamentos').select('data,hora,tipo').eq('cliente_id', clienteId).eq('status', 'agendado').gte('data', hoje).order('data').limit(1).maybeSingle(),
+        supabase.from('anamneses').select('*').eq('cliente_id', clienteId).order('atualizado_em', { ascending: false }).limit(1).maybeSingle(),
       ])
       if (perfil) setPaciente(perfil)
       setTreinos7dDatas((treinos7d ?? []).map((t: any) => t.data))
@@ -216,7 +244,10 @@ export default function NutricionistaPaciente() {
       const calSem = (treinos7d ?? []).reduce((s: number, t: any) => s + (t.calorias_estimadas ?? 0), 0)
       if (calSem > 0) setCaloriasSemanais(calSem)
       if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
-      if (proximaConsultaData?.data) setProximaConsulta(proximaConsultaData.data)
+      if (proximaConsultaData?.data) {
+        setProximaConsulta(proximaConsultaData.data)
+        setProximaConsultaInfo({ data: proximaConsultaData.data, hora: proximaConsultaData.hora ?? null, tipo: proximaConsultaData.tipo ?? null })
+      }
       const lesoes = (anamneseData ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
       const rf = (anamneseData ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
       const meds = (anamneseData ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
@@ -229,6 +260,7 @@ export default function NutricionistaPaciente() {
       if (alerg) setAnamneseAlergias(alerg)
       if (restAlim) setAnamneseRestricaoAlimentar(restAlim)
       if (faseCiclo) setAnamneseFaseCiclo(faseCiclo)
+      if (anamneseCompletaData) setAnamneseCompleta(anamneseCompletaData)
 
       // Nota clínica avulsa — armazenada na anamnese do profissional
       const { data: anamnesePropria } = await supabase
@@ -292,48 +324,77 @@ export default function NutricionistaPaciente() {
   }, [clienteId, router])
 
   // ── editor helpers ──────────────────────────────────────────────────────
+  function converterRefeicoesParaEditor(refeicoes: any[]): RefeicaoEd[] {
+    function mapAlimentos(als: any[]): AlimentoEd[] {
+      return (als ?? []).map((a: any) => ({
+        nome: a.nome ?? '', quantidade: a.quantidade ?? '',
+        calorias: String(a.calorias ?? ''), proteina: String(a.proteina ?? ''),
+        kcal_100g: a.kcal_100g ?? null, prot_100g: a.prot_100g ?? null, carbo_100g: a.carbo_100g ?? null, gramas: a.gramas ?? '',
+        substituicoes: Array.isArray(a.substituicoes)
+          ? a.substituicoes.map((s: any) => ({ nome: s.nome ?? '', quantidade: s.quantidade ?? '' }))
+          : undefined,
+      }))
+    }
+    return (refeicoes ?? []).map((r: any) => {
+      let variacoes: VariacaoEd[]
+      if (r.variacoes && r.variacoes.length > 0) {
+        variacoes = r.variacoes.map((v: any) => ({
+          nome: v.nome ?? 'Opção A',
+          dica: v.dica ?? '',
+          alimentos: v.alimentos?.length > 0 ? mapAlimentos(v.alimentos) : [{ ...ALIMENTO_VAZIO }],
+        }))
+      } else {
+        variacoes = [{
+          nome: 'Opção A',
+          dica: r.dica ?? '',
+          alimentos: r.alimentos?.length > 0
+            ? mapAlimentos(r.alimentos)
+            : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? ''), kcal_100g: null, prot_100g: null, carbo_100g: null, gramas: '' }],
+        }]
+      }
+      return { nome: r.nome ?? '', horario: r.horario ?? '', variacoes }
+    })
+  }
+  function carregarConteudoNoEditor(conteudo: any) {
+    setVariacaoAtivaEditor({})
+    setRefeicoesEd(converterRefeicoesParaEditor(conteudo?.refeicoes ?? []))
+    setNotaEd(conteudo?.nota_nutri ?? '')
+    setExtrasEd({
+      hidratacaoLitros: String(conteudo?.hidratacao?.litros_dia ?? ''),
+      hidratacaoOri: conteudo?.hidratacao?.orientacao ?? '',
+      oriTreino: conteudo?.orientacao_treino ?? '',
+      estrategia: conteudo?.estrategia_desafio ?? '',
+      dicaFome: conteudo?.dica_fome ?? '',
+    })
+  }
   function iniciarEdicao(doZero = false) {
     if (!doZero && planoEstruturado) {
-      setVariacaoAtivaEditor({})
-      setRefeicoesEd(planoEstruturado.refeicoes.map((r: any) => {
-        function mapAlimentos(als: any[]) {
-          return als.map((a: any) => ({
-            nome: a.nome ?? '', quantidade: a.quantidade ?? '',
-            calorias: String(a.calorias ?? ''), proteina: String(a.proteina ?? ''),
-            kcal_100g: a.kcal_100g ?? null, prot_100g: a.prot_100g ?? null, carbo_100g: a.carbo_100g ?? null, gramas: a.gramas ?? '',
-          }))
-        }
-        let variacoes: VariacaoEd[]
-        if (r.variacoes && r.variacoes.length > 0) {
-          variacoes = r.variacoes.map((v: any) => ({
-            nome: v.nome ?? 'Opção A',
-            dica: v.dica ?? '',
-            alimentos: v.alimentos?.length > 0 ? mapAlimentos(v.alimentos) : [{ ...ALIMENTO_VAZIO }],
-          }))
-        } else {
-          variacoes = [{
-            nome: 'Opção A',
-            dica: r.dica ?? '',
-            alimentos: r.alimentos?.length > 0
-              ? mapAlimentos(r.alimentos)
-              : [{ nome: '', quantidade: '', calorias: String(r.calorias ?? ''), proteina: String(r.proteina ?? ''), kcal_100g: null, prot_100g: null, carbo_100g: null, gramas: '' }],
-          }]
-        }
-        return { nome: r.nome ?? '', horario: r.horario ?? '', variacoes }
-      }))
-      setNotaEd(planoEstruturado.nota_nutri ?? '')
-      setExtrasEd({
-        hidratacaoLitros: String(planoEstruturado.hidratacao?.litros_dia ?? ''),
-        hidratacaoOri: planoEstruturado.hidratacao?.orientacao ?? '',
-        oriTreino: planoEstruturado.orientacao_treino ?? '',
-        estrategia: planoEstruturado.estrategia_desafio ?? '',
-        dicaFome: planoEstruturado.dica_fome ?? '',
-      })
+      carregarConteudoNoEditor(planoEstruturado)
     } else {
       setRefeicoesEd([{ ...REFEICAO_VAZIA }])
       setNotaEd('')
       setExtrasEd(EXTRAS_VAZIO)
     }
+    setEditandoPlano(true)
+    setAbaAtiva('plano')
+  }
+  async function abrirBibliotecaModelos() {
+    setMostrarModelos(true)
+    if (templates.length > 0) return
+    setCarregandoTemplates(true)
+    const { data } = await supabase.from('templates_planos')
+      .select('id,nome,descricao,objetivo,conteudo')
+      .eq('publico', true)
+      .order('objetivo')
+    setTemplates(data ?? [])
+    setCarregandoTemplates(false)
+  }
+  function carregarModelo(template: TemplatePlano) {
+    let conteudo: any = template.conteudo
+    if (typeof conteudo === 'string') { try { conteudo = JSON.parse(conteudo) } catch { conteudo = null } }
+    if (!conteudo?.refeicoes) return
+    carregarConteudoNoEditor(conteudo)
+    setMostrarModelos(false)
     setEditandoPlano(true)
     setAbaAtiva('plano')
   }
@@ -414,6 +475,85 @@ export default function NutricionistaPaciente() {
       }
     }))
   }
+  function chaveAlimento(rIdx: number, vIdx: number, aIdx: number) { return `${rIdx}_${vIdx}_${aIdx}` }
+  function toggleSubstituicoes(rIdx: number, vIdx: number, aIdx: number) {
+    const chave = chaveAlimento(rIdx, vIdx, aIdx)
+    setSubstAbertas(p => ({ ...p, [chave]: !p[chave] }))
+  }
+  function mapAlimentoSub(rIdx: number, vIdx: number, aIdx: number, fn: (a: AlimentoEd) => AlimentoEd) {
+    setRefeicoesEd(p => p.map((r, idx) => {
+      if (idx !== rIdx) return r
+      return {
+        ...r, variacoes: r.variacoes.map((v, vi) => {
+          if (vi !== vIdx) return v
+          return { ...v, alimentos: v.alimentos.map((a, i) => i !== aIdx ? a : fn(a)) }
+        })
+      }
+    }))
+  }
+  function addSubstituicao(rIdx: number, vIdx: number, aIdx: number) {
+    mapAlimentoSub(rIdx, vIdx, aIdx, a => ({ ...a, substituicoes: [...(a.substituicoes ?? []), { nome: '', quantidade: '' }] }))
+    setSubstAbertas(p => ({ ...p, [chaveAlimento(rIdx, vIdx, aIdx)]: true }))
+  }
+  function updateSubstituicao(rIdx: number, vIdx: number, aIdx: number, sIdx: number, field: keyof SubstitutoEd, val: string) {
+    mapAlimentoSub(rIdx, vIdx, aIdx, a => ({ ...a, substituicoes: (a.substituicoes ?? []).map((s, si) => si !== sIdx ? s : { ...s, [field]: val }) }))
+  }
+  function removeSubstituicao(rIdx: number, vIdx: number, aIdx: number, sIdx: number) {
+    mapAlimentoSub(rIdx, vIdx, aIdx, a => ({ ...a, substituicoes: (a.substituicoes ?? []).filter((_, si) => si !== sIdx) }))
+  }
+  async function sugerirSubstituicoes(rIdx: number, vIdx: number, aIdx: number) {
+    const chave = chaveAlimento(rIdx, vIdx, aIdx)
+    const al = refeicoesEd[rIdx]?.variacoes[vIdx]?.alimentos[aIdx]
+    if (!al?.nome) return
+    setSugestoesPorAlimento(p => ({ ...p, [chave]: { itens: [], selecionados: [], carregando: true } }))
+    setSubstAbertas(p => ({ ...p, [chave]: true }))
+    try {
+      const restricoes = limparAlerta(anamneseRestricaoAlimentar) ?? limparAlerta(anamneseAlergias)
+      const res = await fetch('/api/sugerir-substituicoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuarioId: profId,
+          alimento: {
+            nome: al.nome,
+            quantidade: al.quantidade || (al.gramas ? `${al.gramas}g` : ''),
+            calorias: parseFloat(al.calorias) || 0,
+            proteina: parseFloat(al.proteina) || 0,
+          },
+          paciente: { objetivo: paciente?.objetivo ?? null, peso: paciente?.peso ?? null, restricoes },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !Array.isArray(data.sugestoes)) {
+        setSugestoesPorAlimento(p => ({ ...p, [chave]: { itens: [], selecionados: [], carregando: false, erro: data.erro ?? 'Não foi possível gerar sugestões agora.' } }))
+        return
+      }
+      setSugestoesPorAlimento(p => ({ ...p, [chave]: { itens: data.sugestoes, selecionados: data.sugestoes.map(() => false), carregando: false } }))
+    } catch {
+      setSugestoesPorAlimento(p => ({ ...p, [chave]: { itens: [], selecionados: [], carregando: false, erro: 'Erro de conexão ao gerar sugestões.' } }))
+    }
+  }
+  function toggleSugestaoSelecionada(rIdx: number, vIdx: number, aIdx: number, sgIdx: number) {
+    const chave = chaveAlimento(rIdx, vIdx, aIdx)
+    setSugestoesPorAlimento(p => {
+      const atual = p[chave]
+      if (!atual) return p
+      return { ...p, [chave]: { ...atual, selecionados: atual.selecionados.map((v, i) => i === sgIdx ? !v : v) } }
+    })
+  }
+  function aprovarSugestoes(rIdx: number, vIdx: number, aIdx: number) {
+    const chave = chaveAlimento(rIdx, vIdx, aIdx)
+    const atual = sugestoesPorAlimento[chave]
+    if (!atual) return
+    const aprovados = atual.itens.filter((_, i) => atual.selecionados[i]).map(s => ({ nome: s.nome, quantidade: s.quantidade }))
+    if (aprovados.length === 0) return
+    mapAlimentoSub(rIdx, vIdx, aIdx, a => ({ ...a, substituicoes: [...(a.substituicoes ?? []), ...aprovados] }))
+    setSugestoesPorAlimento(p => { const n = { ...p }; delete n[chave]; return n })
+  }
+  function descartarSugestoes(rIdx: number, vIdx: number, aIdx: number) {
+    const chave = chaveAlimento(rIdx, vIdx, aIdx)
+    setSugestoesPorAlimento(p => { const n = { ...p }; delete n[chave]; return n })
+  }
 
   async function salvarEdicao() {
     setSalvandoEd(true)
@@ -425,12 +565,16 @@ export default function NutricionistaPaciente() {
           ...(v.dica ? { dica: v.dica } : {}),
           calorias: sumAl(v.alimentos, 'calorias'),
           proteina: sumAl(v.alimentos, 'proteina'),
-          alimentos: v.alimentos.filter(a => a.nome).map(a => ({
-            nome: a.nome, quantidade: a.quantidade,
-            calorias: parseFloat(a.calorias) || 0,
-            proteina: parseFloat(a.proteina) || 0,
-            ...(a.kcal_100g != null ? { kcal_100g: a.kcal_100g, prot_100g: a.prot_100g, carbo_100g: a.carbo_100g, gramas: a.gramas } : {}),
-          })),
+          alimentos: v.alimentos.filter(a => a.nome).map(a => {
+            const substituicoes = (a.substituicoes ?? []).filter(s => s.nome.trim())
+            return {
+              nome: a.nome, quantidade: a.quantidade,
+              calorias: parseFloat(a.calorias) || 0,
+              proteina: parseFloat(a.proteina) || 0,
+              ...(a.kcal_100g != null ? { kcal_100g: a.kcal_100g, prot_100g: a.prot_100g, carbo_100g: a.carbo_100g, gramas: a.gramas } : {}),
+              ...(substituicoes.length > 0 ? { substituicoes } : {}),
+            }
+          }),
         }))
         const calRef = variacoes[0]?.calorias ?? 0
         const protRef = variacoes[0]?.proteina ?? 0
@@ -573,25 +717,30 @@ export default function NutricionistaPaciente() {
     setTreinoCarregando(true)
     const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
     const q30 = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    // Semana calendário dom–sáb
+    // Janela móvel: últimos 7 dias completos (ontem e os 6 anteriores) vs os 7 dias completos anteriores a esses
     const todayLoadStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const dLoadBase = new Date(todayLoadStr + 'T12:00:00-03:00')
-    const currSundayLoad = new Date(dLoadBase); currSundayLoad.setDate(dLoadBase.getDate() - dLoadBase.getDay())
-    const prevSundayLoad = new Date(currSundayLoad); prevSundayLoad.setDate(currSundayLoad.getDate() - 7)
-    const currWeekStartLoad = currSundayLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    const prevWeekStartLoad = prevSundayLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const currEndLoad = new Date(dLoadBase); currEndLoad.setDate(dLoadBase.getDate() - 1)
+    const currStartLoad = new Date(dLoadBase); currStartLoad.setDate(dLoadBase.getDate() - 7)
+    const prevEndLoad = new Date(dLoadBase); prevEndLoad.setDate(dLoadBase.getDate() - 8)
+    const prevStartLoad = new Date(dLoadBase); prevStartLoad.setDate(dLoadBase.getDate() - 14)
+    const currWeekStartLoad = currStartLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const currWeekEndLoad = currEndLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const prevWeekStartLoad = prevStartLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const prevWeekEndLoad = prevEndLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
-    const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalLink }] = await Promise.all([
+    const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalNomeRpc }] = await Promise.all([
       supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
       supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
-      supabase.from('sono').select('data,score_recuperacao,duracao').eq('usuario_id', clienteId).gte('data', prevWeekStartLoad).order('data', { ascending: true }),
-      supabase.from('vinculos').select('profissional_id, perfis(nome)').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle(),
+      supabase.from('sono').select('data,score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).gte('data', prevWeekStartLoad).order('data', { ascending: true }),
+      supabase.rpc('get_personal_trainer_nome', { p_cliente_id: clienteId }),
     ])
 
-    // Set personal trainer name
-    if (personalLink?.perfis) {
-      setPersonalNome((personalLink.perfis as any).nome ?? null)
-    }
+    // RPC SECURITY DEFINER: vinculos.profissional_id referencia auth.users (não perfis), então o
+    // PostgREST não resolve o embed perfis(...), e a RLS de vinculos impede o nutricionista de
+    // ler o vínculo "personal" do paciente diretamente. A função no banco faz a checagem de
+    // autorização e retorna apenas o nome do personal trainer.
+    setPersonalNome((personalNomeRpc as string | null) ?? null)
 
     if (treinosHist?.length) {
       const ids = treinosHist.map((t: any) => t.id)
@@ -612,9 +761,9 @@ export default function NutricionistaPaciente() {
     if (ativs?.length) setAtividadesLivres14d(ativs as any)
     if (sonoHist?.length) {
       const sonoArr = sonoHist as any[]
-      const curr7 = sonoArr.filter(s => s.data >= currWeekStartLoad)
-      const prev7 = sonoArr.filter(s => s.data >= prevWeekStartLoad && s.data < currWeekStartLoad)
-      setRecuperacao7d(curr7.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao })))
+      const curr7 = sonoArr.filter(s => s.data >= currWeekStartLoad && s.data <= currWeekEndLoad)
+      const prev7 = sonoArr.filter(s => s.data >= prevWeekStartLoad && s.data <= prevWeekEndLoad)
+      setRecuperacao7d(curr7.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracao: s.duracao_minutos })))
       setRecuperacaoPrev7d(prev7.map((s: any) => ({ data: s.data, score: s.score_recuperacao })))
     }
     setTreinoCarregando(false)
@@ -721,14 +870,18 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
           if (parsed.resumo && parsed.evolucao && parsed.alertas && parsed.recomendacoes) {
             setBriefingEstruturado(parsed)
             setBriefingIA(parsed.resumo) // keep for compatibility
+            setBriefingGeradoEm(new Date())
           } else {
             setBriefingIA(resposta)
+            setBriefingGeradoEm(new Date())
           }
         } else {
           setBriefingIA(resposta)
+          setBriefingGeradoEm(new Date())
         }
       } catch {
         setBriefingIA(resposta)
+        setBriefingGeradoEm(new Date())
       }
     } catch { setBriefingIA('Erro ao gerar briefing.') }
     setGerandoBriefing(false)
@@ -769,6 +922,9 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
   const metaCal = getMetaCalorias(paciente?.peso ?? null, paciente?.objetivo ?? null)
   const metaProt = getMetaProteina(paciente?.peso ?? null, paciente?.objetivo ?? null)
+  // Peso exibido no cabeçalho: usa o registro mais recente de evolucao_medidas (fonte de verdade
+  // da composição corporal); cai para perfis.peso só quando não há nenhuma avaliação registrada.
+  const pesoHeader = medidasCP.length > 0 ? medidasCP[medidasCP.length - 1].peso ?? paciente?.peso ?? null : paciente?.peso ?? null
   const hoje = getTodayBR()
   const dias7d = getDias7d(hoje)
 
@@ -820,7 +976,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   })()}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-1">
-                  {paciente?.peso && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{paciente.peso} kg</span>}
+                  {pesoHeader != null && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{pesoHeader} kg</span>}
                   {paciente?.objetivo && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>{OBJETIVO_LABEL[paciente.objetivo] ?? paciente.objetivo}</span>}
                   {paciente?.meta_peso && <span style={{ fontSize: 11, color: '#2DD4A7', background: 'rgba(45,212,167,0.1)', border: '1px solid rgba(45,212,167,0.2)', borderRadius: 99, padding: '3px 10px' }}>Meta: {paciente.meta_peso} kg</span>}
                   {metaCal && <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px', display: 'none' }} className="md:inline-block">{metaCal} kcal/dia</span>}
@@ -1091,21 +1247,23 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               {bemEstar ? (
                 <>
                   {(() => {
-                    const media = Math.round((bemEstar.humor + bemEstar.energia + bemEstar.motivacao) / 3 * 10) / 10
+                    const metricas = [{l:'Humor',v:bemEstar.humor},{l:'Energia',v:bemEstar.energia},{l:'Qualidade sono',v:bemEstar.qualidade_sono}]
+                    const valores = metricas.map(m => m.v).filter((v): v is number => v != null)
+                    const media = valores.length ? Math.round(valores.reduce((a, b) => a + b, 0) / valores.length * 10) / 10 : null
                     return (
                       <>
                         <div className="flex items-baseline gap-1 mb-3">
-                          <span className={`text-5xl font-black leading-none tracking-tight ${media >= 4 ? 'text-emerald-400' : media >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>{media}</span>
+                          <span className={`text-5xl font-black leading-none tracking-tight ${media == null ? 'text-zinc-600' : media >= 4 ? 'text-emerald-400' : media >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>{media ?? '–'}</span>
                           <span className="text-zinc-600 text-xl">/5</span>
                         </div>
                         <div className="space-y-1.5 mt-2">
-                          {[{l:'Humor',v:bemEstar.humor},{l:'Energia',v:bemEstar.energia},{l:'Motivação',v:bemEstar.motivacao}].map(({l,v}) => (
+                          {metricas.map(({l,v}) => (
                             <div key={l} className="flex items-center gap-2">
                               <p className="text-zinc-600 text-xs w-16 shrink-0">{l}</p>
                               <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full ${v>=4?'bg-emerald-400':v>=3?'bg-yellow-400':'bg-red-400'}`} style={{width:`${v/5*100}%`}}/>
+                                <div className={`h-full rounded-full ${v == null ? '' : v>=4?'bg-emerald-400':v>=3?'bg-yellow-400':'bg-red-400'}`} style={{width:`${v == null ? 0 : v/5*100}%`}}/>
                               </div>
-                              <span className="text-zinc-500 text-xs w-5 text-right">{v}</span>
+                              <span className="text-zinc-500 text-xs w-5 text-right">{v ?? '–'}</span>
                             </div>
                           ))}
                         </div>
@@ -1162,6 +1320,9 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                       <span key={i} className="text-[12px] text-emerald-400/80 bg-emerald-500/8 border border-emerald-500/15 rounded-lg px-3 py-1">→ {r}</span>
                     ))}
                   </div>
+                )}
+                {briefingGeradoEm && (
+                  <p className="px-6 pb-4 text-[11px] text-zinc-600">{formatarGeradoEm(briefingGeradoEm)}</p>
                 )}
               </div>
             ) : (
@@ -1363,6 +1524,86 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 text-[9px]">g prot</span>
                                   </div>
                                 </div>
+
+                                {/* Substituições */}
+                                <div className="pt-1">
+                                  <div className="flex items-center gap-3">
+                                    <button onClick={() => toggleSubstituicoes(rIdx, vIdx, aIdx)}
+                                      className="text-[10px] text-zinc-500 hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                                      <span>{substAbertas[chaveAlimento(rIdx, vIdx, aIdx)] ? '− substituição' : '+ substituição'}</span>
+                                      {(al.substituicoes?.length ?? 0) > 0 && (
+                                        <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-1.5 text-[9px]">{al.substituicoes!.length}</span>
+                                      )}
+                                    </button>
+                                    {al.nome && (
+                                      <button onClick={() => sugerirSubstituicoes(rIdx, vIdx, aIdx)}
+                                        disabled={sugestoesPorAlimento[chaveAlimento(rIdx, vIdx, aIdx)]?.carregando}
+                                        className="text-[10px] text-blue-400/70 hover:text-blue-400 transition-colors flex items-center gap-1 disabled:opacity-40">
+                                        <Sparkles size={11} />
+                                        {sugestoesPorAlimento[chaveAlimento(rIdx, vIdx, aIdx)]?.carregando ? 'Gerando sugestões…' : 'Sugerir substituições'}
+                                      </button>
+                                    )}
+                                  </div>
+                                  {substAbertas[chaveAlimento(rIdx, vIdx, aIdx)] && (
+                                    <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-white/[0.08]">
+                                      {(al.substituicoes ?? []).map((s, sIdx) => (
+                                        <div key={sIdx} className="flex items-center gap-1.5">
+                                          <span className="text-zinc-600 text-[10px] shrink-0">ou</span>
+                                          <input value={s.nome} onChange={e => updateSubstituicao(rIdx, vIdx, aIdx, sIdx, 'nome', e.target.value)}
+                                            placeholder="Alimento substituto"
+                                            className="flex-1 min-w-0 bg-white/[0.04] text-white placeholder-zinc-700 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-white/15" />
+                                          <input value={s.quantidade} onChange={e => updateSubstituicao(rIdx, vIdx, aIdx, sIdx, 'quantidade', e.target.value)}
+                                            placeholder="qtd (ex: 250g)"
+                                            className="w-28 shrink-0 bg-white/[0.04] text-white placeholder-zinc-700 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-white/15" />
+                                          <button onClick={() => removeSubstituicao(rIdx, vIdx, aIdx, sIdx)} className="text-zinc-700 hover:text-red-400 transition-colors text-xs shrink-0 w-6 h-6 flex items-center justify-center rounded-lg border border-white/[0.1]">✕</button>
+                                        </div>
+                                      ))}
+                                      <button onClick={() => addSubstituicao(rIdx, vIdx, aIdx)}
+                                        className="text-[10px] text-zinc-600 hover:text-emerald-400 transition-colors">
+                                        + adicionar substituto
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* Sugestões da IA — pendentes de aprovação */}
+                                  {(() => {
+                                    const sug = sugestoesPorAlimento[chaveAlimento(rIdx, vIdx, aIdx)]
+                                    if (!sug || sug.carregando) return null
+                                    if (sug.erro) return (
+                                      <p className="mt-2 text-red-400/80 text-[10px]">{sug.erro}</p>
+                                    )
+                                    if (sug.itens.length === 0) return null
+                                    return (
+                                      <div className="mt-2 rounded-xl p-3 space-y-2" style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.18)' }}>
+                                        <p className="text-blue-300/80 text-[9.5px] leading-relaxed">⚠ Sugestões baseadas em equivalência calórica e proteica. Revise antes de salvar.</p>
+                                        <div className="space-y-1.5">
+                                          {sug.itens.map((item, sgIdx) => (
+                                            <label key={sgIdx} className="flex items-start gap-2.5 cursor-pointer">
+                                              <input type="checkbox" checked={sug.selecionados[sgIdx] ?? false}
+                                                onChange={() => toggleSugestaoSelecionada(rIdx, vIdx, aIdx, sgIdx)}
+                                                className="mt-0.5 accent-emerald-500 w-3.5 h-3.5" />
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-white text-xs font-medium leading-snug">{item.nome}{item.quantidade ? <span className="text-zinc-500 font-normal"> — {item.quantidade}</span> : null}</p>
+                                                <p className="text-zinc-500 text-[10px]">{item.calorias} kcal · {item.proteina}g prot</p>
+                                              </div>
+                                            </label>
+                                          ))}
+                                        </div>
+                                        <div className="flex items-center gap-3 pt-0.5">
+                                          <button onClick={() => aprovarSugestoes(rIdx, vIdx, aIdx)}
+                                            disabled={!sug.selecionados.some(Boolean)}
+                                            className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold transition-all active:scale-95 disabled:opacity-30">
+                                            ✓ Adicionar selecionados
+                                          </button>
+                                          <button onClick={() => descartarSugestoes(rIdx, vIdx, aIdx)}
+                                            className="text-zinc-600 hover:text-zinc-400 text-[10px] transition-colors">
+                                            descartar
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )
+                                  })()}
+                                </div>
                               </div>
                             ))}
                             <button onClick={() => addAlimento(rIdx, vIdx)}
@@ -1552,9 +1793,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(255,90,54,0.10)', border: '1px solid rgba(255,90,54,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28 }}>🥗</div>
                 <p style={{ color: '#FF8A3D', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700, marginBottom: 8 }}>Plano alimentar</p>
                 <p style={{ color: '#F5F6F8', fontWeight: 900, fontSize: 20, marginBottom: 8, fontFamily: "'Sora', system-ui" }}>Criar dieta personalizada</p>
-                <p style={{ color: '#9AA0AD', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>Monte manualmente com alimentos e gramas, ou deixe a IA gerar um plano completo.</p>
+                <p style={{ color: '#9AA0AD', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>Monte manualmente com alimentos e gramas, use um modelo pronto como ponto de partida, ou deixe a IA gerar um plano completo.</p>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => iniciarEdicao(true)} style={{ flex: 1, border: '1px solid rgba(255,255,255,0.14)', color: '#9AA0AD', fontWeight: 700, padding: '14px 0', borderRadius: 16, fontSize: 13, background: 'transparent', cursor: 'pointer', transition: 'all 150ms' }}>✏️ Manual</button>
+                  <button onClick={abrirBibliotecaModelos} style={{ flex: 1, border: '1px solid rgba(255,255,255,0.14)', color: '#9AA0AD', fontWeight: 700, padding: '14px 0', borderRadius: 16, fontSize: 13, background: 'transparent', cursor: 'pointer', transition: 'all 150ms' }}>📋 Modelo</button>
                   <button onClick={() => setConfirmandoIA(true)} style={{ flex: 1, background: 'linear-gradient(135deg, #FF5A36, #FF8A3D)', color: '#fff', fontWeight: 700, padding: '14px 0', borderRadius: 16, fontSize: 13, border: 'none', cursor: 'pointer', boxShadow: '0 6px 20px rgba(255,90,54,0.35)' }}>✦ Gerar IA</button>
                 </div>
               </div>
@@ -1577,23 +1819,27 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
           const caloriasBase = planoAtivo?.calorias_meta
           const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
           const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
-          // Semana calendário dom–sáb
+          // Janela móvel: últimos 7 dias completos (ontem e os 6 anteriores) vs os 7 dias completos anteriores a esses
           const dBase = new Date(hoje + 'T12:00:00-03:00')
-          const currSunday = new Date(dBase); currSunday.setDate(dBase.getDate() - dBase.getDay())
-          const prevSunday = new Date(currSunday); prevSunday.setDate(currSunday.getDate() - 7)
-          const q7CurrStr = currSunday.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-          const q14CurrStr = prevSunday.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const currEnd = new Date(dBase); currEnd.setDate(dBase.getDate() - 1)
+          const currStart = new Date(dBase); currStart.setDate(dBase.getDate() - 7)
+          const prevEnd = new Date(dBase); prevEnd.setDate(dBase.getDate() - 8)
+          const prevStart = new Date(dBase); prevStart.setDate(dBase.getDate() - 14)
+          const q7CurrStr = currStart.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const q7CurrEndStr = currEnd.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const q14CurrStr = prevStart.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const q14CurrEndStr = prevEnd.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
           const calSemTotal = [
-            ...historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr).map(t => t.calorias ?? 0),
-            ...atividadesLivres14d.filter(a => a.data >= q7CurrStr).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
+            ...historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr && t.data <= q7CurrEndStr).map(t => t.calorias ?? 0),
+            ...atividadesLivres14d.filter(a => a.data >= q7CurrStr && a.data <= q7CurrEndStr).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
           ].reduce((acc, v) => acc + v, 0)
           const scoreMedia = recuperacao7d.length ? Math.round(recuperacao7d.filter(r => r.score != null).reduce((a, r) => a + (r.score ?? 0), 0) / recuperacao7d.filter(r => r.score != null).length) : null
 
-          const treinosCurr = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr)
-          const treinosPrev = historicoTreinosDetalhado.filter(t => t.data >= q14CurrStr && t.data < q7CurrStr)
-          const ativsCurr = atividadesLivres14d.filter(a => a.data >= q7CurrStr)
-          const ativsPrev = atividadesLivres14d.filter(a => a.data >= q14CurrStr && a.data < q7CurrStr)
+          const treinosCurr = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr && t.data <= q7CurrEndStr)
+          const treinosPrev = historicoTreinosDetalhado.filter(t => t.data >= q14CurrStr && t.data <= q14CurrEndStr)
+          const ativsCurr = atividadesLivres14d.filter(a => a.data >= q7CurrStr && a.data <= q7CurrEndStr)
+          const ativsPrev = atividadesLivres14d.filter(a => a.data >= q14CurrStr && a.data <= q14CurrEndStr)
 
           const semSessoes = treinosCurr.length + ativsCurr.length
           const prevSessoes = treinosPrev.length + ativsPrev.length
@@ -1643,10 +1889,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
                 )}
 
-                {/* Métricas semanais com comparação vs semana anterior (dom–sáb) */}
+                {/* Métricas: últimos 7 dias completos vs os 7 dias completos anteriores (janela móvel, não semana civil) */}
                 <p style={{ fontSize: 10, color: '#9AA0AD', marginBottom: -4, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>
-                  {new Date(q7CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')} – {new Date(hoje + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}
-                  <span style={{ color: '#7A8290', marginLeft: 8 }}>vs {new Date(q14CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}–{new Date(new Date(q7CurrStr + 'T12:00:00-03:00').setDate(new Date(q7CurrStr + 'T12:00:00-03:00').getDate() - 1)).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}</span>
+                  {new Date(q7CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')} – {new Date(q7CurrEndStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}
+                  <span style={{ color: '#7A8290', marginLeft: 8 }}>vs {new Date(q14CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}–{new Date(q14CurrEndStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}</span>
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {([
@@ -2010,6 +2256,10 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               </div>
             ) : null}
 
+            {(briefingEstruturado || briefingIA) && briefingGeradoEm && (
+              <p className="text-[11px] text-zinc-600 -mt-2">{formatarGeradoEm(briefingGeradoEm)} · análise é um snapshot, não tempo real</p>
+            )}
+
             {/* Chat referência */}
             <div className="rounded-2xl border border-white/[0.07] p-5 flex items-center gap-4" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }}>
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-lg">✦</div>
@@ -2343,6 +2593,68 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
         </div>
       )}
 
+      {/* Modal biblioteca de modelos */}
+      {mostrarModelos && (
+        <div className="fixed inset-0 z-[70] flex items-end" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setMostrarModelos(false) }}>
+          <div className="w-full max-w-md mx-auto rounded-t-3xl border border-white/[0.14] px-5 pt-6 pb-10 space-y-4" style={{ background: '#1c1c1c', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div className="w-12 h-12 rounded-2xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center mx-auto mb-1 text-2xl">📋</div>
+            <p className="text-white font-black text-xl text-center">Modelos de plano alimentar</p>
+            <p className="text-zinc-400 text-sm text-center leading-relaxed">
+              Ponto de partida pronto — selecione um modelo, ele será carregado no editor e você ajusta livremente para o paciente.
+            </p>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+              <button onClick={() => setFiltroObjetivoModelo(null)}
+                style={{ padding: '6px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid', borderColor: filtroObjetivoModelo === null ? 'rgba(255,138,61,0.4)' : 'rgba(255,255,255,0.14)', background: filtroObjetivoModelo === null ? 'rgba(255,138,61,0.15)' : 'transparent', color: filtroObjetivoModelo === null ? '#FF8A3D' : '#9AA0AD' }}>
+                Todos
+              </button>
+              {Object.entries(OBJETIVO_TEMPLATE_LABEL).map(([chave, label]) => (
+                <button key={chave} onClick={() => setFiltroObjetivoModelo(chave)}
+                  style={{ padding: '6px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid', borderColor: filtroObjetivoModelo === chave ? 'rgba(255,138,61,0.4)' : 'rgba(255,255,255,0.14)', background: filtroObjetivoModelo === chave ? 'rgba(255,138,61,0.15)' : 'transparent', color: filtroObjetivoModelo === chave ? '#FF8A3D' : '#9AA0AD' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {carregandoTemplates ? (
+              <p className="text-zinc-500 text-sm text-center py-8">Carregando modelos...</p>
+            ) : (() => {
+              const filtrados = templates.filter(t => !filtroObjetivoModelo || t.objetivo === filtroObjetivoModelo)
+              if (filtrados.length === 0) {
+                return <p className="text-zinc-500 text-sm text-center py-8">Nenhum modelo encontrado para esse filtro.</p>
+              }
+              return (
+                <div className="space-y-3">
+                  {filtrados.map(t => (
+                    <div key={t.id} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 16, padding: 16 }}>
+                      <p style={{ color: '#FF8A3D', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>
+                        {OBJETIVO_TEMPLATE_LABEL[t.objetivo] ?? t.objetivo}
+                      </p>
+                      <p style={{ color: '#F5F6F8', fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{t.nome}</p>
+                      {t.descricao && <p style={{ color: '#9AA0AD', fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>{t.descricao}</p>}
+                      <button onClick={() => carregarModelo(t)}
+                        style={{ width: '100%', background: 'rgba(255,138,61,0.15)', border: '1px solid rgba(255,138,61,0.25)', color: '#FF8A3D', fontWeight: 700, padding: '10px 0', borderRadius: 12, fontSize: 12, cursor: 'pointer', transition: 'all 150ms' }}>
+                        Usar modelo →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+
+            <p style={{ color: '#6B7280', fontSize: 11, textAlign: 'center', lineHeight: 1.5 }}>
+              Os modelos são pontos de partida — não substituem a avaliação individual do paciente.
+            </p>
+
+            <button onClick={() => setMostrarModelos(false)}
+              className="w-full border border-white/[0.12] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Nota clínica — card integrado no conteúdo */}
       {abaAtiva === 'visao-geral' && (
         <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 50, width: 280 }}>
@@ -2439,6 +2751,27 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               data: medidasCP[medidasCP.length - 1].data,
             } : null,
             ultimaAvaliacao,
+            proximaConsulta: proximaConsultaInfo,
+            anamneseCompleta,
+            sono: {
+              hoje: sonoHoje ? { score: sonoHoje.score_recuperacao, duracaoMin: sonoHoje.duracao_minutos } : null,
+              historico7d: recuperacao7d.map(r => ({ data: r.data, score: r.score, duracaoMin: r.duracao })),
+            },
+            bemEstarHoje: bemEstar ? { humor: bemEstar.humor, energia: bemEstar.energia, dorMuscular: bemEstar.dor_muscular ?? null, notas: bemEstar.notas ?? null } : null,
+            planoAlimentar: planoEstruturado ? {
+              calorias: planoAtivo?.calorias_meta ?? null,
+              proteina: planoAtivo?.proteina_meta ?? null,
+              refeicoes: (planoEstruturado.refeicoes ?? []).map((r: any) => ({
+                nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
+                alimentos: (r.alimentos ?? []).map((a: any) => a.nome).filter(Boolean),
+              })),
+              suplementos: (planoEstruturado.suplementos ?? []).map((s: any) => typeof s === 'string' ? s : s?.nome).filter(Boolean),
+              hidratacao: planoEstruturado.hidratacao ?? null,
+              orientacaoTreino: planoEstruturado.orientacao_treino ?? null,
+              observacoes: planoEstruturado.nota_nutri ?? null,
+            } : null,
+            treinosRegistrados: historicoTreinosDetalhado,
+            medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
           }} pacienteId={clienteId} />
         )
       })()}
@@ -2482,6 +2815,9 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
   const [aberta, setAberta] = useState(false)
   const MealIcon = MEAL_ICONS[idx % MEAL_ICONS.length] ?? UtensilsCrossed
   const alimentos: any[] = ref.alimentos ?? []
+  // Refeição sem nome, sem horário, sem alimentos e com calorias/proteína zeradas é registro
+  // incompleto (placeholder vazio salvo no plano) — nunca mostrar como se fosse uma refeição válida de 0 kcal
+  const incompleta = !ref.nome && !ref.horario && alimentos.length === 0 && !ref.calorias && !ref.proteina
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }}>
       <button onClick={() => setAberta(p => !p)}
@@ -2491,22 +2827,30 @@ function RefeicaoCard({ ref, idx }: { ref: any; idx: number }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-white font-semibold text-sm">{ref.nome}</p>
+            <p className="text-white font-semibold text-sm">{ref.nome || (incompleta ? 'Refeição incompleta' : 'Sem nome')}</p>
             {ref.horario && (
               <span className="text-zinc-300 text-[11px] font-medium bg-white/[0.10] px-2 py-0.5 rounded-md shrink-0 mono">
                 {ref.horario}
               </span>
             )}
           </div>
-          <div className="flex gap-3 mt-0.5">
-            <span className="text-[var(--data-energy)] text-xs font-semibold mono">{ref.calorias} kcal</span>
-            <span className="text-[#2DD4A7] text-xs mono">{ref.proteina}g prot</span>
-            {alimentos.length > 0 && (
-              <span className="text-zinc-500 text-xs bg-white/[0.05] px-1.5 rounded">
-                {alimentos.length} item{alimentos.length > 1 ? 's' : ''}
+          {incompleta ? (
+            <div className="flex gap-2 mt-0.5">
+              <span className="text-amber-400 text-[11px] font-medium bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                ⚠ Dados incompletos — nenhum alimento cadastrado
               </span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex gap-3 mt-0.5">
+              <span className="text-[var(--data-energy)] text-xs font-semibold mono">{ref.calorias} kcal</span>
+              <span className="text-[#2DD4A7] text-xs mono">{ref.proteina}g prot</span>
+              {alimentos.length > 0 && (
+                <span className="text-zinc-500 text-xs bg-white/[0.05] px-1.5 rounded">
+                  {alimentos.length} item{alimentos.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-200 shrink-0 ${aberta ? 'rotate-180' : ''}`} />
       </button>

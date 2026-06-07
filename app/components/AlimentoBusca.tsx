@@ -148,7 +148,7 @@ export default function AlimentoBusca({ value, onChange, onSelect, placeholder =
       />
 
       {aberto && sugestoes.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-white/[0.1] overflow-hidden shadow-2xl"
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-white/[0.1] shadow-2xl max-h-72 overflow-y-auto overflow-x-hidden"
           style={{ background: '#171717' }}>
           {sugestoes.map(al => (
             <button key={al.id} onMouseDown={e => { e.preventDefault(); handleSelect(al) }}

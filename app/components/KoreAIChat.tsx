@@ -20,6 +20,20 @@ type ContextoAtleta = {
   evolucaoExercicios: { nome: string; maxCarga: number; sessoes: number }[]
   personal: { nome: string | null; email: string } | null
   nutricionista: { nome: string | null; email: string } | null
+  metas: { metaPeso: number | null; metaDataLimite: string | null; fcmax: number | null; ftp: number | null }
+  planosTreinoPrescritos: { plano: string; nome: string; exercicios: { nome: string; series: number; repeticoes: number; carga: number | null; observacoes: string }[] }[]
+  medidasHistorico: { data: string; peso: number | null; gorduraPct: number | null; massaMuscular: number | null }[]
+  periodizacaoFase: string | null
+  proximaConsulta: { data: string; hora: string | null; tipo: string | null } | null
+  ultimaAvaliacao: string | null
+  anamneseResumo: Record<string, any> | null
+  planoNutricional: {
+    caloriasMeta: number | null; proteinaMeta: number | null; carboidratoMeta: number | null; gorduraMeta: number | null
+    refeicoesPorDia: number | null; observacoes: string | null
+    refeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: string[] }[]
+    suplementos: string[]
+    orientacaoTreino: string | null
+  } | null
 }
 
 function getTodayBR(): string {
@@ -29,11 +43,64 @@ function getHourBR(): number {
   return parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }), 10)
 }
 
+function formatAnamnese(a: Record<string, any> | null | undefined): string | null {
+  if (!a) return null
+  const linhas: (string | false | null)[] = [
+    a.objetivo_detalhado && `Objetivo detalhado: ${a.objetivo_detalhado}`,
+    a.motivacao && `Motivação: ${a.motivacao}`,
+    a.prazo_semanas && `Prazo desejado: ${a.prazo_semanas} semanas`,
+    a.nivel_atividade && `Nível de atividade: ${a.nivel_atividade}`,
+    a.historico_esportivo && `Histórico esportivo: ${a.historico_esportivo}`,
+    a.patologias && `Patologias: ${a.patologias}`,
+    a.lesoes && `Lesões: ${a.lesoes}`,
+    a.restricoes_fisicas && `Restrições físicas: ${a.restricoes_fisicas}`,
+    a.medicamentos && `Medicamentos: ${a.medicamentos}`,
+    a.alergias && `Alergias: ${a.alergias}`,
+    a.cirurgias && `Cirurgias: ${a.cirurgias}`,
+    a.suplementos && `Suplementos em uso: ${a.suplementos}`,
+    a.restricoes_alimentares && `Restrições alimentares: ${a.restricoes_alimentares}`,
+    a.intolerancias && `Intolerâncias: ${a.intolerancias}`,
+    a.preferencias_alimentares && `Preferências alimentares: ${a.preferencias_alimentares}`,
+    a.aversoes_alimentares && `Aversões alimentares: ${a.aversoes_alimentares}`,
+    a.habitos_alimentares && `Hábitos alimentares: ${a.habitos_alimentares}`,
+    a.horas_sono && `Horas de sono (relatado): ${a.horas_sono}h`,
+    a.qualidade_sono && `Qualidade do sono (relatado): ${a.qualidade_sono}`,
+    a.nivel_estresse && `Nível de estresse: ${a.nivel_estresse}/10`,
+    a.fase_ciclo && `Fase do ciclo: ${a.fase_ciclo}`,
+    a.observacoes && `Observações gerais: ${a.observacoes}`,
+  ]
+  const texto = linhas.filter(Boolean).join('\n')
+  return texto || null
+}
+
 function buildSystemPrompt(ctx: ContextoAtleta): string {
   const hora = getHourBR()
   const hoje = getTodayBR()
   const mediaScore = ctx.scores30d.length ? Math.round(ctx.scores30d.reduce((a, s) => a + s.score, 0) / ctx.scores30d.length) : null
   const melhorScore = ctx.scores30d.length ? Math.max(...ctx.scores30d.map(s => s.score)) : null
+
+  let secoesAdicionais = ''
+
+  if (ctx.planosTreinoPrescritos.length) {
+    secoesAdicionais += '\n\nPLANOS DE TREINO PRESCRITOS PELO PERSONAL:\n' + ctx.planosTreinoPrescritos.map(p =>
+      `Plano ${p.plano} — ${p.nome}:\n` +
+      p.exercicios.map(e =>
+        `  • ${e.nome}: ${e.series}x${e.repeticoes}${e.carga ? ` @ ${e.carga}kg` : ''}${e.observacoes ? ` (${e.observacoes})` : ''}`
+      ).join('\n')
+    ).join('\n\n')
+  }
+
+  if (ctx.medidasHistorico.length) {
+    secoesAdicionais += '\n\nEVOLUÇÃO DE MEDIDAS / AVALIAÇÕES FÍSICAS:\n' + ctx.medidasHistorico.slice(-8).map(m => {
+      const dataFmt = m.data ? new Date(m.data).toLocaleDateString('pt-BR') : '?'
+      return `- ${dataFmt}: ${m.peso ?? '?'}kg · gordura ${m.gorduraPct ?? '?'}% · massa muscular ${m.massaMuscular ?? '?'}kg`
+    }).join('\n')
+  }
+
+  const anamneseTexto = formatAnamnese(ctx.anamneseResumo)
+  if (anamneseTexto) {
+    secoesAdicionais += `\n\nANAMNESE / HISTÓRICO CLÍNICO:\n${anamneseTexto}`
+  }
 
   return `Você é o KORE AI — membro do time de alta performance do atleta ${ctx.nome ?? 'atleta'}. Você não é um chatbot nem assistente genérico. É o coach de IA que conhece TODOS os dados reais deste atleta e age como parte do time, junto com o personal trainer e a nutricionista.
 
@@ -47,8 +114,11 @@ QUEM VOCÊ É:
 PERFIL:
 - Nome: ${ctx.nome ?? 'não informado'} | Objetivo: ${ctx.objetivo ?? 'não informado'}
 - Peso: ${ctx.peso ? `${ctx.peso}kg` : '?'} | Altura: ${ctx.altura ? `${ctx.altura}cm` : '?'} | Nível: ${ctx.nivel ?? '?'}
+- Meta: ${ctx.metas.metaPeso ? `${ctx.metas.metaPeso}kg` : '?'}${ctx.metas.metaDataLimite ? ` até ${new Date(ctx.metas.metaDataLimite).toLocaleDateString('pt-BR')}` : ''} | FC máx: ${ctx.metas.fcmax ? `${ctx.metas.fcmax}bpm` : '?'} | FTP: ${ctx.metas.ftp ? `${ctx.metas.ftp}W` : '?'}
 - Personal Trainer: ${ctx.personal ? (ctx.personal.nome ?? ctx.personal.email) : 'não vinculado'}
 - Nutricionista: ${ctx.nutricionista ? (ctx.nutricionista.nome ?? ctx.nutricionista.email) : 'não vinculada'}
+- Última avaliação física: ${ctx.ultimaAvaliacao ? new Date(ctx.ultimaAvaliacao).toLocaleDateString('pt-BR') : 'nunca'}${ctx.proximaConsulta ? ` | Próxima consulta: ${new Date(ctx.proximaConsulta.data).toLocaleDateString('pt-BR')}${ctx.proximaConsulta.hora ? ` às ${ctx.proximaConsulta.hora}` : ''}${ctx.proximaConsulta.tipo ? ` (${ctx.proximaConsulta.tipo})` : ''}` : ''}
+- Periodização atual: ${ctx.periodizacaoFase ?? 'não configurada'}
 
 HOJE (${hoje}, ${hora}h):
 Score de recuperação: ${ctx.scoreHoje ? `${ctx.scoreHoje}/100` : 'não registrado'}
@@ -66,7 +136,11 @@ MUSCULAÇÃO — EVOLUÇÃO DE CARGA:
 ${ctx.evolucaoExercicios.length ? ctx.evolucaoExercicios.map(e => `${e.nome}: ${e.sessoes}x, máx ${e.maxCarga}kg`).join(' | ') : 'sem dados'}
 
 NUTRIÇÃO ÚLTIMOS 7 DIAS:
-${ctx.nutricao7d.length ? ctx.nutricao7d.map(n => `${n.data}: ${n.calorias ?? '?'}kcal proteína ${n.proteina ?? '?'}g`).join(' | ') : 'sem dados'}`
+${ctx.nutricao7d.length ? ctx.nutricao7d.map(n => `${n.data}: ${n.calorias ?? '?'}kcal proteína ${n.proteina ?? '?'}g`).join(' | ') : 'sem dados'}
+
+PLANO ALIMENTAR PRESCRITO:
+${ctx.planoNutricional ? `Meta: ${ctx.planoNutricional.caloriasMeta ?? '?'}kcal | proteína ${ctx.planoNutricional.proteinaMeta ?? '?'}g | carbo ${ctx.planoNutricional.carboidratoMeta ?? '?'}g | gordura ${ctx.planoNutricional.gorduraMeta ?? '?'}g | ${ctx.planoNutricional.refeicoesPorDia ?? ctx.planoNutricional.refeicoes.length} refeições/dia
+${ctx.planoNutricional.refeicoes.map(r => `${r.nome} (${r.horario}, ~${r.calorias}kcal/${r.proteina}g prot): ${r.alimentos.join(', ')}`).join('\n')}${ctx.planoNutricional.suplementos.length ? `\nSuplementos: ${ctx.planoNutricional.suplementos.join(', ')}` : ''}${ctx.planoNutricional.orientacaoTreino ? `\nOrientação de treino: ${ctx.planoNutricional.orientacaoTreino}` : ''}${ctx.planoNutricional.observacoes ? `\nObservações da nutricionista: ${ctx.planoNutricional.observacoes}` : ''}` : 'sem plano alimentar prescrito ainda'}${secoesAdicionais}`
 }
 
 function KoreIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
@@ -116,9 +190,11 @@ export default function KoreAIChat() {
       { data: perfil }, { data: sonoHoje }, { data: be }, { data: macros },
       { data: treinos }, { data: atividadesLivres }, { data: scores30d },
       { data: nutricao7d }, { data: vinculos }, { data: perfilTipo },
-      { data: historico }, { data: seriesData }, { data: treinosIds },
+      { data: historico }, { data: seriesData }, { data: treinosIds }, { data: plano },
+      { data: planosPrescritos }, { data: medidas }, { data: periData },
+      { data: ultimaAvalData }, { data: proximaConsultaData }, { data: anamneseData },
     ] = await Promise.all([
-      supabase.from('perfis').select('nome, objetivo, peso, altura, nivel').eq('id', session.user.id).single(),
+      supabase.from('perfis').select('nome, objetivo, peso, altura, nivel, meta_peso, meta_data_limite, fcmax, ftp').eq('id', session.user.id).single(),
       supabase.from('sono').select('score_recuperacao, duracao_minutos, qualidade, hrv, fc_repouso').eq('usuario_id', session.user.id).eq('data', hoje).single(),
       supabase.from('bem_estar').select('energia, humor, dor_muscular, notas').eq('usuario_id', session.user.id).eq('data', hoje).single(),
       supabase.from('nutricao').select('calorias, proteina, carboidrato, gordura, copos_agua').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -131,6 +207,13 @@ export default function KoreAIChat() {
       supabase.from('chat_historico').select('role, content').eq('usuario_id', session.user.id).gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order('created_at', { ascending: true }).limit(50),
       supabase.from('series_registradas').select('carga, exercicios_treino(nome), treino_id').in('treino_id', []),
       supabase.from('treinos').select('id').eq('cliente_id', session.user.id).eq('concluido', true),
+      supabase.from('planos_nutricionais').select('conteudo, calorias_meta, proteina_meta, carboidrato_meta, gordura_meta, refeicoes_por_dia, observacoes').eq('usuario_id', session.user.id).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
+      supabase.from('treinos').select('id, nome, plano').eq('cliente_id', session.user.id).eq('status', 'pendente').eq('concluido', false).order('plano'),
+      supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular').eq('cliente_id', session.user.id).order('data', { ascending: true }).limit(10),
+      supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', session.user.id).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('agendamentos').select('data').eq('cliente_id', session.user.id).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('agendamentos').select('data,hora,tipo').eq('cliente_id', session.user.id).eq('status', 'agendado').gte('data', hoje).order('data').limit(1).maybeSingle(),
+      supabase.from('anamneses').select('*').eq('cliente_id', session.user.id).order('atualizado_em', { ascending: false }).limit(1).maybeSingle(),
     ])
 
     setTipo(perfilTipo?.tipo ?? null)
@@ -164,6 +247,63 @@ export default function KoreAIChat() {
       }
     }
 
+    // Plano nutricional prescrito
+    let planoNutricional: ContextoAtleta['planoNutricional'] = null
+    if (plano) {
+      let refeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: string[] }[] = []
+      let suplementos: string[] = []
+      let orientacaoTreino: string | null = null
+      try {
+        const conteudo = plano.conteudo ? JSON.parse(plano.conteudo) : null
+        if (Array.isArray(conteudo?.refeicoes)) {
+          refeicoes = conteudo.refeicoes.map((r: any) => ({
+            nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
+            alimentos: (r.alimentos ?? []).map((a: any) => `${a.nome} (${a.quantidade})`),
+          }))
+        }
+        if (Array.isArray(conteudo?.suplementos)) suplementos = conteudo.suplementos.map((s: any) => `${s.nome} ${s.dose} — ${s.horario}`)
+        orientacaoTreino = conteudo?.orientacao_treino ?? null
+      } catch {}
+      planoNutricional = {
+        caloriasMeta: plano.calorias_meta ?? null, proteinaMeta: plano.proteina_meta ?? null,
+        carboidratoMeta: plano.carboidrato_meta ?? null, gorduraMeta: plano.gordura_meta ?? null,
+        refeicoesPorDia: plano.refeicoes_por_dia ?? null, observacoes: plano.observacoes ?? null,
+        refeicoes, suplementos, orientacaoTreino,
+      }
+    }
+
+    // Planos de treino prescritos (pendentes)
+    let planosTreinoPrescritos: ContextoAtleta['planosTreinoPrescritos'] = []
+    if (planosPrescritos?.length) {
+      const ids = planosPrescritos.map((t: any) => t.id)
+      const { data: exsPrescritos } = await supabase.from('exercicios_treino').select('treino_id, nome, series, repeticoes, carga_sugerida, observacoes').in('treino_id', ids).order('ordem')
+      planosTreinoPrescritos = planosPrescritos.map((t: any) => ({
+        plano: t.plano, nome: t.nome,
+        exercicios: (exsPrescritos ?? []).filter((e: any) => e.treino_id === t.id).map((e: any) => ({
+          nome: e.nome, series: e.series, repeticoes: e.repeticoes, carga: e.carga_sugerida ?? null, observacoes: e.observacoes ?? '',
+        })),
+      }))
+    }
+
+    // Fase de periodização
+    let periodizacaoFase: string | null = null
+    if (periData) {
+      const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,ordem').eq('periodizacao_id', periData.id).order('ordem')
+      if (blocos?.length) {
+        const inicio = new Date(periData.data_inicio + 'T12:00:00-03:00')
+        const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+        const semanaTotal = Math.max(1, Math.floor(diasTotais / 7) + 1)
+        let acum = 0, blocoIdx = blocos.length - 1
+        for (let i = 0; i < blocos.length; i++) {
+          if (semanaTotal <= acum + (blocos[i] as any).semanas) { blocoIdx = i; break }
+          acum += (blocos[i] as any).semanas
+        }
+        const b = blocos[blocoIdx] as any
+        const semanaNoBloco = semanaTotal - acum
+        periodizacaoFase = `${b.nome} (${b.tipo}) — semana ${semanaNoBloco} de ${b.semanas}`
+      }
+    }
+
     // Streak
     const treinadosDatas = new Set([...(treinos?.map((t: any) => t.data) ?? []), ...(atividadesLivres?.map((a: any) => a.data) ?? [])])
     let streak = 0
@@ -188,6 +328,14 @@ export default function KoreAIChat() {
       evolucaoExercicios,
       personal,
       nutricionista,
+      metas: { metaPeso: perfil?.meta_peso ?? null, metaDataLimite: perfil?.meta_data_limite ?? null, fcmax: perfil?.fcmax ?? null, ftp: perfil?.ftp ?? null },
+      planosTreinoPrescritos,
+      medidasHistorico: medidas?.map((m: any) => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })) ?? [],
+      periodizacaoFase,
+      proximaConsulta: proximaConsultaData ? { data: proximaConsultaData.data, hora: proximaConsultaData.hora ?? null, tipo: proximaConsultaData.tipo ?? null } : null,
+      ultimaAvaliacao: ultimaAvalData?.data ?? null,
+      anamneseResumo: anamneseData ?? null,
+      planoNutricional,
     }
 
     setContexto(ctx)
@@ -222,7 +370,7 @@ export default function KoreAIChat() {
     setEnviando(true)
     await supabase.from('chat_historico').insert({ usuario_id: userId, role: 'user', content: novaMensagem.content })
     try {
-      const res = await fetch('/api/kore-chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mensagens: novasMensagens, systemPrompt: buildSystemPrompt(contexto) }) })
+      const res = await fetch('/api/kore-chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mensagens: novasMensagens, systemPrompt: buildSystemPrompt(contexto), usuarioId: userId }) })
       const data = await res.json()
       const resposta = data.resposta ?? 'Erro ao processar.'
       setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
