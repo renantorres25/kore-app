@@ -222,7 +222,7 @@ export default function KoreAIChat() {
     setEnviando(true)
     await supabase.from('chat_historico').insert({ usuario_id: userId, role: 'user', content: novaMensagem.content })
     try {
-      const res = await fetch('/api/kore-chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mensagens: novasMensagens, systemPrompt: buildSystemPrompt(contexto) }) })
+      const res = await fetch('/api/kore-chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mensagens: novasMensagens, systemPrompt: buildSystemPrompt(contexto), usuarioId: userId }) })
       const data = await res.json()
       const resposta = data.resposta ?? 'Erro ao processar.'
       setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
