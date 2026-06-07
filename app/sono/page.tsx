@@ -708,7 +708,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
         )}
         <div>
           <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', color: C.t1, margin: 0 }}>Sono & Recuperação</h1>
-          <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, textTransform: 'capitalize', margin: 0 }}>{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <p style={{ fontFamily: FONT_BODY, color: C.t3, fontSize: 12, margin: 0 }}>{(() => { const d = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' }); return d.charAt(0).toUpperCase() + d.slice(1); })()}</p>
         </div>
       </div>
       {temDadosSono && (

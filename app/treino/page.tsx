@@ -642,7 +642,7 @@ Responda APENAS JSON válido:
               </div>
               <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.3em', marginBottom: 8, color: c.hex }}>Treino concluído · Plano {em.plano}</p>
               <h1 style={{ fontSize: 30, fontWeight: 800, color: C.t1, marginBottom: 4, fontFamily: FONT_DISPLAY }}>{em.nome}</h1>
-              <p style={{ color: C.t2, fontSize: 14, textTransform: 'capitalize' }}>{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
+              <p style={{ color: C.t2, fontSize: 14 }}>{(() => { const d = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' }); return d.charAt(0).toUpperCase() + d.slice(1); })()}</p>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>

@@ -916,7 +916,7 @@ Responda APENAS JSON válido:
             <div>
               <p style={{ color: C.t3, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 2, fontFamily: FONT_BODY }}>KORE</p>
               <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.03em', color: C.t1, lineHeight: 1, fontFamily: FONT_DISPLAY }}>Nutrição</h1>
-              <p style={{ color: C.t3, fontSize: 11, marginTop: 6, textTransform: 'capitalize', fontFamily: FONT_BODY }}>{new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' })}</p>
+              <p style={{ color: C.t3, fontSize: 11, marginTop: 6, fontFamily: FONT_BODY }}>{(() => { const d = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: 'numeric', month: 'long' }); return d.charAt(0).toUpperCase() + d.slice(1); })()}</p>
             </div>
             <div style={{ marginTop: 4, padding: '7px 13px', borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FONT_BODY, color: periodo.cor, background: alpha(periodo.cor, 0.1), border: `1px solid ${alpha(periodo.cor, 0.25)}` }}>
               {periodo.label}
