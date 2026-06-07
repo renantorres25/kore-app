@@ -19,7 +19,7 @@ type Paciente = {
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao_minutos: number | null }
-type BemEstar = { humor: number; energia: number; motivacao: number; dor_muscular?: number | null; notas?: string | null }
+type BemEstar = { humor: number; energia: number; qualidade_sono: number; dor_muscular?: number | null; notas?: string | null }
 type PlanoNutricional = {
   id: string; conteudo: string; calorias_meta: number | null
   proteina_meta: number | null; created_at: string
@@ -221,8 +221,8 @@ export default function NutricionistaPaciente() {
         supabase.from('atividades_livres').select('modalidade,duracao_min,calorias_wearable').eq('usuario_id', clienteId).eq('data', hoje),
         supabase.from('atividades_livres').select('*', { count: 'exact', head: true }).eq('usuario_id', clienteId).gte('data', semStr),
         supabase.from('sono').select('score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
-        supabase.from('bem_estar').select('humor,energia,motivacao,dor_muscular,notas').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
-        supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
+        supabase.from('bem_estar').select('humor,energia,qualidade_sono,dor_muscular,notas').eq('usuario_id', clienteId).eq('data', hoje).maybeSingle(),
+        supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('evolucao_medidas').select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20),
         supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
         supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1),
@@ -718,17 +718,18 @@ export default function NutricionistaPaciente() {
     const currWeekStartLoad = currSundayLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const prevWeekStartLoad = prevSundayLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
-    const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalLink }] = await Promise.all([
+    const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalNomeRpc }] = await Promise.all([
       supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
       supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
       supabase.from('sono').select('data,score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).gte('data', prevWeekStartLoad).order('data', { ascending: true }),
-      supabase.from('vinculos').select('profissional_id, perfis(nome)').eq('cliente_id', clienteId).eq('tipo', 'personal').eq('ativo', true).maybeSingle(),
+      supabase.rpc('get_personal_trainer_nome', { p_cliente_id: clienteId }),
     ])
 
-    // Set personal trainer name
-    if (personalLink?.perfis) {
-      setPersonalNome((personalLink.perfis as any).nome ?? null)
-    }
+    // RPC SECURITY DEFINER: vinculos.profissional_id referencia auth.users (não perfis), então o
+    // PostgREST não resolve o embed perfis(...), e a RLS de vinculos impede o nutricionista de
+    // ler o vínculo "personal" do paciente diretamente. A função no banco faz a checagem de
+    // autorização e retorna apenas o nome do personal trainer.
+    setPersonalNome((personalNomeRpc as string | null) ?? null)
 
     if (treinosHist?.length) {
       const ids = treinosHist.map((t: any) => t.id)
@@ -1228,21 +1229,23 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
               {bemEstar ? (
                 <>
                   {(() => {
-                    const media = Math.round((bemEstar.humor + bemEstar.energia + bemEstar.motivacao) / 3 * 10) / 10
+                    const metricas = [{l:'Humor',v:bemEstar.humor},{l:'Energia',v:bemEstar.energia},{l:'Qualidade sono',v:bemEstar.qualidade_sono}]
+                    const valores = metricas.map(m => m.v).filter((v): v is number => v != null)
+                    const media = valores.length ? Math.round(valores.reduce((a, b) => a + b, 0) / valores.length * 10) / 10 : null
                     return (
                       <>
                         <div className="flex items-baseline gap-1 mb-3">
-                          <span className={`text-5xl font-black leading-none tracking-tight ${media >= 4 ? 'text-emerald-400' : media >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>{media}</span>
+                          <span className={`text-5xl font-black leading-none tracking-tight ${media == null ? 'text-zinc-600' : media >= 4 ? 'text-emerald-400' : media >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>{media ?? '–'}</span>
                           <span className="text-zinc-600 text-xl">/5</span>
                         </div>
                         <div className="space-y-1.5 mt-2">
-                          {[{l:'Humor',v:bemEstar.humor},{l:'Energia',v:bemEstar.energia},{l:'Motivação',v:bemEstar.motivacao}].map(({l,v}) => (
+                          {metricas.map(({l,v}) => (
                             <div key={l} className="flex items-center gap-2">
                               <p className="text-zinc-600 text-xs w-16 shrink-0">{l}</p>
                               <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full ${v>=4?'bg-emerald-400':v>=3?'bg-yellow-400':'bg-red-400'}`} style={{width:`${v/5*100}%`}}/>
+                                <div className={`h-full rounded-full ${v == null ? '' : v>=4?'bg-emerald-400':v>=3?'bg-yellow-400':'bg-red-400'}`} style={{width:`${v == null ? 0 : v/5*100}%`}}/>
                               </div>
-                              <span className="text-zinc-500 text-xs w-5 text-right">{v}</span>
+                              <span className="text-zinc-500 text-xs w-5 text-right">{v ?? '–'}</span>
                             </div>
                           ))}
                         </div>

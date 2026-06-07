@@ -156,7 +156,7 @@ export default function NutricionistaPacientes() {
       const q60str  = getDateOffset(60)
 
       const [{ data: sonos14d }, { data: treinos14d }, { data: ativs14d }, { data: planos }, { data: medidas60d }] = await Promise.all([
-        supabase.from('sono').select('usuario_id, data, score_recuperacao, duracao').in('usuario_id', ids).gte('data', q14str),
+        supabase.from('sono').select('usuario_id, data, score_recuperacao, duracao_minutos').in('usuario_id', ids).gte('data', q14str),
         supabase.from('treinos').select('cliente_id, data, calorias_estimadas').in('cliente_id', ids).gte('data', q14str).eq('concluido', true).order('data', { ascending: false }),
         supabase.from('atividades_livres').select('usuario_id, data, duracao_min, calorias_estimadas, calorias_wearable').in('usuario_id', ids).gte('data', q14str),
         supabase.from('planos_nutricionais').select('usuario_id').in('usuario_id', ids).eq('ativo', true),
@@ -181,7 +181,7 @@ export default function NutricionistaPacientes() {
 
         statsMap[cid] = {
           sonoScore: sonoHoje?.score_recuperacao ?? null,
-          sonoHoras: sonoHoje?.duracao ?? null,
+          sonoHoras: sonoHoje?.duracao_minutos ? Math.round((sonoHoje.duracao_minutos / 60) * 10) / 10 : null,
           treinos7d: treinos7d.length,
           ultimoTreino: treinos7d[0]?.data ?? null,
           kcal7d,
