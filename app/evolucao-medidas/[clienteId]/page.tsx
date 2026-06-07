@@ -116,6 +116,7 @@ type Medicao = {
   antebraco_dir: number | null
   antebraco_esq: number | null
   braco_dir_contraido: number | null
+  braco_esq_contraido: number | null
   dobra_triceps: number | null
   dobra_subescapular: number | null
   dobra_suprailiaca: number | null
@@ -136,14 +137,15 @@ type Medicao = {
 type FormMedicao = {
   data: string
   peso: string
-  gordura_pct: string
   massa_muscular: string
   cintura: string
   quadril: string
   abdomen: string
   peitoral: string
   braco_dir: string
+  braco_dir_contraido: string
   braco_esq: string
+  braco_esq_contraido: string
   coxa_dir: string
   coxa_esq: string
   panturrilha_dir: string
@@ -166,9 +168,9 @@ function getTodayBR(): string {
 
 const FORM_VAZIO: FormMedicao = {
   data: getTodayBR(),
-  peso: '', gordura_pct: '', massa_muscular: '',
+  peso: '', massa_muscular: '',
   cintura: '', quadril: '', abdomen: '', peitoral: '',
-  braco_dir: '', braco_esq: '', coxa_dir: '', coxa_esq: '',
+  braco_dir: '', braco_dir_contraido: '', braco_esq: '', braco_esq_contraido: '', coxa_dir: '', coxa_esq: '',
   panturrilha_dir: '', panturrilha_esq: '',
   observacoes: '',
   dobra_peitoral: '', dobra_axilar_media: '', dobra_triceps: '', dobra_subescapular: '',
@@ -296,14 +298,15 @@ export default function EvolucaoMedidasPage() {
     setForm({
       data: m.data,
       peso: m.peso != null ? String(m.peso) : '',
-      gordura_pct: m.gordura_pct != null ? String(m.gordura_pct) : '',
       massa_muscular: m.massa_muscular != null ? String(m.massa_muscular) : '',
       cintura: m.cintura != null ? String(m.cintura) : '',
       quadril: m.quadril != null ? String(m.quadril) : '',
       abdomen: m.abdomen != null ? String(m.abdomen) : '',
       peitoral: m.peitoral != null ? String(m.peitoral) : '',
       braco_dir: m.braco_dir != null ? String(m.braco_dir) : '',
+      braco_dir_contraido: m.braco_dir_contraido != null ? String(m.braco_dir_contraido) : '',
       braco_esq: m.braco_esq != null ? String(m.braco_esq) : '',
+      braco_esq_contraido: m.braco_esq_contraido != null ? String(m.braco_esq_contraido) : '',
       coxa_dir: m.coxa_dir != null ? String(m.coxa_dir) : '',
       coxa_esq: m.coxa_esq != null ? String(m.coxa_esq) : '',
       panturrilha_dir: m.panturrilha_dir != null ? String(m.panturrilha_dir) : '',
@@ -334,14 +337,17 @@ export default function EvolucaoMedidasPage() {
       registrado_por: session.user.id,
       data: form.data,
       peso: form.peso ? parseFloat(form.peso) : null,
-      gordura_pct: form.gordura_pct ? parseFloat(form.gordura_pct) : null,
-      massa_muscular: form.massa_muscular ? parseFloat(form.massa_muscular) : null,
+      gordura_pct: gorduraDobras ?? null,
+      massa_muscular: form.massa_muscular ? parseFloat(form.massa_muscular)
+        : (massaMagraDobras != null ? Math.round(massaMagraDobras * 0.85 * 10) / 10 : null),
       cintura: form.cintura ? parseFloat(form.cintura) : null,
       quadril: form.quadril ? parseFloat(form.quadril) : null,
       abdomen: form.abdomen ? parseFloat(form.abdomen) : null,
       peitoral: form.peitoral ? parseFloat(form.peitoral) : null,
       braco_dir: form.braco_dir ? parseFloat(form.braco_dir) : null,
+      braco_dir_contraido: form.braco_dir_contraido ? parseFloat(form.braco_dir_contraido) : null,
       braco_esq: form.braco_esq ? parseFloat(form.braco_esq) : null,
+      braco_esq_contraido: form.braco_esq_contraido ? parseFloat(form.braco_esq_contraido) : null,
       coxa_dir: form.coxa_dir ? parseFloat(form.coxa_dir) : null,
       coxa_esq: form.coxa_esq ? parseFloat(form.coxa_esq) : null,
       panturrilha_dir: form.panturrilha_dir ? parseFloat(form.panturrilha_dir) : null,
@@ -407,6 +413,7 @@ export default function EvolucaoMedidasPage() {
     { campo: 'braco_dir' as keyof Medicao,         label: 'Braço Dir.',     cor: '#34d399', inv: false },
     { campo: 'braco_dir_contraido' as keyof Medicao, label: 'Braço Dir. (contr.)', cor: '#34d399', inv: false },
     { campo: 'braco_esq' as keyof Medicao,         label: 'Braço Esq.',     cor: '#34d399', inv: false },
+    { campo: 'braco_esq_contraido' as keyof Medicao, label: 'Braço Esq. (contr.)', cor: '#34d399', inv: false },
     { campo: 'antebraco_dir' as keyof Medicao,     label: 'Antebraço Dir.', cor: '#6ee7b7', inv: false },
     { campo: 'coxa_dir' as keyof Medicao,          label: 'Coxa Dir.',      cor: '#e879f9', inv: false },
     { campo: 'coxa_esq' as keyof Medicao,          label: 'Coxa Esq.',      cor: '#e879f9', inv: false },
@@ -442,6 +449,13 @@ export default function EvolucaoMedidasPage() {
     coxa:        form.dobra_coxa        ? parseFloat(form.dobra_coxa)        : null,
     biceps:      form.dobra_biceps      ? parseFloat(form.dobra_biceps)      : null,
   }), [protocolo, clienteSexo, clienteIdade, form.dobra_peitoral, form.dobra_axilar_media, form.dobra_triceps, form.dobra_subescapular, form.dobra_abdominal, form.dobra_suprailiaca, form.dobra_coxa, form.dobra_biceps])
+
+  // A partir do % de gordura calculado (qualquer protocolo), deriva automaticamente
+  // massa gorda, massa magra e % de massa magra — mesma lógica da avaliação completa.
+  const pesoFormNum = form.peso ? parseFloat(form.peso) : (mais_recente?.peso ?? null)
+  const massaGordaDobras = pesoFormNum != null && gorduraDobras != null ? Math.round(pesoFormNum * gorduraDobras / 100 * 10) / 10 : null
+  const massaMagraDobras = pesoFormNum != null && massaGordaDobras != null ? Math.round((pesoFormNum - massaGordaDobras) * 10) / 10 : null
+  const massaMagraPctDobras = gorduraDobras != null ? Math.round((100 - gorduraDobras) * 10) / 10 : null
 
   return (
     <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
@@ -761,11 +775,10 @@ export default function EvolucaoMedidasPage() {
               {/* Composição corporal */}
               <div>
                 <p className="text-zinc-400 text-[10px] uppercase tracking-widest mb-3">⚖️ Composição corporal</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     { field: 'peso' as keyof FormMedicao, label: 'Peso', unit: 'kg' },
-                    { field: 'gordura_pct' as keyof FormMedicao, label: 'Gordura', unit: '%' },
-                    { field: 'massa_muscular' as keyof FormMedicao, label: 'Musc.', unit: 'kg' },
+                    { field: 'massa_muscular' as keyof FormMedicao, label: 'Massa muscular', unit: 'kg' },
                   ].map(({ field, label, unit }) => (
                     <div key={field}>
                       <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">{label} ({unit})</label>
@@ -774,6 +787,7 @@ export default function EvolucaoMedidasPage() {
                     </div>
                   ))}
                 </div>
+                <p className="text-zinc-600 text-[9px] mt-2">% de gordura, massa gorda e massa magra são calculados automaticamente a partir das dobras cutâneas (seção abaixo) — não precisam ser digitados aqui.</p>
               </div>
 
               {/* Circunferências */}
@@ -786,7 +800,9 @@ export default function EvolucaoMedidasPage() {
                     { field: 'abdomen' as keyof FormMedicao, label: 'Abdômen' },
                     { field: 'peitoral' as keyof FormMedicao, label: 'Peitoral' },
                     { field: 'braco_dir' as keyof FormMedicao, label: 'Braço D' },
+                    { field: 'braco_dir_contraido' as keyof FormMedicao, label: 'Braço D (contr.)' },
                     { field: 'braco_esq' as keyof FormMedicao, label: 'Braço E' },
+                    { field: 'braco_esq_contraido' as keyof FormMedicao, label: 'Braço E (contr.)' },
                     { field: 'coxa_dir' as keyof FormMedicao, label: 'Coxa D' },
                     { field: 'coxa_esq' as keyof FormMedicao, label: 'Coxa E' },
                     { field: 'panturrilha_dir' as keyof FormMedicao, label: 'Pantur. D' },
@@ -860,18 +876,37 @@ export default function EvolucaoMedidasPage() {
                   })}
                 </div>
 
-                {/* resultado live */}
+                {/* resultado live — composição corporal calculada automaticamente, qualquer protocolo */}
                 {gorduraDobras != null && (
-                  <div className="mx-4 mb-4 rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <div>
-                      <p className="text-zinc-500 text-[9px] uppercase tracking-wider">% Gordura calculada · {pInfo.label}</p>
-                      <p className="text-red-400 font-black text-2xl mt-0.5">{gorduraDobras}<span className="text-zinc-600 text-sm font-normal">%</span></p>
+                  <div className="mx-4 mb-4 rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2">Composição calculada automaticamente · {pInfo.label}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider">% Gordura</p>
+                        <p className="text-red-400 font-black text-xl mt-0.5">{gorduraDobras}<span className="text-zinc-600 text-xs font-normal">%</span></p>
+                      </div>
+                      {massaGordaDobras != null && (
+                        <div>
+                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Massa gorda</p>
+                          <p className="text-orange-400 font-black text-xl mt-0.5">{massaGordaDobras}<span className="text-zinc-600 text-xs font-normal">kg</span></p>
+                        </div>
+                      )}
+                      {massaMagraDobras != null && (
+                        <div>
+                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider">Massa magra</p>
+                          <p className="text-emerald-400 font-black text-xl mt-0.5">{massaMagraDobras}<span className="text-zinc-600 text-xs font-normal">kg</span></p>
+                        </div>
+                      )}
+                      {massaMagraPctDobras != null && (
+                        <div>
+                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider">% Massa magra</p>
+                          <p className="text-emerald-400 font-black text-xl mt-0.5">{massaMagraPctDobras}<span className="text-zinc-600 text-xs font-normal">%</span></p>
+                        </div>
+                      )}
                     </div>
-                    <button type="button"
-                      onClick={() => set('gordura_pct', String(gorduraDobras))}
-                      className="text-[10px] px-3 py-2 rounded-xl bg-white/[0.09] border border-white/[0.14] text-zinc-300 hover:text-white hover:bg-white/[0.15] transition-all active:scale-95 font-semibold">
-                      Usar →
-                    </button>
+                    {pesoFormNum == null && (
+                      <p className="text-orange-400 text-[10px] mt-2">⚠ Preencha o peso para calcular massa gorda e massa magra em kg</p>
+                    )}
                   </div>
                 )}
                 {gorduraDobras == null && Object.entries(form).some(([k, v]) => k.startsWith('dobra_') && v !== '') && (

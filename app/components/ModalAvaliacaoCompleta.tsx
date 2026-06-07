@@ -107,7 +107,7 @@ type FormEv = {
   massa_muscular: string
   pescoco: string; ombro: string; torax: string
   cintura: string; abdomen_circ: string; quadril: string
-  braco_dir: string; braco_dir_contraido: string; braco_esq: string
+  braco_dir: string; braco_dir_contraido: string; braco_esq: string; braco_esq_contraido: string
   antebraco_dir: string; antebraco_esq: string
   coxa_dir: string; coxa_esq: string
   panturrilha_dir: string; panturrilha_esq: string
@@ -122,7 +122,7 @@ const FORM_VAZIO: FormEv = {
   data: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
   peso: '', altura: '', massa_muscular: '',
   pescoco: '', ombro: '', torax: '', cintura: '', abdomen_circ: '', quadril: '',
-  braco_dir: '', braco_dir_contraido: '', braco_esq: '',
+  braco_dir: '', braco_dir_contraido: '', braco_esq: '', braco_esq_contraido: '',
   antebraco_dir: '', antebraco_esq: '',
   coxa_dir: '', coxa_esq: '', panturrilha_dir: '', panturrilha_esq: '',
   dobra_triceps: '', dobra_subescapular: '', dobra_suprailiaca: '',
@@ -240,6 +240,7 @@ export default function ModalAvaliacaoCompleta({ clienteId, paciente, onClose, o
       pescoco: N(form.pescoco), ombro: N(form.ombro), torax: N(form.torax),
       abdomen_circ: N(form.abdomen_circ),
       braco_dir_contraido: N(form.braco_dir_contraido),
+      braco_esq_contraido: N(form.braco_esq_contraido),
       antebraco_dir: N(form.antebraco_dir), antebraco_esq: N(form.antebraco_esq),
       dobra_triceps: N(form.dobra_triceps), dobra_subescapular: N(form.dobra_subescapular),
       dobra_suprailiaca: N(form.dobra_suprailiaca), dobra_abdominal: N(form.dobra_abdominal),
@@ -448,6 +449,7 @@ export default function ModalAvaliacaoCompleta({ clienteId, paciente, onClose, o
               <Campo label="Braço Dir. (relaxado)" unit="cm" value={form.braco_dir} onChange={v => set('braco_dir', v)} />
               <Campo label="Braço Dir. (contraído)" unit="cm" value={form.braco_dir_contraido} onChange={v => set('braco_dir_contraido', v)} />
               <Campo label="Braço Esq." unit="cm" value={form.braco_esq} onChange={v => set('braco_esq', v)} />
+              <Campo label="Braço Esq. (contraído)" unit="cm" value={form.braco_esq_contraido} onChange={v => set('braco_esq_contraido', v)} />
               <Campo label="Antebraço Dir." unit="cm" value={form.antebraco_dir} onChange={v => set('antebraco_dir', v)} />
               <Campo label="Antebraço Esq." unit="cm" value={form.antebraco_esq} onChange={v => set('antebraco_esq', v)} />
               <Campo label="Coxa Dir." unit="cm" value={form.coxa_dir} onChange={v => set('coxa_dir', v)} />
