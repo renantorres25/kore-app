@@ -508,7 +508,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
           </div>
           {melhorScore != null && (
             <div style={{ textAlign: 'right', flexShrink: 0, paddingBottom: 4 }}>
-              <p style={{ fontFamily: FONT_MONO, fontSize: 8, color: C.t3, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.12em' }}>máx 14d</p>
+              <p style={{ fontFamily: FONT_MONO, fontSize: 8, color: C.t3, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Máx. 14 dias</p>
               <p style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 800, color: scoreColor, opacity: 0.7, margin: 0 }}>{melhorScore}</p>
             </div>
           )}
