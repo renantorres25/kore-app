@@ -469,6 +469,7 @@ export default function Landing() {
       `}</style>
 
       {/* ── NAV ─────────────────────────────────────────────────────────── */}
+      <header role="banner">
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -485,6 +486,7 @@ export default function Landing() {
           <PrimaryBtn onClick={() => router.push('/login?modo=cadastro')} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 12 }}>Participar do piloto</PrimaryBtn>
         </div>
       </nav>
+      </header>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* HERO                                                              */}
