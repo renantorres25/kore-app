@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import NavBar from '../components/NavBar'
 import SidebarProfissional from '../components/SidebarProfissional'
 
 type Agendamento = {
@@ -161,11 +160,11 @@ export default function Agenda() {
     </main>
   )
 
-  const tipoSidebar = tipo === 'personal' ? 'personal' : 'nutricionista'
+  const tipoSidebar = tipo === 'personal' ? 'personal' : tipo === 'nutricionista' ? 'nutricionista' : 'cliente'
 
   return (
     <main className="min-h-[100dvh] text-white md:flex">
-      {(tipo === 'nutricionista' || tipo === 'personal') && <SidebarProfissional tipo={tipoSidebar} />}
+      <SidebarProfissional tipo={tipoSidebar} />
       <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8 md:max-w-2xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
@@ -341,8 +340,6 @@ export default function Agenda() {
           </div>
         )}
       </div>
-
-      {tipo !== 'nutricionista' && tipo !== 'personal' && <div className="md:hidden"><NavBar tipo={tipo || 'cliente'} ativa="agenda" /></div>}
 
       {/* Modal */}
       {showModal && (
