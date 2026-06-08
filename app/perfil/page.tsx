@@ -331,9 +331,9 @@ function PerfilConteudo() {
   )
 
   return (
-    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, display: 'flex' }}>
+    <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
       {!isNovo && <SidebarProfissional tipo={tipoSidebar} />}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div style={{
         maxWidth: isDesktop ? 800 : 520, margin: '0 auto',
         padding: isDesktop ? '48px 32px 120px' : '0 16px 120px',
