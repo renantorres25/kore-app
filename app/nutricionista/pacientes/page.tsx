@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import NavBar from '../../components/NavBar'
 import SidebarProfissional from '../../components/SidebarProfissional'
 import { ChevronRight } from 'lucide-react'
 
@@ -350,8 +349,6 @@ export default function NutricionistaPacientes() {
             </>
           )}
         </div>
-
-        <div className="md:hidden"><NavBar tipo="nutricionista" ativa="pacientes" /></div>
       </div>
     </main>
   )
