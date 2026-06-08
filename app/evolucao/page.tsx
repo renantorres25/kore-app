@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import NavBar from '../components/NavBar'
+import SidebarProfissional from '../components/SidebarProfissional'
 
 /* ─────────────────────────────────────────────────────────
    DESIGN SYSTEM · ENERGETIC PRECISION
@@ -892,7 +892,9 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
   )
 
   return (
-    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0 }}>
+    <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
+      <SidebarProfissional tipo="cliente" />
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}`}</style>
       <div style={{
         maxWidth: isDesktop ? 1100 : 480, margin: '0 auto',
@@ -961,8 +963,7 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
           </div>
         )}
       </div>
-
-      <NavBar tipo="cliente" ativa="evolucao" />
+      </div>
     </main>
   )
 }
