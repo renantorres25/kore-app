@@ -43,7 +43,10 @@ function LoginForm() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) router.push('/dashboard')
     })
-    const t = setTimeout(() => setVis(true), 80)
+    const t = setTimeout(() => {
+      console.debug('[F02-diag] login.vis -> true', { t: Math.round(performance.now()) })
+      setVis(true)
+    }, 80)
     return () => clearTimeout(t)
   }, [router])
 
