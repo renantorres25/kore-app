@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
-import NavBar from '../components/NavBar'
+import SidebarProfissional from '../components/SidebarProfissional'
 
 type Exercicio = { id: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; personal_id?: string | null; exercicios: Exercicio[] }
@@ -1054,7 +1054,9 @@ Responda APENAS JSON válido:
   )
 
   return (
-    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0 }}>
+    <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
+      <SidebarProfissional tipo="cliente" />
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div style={{ ...containerStyle, paddingBottom: 96, paddingTop: isDesktop ? 40 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
@@ -1098,7 +1100,7 @@ Responda APENAS JSON válido:
           </>
         )}
       </div>
-      <NavBar tipo="cliente" ativa="treino" />
+      </div>
     </main>
   )
 }
