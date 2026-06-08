@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
+import SidebarProfissional from '../../../components/SidebarProfissional'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
@@ -362,7 +363,9 @@ export default function PersonalAluno() {
   )
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
+    <main className="md:flex min-h-[100dvh] bg-[#0d1117] text-white">
+      <SidebarProfissional tipo="personal" />
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         <div className="mb-6">
@@ -1109,6 +1112,7 @@ export default function PersonalAluno() {
           </div>
         </div>
       )}
+      </div>
     </main>
   )
 }
