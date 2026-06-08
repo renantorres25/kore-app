@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
-import NavBar from '../components/NavBar'
+import SidebarProfissional from '../components/SidebarProfissional'
 
 /* ─────────────────────────────────────────────────────────
    DESIGN SYSTEM — Energetic Precision
@@ -31,16 +31,6 @@ const glass: React.CSSProperties = {
 
 const dataNum = (color = C.t1): React.CSSProperties => ({ fontFamily: FONT_MONO, fontVariantNumeric: 'tabular-nums', color })
 
-function useIsDesktop() {
-  const [v, setV] = useState(false)
-  useEffect(() => {
-    const c = () => setV(window.innerWidth >= 1024)
-    c(); window.addEventListener('resize', c)
-    return () => window.removeEventListener('resize', c)
-  }, [])
-  return v
-}
-
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
@@ -62,7 +52,6 @@ const indicadores: Indicador[] = [
 
 export default function BemEstar() {
   const router = useRouter()
-  const isDesktop = useIsDesktop()
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [jaRegistrou, setJaRegistrou] = useState(false)
@@ -132,14 +121,14 @@ export default function BemEstar() {
   const total = getTotalPreenchido()
 
   if (carregando) return (
-    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: isDesktop ? 220 : 0 }}>
+    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: 32, height: 32, border: `2px solid ${C.recovery}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </main>
   )
 
   if (sucesso) return (
-    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: isDesktop ? 220 : 0 }}>
+    <main style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <div style={{
           width: 76, height: 76, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -208,7 +197,9 @@ export default function BemEstar() {
   }
 
   return (
-    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0 }}>
+    <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
+      <SidebarProfissional tipo="cliente" />
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 16px', paddingBottom: 120, paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
@@ -318,7 +309,7 @@ export default function BemEstar() {
           {salvando ? 'Salvando...' : jaRegistrou ? 'Atualizar registro' : 'Registrar bem-estar'}
         </button>
       </div>
-      <NavBar tipo="cliente" ativa="bem-estar" />
+      </div>
     </main>
   )
 }
