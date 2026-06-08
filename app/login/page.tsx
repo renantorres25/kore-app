@@ -36,6 +36,7 @@ function LoginForm() {
   const [carregando, setCarregando] = useState(false)
   const [recuperando, setRecuperando] = useState(false)
   const [showPass, setShowPass] = useState(false)
+  const [aceiteTermos, setAceiteTermos] = useState(false)
   const [vis, setVis] = useState(false)
 
   useEffect(() => {
@@ -52,6 +53,7 @@ function LoginForm() {
 
   async function handleSubmit() {
     if (!email || !senha) { msg('Preencha email e senha.'); return }
+    if (modo === 'cadastro' && !aceiteTermos) { msg('Você precisa aceitar os Termos de Uso e a Política de Privacidade.'); return }
     setCarregando(true); setMensagem('')
     if (modo === 'cadastro') {
       const { error } = await supabase.auth.signUp({ email, password: senha })
@@ -75,6 +77,8 @@ function LoginForm() {
     msg('Link enviado! Verifique seu email.', 'success')
     setRecuperando(false)
   }
+
+  const ctaDesabilitado = carregando || (modo === 'cadastro' && !aceiteTermos)
 
   const glass: React.CSSProperties = {
     background: 'rgba(255,255,255,0.065)',
@@ -307,6 +311,24 @@ function LoginForm() {
               </div>
             )}
 
+            {/* Consentimento — Termos e Privacidade */}
+            {modo === 'cadastro' && (
+              <label style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20,
+                fontSize: 12, color: C.t3, lineHeight: 1.5, cursor: 'pointer',
+              }}>
+                <input
+                  type="checkbox" required checked={aceiteTermos}
+                  onChange={e => setAceiteTermos(e.target.checked)}
+                  style={{ marginTop: 2, width: 16, height: 16, accentColor: C.energy, cursor: 'pointer', flexShrink: 0 }}
+                />
+                <span>
+                  Li e aceito os <strong style={{ color: C.t1 }}>Termos de Uso</strong> e a{' '}
+                  <strong style={{ color: C.t1 }}>Política de Privacidade</strong>
+                </span>
+              </label>
+            )}
+
             {/* Mensagem */}
             {mensagem && (
               <div style={{
@@ -321,13 +343,13 @@ function LoginForm() {
             )}
 
             {/* CTA */}
-            <button onClick={handleSubmit} disabled={carregando} style={{
+            <button onClick={handleSubmit} disabled={ctaDesabilitado} style={{
               width: '100%', padding: '16px 0',
-              background: carregando ? 'rgba(255,90,54,0.4)' : `linear-gradient(135deg, ${C.energy2}, ${C.energy})`,
-              border: 'none', borderRadius: 14, cursor: carregando ? 'not-allowed' : 'pointer',
+              background: ctaDesabilitado ? 'rgba(255,90,54,0.4)' : `linear-gradient(135deg, ${C.energy2}, ${C.energy})`,
+              border: 'none', borderRadius: 14, cursor: ctaDesabilitado ? 'not-allowed' : 'pointer',
               color: '#fff', fontSize: 14, fontWeight: 700,
               textTransform: 'uppercase', letterSpacing: '0.08em',
-              boxShadow: carregando ? 'none' : '0 8px 32px rgba(255,90,54,0.35)',
+              boxShadow: ctaDesabilitado ? 'none' : '0 8px 32px rgba(255,90,54,0.35)',
               transition: 'all 200ms ease',
             }}>
               {carregando ? (
