@@ -1165,18 +1165,21 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                       <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">Composição corporal</p>
                       {ultimaAvaliacao && <p className="text-zinc-600 text-[10px]">· {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>}
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-end gap-6">
                       {metricas.map(m => {
                         const positivo = m.delta !== null && (m.inv ? m.delta < 0 : m.delta > 0)
                         return (
-                          <div key={m.label} className="flex items-baseline gap-1">
-                            <span className="text-2xl font-black text-white tracking-tight leading-none">{m.val}</span>
-                            <span className="text-zinc-500 text-xs">{m.unit}</span>
-                            {m.delta !== null && m.delta !== 0 && (
-                              <span className={`text-[10px] font-semibold ml-1 ${positivo ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {m.delta > 0 ? '+' : ''}{m.delta}
-                              </span>
-                            )}
+                          <div key={m.label}>
+                            <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">{m.label}</p>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-2xl font-black text-white tracking-tight leading-none">{m.val}</span>
+                              <span className="text-zinc-500 text-xs">{m.unit}</span>
+                              {m.delta !== null && m.delta !== 0 && (
+                                <span className={`text-[10px] font-semibold ml-1 ${positivo ? 'text-emerald-400' : 'text-red-400'}`}>
+                                  {m.delta > 0 ? '+' : ''}{m.delta}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )
                       })}
