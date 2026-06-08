@@ -260,6 +260,7 @@ function LoginForm() {
                 </label>
                 <input
                   type="email" placeholder="seu@email.com" value={email}
+                  required autoComplete="email"
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                   onFocus={e => { e.currentTarget.style.borderColor = `rgba(255,90,54,0.5)`; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(255,90,54,0.12)` }}
@@ -274,6 +275,7 @@ function LoginForm() {
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showPass ? 'text' : 'password'} placeholder="••••••••" value={senha}
+                    required minLength={6} autoComplete="current-password"
                     onChange={e => setSenha(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                     onFocus={e => { e.currentTarget.style.borderColor = `rgba(255,90,54,0.5)`; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(255,90,54,0.12)` }}
