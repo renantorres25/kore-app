@@ -13,7 +13,11 @@ const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
 function useIsDesktop() {
   const [v, setV] = useState(false)
   useEffect(() => {
-    const c = () => setV(window.innerWidth >= 1024)
+    const c = () => {
+      const next = window.innerWidth >= 1024
+      console.debug('[F02-diag] NavBar.useIsDesktop', { value: next, t: Math.round(performance.now()) })
+      setV(next)
+    }
     c()
     window.addEventListener('resize', c)
     return () => window.removeEventListener('resize', c)
