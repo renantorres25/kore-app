@@ -26,6 +26,7 @@ export default function SidebarProfissional({ tipo }: Props) {
   const pathname = usePathname()
   const [nome, setNome]       = useState<string | null>(null)
   const [initials, setInitials] = useState('?')
+  const [isDesktop, setIsDesktop] = useState(false)
 
   const accent = tipo === 'nutricionista' ? C.good : tipo === 'personal' ? C.sleep : C.energy
 
@@ -50,6 +51,13 @@ export default function SidebarProfissional({ tipo }: Props) {
         { icon: <TrendingUp size={16} />, label: 'Evolução', href: '/evolucao' },
         { icon: <User size={16} />,       label: 'Perfil',   href: '/perfil' },
       ]
+
+  useEffect(() => {
+    const checarLargura = () => setIsDesktop(window.innerWidth >= 768)
+    checarLargura()
+    window.addEventListener('resize', checarLargura)
+    return () => window.removeEventListener('resize', checarLargura)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -77,11 +85,47 @@ export default function SidebarProfissional({ tipo }: Props) {
     return pathname.startsWith(href)
   }
 
+  if (!isDesktop) return (
+    <>
+    {/* ── BOTTOM NAV MOBILE ────────────────────────────────────── */}
+    <nav style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+      borderTop: '1px solid rgba(255,255,255,0.12)',
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      background: 'rgba(255,255,255,0.06)',
+      backdropFilter: 'blur(24px) saturate(130%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(130%)',
+    }}>
+      <div style={{ maxWidth: 448, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px' }}>
+        {navItems.map(item => {
+          const active = isActive(item.href)
+          return (
+            <button key={item.href} onClick={() => router.push(item.href)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                padding: '8px 12px', borderRadius: 16,
+                background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                color: active ? accent : C.t3,
+              }}>
+              {item.icon}
+              <span style={{ fontFamily: FONT_BODY, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
+                {item.label}
+              </span>
+              {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: accent }} />}
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+    </>
+  )
+
   return (
     <>
     {/* ── SIDEBAR DESKTOP ──────────────────────────────────────── */}
-    <aside className="hidden md:flex md:flex-col" style={{
+    <aside style={{
       width: 220, flexShrink: 0, height: '100vh', position: 'sticky', top: 0,
+      display: 'flex', flexDirection: 'column',
       background: 'rgba(255,255,255,0.04)',
       backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
       borderRight: '1px solid rgba(255,255,255,0.08)',
@@ -160,37 +204,6 @@ export default function SidebarProfissional({ tipo }: Props) {
         </button>
       </div>
     </aside>
-
-    {/* ── BOTTOM NAV MOBILE ────────────────────────────────────── */}
-    <nav className="md:hidden" style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-      borderTop: '1px solid rgba(255,255,255,0.12)',
-      paddingBottom: 'env(safe-area-inset-bottom)',
-      background: 'rgba(255,255,255,0.06)',
-      backdropFilter: 'blur(24px) saturate(130%)',
-      WebkitBackdropFilter: 'blur(24px) saturate(130%)',
-    }}>
-      <div style={{ maxWidth: 448, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px' }}>
-        {navItems.map(item => {
-          const active = isActive(item.href)
-          return (
-            <button key={item.href} onClick={() => router.push(item.href)}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                padding: '8px 12px', borderRadius: 16,
-                background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                color: active ? accent : C.t3,
-              }}>
-              {item.icon}
-              <span style={{ fontFamily: FONT_BODY, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
-                {item.label}
-              </span>
-              {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: accent }} />}
-            </button>
-          )
-        })}
-      </div>
-    </nav>
     </>
   )
 }
