@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import NavBar from '../components/NavBar'
+import SidebarProfissional from '../components/SidebarProfissional'
 
 type Aluno = {
   id: string
@@ -167,7 +167,9 @@ export default function PersonalAlunos() {
   })
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d1117] text-white">
+    <main className="md:flex min-h-[100dvh] bg-[#0d1117] text-white">
+      <SidebarProfissional tipo="personal" />
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-28 md:max-w-4xl md:px-8" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
         {/* Header */}
@@ -313,7 +315,7 @@ export default function PersonalAlunos() {
           </>
         )}
       </div>
-      <NavBar tipo="personal" ativa="alunos" />
+      </div>
     </main>
   )
 }
