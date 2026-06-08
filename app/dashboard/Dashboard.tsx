@@ -1265,35 +1265,21 @@ function DashboardCliente({
       ) : (
         <button onClick={() => router.push('/sono')}
           style={glass({ width: '100%', textAlign: 'left', padding: 24, marginBottom: 12, position: 'relative', overflow: 'hidden', cursor: 'pointer' })}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.22em' }}>Recuperação hoje</p>
-            <span style={{ fontSize: 9, color: C.t3, border: '1px solid rgba(255,255,255,0.14)', borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>demo</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, opacity: 0.5 }}>
+          <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 16 }}>Recuperação hoje</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
               <svg width="72" height="72" viewBox="0 0 72 72" style={{ transform: 'rotate(-90deg)' }}>
                 <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
-                <circle cx="36" cy="36" r="28" fill="none" stroke={C.good} strokeWidth="6"
-                  strokeDasharray={`${2 * Math.PI * 28}`}
-                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - 72 / 100)}`}
-                  strokeLinecap="round" />
               </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 24, fontFamily: FONT_DISPLAY, fontWeight: 800, color: C.t1, fontVariantNumeric: 'tabular-nums' }}>72</span>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 20, color: C.t3 }}>—</span>
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 16, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, color: C.good }}>Boa recuperação</p>
-              <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-                <div><p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Energia</p><p style={{ color: C.t2, fontSize: 12, fontWeight: 700 }}>4/5</p></div>
-                <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                <div><p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Humor</p><p style={{ color: C.t2, fontSize: 12, fontWeight: 700 }}>4/5</p></div>
-                <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                <div><p style={{ color: C.t3, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Dor musc.</p><p style={{ color: C.t2, fontSize: 12, fontWeight: 700 }}>4/5</p></div>
-              </div>
+              <p style={{ fontSize: 16, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, color: C.t2 }}>Sem dados ainda</p>
+              <p style={{ color: C.t3, fontSize: 12 }}>Registre seu sono para ativar seu score real →</p>
             </div>
           </div>
-          <p style={{ color: C.t3, fontSize: 12, marginTop: 16 }}>Registre seu sono para ativar seu score real →</p>
         </button>
       )}
 
