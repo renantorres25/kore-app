@@ -237,53 +237,6 @@ function getCoresDecisao(cor: 'verde' | 'amarelo' | 'laranja' | 'vermelho') {
   return                         { glow: C.danger,  border: `${C.danger}55`,  badgeBg: `${C.danger}1a`,  badgeText: C.danger }
 }
 
-// ─── NAV ICONS ────────────────────────────────────────────────────────────────
-function IconHome({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>
-}
-function IconTreino({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 6.5h1M16.5 6.5h1M6.5 17.5h1M16.5 17.5h1" /><path d="M7.5 6.5v11M17.5 6.5v11" /><path d="M7.5 12h9" /><path d="M3 10.5v3M21 10.5v3" /></svg>
-}
-function IconNutricao({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5C10 6.5 7 8 7 13c0 4 2.5 6.5 5 6.5s5-2.5 5-6.5c0-5-3-6.5-5-6.5z" /><path d="M12 6.5V4M12 4c0 0 1.5-1 3-1.5" /></svg>
-}
-function IconEvolucao({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
-}
-function IconPerfil({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>
-}
-function IconAlunos({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="3.5" /><path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6" /><path d="M16 3.5a3.5 3.5 0 010 7" /><path d="M22 20c0-3.5-2.5-5.8-6-6" /></svg>
-}
-function IconAgenda({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></svg>
-}
-
-type NavItem = { id: string; label: string; Icon: React.FC<{ active: boolean }> }
-
-function getNavItems(tipo?: string): NavItem[] {
-  if (tipo === 'personal') return [
-    { id: 'home',   label: 'Início', Icon: IconHome   },
-    { id: 'alunos', label: 'Alunos', Icon: IconAlunos },
-    { id: 'agenda', label: 'Agenda', Icon: IconAgenda },
-    { id: 'perfil', label: 'Perfil', Icon: IconPerfil },
-  ]
-  if (tipo === 'nutricionista') return [
-    { id: 'home',      label: 'Início',    Icon: IconHome   },
-    { id: 'pacientes', label: 'Pacientes', Icon: IconAlunos },
-    { id: 'agenda',    label: 'Agenda',    Icon: IconAgenda },
-    { id: 'perfil',    label: 'Perfil',    Icon: IconPerfil },
-  ]
-  return [
-    { id: 'home',     label: 'Início',   Icon: IconHome     },
-    { id: 'treino',   label: 'Treino',   Icon: IconTreino   },
-    { id: 'nutri',    label: 'Nutrição', Icon: IconNutricao },
-    { id: 'evolucao', label: 'Evolução', Icon: IconEvolucao },
-    { id: 'perfil',   label: 'Perfil',   Icon: IconPerfil   },
-  ]
-}
-
 export default function Dashboard() {
   const router = useRouter()
   const isDesktop = useIsDesktop()
@@ -298,7 +251,6 @@ export default function Dashboard() {
   const [gerandoDecisao, setGerandoDecisao] = useState(false)
   const [temSonoHoje, setTemSonoHoje] = useState(false)
   const [carregando, setCarregando] = useState(true)
-  const [activeTab, setActiveTab] = useState('home')
   const [userId, setUserId] = useState('')
   const [showNotifs, setShowNotifs] = useState(false)
   const [notifs, setNotifs] = useState<Notif[]>([])
@@ -563,76 +515,13 @@ Responda APENAS em JSON válido, sem markdown:
     )
   }
 
+  const tipoSidebar = perfil?.tipo === 'personal' ? 'personal' : perfil?.tipo === 'nutricionista' ? 'nutricionista' : 'cliente'
+
   return (
-    <main style={{ minHeight: '100dvh', color: C.t1, display: 'flex', flexDirection: isDesktop ? 'row' : 'column', fontFamily: FONT_BODY }}>
+    <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
       {perfil?.tipo === 'cliente' && <OnboardingTour />}
 
-      {/* ── SIDEBAR DESKTOP ── */}
-      {isDesktop && (
-        <aside style={{
-          width: 220, flexShrink: 0,
-          position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
-          display: 'flex', flexDirection: 'column',
-          borderRight: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          padding: '32px 16px',
-        }}>
-          {/* Logo */}
-          <div style={{ marginBottom: 40, paddingLeft: 8 }}>
-            <span style={{
-              fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 900,
-              letterSpacing: '-0.04em',
-              background: `linear-gradient(135deg, #fff 0%, ${C.energy2} 40%, ${C.energy} 100%)`,
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-            }}>KORE</span>
-          </div>
-
-          {/* Nav items */}
-          <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {getNavItems(perfil?.tipo).map(item => {
-              const active = activeTab === item.id
-              return (
-                <button key={item.id} onClick={() => {
-                  if (item.id === 'perfil') router.push('/perfil')
-                  else if (item.id === 'alunos') router.push('/personal')
-                  else if (item.id === 'pacientes') router.push('/nutricionista/pacientes')
-                  else if (item.id === 'agenda') router.push('/agenda')
-                  else if (item.id === 'treino') router.push('/treino')
-                  else if (item.id === 'evolucao') router.push('/evolucao')
-                  else if (item.id === 'nutri') router.push('/nutricao')
-                  else setActiveTab(item.id)
-                }} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 12px', borderRadius: 12,
-                  background: active ? `rgba(255,90,54,0.12)` : 'transparent',
-                  border: `1px solid ${active ? 'rgba(255,90,54,0.25)' : 'transparent'}`,
-                  cursor: 'pointer', transition: 'all 150ms ease',
-                  color: active ? C.energy : C.t2,
-                }}>
-                  <item.Icon active={active} />
-                  <span style={{ fontSize: 13, fontWeight: active ? 600 : 500, letterSpacing: '0.01em' }}>
-                    {item.label}
-                  </span>
-                  {active && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: C.energy }} />}
-                </button>
-              )
-            })}
-          </nav>
-
-          {/* Logout */}
-          <button onClick={handleLogout} style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px', borderRadius: 12, marginTop: 8,
-            background: 'none', border: '1px solid rgba(255,255,255,0.07)',
-            cursor: 'pointer', color: C.t3, transition: 'color 150ms ease',
-            fontSize: 13, fontWeight: 500,
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-            Sair
-          </button>
-        </aside>
-      )}
+      <SidebarProfissional tipo={tipoSidebar} />
 
       {/* Painel de Notificações */}
       {showNotifs && (
@@ -670,7 +559,7 @@ Responda APENAS em JSON válido, sem markdown:
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isDesktop ? 40 : 112, marginLeft: isDesktop ? 220 : 0 }}>
+      <div className="flex-1 md:overflow-y-auto md:h-screen" style={{ paddingBottom: isDesktop ? 40 : 112 }}>
         {perfil?.tipo === 'cliente' && (
           <DashboardCliente
             perfil={perfil}
@@ -685,7 +574,6 @@ Responda APENAS em JSON válido, sem markdown:
             decisaoDia={decisaoDia}
             gerandoDecisao={gerandoDecisao}
             temSonoHoje={temSonoHoje}
-            activeTab={activeTab}
             userId={userId}
             pesoAtual={pesoAtual}
             pesoDelta={pesoDelta}
@@ -698,39 +586,9 @@ Responda APENAS em JSON válido, sem markdown:
             isDesktop={isDesktop}
           />
         )}
-        {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} isDesktop={isDesktop} />}
-        {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} activeTab={activeTab} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} isDesktop={isDesktop} />}
+        {perfil?.tipo === 'personal' && <DashboardPersonal perfil={perfil} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} isDesktop={isDesktop} />}
+        {perfil?.tipo === 'nutricionista' && <DashboardNutricionista perfil={perfil} onLogout={handleLogout} onOpenNotifs={() => setShowNotifs(true)} notifCount={notifs.length} isDesktop={isDesktop} />}
       </div>
-
-      {!isDesktop && <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, borderTop: '1px solid rgba(255,255,255,0.12)', paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(24px) saturate(130%)', WebkitBackdropFilter: 'blur(24px) saturate(130%)' }}>
-        <div style={{ maxWidth: 448, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 8px' }}>
-          {getNavItems(perfil?.tipo).map((item) => {
-            const active = activeTab === item.id
-            return (
-              <button key={item.id}
-                onClick={() => {
-                  if (item.id === 'perfil') router.push('/perfil')
-                  else if (item.id === 'alunos') router.push('/personal')
-                  else if (item.id === 'pacientes') router.push('/nutricionista/pacientes')
-                  else if (item.id === 'agenda') router.push('/agenda')
-                  else if (item.id === 'treino') router.push('/treino')
-                  else if (item.id === 'evolucao') router.push('/evolucao')
-                  else if (item.id === 'nutri') router.push('/nutricao')
-                  else setActiveTab(item.id)
-                }}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 16, background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.15s' }}>
-                <span style={{ color: active ? C.energy : C.t3, transition: 'all 0.2s' }}>
-                  <item.Icon active={active} />
-                </span>
-                <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, color: active ? C.energy : C.t3 }}>
-                  {item.label}
-                </span>
-                {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.energy }} />}
-              </button>
-            )
-          })}
-        </div>
-      </nav>}
     </main>
   )
 }
@@ -1153,7 +1011,7 @@ function DashboardCliente({
   recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
   vinculos: Vinculo[]; treinoHoje: { nome: string; plano: string; concluido: boolean } | null
   nutricaoHoje: NutricaoHoje; decisaoDia: DecisaoDia; gerandoDecisao: boolean; temSonoHoje: boolean
-  activeTab: string; userId: string; pesoAtual: number | null; pesoDelta: number | null
+  userId: string; pesoAtual: number | null; pesoDelta: number | null
   onSalvarMeta: (metaPeso: number, metaData: string) => Promise<void>
   onLogout: () => void; onOpenNotifs: () => void; notifCount: number
   planoNutriRefeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]
@@ -1437,7 +1295,7 @@ function DashboardCliente({
   )
 }
 
-function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDesktop }: { perfil: Perfil; activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number; isDesktop?: boolean }) {
+function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDesktop }: { perfil: Perfil; onLogout: () => void; onOpenNotifs: () => void; notifCount: number; isDesktop?: boolean }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
@@ -1634,7 +1492,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDeskt
   )
 }
 
-function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, isDesktop }: { perfil: Perfil; activeTab: string; onLogout: () => void; onOpenNotifs: () => void; notifCount: number; isDesktop?: boolean }) {
+function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, isDesktop }: { perfil: Perfil; onLogout: () => void; onOpenNotifs: () => void; notifCount: number; isDesktop?: boolean }) {
   const router    = useRouter()
   const firstName = getFirstName(perfil.nome, perfil.email)
   const initials  = getInitials(perfil.nome, perfil.email)
