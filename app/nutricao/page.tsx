@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
-import NavBar from '../components/NavBar'
+import SidebarProfissional from '../components/SidebarProfissional'
 
 /* ═════════════════════════════════════════════════════════════
    KORE · Nutrição — "Energetic Precision"
@@ -918,7 +918,9 @@ Responda APENAS JSON válido:
   const abaHojeEl = <AbaHoje perfil={perfil} scoreHoje={scoreHoje} treinouHoje={treinouHoje} planoAtivo={planoAtivo} vinculoNutri={vinculoNutri} userId={userId} registroId={registroId} setRegistroId={setRegistroId} qualidade={qualidade} setQualidade={setQualidade} calorias={calorias} setCalorias={setCalorias} proteina={proteina} setProteina={setProteina} coposAgua={coposAgua} setCoposAgua={setCoposAgua} observacoes={observacoes} setObservacoes={setObservacoes} jaRegistrou={jaRegistrou} setJaRegistrou={setJaRegistrou} />
 
   return (
-    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, paddingLeft: isDesktop ? 220 : 0, display: 'flex', flexDirection: 'column' }}>
+    <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
+      <SidebarProfissional tipo="cliente" />
+      <div className="flex-1 md:h-screen" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{ flexShrink: 0, padding: '0 16px', paddingTop: isDesktop ? 36 : 'max(3rem,calc(env(safe-area-inset-top)+1.5rem))' }}>
         <div style={{ maxWidth: isDesktop ? 1100 : 448, margin: '0 auto', width: '100%' }}>
@@ -975,8 +977,7 @@ Responda APENAS JSON válido:
           )}
         </div>
       </div>
-
-      <NavBar tipo="cliente" ativa="nutri" />
+      </div>
     </main>
   )
 }
