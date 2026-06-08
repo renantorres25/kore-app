@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import NavBar from '../components/NavBar'
 import SidebarProfissional from '../components/SidebarProfissional'
 
 /* Design System: Energetic Precision */
@@ -300,6 +299,7 @@ function PerfilConteudo() {
   const tipoLabel = tipo === 'personal' ? 'Personal Trainer' : tipo === 'nutricionista' ? 'Nutricionista' : 'Atleta'
   const tipoColor = tipo === 'personal' ? C.sleep : tipo === 'nutricionista' ? C.good : C.energy
   const isProf = tipo === 'personal' || tipo === 'nutricionista'
+  const tipoSidebar = tipo === 'personal' ? 'personal' : tipo === 'nutricionista' ? 'nutricionista' : 'cliente'
   const camposPreenchidos = isProf ? true : !!(dataNascimento && sexo && peso && altura && objetivo && nivel)
   const progresso = [dataNascimento, sexo, peso, altura, objetivo, nivel].filter(Boolean).length
 
@@ -331,8 +331,8 @@ function PerfilConteudo() {
   )
 
   return (
-    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, display: isProf ? 'flex' : 'block' }}>
-      {isProf && <SidebarProfissional tipo={tipo as 'nutricionista' | 'personal'} />}
+    <main style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY, display: 'flex' }}>
+      {!isNovo && <SidebarProfissional tipo={tipoSidebar} />}
       <div style={{ flex: 1, overflowY: 'auto' }}>
       <div style={{
         maxWidth: isDesktop ? 800 : 520, margin: '0 auto',
@@ -802,8 +802,6 @@ function PerfilConteudo() {
           </div>
         )}
       </div>
-
-      {!isNovo && <NavBar tipo={tipo || 'cliente'} ativa="perfil" />}
       </div>
     </main>
   )
