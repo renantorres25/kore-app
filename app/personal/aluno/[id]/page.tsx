@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 import SidebarProfissional from '../../../components/SidebarProfissional'
+import { LayoutDashboard, Dumbbell, TrendingUp, Sparkles } from 'lucide-react'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
@@ -93,6 +94,7 @@ export default function PersonalAluno() {
   const [fichaObjetivo, setFichaObjetivo] = useState('')
   const [fichaMetaPeso, setFichaMetaPeso] = useState('')
   const [fichaMetaData, setFichaMetaData] = useState('')
+  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'evolucao' | 'ia'>('visao-geral')
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -363,556 +365,753 @@ export default function PersonalAluno() {
   )
 
   return (
-    <main className="md:flex min-h-[100dvh] bg-[#0d1117] text-white">
+    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row bg-[#0d1117]">
       <SidebarProfissional tipo="personal" />
-      <div className="flex-1 md:overflow-y-auto md:h-screen">
-      <div className="max-w-md mx-auto px-4 pb-12" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
-        <div className="mb-6">
-          <button onClick={() => router.push('/personal')} className="text-zinc-600 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-1 hover:text-zinc-400 transition-colors">← Alunos</button>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-              <span className="text-emerald-400 font-black text-base">{aluno ? getInitials(aluno.nome, aluno.email) : '?'}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-black text-white tracking-tight truncate">{aluno?.nome ?? aluno?.email ?? 'Aluno'}</h1>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {aluno?.peso && <span className="text-[10px] text-zinc-500 bg-white/[0.07] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
-                {aluno?.objetivo && <span className="text-[10px] text-zinc-500 bg-white/[0.07] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="flex-1 flex flex-col min-w-0 md:overflow-hidden md:h-screen">
 
-        {/* Alertas clínicos */}
-        {(lesoes || restricaoFisica || medicamentos) && (
-          <div className="rounded-2xl border border-red-500/20 mb-5 overflow-hidden" style={{ background: '#201212' }}>
-            <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
-              <span className="text-red-400 text-sm">⚠</span>
-              <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
-            </div>
-            <div className="px-5 py-3 flex flex-col gap-2">
-              {lesoes && (
-                <div>
-                  <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p>
-                  <p className="text-red-200/80 text-[11px] leading-relaxed">{lesoes}</p>
+        {/* ── HEADER FIXO ─────────────────────────────────────────────── */}
+        <div className="shrink-0 sticky top-0 z-20 border-b"
+             style={{ background: 'linear-gradient(135deg, rgba(28,22,30,0.96) 0%, rgba(20,22,34,0.96) 100%)', backdropFilter: 'blur(24px) saturate(140%)', WebkitBackdropFilter: 'blur(24px) saturate(140%)', borderColor: 'rgba(255,255,255,0.10)', paddingTop: 'max(0.75rem, env(safe-area-inset-top))', boxShadow: '0 1px 0 rgba(255,90,54,0.08)' }}>
+          <div className="px-4 md:px-8 pb-4">
+            <button onClick={() => router.push('/personal')}
+              style={{ color: '#7A8290', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', transition: 'color 150ms' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#F5F6F8')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#7A8290')}>
+              ← Alunos
+            </button>
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-4 min-w-0">
+                <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 20px rgba(52,211,153,0.12)' }}>
+                  <span style={{ color: '#34d399', fontWeight: 900, fontSize: 16 }}>{aluno ? getInitials(aluno.nome, aluno.email) : '?'}</span>
                 </div>
-              )}
-              {restricaoFisica && (
-                <div>
-                  <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p>
-                  <p className="text-amber-200/80 text-[11px] leading-relaxed">{restricaoFisica}</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#F5F6F8', lineHeight: 1 }} className="truncate">
+                      {aluno?.nome ?? aluno?.email ?? 'Aluno'}
+                    </h1>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {aluno?.peso && (
+                      <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>
+                        {aluno.peso} kg
+                      </span>
+                    )}
+                    {aluno?.objetivo && (
+                      <span style={{ fontSize: 11, color: '#9AA0AD', background: 'rgba(255,255,255,0.07)', borderRadius: 99, padding: '3px 10px' }}>
+                        {OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}
+                      </span>
+                    )}
+                    {aluno?.meta_peso && (
+                      <span style={{ fontSize: 11, color: '#34d399', background: 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.20)', borderRadius: 99, padding: '3px 10px' }}>
+                        Meta: {aluno.meta_peso} kg
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
-              {medicamentos && (
-                <div>
-                  <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p>
-                  <p className="text-zinc-300/80 text-[11px] leading-relaxed">{medicamentos}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+              </div>
 
-        {/* Monitoramento de hoje */}
-        {monitor && (
-          <div className="rounded-2xl p-4 mb-5" style={{ background: 'var(--surface-1)' }}>
-            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Monitoramento hoje</p>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              {/* Score de recuperação */}
-              <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Recuperação</p>
-                {monitor.scoreRecuperacao ? (
-                  <p className={`text-xl font-black ${monitor.scoreRecuperacao >= 70 ? 'text-emerald-400' : monitor.scoreRecuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {monitor.scoreRecuperacao}<span className="text-xs font-normal text-zinc-600">/100</span>
-                  </p>
-                ) : <p className="text-zinc-600 text-lg font-black">—</p>}
-              </div>
-              {/* Sono */}
-              <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sono</p>
-                {monitor.sonoHoras ? (
-                  <p className="text-xl font-black text-white">{monitor.sonoHoras}<span className="text-xs font-normal text-zinc-600">h</span></p>
-                ) : <p className="text-zinc-600 text-lg font-black">—</p>}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Bem-estar</p>
-                {monitor.bemEstarMedia ? (
-                  <p className={`text-base font-black ${monitor.bemEstarMedia >= 4 ? 'text-emerald-400' : monitor.bemEstarMedia >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {monitor.bemEstarMedia}<span className="text-[9px] font-normal text-zinc-600">/5</span>
-                  </p>
-                ) : <p className="text-zinc-600 text-base font-black">—</p>}
-                <p className="text-zinc-700 text-[9px] mt-0.5">média 7d</p>
-              </div>
-              <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Treinos</p>
-                <p className="text-white text-base font-black">{monitor.treinosSemana}<span className="text-[9px] font-normal text-zinc-600">x</span></p>
-                <p className="text-zinc-700 text-[9px] mt-0.5">na semana</p>
-              </div>
-              <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Inatividade</p>
-                {monitor.ultimoTreino ? (
-                  <p className={`text-base font-black ${diasSemTreinar(monitor.ultimoTreino) <= 2 ? 'text-emerald-400' : diasSemTreinar(monitor.ultimoTreino) <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {diasSemTreinar(monitor.ultimoTreino)}<span className="text-[9px] font-normal text-zinc-600">d</span>
-                  </p>
-                ) : <p className="text-zinc-600 text-base font-black">—</p>}
-                <p className="text-zinc-700 text-[9px] mt-0.5">sem treinar</p>
-              </div>
-            </div>
-            {(aluno?.nivel || aluno?.fcmax || aluno?.ftp || ultimaAvaliacao) && (
-              <div className="mt-3 pt-3 border-t border-white/[0.09] flex flex-wrap gap-2">
+              {/* desktop: última aval + próxima + nível */}
+              <div className="hidden md:flex items-center gap-6 shrink-0">
+                {ultimaAvaliacao && (
+                  <div className="text-right">
+                    <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Última aval.</p>
+                    <p className="text-zinc-300 text-sm font-medium mt-0.5">
+                      {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                    </p>
+                  </div>
+                )}
+                {proximaConsultaInfo && (
+                  <div className="text-right">
+                    <p className="text-zinc-600 text-[10px] uppercase tracking-wider">Próxima aval.</p>
+                    <p className="text-[#34d399] text-sm font-medium mt-0.5">
+                      {new Date(proximaConsultaInfo.data).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                    </p>
+                  </div>
+                )}
                 {aluno?.nivel && (
-                  <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
+                  <span className="text-[11px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1">
                     Nível: {aluno.nivel}
                   </span>
                 )}
-                {aluno?.fcmax && (
-                  <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
-                    FC máx: {aluno.fcmax} bpm
-                  </span>
-                )}
-                {aluno?.ftp && (
-                  <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
-                    FTP: {aluno.ftp}W
-                  </span>
-                )}
-                {ultimaAvaliacao && (
-                  <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
-                    Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
-                  </span>
-                )}
               </div>
-            )}
+            </div>
           </div>
-        )}
-
-        {/* Plano nutricional ativo — prescrito pela nutricionista */}
-        {(planoNutri || restricaoNutri) && (
-          <div className="rounded-2xl border border-green-500/20 mb-5 overflow-hidden" style={{ background: '#081209' }}>
-            <div className="px-5 py-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-green-500/15 border border-green-500/25 flex items-center justify-center shrink-0">
-                <span className="text-sm">🥗</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-green-300 text-[10px] uppercase tracking-[0.15em] font-bold">Nutrição prescrita</p>
-                {planoNutri && (
-                  <div className="flex gap-3 mt-0.5">
-                    {planoNutri.calorias_meta && <span className="text-white text-sm font-bold">{planoNutri.calorias_meta} <span className="text-zinc-500 font-normal text-[11px]">kcal</span></span>}
-                    {planoNutri.proteina_meta && <span className="text-blue-300 text-sm font-bold">{planoNutri.proteina_meta}<span className="text-zinc-500 font-normal text-[11px]">g prot</span></span>}
-                  </div>
-                )}
-              </div>
-              {planoNutri?.created_at && (
-                <span className="text-zinc-600 text-[9px] shrink-0">
-                  {new Date(planoNutri.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })}
-                </span>
-              )}
-            </div>
-            {restricaoNutri && (
-              <div className="px-5 py-2.5 border-t border-green-500/10 flex items-start gap-2">
-                <span className="text-amber-400 text-xs shrink-0 mt-0.5">⚠️</span>
-                <p className="text-amber-300/80 text-[11px] leading-relaxed">{restricaoNutri}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Quick actions */}
-        <div className="grid grid-cols-2 gap-2 mb-5">
-          <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-            className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
-            <span className="text-xl shrink-0">📋</span>
-            <div>
-              <p className="text-white text-sm font-bold">Anamnese</p>
-              <p className="text-zinc-600 text-[10px]">Ficha de saúde</p>
-            </div>
-          </button>
-          <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-            className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
-            <span className="text-xl shrink-0">📏</span>
-            <div>
-              <p className="text-white text-sm font-bold">Medidas</p>
-              <p className="text-zinc-600 text-[10px]">Evolução corporal</p>
-            </div>
-          </button>
-          <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
-            className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left col-span-2">
-            <span className="text-xl shrink-0">📅</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-bold">Periodização</p>
-              <p className="text-zinc-600 text-[10px]">Blocos de treinamento</p>
-            </div>
-          </button>
         </div>
 
-        {/* Ficha do aluno */}
-        <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-          <button
-            onClick={() => {
-              if (!editandoFicha) {
-                setFichaPeso(String(aluno?.peso ?? ''))
-                setFichaAltura(String(aluno?.altura ?? ''))
-                setFichaSexo(aluno?.sexo ?? '')
-                setFichaNascimento(aluno?.data_nascimento ?? '')
-                setFichaObjetivo(aluno?.objetivo ?? '')
-                setFichaMetaPeso(String(aluno?.meta_peso ?? ''))
-                setFichaMetaData(aluno?.meta_data_limite ?? '')
-              }
-              setEditandoFicha(p => !p)
-            }}
-            className="w-full flex items-center justify-between px-5 py-4 text-left active:opacity-80">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Ficha do aluno</p>
-              {!editandoFicha && (
-                <>
-                  {aluno?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
-                  {aluno?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{aluno.altura}cm</span>}
-                  {aluno?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
-                  {aluno?.meta_peso && <span className="text-[9px] text-emerald-600 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-full px-2 py-0.5">Meta: {aluno.meta_peso}kg</span>}
-                  {!aluno?.peso && !aluno?.altura && !aluno?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
-                </>
-              )}
-            </div>
-            <span className={`text-zinc-600 text-xs transition-transform duration-200 ${editandoFicha ? 'rotate-180' : ''}`}>▼</span>
-          </button>
-          {editandoFicha && (
-            <div className="px-5 pb-5 space-y-3 border-t border-white/[0.14]">
-              <div className="grid grid-cols-2 gap-3 pt-4">
-                <div>
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso (kg)</p>
-                  <input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)}
-                    placeholder="75.5"
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
-                </div>
-                <div>
-                  <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Altura (cm)</p>
-                  <input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)}
-                    placeholder="175"
-                    className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
-                </div>
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sexo</p>
-                <div className="flex gap-2">
-                  {['masculino', 'feminino', 'outro'].map(v => (
-                    <button key={v} onClick={() => setFichaSexo(v)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaSexo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
-                      {v.charAt(0).toUpperCase() + v.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Data de nascimento</p>
-                <input type="date" value={fichaNascimento} onChange={e => setFichaNascimento(e.target.value)}
-                  className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
-              </div>
-              <div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Objetivo</p>
-                <div className="flex flex-wrap gap-2">
-                  {[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde geral']].map(([v, l]) => (
-                    <button key={v} onClick={() => setFichaObjetivo(v)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="border-t border-white/[0.14] pt-3">
-                <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2.5">Meta de peso</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso-alvo (kg)</p>
-                    <input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)}
-                      placeholder="Ex: 78"
-                      className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
-                  </div>
-                  <div>
-                    <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Prazo</p>
-                    <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
-                      className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30"
-                      style={{ colorScheme: 'dark' }} />
-                  </div>
-                </div>
-              </div>
-              <button onClick={salvarFicha} disabled={salvandoFicha}
-                className="w-full bg-white text-black font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-40">
-                {salvandoFicha ? 'Salvando...' : 'Salvar ficha'}
+        {/* ── BARRA DE ABAS ────────────────────────────────────────────── */}
+        <div className="shrink-0 overflow-x-auto" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex px-4 md:px-8 min-w-max">
+            {([
+              { id: 'visao-geral', label: 'Visão Geral', Icon: LayoutDashboard },
+              { id: 'treinos',     label: 'Treinos',     Icon: Dumbbell },
+              { id: 'evolucao',    label: 'Evolução',    Icon: TrendingUp },
+              { id: 'ia',          label: 'IA Clínica',  Icon: Sparkles },
+            ] as { id: string; label: string; Icon: React.ComponentType<{ size?: number }> }[]).map(tab => (
+              <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)}
+                style={{
+                  padding: '12px 16px', fontSize: 13,
+                  color: abaAtiva === tab.id ? '#F5F6F8' : '#7A8290',
+                  fontWeight: abaAtiva === tab.id ? 700 : 400,
+                  whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'none',
+                  borderBottom: `2px solid ${abaAtiva === tab.id ? '#FF5A36' : 'transparent'}`,
+                  cursor: 'pointer', transition: 'all 150ms',
+                }}>
+                <tab.Icon size={15} />
+                {tab.label}
               </button>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
 
-        {/* Composição Corporal — empty state */}
-        {medidasCP.length === 0 && (
-          <div className="rounded-2xl mb-5 px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: 'var(--surface-1)' }}>
-            <span className="text-3xl">📏</span>
-            <div>
-              <p className="text-white text-sm font-bold">Sem medidas corporais</p>
-              <p className="text-zinc-600 text-xs mt-1">Registre as medidas iniciais do aluno para acompanhar a evolução</p>
-            </div>
-            <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-              className="mt-1 text-xs text-blue-400 border border-blue-500/20 bg-blue-500/10 rounded-xl px-4 py-2 hover:bg-blue-500/20 active:scale-95 transition-all font-semibold">
-              + Registrar primeira medida
-            </button>
-          </div>
-        )}
+        {/* ── CONTEÚDO DAS ABAS ────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-6 pb-28 md:pb-10">
 
-        {/* Composição Corporal */}
-        {medidasCP.length >= 2 && (() => {
-          const ultima = medidasCP[medidasCP.length - 1]
-          const primeira = medidasCP[0]
-          type MetricaDef = { key: keyof MedidaCP; label: string; unit: string; cor: string; inverse?: boolean }
-          const metricas: MetricaDef[] = [
-            { key: 'peso',           label: 'Peso',         unit: 'kg', cor: '#94a3b8' },
-            { key: 'gordura_pct',    label: '% Gordura',    unit: '%',  cor: '#f97316', inverse: true },
-            { key: 'massa_muscular', label: 'Massa musc.',  unit: 'kg', cor: '#34d399' },
-            { key: 'cintura',        label: 'Cintura',      unit: 'cm', cor: '#a78bfa', inverse: true },
-            { key: 'quadril',        label: 'Quadril',      unit: 'cm', cor: '#60a5fa' },
-            { key: 'braco_dir',      label: 'Braço',        unit: 'cm', cor: '#fb923c' },
-            { key: 'coxa_dir',       label: 'Coxa',         unit: 'cm', cor: '#f472b6' },
-          ].filter(m => ultima[m.key] != null && primeira[m.key] != null)
-          if (!metricas.length) return null
-          function sparkline(key: keyof MedidaCP, cor: string) {
-            const pts = medidasCP.filter(m => m[key] != null)
-            if (pts.length < 2) return null
-            const vals = pts.map(m => m[key] as number)
-            const W = 56, H = 24, maxV = Math.max(...vals), minV = Math.min(...vals), range = maxV - minV || 1
-            const xStep = W / Math.max(pts.length - 1, 1)
-            const toY = (v: number) => H - 3 - ((v - minV) / range) * (H - 6)
-            const d = vals.map((v, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
-            return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
-          }
-          return (
-            <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-              <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
-                <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
-                <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
-              </div>
-              <div className="divide-y divide-white/[0.04]">
-                {metricas.map(m => {
-                  const cur = ultima[m.key] as number
-                  const ini = primeira[m.key] as number
-                  const delta = Math.round((cur - ini) * 10) / 10
-                  const positivo = m.inverse ? delta < 0 : delta > 0
-                  const deltaCor = delta === 0 ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
-                  return (
-                    <div key={m.key} className="flex items-center gap-3 px-5 py-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-zinc-400 text-[10px] uppercase tracking-wider">{m.label}</p>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-white text-lg font-bold">{cur}</span>
-                          <span className="text-zinc-600 text-[10px]">{m.unit}</span>
-                          {delta !== 0 && <span className={`text-[10px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{m.unit}</span>}
-                        </div>
-                      </div>
-                      {sparkline(m.key, m.cor)}
+            {/* ── ABA VISÃO GERAL ──────────────────────────────────────── */}
+            {abaAtiva === 'visao-geral' && (
+              <div className="space-y-5">
+
+                {/* Alertas clínicos */}
+                {(lesoes || restricaoFisica || medicamentos) && (
+                  <div className="rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#201212' }}>
+                    <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
+                      <span className="text-red-400 text-sm">⚠</span>
+                      <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })()}
+                    <div className="px-5 py-3 flex flex-col gap-2">
+                      {lesoes && (
+                        <div>
+                          <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p>
+                          <p className="text-red-200/80 text-[11px] leading-relaxed">{lesoes}</p>
+                        </div>
+                      )}
+                      {restricaoFisica && (
+                        <div>
+                          <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p>
+                          <p className="text-amber-200/80 text-[11px] leading-relaxed">{restricaoFisica}</p>
+                        </div>
+                      )}
+                      {medicamentos && (
+                        <div>
+                          <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p>
+                          <p className="text-zinc-300/80 text-[11px] leading-relaxed">{medicamentos}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-        {/* Calendário de aderência - 28 dias */}
-        <div className="rounded-2xl p-5 mb-5" style={{ background: 'var(--surface-1)' }}>
-          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Calendário de aderência · 28 dias</p>
-          <div className="grid grid-cols-7 gap-1.5">
-            {Array.from({ length: 28 }, (_, i) => {
-              const d = new Date(getTodayBR() + 'T12:00:00-03:00')
-              d.setDate(d.getDate() - (27 - i))
-              const ds = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-              const tipo = diasAtividade.get(ds)
-              const isHoje = ds === getTodayBR()
-              return (
-                <div key={i} className={[
-                  'aspect-square rounded-lg flex items-center justify-center text-[8px] font-bold',
-                  tipo === 'treino' ? 'bg-emerald-500/75 text-black' : tipo === 'livre' ? 'bg-blue-500/60 text-white' : 'bg-white/[0.07] text-zinc-800',
-                  isHoje ? 'ring-1 ring-white/30' : '',
-                ].join(' ')}>
-                  {d.getDate()}
-                </div>
-              )
-            })}
-          </div>
-          <div className="flex items-center gap-4 mt-3">
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/75" /><span className="text-zinc-600 text-[9px]">Musculação</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-500/60" /><span className="text-zinc-600 text-[9px]">Atividade livre</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-white/[0.07] border border-white/[0.14]" /><span className="text-zinc-600 text-[9px]">Descanso</span></div>
-          </div>
-        </div>
-
-        {(() => {
-          // Mostrar planos criados + próximo disponível (até o máximo)
-          const planosComTreino = PLANOS_MAX.filter(p => treinos.some(t => t.plano === p))
-          const proximoPlano = PLANOS_MAX.find(p => !treinos.some(t => t.plano === p))
-          const planosVisiveis = proximoPlano ? [...planosComTreino, proximoPlano] : planosComTreino
-          return (
-            <div className="flex gap-2 mb-6 flex-wrap">
-              {planosVisiveis.map(p => {
-                const c = CORES[p] ?? CORES.A
-                const tem = treinos.some(t => t.plano === p)
-                return (
-                  <button key={p} onClick={() => setPlanoAtivo(p)}
-                    className={`relative flex-1 min-w-[4rem] py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === p ? `${c.bg} ${c.border} ${c.text}` : tem ? 'bg-white/[0.05] border-white/[0.11] text-zinc-400' : 'bg-white/[0.02] border-white/[0.14] text-zinc-600'}`}>
-                    {tem ? `Plano ${p}` : `+ Plano ${p}`}
-                    {tem && (
-                      <span className="block text-[9px] font-normal mt-0.5 opacity-70">
-                        {treinos.find(t => t.plano === p)?.exercicios.length ?? 0} exerc.
-                      </span>
+                {/* Monitoramento de hoje */}
+                {monitor && (
+                  <div className="rounded-2xl p-4" style={{ background: 'var(--surface-1)' }}>
+                    <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Monitoramento hoje</p>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Recuperação</p>
+                        {monitor.scoreRecuperacao ? (
+                          <p className={`text-xl font-black ${monitor.scoreRecuperacao >= 70 ? 'text-emerald-400' : monitor.scoreRecuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {monitor.scoreRecuperacao}<span className="text-xs font-normal text-zinc-600">/100</span>
+                          </p>
+                        ) : <p className="text-zinc-600 text-lg font-black">—</p>}
+                      </div>
+                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sono</p>
+                        {monitor.sonoHoras ? (
+                          <p className="text-xl font-black text-white">{monitor.sonoHoras}<span className="text-xs font-normal text-zinc-600">h</span></p>
+                        ) : <p className="text-zinc-600 text-lg font-black">—</p>}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Bem-estar</p>
+                        {monitor.bemEstarMedia ? (
+                          <p className={`text-base font-black ${monitor.bemEstarMedia >= 4 ? 'text-emerald-400' : monitor.bemEstarMedia >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {monitor.bemEstarMedia}<span className="text-[9px] font-normal text-zinc-600">/5</span>
+                          </p>
+                        ) : <p className="text-zinc-600 text-base font-black">—</p>}
+                        <p className="text-zinc-700 text-[9px] mt-0.5">média 7d</p>
+                      </div>
+                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Treinos</p>
+                        <p className="text-white text-base font-black">{monitor.treinosSemana}<span className="text-[9px] font-normal text-zinc-600">x</span></p>
+                        <p className="text-zinc-700 text-[9px] mt-0.5">na semana</p>
+                      </div>
+                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Inatividade</p>
+                        {monitor.ultimoTreino ? (
+                          <p className={`text-base font-black ${diasSemTreinar(monitor.ultimoTreino) <= 2 ? 'text-emerald-400' : diasSemTreinar(monitor.ultimoTreino) <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {diasSemTreinar(monitor.ultimoTreino)}<span className="text-[9px] font-normal text-zinc-600">d</span>
+                          </p>
+                        ) : <p className="text-zinc-600 text-base font-black">—</p>}
+                        <p className="text-zinc-700 text-[9px] mt-0.5">sem treinar</p>
+                      </div>
+                    </div>
+                    {(aluno?.nivel || aluno?.fcmax || aluno?.ftp || ultimaAvaliacao) && (
+                      <div className="mt-3 pt-3 border-t border-white/[0.09] flex flex-wrap gap-2">
+                        {aluno?.nivel && (
+                          <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
+                            Nível: {aluno.nivel}
+                          </span>
+                        )}
+                        {aluno?.fcmax && (
+                          <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
+                            FC máx: {aluno.fcmax} bpm
+                          </span>
+                        )}
+                        {aluno?.ftp && (
+                          <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
+                            FTP: {aluno.ftp}W
+                          </span>
+                        )}
+                        {ultimaAvaliacao && (
+                          <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
+                            Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                          </span>
+                        )}
+                      </div>
                     )}
-                  </button>
-                )
-              })}
-            </div>
-          )
-        })()}
+                  </div>
+                )}
 
-        {treinoDoPlano ? (
-          <div>
-            <div className={`rounded-2xl p-5 border ${cores.border} mb-4`} style={{ background: 'var(--surface-1)' }}>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <p className={`text-[10px] uppercase tracking-[0.2em] mb-1 ${cores.text}`}>Plano {planoAtivo}</p>
-                  <p className="text-white font-black text-lg">{treinoDoPlano.nome}</p>
-                  {treinoDoPlano.descricao && <p className="text-zinc-500 text-xs mt-1">{treinoDoPlano.descricao}</p>}
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => abrirEditar(treinoDoPlano)} className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">Editar</button>
-                  <button onClick={() => setConfirmaDeleteId(treinoDoPlano.id)} className="text-[10px] text-red-500/70 border border-red-500/20 rounded-lg px-3 py-1.5 hover:border-red-500/50 hover:text-red-400 active:scale-95 transition-all uppercase tracking-wider">✕</button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {treinoDoPlano.exercicios.map((ex, i) => (
-                  <div key={i} className="bg-white/[0.05] rounded-xl p-3.5 border border-white/[0.14]">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-6 h-6 rounded-lg ${cores.bg} ${cores.border} border flex items-center justify-center shrink-0 mt-0.5`}>
-                        <span className={`text-[10px] font-black ${cores.text}`}>{i + 1}</span>
+                {/* Plano nutricional ativo */}
+                {(planoNutri || restricaoNutri) && (
+                  <div className="rounded-2xl border border-green-500/20 overflow-hidden" style={{ background: '#081209' }}>
+                    <div className="px-5 py-3.5 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-green-500/15 border border-green-500/25 flex items-center justify-center shrink-0">
+                        <span className="text-sm">🥗</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-semibold text-sm mb-1">{ex.nome}</p>
-                        <div className="flex gap-3 flex-wrap">
-                          <span className="text-zinc-500 text-[11px]">{ex.series} séries</span>
-                          <span className="text-zinc-700 text-[11px]">·</span>
-                          <span className="text-zinc-500 text-[11px]">{ex.repeticoes} reps</span>
-                          {ex.carga_sugerida && <><span className="text-zinc-700 text-[11px]">·</span><span className="text-zinc-500 text-[11px]">{ex.carga_sugerida}kg sugerido</span></>}
-                        </div>
-                        {ex.observacoes && <p className="text-zinc-600 text-[11px] mt-1 italic">{ex.observacoes}</p>}
+                        <p className="text-green-300 text-[10px] uppercase tracking-[0.15em] font-bold">Nutrição prescrita</p>
+                        {planoNutri && (
+                          <div className="flex gap-3 mt-0.5">
+                            {planoNutri.calorias_meta && <span className="text-white text-sm font-bold">{planoNutri.calorias_meta} <span className="text-zinc-500 font-normal text-[11px]">kcal</span></span>}
+                            {planoNutri.proteina_meta && <span className="text-blue-300 text-sm font-bold">{planoNutri.proteina_meta}<span className="text-zinc-500 font-normal text-[11px]">g prot</span></span>}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <button onClick={abrirNovo} className="w-full border border-white/[0.14] text-zinc-400 font-bold py-4 rounded-2xl text-sm active:scale-95 hover:border-white/20 hover:text-white transition-all tracking-wide">
-              + Substituir Plano {planoAtivo}
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center py-16 gap-4">
-            <div className={`w-16 h-16 rounded-3xl ${cores.bg} ${cores.border} border flex items-center justify-center`}>
-              <span className={`text-2xl font-black ${cores.text}`}>{planoAtivo}</span>
-            </div>
-            <div className="text-center">
-              <p className="text-white font-bold mb-1">Plano {planoAtivo} vazio</p>
-              <p className="text-zinc-600 text-sm">Monte o treino para este aluno</p>
-            </div>
-            <button onClick={abrirNovo} className="mt-2 bg-white text-black font-bold px-6 py-3 rounded-xl text-sm active:scale-95 transition-all tracking-wide">
-              + Criar Plano {planoAtivo}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Últimas execuções */}
-      {execucoes.length > 0 && (
-        <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-          <div className="px-5 py-4 border-b border-white/[0.14]">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Últimas execuções</p>
-          </div>
-          <div className="divide-y divide-white/[0.04]">
-            {execucoes.map((ex) => {
-              const c = CORES[ex.plano] ?? CORES.A
-              const dataLabel = new Date(ex.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })
-              return (
-                <div key={ex.id} className="px-5 py-3.5">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-8 h-8 rounded-xl ${c.bg} ${c.border} border flex items-center justify-center shrink-0`}>
-                      <span className={`text-[10px] font-black ${c.text}`}>{ex.plano}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
-                      <p className="text-zinc-600 text-[10px]">
-                        {dataLabel}
-                        {ex.seriesFeitas > 0 && ` · ${ex.seriesFeitas} séries`}
-                        {ex.volume > 0 && ` · ${ex.volume >= 1000 ? `${(ex.volume / 1000).toFixed(1)}t` : `${ex.volume}kg`} vol.`}
-                      </p>
-                    </div>
-                  </div>
-                  {ex.exercicios.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pl-11">
-                      {ex.exercicios.map(e => (
-                        <span key={e.nome} className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-lg px-2 py-0.5">
-                          {e.nome}{e.maxCarga > 0 ? ` · ${e.maxCarga}kg` : ''}
+                      {planoNutri?.created_at && (
+                        <span className="text-zinc-600 text-[9px] shrink-0">
+                          {new Date(planoNutri.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })}
                         </span>
-                      ))}
+                      )}
+                    </div>
+                    {restricaoNutri && (
+                      <div className="px-5 py-2.5 border-t border-green-500/10 flex items-start gap-2">
+                        <span className="text-amber-400 text-xs shrink-0 mt-0.5">⚠️</span>
+                        <p className="text-amber-300/80 text-[11px] leading-relaxed">{restricaoNutri}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Quick actions */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => router.push(`/anamnese/${clienteId}`)}
+                    className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+                    <span className="text-xl shrink-0">📋</span>
+                    <div>
+                      <p className="text-white text-sm font-bold">Anamnese</p>
+                      <p className="text-zinc-600 text-[10px]">Ficha de saúde</p>
+                    </div>
+                  </button>
+                  <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+                    className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+                    <span className="text-xl shrink-0">📏</span>
+                    <div>
+                      <p className="text-white text-sm font-bold">Medidas</p>
+                      <p className="text-zinc-600 text-[10px]">Evolução corporal</p>
+                    </div>
+                  </button>
+                  <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
+                    className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left col-span-2">
+                    <span className="text-xl shrink-0">📅</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-bold">Periodização</p>
+                      <p className="text-zinc-600 text-[10px]">Blocos de treinamento</p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Ficha do aluno */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                  <button
+                    onClick={() => {
+                      if (!editandoFicha) {
+                        setFichaPeso(String(aluno?.peso ?? ''))
+                        setFichaAltura(String(aluno?.altura ?? ''))
+                        setFichaSexo(aluno?.sexo ?? '')
+                        setFichaNascimento(aluno?.data_nascimento ?? '')
+                        setFichaObjetivo(aluno?.objetivo ?? '')
+                        setFichaMetaPeso(String(aluno?.meta_peso ?? ''))
+                        setFichaMetaData(aluno?.meta_data_limite ?? '')
+                      }
+                      setEditandoFicha(p => !p)
+                    }}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left active:opacity-80">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Ficha do aluno</p>
+                      {!editandoFicha && (
+                        <>
+                          {aluno?.peso && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{aluno.peso}kg</span>}
+                          {aluno?.altura && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{aluno.altura}cm</span>}
+                          {aluno?.objetivo && <span className="text-[9px] text-zinc-600 bg-white/[0.05] rounded-full px-2 py-0.5">{OBJETIVO_LABEL[aluno.objetivo] ?? aluno.objetivo}</span>}
+                          {aluno?.meta_peso && <span className="text-[9px] text-emerald-600 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-full px-2 py-0.5">Meta: {aluno.meta_peso}kg</span>}
+                          {!aluno?.peso && !aluno?.altura && !aluno?.objetivo && <span className="text-[9px] text-zinc-700">Preencher dados</span>}
+                        </>
+                      )}
+                    </div>
+                    <span className={`text-zinc-600 text-xs transition-transform duration-200 ${editandoFicha ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+                  {editandoFicha && (
+                    <div className="px-5 pb-5 space-y-3 border-t border-white/[0.14]">
+                      <div className="grid grid-cols-2 gap-3 pt-4">
+                        <div>
+                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso (kg)</p>
+                          <input type="number" value={fichaPeso} onChange={e => setFichaPeso(e.target.value)}
+                            placeholder="75.5"
+                            className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
+                        </div>
+                        <div>
+                          <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Altura (cm)</p>
+                          <input type="number" value={fichaAltura} onChange={e => setFichaAltura(e.target.value)}
+                            placeholder="175"
+                            className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sexo</p>
+                        <div className="flex gap-2">
+                          {['masculino', 'feminino', 'outro'].map(v => (
+                            <button key={v} onClick={() => setFichaSexo(v)}
+                              className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaSexo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
+                              {v.charAt(0).toUpperCase() + v.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Data de nascimento</p>
+                        <input type="date" value={fichaNascimento} onChange={e => setFichaNascimento(e.target.value)}
+                          className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
+                      </div>
+                      <div>
+                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Objetivo</p>
+                        <div className="flex flex-wrap gap-2">
+                          {[['perder_peso','Perder peso'],['ganhar_massa','Ganhar massa'],['melhorar_condicionamento','Condicionamento'],['saude_geral','Saúde geral']].map(([v, l]) => (
+                            <button key={v} onClick={() => setFichaObjetivo(v)}
+                              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${fichaObjetivo === v ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
+                              {l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="border-t border-white/[0.14] pt-3">
+                        <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2.5">Meta de peso</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Peso-alvo (kg)</p>
+                            <input type="number" step="0.5" value={fichaMetaPeso} onChange={e => setFichaMetaPeso(e.target.value)}
+                              placeholder="Ex: 78"
+                              className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30" />
+                          </div>
+                          <div>
+                            <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Prazo</p>
+                            <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
+                              className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30"
+                              style={{ colorScheme: 'dark' }} />
+                          </div>
+                        </div>
+                      </div>
+                      <button onClick={salvarFicha} disabled={salvandoFicha}
+                        className="w-full bg-white text-black font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-40">
+                        {salvandoFicha ? 'Salvando...' : 'Salvar ficha'}
+                      </button>
                     </div>
                   )}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
-      {/* Evolução de carga por exercício */}
-      {treinoDoPlano && (() => {
-        const exsComDados = treinoDoPlano.exercicios.filter(ex => (cargaEvolucao[ex.nome]?.length ?? 0) >= 2)
-        if (!exsComDados.length) return null
-        return (
-          <div className="rounded-2xl mb-5 overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-            <div className="px-5 py-4 border-b border-white/[0.14]">
-              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Evolução de carga · Plano {planoAtivo}</p>
-            </div>
-            <div className="divide-y divide-white/[0.04]">
-              {exsComDados.map((ex, i) => {
-                const pontos = cargaEvolucao[ex.nome]
-                const primeiro = pontos[0].carga
-                const ultimo = pontos[pontos.length - 1].carga
-                const delta = Math.round((ultimo - primeiro) * 10) / 10
-                const maxC = Math.max(...pontos.map(p => p.carga))
-                const minC = Math.min(...pontos.map(p => p.carga))
-                const W = 64, H = 26
-                const range = maxC - minC || 1
-                const toY = (v: number) => H - 3 - ((v - minC) / range) * (H - 6)
-                const xStep = W / Math.max(pontos.length - 1, 1)
-                const linePath = pontos.map((p, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(p.carga).toFixed(1)}`).join(' ')
-                const cor = delta >= 0 ? '#34d399' : '#f87171'
-                return (
-                  <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
-                      <p className="text-zinc-600 text-[10px]">{primeiro}kg → {ultimo}kg</p>
+                {/* Composição Corporal — empty state */}
+                {medidasCP.length === 0 && (
+                  <div className="rounded-2xl px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: 'var(--surface-1)' }}>
+                    <span className="text-3xl">📏</span>
+                    <div>
+                      <p className="text-white text-sm font-bold">Sem medidas corporais</p>
+                      <p className="text-zinc-600 text-xs mt-1">Registre as medidas iniciais do aluno para acompanhar a evolução</p>
                     </div>
-                    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible">
-                      <path d={linePath} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      {pontos.map((p, j) => <circle key={j} cx={j * xStep} cy={toY(p.carga)} r="2" fill={cor} />)}
-                    </svg>
-                    <div className="text-right shrink-0 w-14">
-                      <p className="text-white text-sm font-bold">{ultimo} kg</p>
-                      {delta !== 0 && <p className={`text-[10px] font-bold ${delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{delta > 0 ? '+' : ''}{delta}kg</p>}
+                    <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+                      className="mt-1 text-xs text-blue-400 border border-blue-500/20 bg-blue-500/10 rounded-xl px-4 py-2 hover:bg-blue-500/20 active:scale-95 transition-all font-semibold">
+                      + Registrar primeira medida
+                    </button>
+                  </div>
+                )}
+
+                {/* Composição Corporal */}
+                {medidasCP.length >= 2 && (() => {
+                  const ultima = medidasCP[medidasCP.length - 1]
+                  const primeira = medidasCP[0]
+                  type MetricaDef = { key: keyof MedidaCP; label: string; unit: string; cor: string; inverse?: boolean }
+                  const metricas: MetricaDef[] = [
+                    { key: 'peso',           label: 'Peso',         unit: 'kg', cor: '#94a3b8' },
+                    { key: 'gordura_pct',    label: '% Gordura',    unit: '%',  cor: '#f97316', inverse: true },
+                    { key: 'massa_muscular', label: 'Massa musc.',  unit: 'kg', cor: '#34d399' },
+                    { key: 'cintura',        label: 'Cintura',      unit: 'cm', cor: '#a78bfa', inverse: true },
+                    { key: 'quadril',        label: 'Quadril',      unit: 'cm', cor: '#60a5fa' },
+                    { key: 'braco_dir',      label: 'Braço',        unit: 'cm', cor: '#fb923c' },
+                    { key: 'coxa_dir',       label: 'Coxa',         unit: 'cm', cor: '#f472b6' },
+                  ].filter(m => ultima[m.key] != null && primeira[m.key] != null)
+                  if (!metricas.length) return null
+                  function sparkline(key: keyof MedidaCP, cor: string) {
+                    const pts = medidasCP.filter(m => m[key] != null)
+                    if (pts.length < 2) return null
+                    const vals = pts.map(m => m[key] as number)
+                    const W = 56, H = 24, maxV = Math.max(...vals), minV = Math.min(...vals), range = maxV - minV || 1
+                    const xStep = W / Math.max(pts.length - 1, 1)
+                    const toY = (v: number) => H - 3 - ((v - minV) / range) * (H - 6)
+                    const d = vals.map((v, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
+                    return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
+                  }
+                  return (
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                      <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
+                        <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
+                        <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
+                      </div>
+                      <div className="divide-y divide-white/[0.04]">
+                        {metricas.map(m => {
+                          const cur = ultima[m.key] as number
+                          const ini = primeira[m.key] as number
+                          const delta = Math.round((cur - ini) * 10) / 10
+                          const positivo = m.inverse ? delta < 0 : delta > 0
+                          const deltaCor = delta === 0 ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
+                          return (
+                            <div key={m.key} className="flex items-center gap-3 px-5 py-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-zinc-400 text-[10px] uppercase tracking-wider">{m.label}</p>
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-white text-lg font-bold">{cur}</span>
+                                  <span className="text-zinc-600 text-[10px]">{m.unit}</span>
+                                  {delta !== 0 && <span className={`text-[10px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{m.unit}</span>}
+                                </div>
+                              </div>
+                              {sparkline(m.key, m.cor)}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Calendário de aderência - 28 dias */}
+                <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
+                  <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Calendário de aderência · 28 dias</p>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {Array.from({ length: 28 }, (_, i) => {
+                      const d = new Date(getTodayBR() + 'T12:00:00-03:00')
+                      d.setDate(d.getDate() - (27 - i))
+                      const ds = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+                      const tipo = diasAtividade.get(ds)
+                      const isHoje = ds === getTodayBR()
+                      return (
+                        <div key={i} className={[
+                          'aspect-square rounded-lg flex items-center justify-center text-[8px] font-bold',
+                          tipo === 'treino' ? 'bg-emerald-500/75 text-black' : tipo === 'livre' ? 'bg-blue-500/60 text-white' : 'bg-white/[0.07] text-zinc-800',
+                          isHoje ? 'ring-1 ring-white/30' : '',
+                        ].join(' ')}>
+                          {d.getDate()}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/75" /><span className="text-zinc-600 text-[9px]">Musculação</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-500/60" /><span className="text-zinc-600 text-[9px]">Atividade livre</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-white/[0.07] border border-white/[0.14]" /><span className="text-zinc-600 text-[9px]">Descanso</span></div>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* ── ABA TREINOS ──────────────────────────────────────────── */}
+            {abaAtiva === 'treinos' && (
+              <div className="space-y-5">
+
+                {(() => {
+                  const planosComTreino = PLANOS_MAX.filter(p => treinos.some(t => t.plano === p))
+                  const proximoPlano = PLANOS_MAX.find(p => !treinos.some(t => t.plano === p))
+                  const planosVisiveis = proximoPlano ? [...planosComTreino, proximoPlano] : planosComTreino
+                  return (
+                    <div className="flex gap-2 flex-wrap">
+                      {planosVisiveis.map(p => {
+                        const c = CORES[p] ?? CORES.A
+                        const tem = treinos.some(t => t.plano === p)
+                        return (
+                          <button key={p} onClick={() => setPlanoAtivo(p)}
+                            className={`relative flex-1 min-w-[4rem] py-3 rounded-2xl border font-black text-sm transition-all active:scale-95 ${planoAtivo === p ? `${c.bg} ${c.border} ${c.text}` : tem ? 'bg-white/[0.05] border-white/[0.11] text-zinc-400' : 'bg-white/[0.02] border-white/[0.14] text-zinc-600'}`}>
+                            {tem ? `Plano ${p}` : `+ Plano ${p}`}
+                            {tem && (
+                              <span className="block text-[9px] font-normal mt-0.5 opacity-70">
+                                {treinos.find(t => t.plano === p)?.exercicios.length ?? 0} exerc.
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+
+                {treinoDoPlano ? (
+                  <div>
+                    <div className={`rounded-2xl p-5 border ${cores.border}`} style={{ background: 'var(--surface-1)' }}>
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <p className={`text-[10px] uppercase tracking-[0.2em] mb-1 ${cores.text}`}>Plano {planoAtivo}</p>
+                          <p className="text-white font-black text-lg">{treinoDoPlano.nome}</p>
+                          {treinoDoPlano.descricao && <p className="text-zinc-500 text-xs mt-1">{treinoDoPlano.descricao}</p>}
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => abrirEditar(treinoDoPlano)} className="text-[10px] text-zinc-500 border border-white/[0.14] rounded-lg px-3 py-1.5 hover:border-white/30 hover:text-white active:scale-95 transition-all uppercase tracking-wider">Editar</button>
+                          <button onClick={() => setConfirmaDeleteId(treinoDoPlano.id)} className="text-[10px] text-red-500/70 border border-red-500/20 rounded-lg px-3 py-1.5 hover:border-red-500/50 hover:text-red-400 active:scale-95 transition-all uppercase tracking-wider">✕</button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {treinoDoPlano.exercicios.map((ex, i) => (
+                          <div key={i} className="bg-white/[0.05] rounded-xl p-3.5 border border-white/[0.14]">
+                            <div className="flex items-start gap-3">
+                              <div className={`w-6 h-6 rounded-lg ${cores.bg} ${cores.border} border flex items-center justify-center shrink-0 mt-0.5`}>
+                                <span className={`text-[10px] font-black ${cores.text}`}>{i + 1}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-semibold text-sm mb-1">{ex.nome}</p>
+                                <div className="flex gap-3 flex-wrap">
+                                  <span className="text-zinc-500 text-[11px]">{ex.series} séries</span>
+                                  <span className="text-zinc-700 text-[11px]">·</span>
+                                  <span className="text-zinc-500 text-[11px]">{ex.repeticoes} reps</span>
+                                  {ex.carga_sugerida && <><span className="text-zinc-700 text-[11px]">·</span><span className="text-zinc-500 text-[11px]">{ex.carga_sugerida}kg sugerido</span></>}
+                                </div>
+                                {ex.observacoes && <p className="text-zinc-600 text-[11px] mt-1 italic">{ex.observacoes}</p>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <button onClick={abrirNovo} className="w-full border border-white/[0.14] text-zinc-400 font-bold py-4 rounded-2xl text-sm active:scale-95 hover:border-white/20 hover:text-white transition-all tracking-wide mt-4">
+                      + Substituir Plano {planoAtivo}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-16 gap-4">
+                    <div className={`w-16 h-16 rounded-3xl ${cores.bg} ${cores.border} border flex items-center justify-center`}>
+                      <span className={`text-2xl font-black ${cores.text}`}>{planoAtivo}</span>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-white font-bold mb-1">Plano {planoAtivo} vazio</p>
+                      <p className="text-zinc-600 text-sm">Monte o treino para este aluno</p>
+                    </div>
+                    <button onClick={abrirNovo} className="mt-2 bg-white text-black font-bold px-6 py-3 rounded-xl text-sm active:scale-95 transition-all tracking-wide">
+                      + Criar Plano {planoAtivo}
+                    </button>
+                  </div>
+                )}
+
+                {/* Últimas execuções */}
+                {execucoes.length > 0 && (
+                  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                    <div className="px-5 py-4 border-b border-white/[0.14]">
+                      <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Últimas execuções</p>
+                    </div>
+                    <div className="divide-y divide-white/[0.04]">
+                      {execucoes.map((ex) => {
+                        const c = CORES[ex.plano] ?? CORES.A
+                        const dataLabel = new Date(ex.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })
+                        return (
+                          <div key={ex.id} className="px-5 py-3.5">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className={`w-8 h-8 rounded-xl ${c.bg} ${c.border} border flex items-center justify-center shrink-0`}>
+                                <span className={`text-[10px] font-black ${c.text}`}>{ex.plano}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
+                                <p className="text-zinc-600 text-[10px]">
+                                  {dataLabel}
+                                  {ex.seriesFeitas > 0 && ` · ${ex.seriesFeitas} séries`}
+                                  {ex.volume > 0 && ` · ${ex.volume >= 1000 ? `${(ex.volume / 1000).toFixed(1)}t` : `${ex.volume}kg`} vol.`}
+                                </p>
+                              </div>
+                            </div>
+                            {ex.exercicios.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pl-11">
+                                {ex.exercicios.map(e => (
+                                  <span key={e.nome} className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-lg px-2 py-0.5">
+                                    {e.nome}{e.maxCarga > 0 ? ` · ${e.maxCarga}kg` : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })()}
+                )}
 
+                {/* Evolução de carga por exercício */}
+                {treinoDoPlano && (() => {
+                  const exsComDados = treinoDoPlano.exercicios.filter(ex => (cargaEvolucao[ex.nome]?.length ?? 0) >= 2)
+                  if (!exsComDados.length) return null
+                  return (
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
+                      <div className="px-5 py-4 border-b border-white/[0.14]">
+                        <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Evolução de carga · Plano {planoAtivo}</p>
+                      </div>
+                      <div className="divide-y divide-white/[0.04]">
+                        {exsComDados.map((ex, i) => {
+                          const pontos = cargaEvolucao[ex.nome]
+                          const primeiro = pontos[0].carga
+                          const ultimo = pontos[pontos.length - 1].carga
+                          const delta = Math.round((ultimo - primeiro) * 10) / 10
+                          const maxC = Math.max(...pontos.map(p => p.carga))
+                          const minC = Math.min(...pontos.map(p => p.carga))
+                          const W = 64, H = 26
+                          const range = maxC - minC || 1
+                          const toY = (v: number) => H - 3 - ((v - minC) / range) * (H - 6)
+                          const xStep = W / Math.max(pontos.length - 1, 1)
+                          const linePath = pontos.map((p, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(p.carga).toFixed(1)}`).join(' ')
+                          const cor = delta >= 0 ? '#34d399' : '#f87171'
+                          return (
+                            <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-semibold truncate">{ex.nome}</p>
+                                <p className="text-zinc-600 text-[10px]">{primeiro}kg → {ultimo}kg</p>
+                              </div>
+                              <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible">
+                                <path d={linePath} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                {pontos.map((p, j) => <circle key={j} cx={j * xStep} cy={toY(p.carga)} r="2" fill={cor} />)}
+                              </svg>
+                              <div className="text-right shrink-0 w-14">
+                                <p className="text-white text-sm font-bold">{ultimo} kg</p>
+                                {delta !== 0 && <p className={`text-[10px] font-bold ${delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{delta > 0 ? '+' : ''}{delta}kg</p>}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+              </div>
+            )}
+
+            {/* ── ABA EVOLUÇÃO ─────────────────────────────────────────── */}
+            {abaAtiva === 'evolucao' && (
+              <div className="flex flex-col items-center py-20 gap-3 text-center">
+                <TrendingUp size={32} className="text-zinc-700" />
+                <p className="text-zinc-600 text-sm">Evolução — em breve</p>
+              </div>
+            )}
+
+            {/* ── ABA IA CLÍNICA ───────────────────────────────────────── */}
+            {abaAtiva === 'ia' && aluno && (
+              <ProfissionalAIChat contexto={{
+                profissionalTipo: 'personal',
+                profissionalNome: personalNome || null,
+                paciente: {
+                  nome: aluno.nome,
+                  peso: aluno.peso,
+                  altura: aluno.altura,
+                  objetivo: aluno.objetivo,
+                  nivel: aluno.nivel,
+                  metaPeso: aluno.meta_peso,
+                  metaDataLimite: aluno.meta_data_limite,
+                  fcmax: aluno.fcmax,
+                  ftp: aluno.ftp,
+                },
+                alertasClinicos: {
+                  lesoes,
+                  restricoesFisicas: restricaoFisica,
+                  medicamentos,
+                  alergias,
+                  restricoesAlimentares: restricaoNutri,
+                },
+                treinamento: {
+                  treinosSemana: monitor?.treinosSemana ?? 0,
+                  diasSemTreinar: monitor?.ultimoTreino ? diasSemTreinar(monitor.ultimoTreino) : null,
+                  scoreRecuperacaoHoje: monitor?.scoreRecuperacao ?? null,
+                  sonoHorasHoje: monitor?.sonoHoras ?? null,
+                  exerciciosMaxCarga: Object.entries(cargaEvolucao)
+                    .map(([nome, pontos]) => ({
+                      nome,
+                      maxCarga: Math.max(...pontos.map(p => p.carga)),
+                      sessoes: pontos.length,
+                    }))
+                    .sort((a, b) => b.sessoes - a.sessoes)
+                    .slice(0, 6),
+                  periodizacaoFase: fasePeriodizacaoChat,
+                  planos: treinos.map(t => ({
+                    plano: t.plano,
+                    nome: t.nome,
+                    exercicios: t.exercicios.map(e => ({
+                      nome: e.nome,
+                      series: e.series,
+                      repeticoes: e.repeticoes,
+                      carga: e.carga_sugerida,
+                      observacoes: e.observacoes ?? '',
+                    })),
+                  })),
+                },
+                nutricao: planoNutri ? {
+                  caloriasPrescritas: planoNutri.calorias_meta,
+                  proteinaPrescritas: planoNutri.proteina_meta,
+                  caloriasSemanaisGastas: null,
+                  treinosSemana: monitor?.treinosSemana ?? 0,
+                  periodizacao: fasePeriodizacaoChat,
+                } : null,
+                composicao: medidasCP.length > 0 ? {
+                  ultimoPeso: medidasCP[medidasCP.length - 1].peso,
+                  gorduraPct: medidasCP[medidasCP.length - 1].gordura_pct,
+                  massaMuscular: medidasCP[medidasCP.length - 1].massa_muscular,
+                  data: medidasCP[medidasCP.length - 1].data,
+                } : null,
+                ultimaAvaliacao,
+                proximaConsulta: proximaConsultaInfo,
+                anamneseCompleta,
+                sono: { hoje: sonoHojeInfo, historico7d: sonoHistorico7d },
+                bemEstarHoje: bemEstarHojeInfo,
+                planoAlimentar: (() => {
+                  if (!planoNutri?.conteudo) return null
+                  try {
+                    const p = JSON.parse(planoNutri.conteudo)
+                    if (!p.refeicoes) return null
+                    return {
+                      calorias: planoNutri.calorias_meta,
+                      proteina: planoNutri.proteina_meta,
+                      refeicoes: (p.refeicoes ?? []).map((r: any) => ({
+                        nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
+                        alimentos: (r.alimentos ?? []).map((a: any) => a.nome).filter(Boolean),
+                      })),
+                      suplementos: (p.suplementos ?? []).map((s: any) => typeof s === 'string' ? s : s?.nome).filter(Boolean),
+                      hidratacao: p.hidratacao ?? null,
+                      orientacaoTreino: p.orientacao_treino ?? null,
+                      observacoes: p.nota_nutri ?? null,
+                    }
+                  } catch { return null }
+                })(),
+                treinosRegistrados: execucoes.map(e => ({ data: e.data, nome: e.nome, calorias: e.calorias, volume: e.volume, exercicios: e.exercicios.map(ex => ex.nome) })),
+                medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
+              }} pacienteId={clienteId} />
+            )}
+
+          </div>
+        </div>
+      </div>
+
+      {/* ── MODAL EDITAR TREINO ──────────────────────────────────────── */}
       {modalAberto && editandoTreino && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
           <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] overflow-hidden" style={{ background: 'var(--surface-1)', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
@@ -996,97 +1195,7 @@ export default function PersonalAluno() {
         </div>
       )}
 
-      {aluno && (
-        <ProfissionalAIChat contexto={{
-          profissionalTipo: 'personal',
-          profissionalNome: personalNome || null,
-          paciente: {
-            nome: aluno.nome,
-            peso: aluno.peso,
-            altura: aluno.altura,
-            objetivo: aluno.objetivo,
-            nivel: aluno.nivel,
-            metaPeso: aluno.meta_peso,
-            metaDataLimite: aluno.meta_data_limite,
-            fcmax: aluno.fcmax,
-            ftp: aluno.ftp,
-          },
-          alertasClinicos: {
-            lesoes,
-            restricoesFisicas: restricaoFisica,
-            medicamentos,
-            alergias,
-            restricoesAlimentares: restricaoNutri,
-          },
-          treinamento: {
-            treinosSemana: monitor?.treinosSemana ?? 0,
-            diasSemTreinar: monitor?.ultimoTreino ? diasSemTreinar(monitor.ultimoTreino) : null,
-            scoreRecuperacaoHoje: monitor?.scoreRecuperacao ?? null,
-            sonoHorasHoje: monitor?.sonoHoras ?? null,
-            exerciciosMaxCarga: Object.entries(cargaEvolucao)
-              .map(([nome, pontos]) => ({
-                nome,
-                maxCarga: Math.max(...pontos.map(p => p.carga)),
-                sessoes: pontos.length,
-              }))
-              .sort((a, b) => b.sessoes - a.sessoes)
-              .slice(0, 6),
-            periodizacaoFase: fasePeriodizacaoChat,
-            planos: treinos.map(t => ({
-              plano: t.plano,
-              nome: t.nome,
-              exercicios: t.exercicios.map(e => ({
-                nome: e.nome,
-                series: e.series,
-                repeticoes: e.repeticoes,
-                carga: e.carga_sugerida,
-                observacoes: e.observacoes ?? '',
-              })),
-            })),
-          },
-          nutricao: planoNutri ? {
-            caloriasPrescritas: planoNutri.calorias_meta,
-            proteinaPrescritas: planoNutri.proteina_meta,
-            caloriasSemanaisGastas: null,
-            treinosSemana: monitor?.treinosSemana ?? 0,
-            periodizacao: fasePeriodizacaoChat,
-          } : null,
-          composicao: medidasCP.length > 0 ? {
-            ultimoPeso: medidasCP[medidasCP.length - 1].peso,
-            gorduraPct: medidasCP[medidasCP.length - 1].gordura_pct,
-            massaMuscular: medidasCP[medidasCP.length - 1].massa_muscular,
-            data: medidasCP[medidasCP.length - 1].data,
-          } : null,
-          ultimaAvaliacao,
-          proximaConsulta: proximaConsultaInfo,
-          anamneseCompleta,
-          sono: { hoje: sonoHojeInfo, historico7d: sonoHistorico7d },
-          bemEstarHoje: bemEstarHojeInfo,
-          planoAlimentar: (() => {
-            if (!planoNutri?.conteudo) return null
-            try {
-              const p = JSON.parse(planoNutri.conteudo)
-              if (!p.refeicoes) return null
-              return {
-                calorias: planoNutri.calorias_meta,
-                proteina: planoNutri.proteina_meta,
-                refeicoes: (p.refeicoes ?? []).map((r: any) => ({
-                  nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
-                  alimentos: (r.alimentos ?? []).map((a: any) => a.nome).filter(Boolean),
-                })),
-                suplementos: (p.suplementos ?? []).map((s: any) => typeof s === 'string' ? s : s?.nome).filter(Boolean),
-                hidratacao: p.hidratacao ?? null,
-                orientacaoTreino: p.orientacao_treino ?? null,
-                observacoes: p.nota_nutri ?? null,
-              }
-            } catch { return null }
-          })(),
-          treinosRegistrados: execucoes.map(e => ({ data: e.data, nome: e.nome, calorias: e.calorias, volume: e.volume, exercicios: e.exercicios.map(ex => ex.nome) })),
-          medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
-        }} pacienteId={clienteId} />
-      )}
-
-      {/* Modal confirmação de delete */}
+      {/* ── MODAL CONFIRMAÇÃO DE DELETE ──────────────────────────────── */}
       {confirmaDeleteId && (
         <div className="fixed inset-0 z-[80] flex items-end justify-center"
           style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
@@ -1112,7 +1221,7 @@ export default function PersonalAluno() {
           </div>
         </div>
       )}
-      </div>
+
     </main>
   )
 }
