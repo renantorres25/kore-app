@@ -151,7 +151,7 @@ export default function NutricionistaPaciente() {
   const [historicoTreinosDetalhado, setHistoricoTreinosDetalhado] = useState<{
     id: string; data: string; nome: string; plano: string | null; calorias: number | null; volume: number; exercicios: string[]
   }[]>([])
-  const [atividadesLivres14d, setAtividadesLivres14d] = useState<{
+  const [atividadesLivres21d, setAtividadesLivres21d] = useState<{
     id: string; data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_estimadas: number | null; calorias_wearable: number | null; intensidade: number | null
   }[]>([])
   const [recuperacao7d, setRecuperacao7d] = useState<{ data: string; score: number | null; duracao: number | null }[]>([])
@@ -177,6 +177,13 @@ export default function NutricionistaPaciente() {
   } | null>(null)
   const [briefingGeradoEm, setBriefingGeradoEm] = useState<Date | null>(null)
   const [gerandoBriefing, setGerandoBriefing] = useState(false)
+  const [historicoIACarregado, setHistoricoIACarregado] = useState(false)
+  const [historicoIACarregando, setHistoricoIACarregando] = useState(false)
+  const [historicoIA, setHistoricoIA] = useState<{
+    atividades: { data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_wearable: number | null; calorias_estimadas: number | null }[]
+    treinos: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[]
+    sono: { data: string; score: number | null; duracao_min: number | null }[]
+  } | null>(null)
   const [atividades7dCount, setAtividades7dCount] = useState(0)
   const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
   const [loadingAnamnese, setLoadingAnamnese] = useState(false)
@@ -666,6 +673,12 @@ export default function NutricionistaPaciente() {
     if (abaAtiva === 'treino') carregarDadosTreino()
   }, [abaAtiva])
 
+  useEffect(() => {
+    if (abaAtiva === 'ia' && !historicoIACarregado && !historicoIACarregando) {
+      carregarHistoricoCompletoIA()
+    }
+  }, [abaAtiva])
+
   async function sincronizarStrava() {
     setBackfillando(true); setBackfillMsg(null)
     try {
@@ -682,7 +695,7 @@ export default function NutricionistaPaciente() {
         setBackfillMsg(parts.length ? `✓ ${parts.join(' · ')}` : '✓ Tudo sincronizado')
         if (data.inseridos > 0 || data.atualizados > 0) {
           setHistoricoTreinosDetalhado([])
-          setAtividadesLivres14d([])
+          setAtividadesLivres21d([])
           setTimeout(() => carregarDadosTreino(true), 100)
         }
       } else {
@@ -711,7 +724,7 @@ export default function NutricionistaPaciente() {
         setBackfillMsg(msg)
         if (data.atualizados > 0) {
           setHistoricoTreinosDetalhado([])
-          setAtividadesLivres14d([])
+          setAtividadesLivres21d([])
           setTimeout(() => carregarDadosTreino(true), 100)
         }
       } else {
@@ -770,7 +783,7 @@ export default function NutricionistaPaciente() {
       setHistoricoTreinosDetalhado(hist)
     }
 
-    if (ativs?.length) setAtividadesLivres14d(ativs as any)
+    if (ativs?.length) setAtividadesLivres21d(ativs as any)
     if (sonoHist?.length) {
       const sonoArr = sonoHist as any[]
       const curr7 = sonoArr.filter(s => s.data >= currWeekStartLoad && s.data <= currWeekEndLoad)
@@ -779,6 +792,49 @@ export default function NutricionistaPaciente() {
       setRecuperacaoPrev7d(prev7.map((s: any) => ({ data: s.data, score: s.score_recuperacao })))
     }
     setTreinoCarregando(false)
+  }
+
+  async function carregarHistoricoCompletoIA() {
+    if (historicoIACarregado || historicoIACarregando || !clienteId) return
+    setHistoricoIACarregando(true)
+
+    const seisM = new Date()
+    seisM.setDate(seisM.getDate() - 180)
+    const q180 = seisM.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+    const [{ data: ativs6m }, { data: sono6m }, { data: treinos6m }] = await Promise.all([
+      supabase.from('atividades_livres')
+        .select('data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable')
+        .eq('usuario_id', clienteId).gte('data', q180).order('data', { ascending: false }),
+      supabase.from('sono')
+        .select('data,score_recuperacao,duracao_minutos')
+        .eq('usuario_id', clienteId).gte('data', q180).order('data', { ascending: false }),
+      supabase.from('treinos')
+        .select('id,data,nome,calorias_estimadas')
+        .eq('cliente_id', clienteId).eq('concluido', true).gte('data', q180).order('data', { ascending: false }),
+    ])
+
+    let treinosMapeados: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[] = []
+    if (treinos6m?.length) {
+      const ids = (treinos6m as any[]).map(t => t.id)
+      const { data: exs } = await supabase
+        .from('exercicios_treino').select('treino_id,nome').in('treino_id', ids)
+      treinosMapeados = (treinos6m as any[]).map(t => ({
+        data: t.data,
+        nome: t.nome,
+        calorias: t.calorias_estimadas,
+        volume: 0,
+        exercicios: ((exs ?? []) as any[]).filter(e => e.treino_id === t.id).slice(0, 3).map((e: any) => e.nome),
+      }))
+    }
+
+    setHistoricoIA({
+      atividades: (ativs6m ?? []) as any[],
+      treinos: treinosMapeados,
+      sono: ((sono6m ?? []) as any[]).map(s => ({ data: s.data, score: s.score_recuperacao, duracao_min: s.duracao_minutos })),
+    })
+    setHistoricoIACarregado(true)
+    setHistoricoIACarregando(false)
   }
 
   async function gerarPlanoIA() {
@@ -1857,14 +1913,14 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
           const calSemTotal = [
             ...historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr && t.data <= q7CurrEndStr).map(t => t.calorias ?? 0),
-            ...atividadesLivres14d.filter(a => a.data >= q7CurrStr && a.data <= q7CurrEndStr).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
+            ...atividadesLivres21d.filter(a => a.data >= q7CurrStr && a.data <= q7CurrEndStr).map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0)
           ].reduce((acc, v) => acc + v, 0)
           const scoreMedia = recuperacao7d.length ? Math.round(recuperacao7d.filter(r => r.score != null).reduce((a, r) => a + (r.score ?? 0), 0) / recuperacao7d.filter(r => r.score != null).length) : null
 
           const treinosCurr = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr && t.data <= q7CurrEndStr)
           const treinosPrev = historicoTreinosDetalhado.filter(t => t.data >= q14CurrStr && t.data <= q14CurrEndStr)
-          const ativsCurr = atividadesLivres14d.filter(a => a.data >= q7CurrStr && a.data <= q7CurrEndStr)
-          const ativsPrev = atividadesLivres14d.filter(a => a.data >= q14CurrStr && a.data <= q14CurrEndStr)
+          const ativsCurr = atividadesLivres21d.filter(a => a.data >= q7CurrStr && a.data <= q7CurrEndStr)
+          const ativsPrev = atividadesLivres21d.filter(a => a.data >= q14CurrStr && a.data <= q14CurrEndStr)
 
           const semSessoes = treinosCurr.length + ativsCurr.length
           const prevSessoes = treinosPrev.length + ativsPrev.length
@@ -1914,44 +1970,6 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
                 )}
 
-                {/* Métricas: últimos 7 dias completos vs os 7 dias completos anteriores (janela móvel, não semana civil) */}
-                <p style={{ fontSize: 10, color: '#9AA0AD', marginBottom: -4, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>
-                  {new Date(q7CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')} – {new Date(q7CurrEndStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}
-                  <span style={{ color: '#7A8290', marginLeft: 8 }}>vs {new Date(q14CurrStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}–{new Date(q14CurrEndStr + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')}</span>
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {([
-                    {
-                      label: 'Sessões', fmt: String(semSessoes), unit: '/sem',
-                      cor: 'text-white', delta: semDelta(semSessoes, prevSessoes), good: (d: number) => d >= 0,
-                    },
-                    {
-                      label: 'Horas treinadas', fmt: semHoras > 0 ? semHoras.toFixed(1) : '—', unit: 'h',
-                      cor: 'text-blue-300', delta: semDelta(semHoras, prevHoras > 0 ? prevHoras : null), good: (d: number) => d >= 0,
-                    },
-                    {
-                      label: 'Kcal gastas', fmt: semKcal > 0 ? `${(semKcal/1000).toFixed(1)}k` : '—', unit: '',
-                      cor: 'text-orange-300', delta: semDelta(semKcal, prevKcal > 0 ? prevKcal : null), good: (d: number) => d >= 0,
-                    },
-                    {
-                      label: 'Recuperação', fmt: scoreMedia ? `${scoreMedia}` : '—', unit: scoreMedia ? '/100' : '',
-                      cor: scoreMedia && scoreMedia >= 70 ? 'text-emerald-400' : scoreMedia && scoreMedia >= 50 ? 'text-yellow-400' : scoreMedia ? 'text-red-400' : 'text-zinc-500',
-                      delta: semDelta(scoreMedia, prevScoreMedia), good: (d: number) => d >= 0,
-                    },
-                  ] as { label: string; fmt: string; unit: string; cor: string; delta: number | null; good: (d: number) => boolean }[]).map(m => (
-                    <div key={m.label} className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                      <p className={`text-xl font-black leading-none ${m.cor}`}>{m.fmt}<span className="text-xs font-normal text-zinc-600">{m.unit}</span></p>
-                      <p className="text-zinc-600 text-[10px] mt-1">{m.label}</p>
-                      {m.delta !== null ? (
-                        <p className={`text-[10px] font-bold mt-1 ${m.good(m.delta) ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {m.delta > 0 ? '↑' : m.delta < 0 ? '↓' : '→'} {m.delta > 0 ? '+' : ''}{m.delta}%
-                        </p>
-                      ) : (
-                        <p style={{ color: '#4A5060', fontSize: 10, marginTop: 4 }}>sem ant.</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
 
                 {/* Ajuste calórico */}
                 {ajuste && caloriasBase && (
@@ -2006,27 +2024,40 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
 
             {/* ── 3. RESUMO SEMANAL DE TREINO ── */}
             {!treinoCarregando && (() => {
-              const treinosUlt7 = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr)
-              const atividadesUlt7 = atividadesLivres14d.filter(a => a.data >= q7CurrStr)
+              // Período "duas semanas atrás" (baseline para delta do bloco esquerdo)
+              const antStart = new Date(dBase); antStart.setDate(dBase.getDate() - dBase.getDay() - 14)
+              const antEnd   = new Date(dBase); antEnd.setDate(dBase.getDate() - dBase.getDay() - 8)
+              const q21CurrStr    = antStart.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+              const q21CurrEndStr = antEnd.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
-              const calTreinos = treinosUlt7.reduce((s, t) => s + (t.calorias ?? 0), 0)
-              const calAtividades = atividadesUlt7.reduce((s, a) => s + (a.calorias_wearable ?? a.calorias_estimadas ?? 0), 0)
-              const totalCal = calTreinos + calAtividades
+              // Duas semanas atrás
+              const treinosAnt = historicoTreinosDetalhado.filter(t => t.data >= q21CurrStr && t.data <= q21CurrEndStr)
+              const ativsAnt   = atividadesLivres21d.filter(a => a.data >= q21CurrStr && a.data <= q21CurrEndStr)
+              const antSessoes = treinosAnt.length + ativsAnt.length
+              const antKcal    = treinosAnt.reduce((s, t) => s + (t.calorias ?? 0), 0)
+                               + ativsAnt.reduce((s, a) => s + (a.calorias_wearable ?? a.calorias_estimadas ?? 0), 0)
+              const antMin     = ativsAnt.reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosAnt.length * 60
+              const antHoras   = antMin / 60
 
-              const minAtividades = atividadesUlt7.reduce((s, a) => s + (a.duracao_min ?? 0), 0)
-              const totalHoras = (minAtividades + treinosUlt7.length * 60) / 60
-              const mediaDiaria = Math.round(totalCal / 7)
+              // Semana atual — do domingo desta semana até hoje
+              const treinosAtual = historicoTreinosDetalhado.filter(t => t.data >= q7CurrStr && t.data <= hoje)
+              const ativsAtual   = atividadesLivres21d.filter(a => a.data >= q7CurrStr && a.data <= hoje)
+              const atualSessoes = treinosAtual.length + ativsAtual.length
+              const atualKcal    = treinosAtual.reduce((s, t) => s + (t.calorias ?? 0), 0)
+                                 + ativsAtual.reduce((s, a) => s + (a.calorias_wearable ?? a.calorias_estimadas ?? 0), 0)
+              const atualMin     = ativsAtual.reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosAtual.length * 60
+              const atualHoras   = atualMin / 60
+              const diasDecorridos = dBase.getDay() === 0 ? 7 : dBase.getDay()
 
-              // Distribuição por modalidade — por tempo (mais relevante clinicamente)
+              // Distribuição por modalidade — semana atual
               const modalMap: Record<string, { min: number; sessoes: number }> = {}
-              if (treinosUlt7.length > 0) modalMap['Musculação'] = { min: treinosUlt7.length * 60, sessoes: treinosUlt7.length }
-              atividadesUlt7.forEach(a => {
+              if (treinosAtual.length > 0) modalMap['Musculação'] = { min: treinosAtual.length * 60, sessoes: treinosAtual.length }
+              ativsAtual.forEach(a => {
                 const m = a.modalidade ? (a.modalidade.charAt(0).toUpperCase() + a.modalidade.slice(1).toLowerCase()) : 'Outro'
                 if (!modalMap[m]) modalMap[m] = { min: 0, sessoes: 0 }
                 modalMap[m].min += a.duracao_min ?? 0
                 modalMap[m].sessoes += 1
               })
-              const totalSessoes = Object.values(modalMap).reduce((s, v) => s + v.sessoes, 0)
               const totalMinModal = Object.values(modalMap).reduce((s, v) => s + v.min, 0)
               const modais = Object.entries(modalMap)
                 .map(([nome, { min, sessoes }]) => ({
@@ -2036,52 +2067,117 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 }))
                 .sort((a, b) => b.pct - a.pct)
 
-              if (totalSessoes === 0 && totalCal === 0) return null
+              if (prevSessoes === 0 && prevKcal === 0 && atualSessoes === 0 && atualKcal === 0) return null
+
+              const fmtDate = (d: Date) =>
+                d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')
+
+              const labelModalidade = (m: string) => ({
+                'Natacao': 'Natação', 'Natação': 'Natação',
+                'Musculacao': 'Musculação', 'Musculação': 'Musculação',
+              } as Record<string, string>)[m] ?? m
 
               return (
                 <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }}>
-                  <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between">
+                  <div className="px-5 py-3.5 border-b border-white/[0.07]">
                     <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Resumo semanal de treino</p>
-                    <span className="text-zinc-600 text-[10px]">{totalSessoes} sessão{totalSessoes !== 1 ? 'ões' : ''}</span>
                   </div>
-                  <div className="p-5">
-                    <div className="grid grid-cols-3 gap-4 mb-5">
-                      <div>
-                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Kcal gastas</p>
-                        <p className="text-2xl font-black text-orange-300 leading-none">{totalCal > 0 ? totalCal.toLocaleString('pt-BR') : '—'}</p>
-                        <p className="text-zinc-600 text-xs mt-0.5">na semana</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Horas de treino</p>
-                        <p className="text-2xl font-black text-white leading-none">{totalHoras > 0 ? totalHoras.toFixed(1) : '—'}</p>
-                        <p className="text-zinc-600 text-xs mt-0.5">horas totais</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-1">Média diária</p>
-                        <p className="text-2xl font-black text-emerald-400 leading-none">{mediaDiaria > 0 ? mediaDiaria.toLocaleString('pt-BR') : '—'}</p>
-                        <p className="text-zinc-600 text-xs mt-0.5">kcal/dia</p>
-                      </div>
-                    </div>
-                    {modais.length > 0 && (
-                      <div>
-                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Distribuição por modalidade · por tempo de atividade</p>
-                        <div className="space-y-2.5">
-                          {modais.map(m => (
-                            <div key={m.nome}>
-                              <div className="flex items-center gap-3 mb-1">
-                                <p className="text-zinc-300 text-xs w-24 shrink-0 truncate font-medium">{m.nome}</p>
-                                <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
-                                  <div className="h-full rounded-full bg-[#2DD4A7] transition-all" style={{ width: `${m.pct}%` }} />
-                                </div>
-                                <p className="text-zinc-400 text-xs w-8 text-right shrink-0 font-semibold">{m.pct}%</p>
-                              </div>
-                              <p className="text-zinc-600 text-[10px] pl-[6.5rem]">{m.horas} · {m.sessoes} sessão{m.sessoes !== 1 ? 'ões' : ''}</p>
-                            </div>
-                          ))}
+
+                  {/* Mobile: col-reverse (atual em cima) — Desktop: row */}
+                  <div className="flex flex-col-reverse md:flex-row">
+
+                    {/* BLOCO ESQUERDO — Semana passada + deltas vs duas semanas atrás */}
+                    <div className="flex-1 p-5 md:border-r border-white/[0.07]">
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Semana passada</p>
+                      <p className="text-zinc-500 text-[11px] mb-4">{fmtDate(prevStart)} – {fmtDate(prevEnd)}</p>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Sessões</p>
+                          <div className="flex items-center leading-none">
+                            <span className="text-2xl font-black text-white">{prevSessoes > 0 ? prevSessoes : '—'}</span>
+                            {prevSessoes > 0 && (() => {
+                              const d = semDelta(prevSessoes, antSessoes)
+                              if (d === null) return null
+                              return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-2 ${d >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>{d >= 0 ? '+' : ''}{d}%</span>
+                            })()}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Kcal gastas</p>
+                          <div className="flex items-center leading-none">
+                            <span className="text-2xl font-black text-orange-300">{prevKcal > 0 ? prevKcal.toLocaleString('pt-BR') : '—'}</span>
+                            {prevKcal > 0 && (() => {
+                              const d = semDelta(prevKcal, antKcal)
+                              if (d === null) return null
+                              return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-2 ${d >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>{d >= 0 ? '+' : ''}{d}%</span>
+                            })()}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Horas de treino</p>
+                          <div className="flex items-center leading-none">
+                            <span className="text-2xl font-black text-white">{prevHoras > 0 ? prevHoras.toFixed(1) : '—'}</span>
+                            {prevHoras > 0 && (() => {
+                              const d = semDelta(prevHoras, antHoras)
+                              if (d === null) return null
+                              return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-2 ${d >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>{d >= 0 ? '+' : ''}{d}%</span>
+                            })()}
+                          </div>
                         </div>
                       </div>
-                    )}
+                    </div>
+
+                    {/* BLOCO DIREITO — Semana atual + barra de progresso (sem deltas) */}
+                    <div className="flex-1 p-5 border-b md:border-b-0 border-white/[0.07]">
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Semana atual</p>
+                      <p className="text-zinc-500 text-[11px] mb-4">{fmtDate(currStart)} – hoje</p>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Sessões</p>
+                          <p className="text-2xl font-black text-white leading-none">{atualSessoes > 0 ? atualSessoes : '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Kcal gastas</p>
+                          <p className="text-2xl font-black text-orange-300 leading-none">{atualKcal > 0 ? atualKcal.toLocaleString('pt-BR') : '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Horas de treino</p>
+                          <p className="text-2xl font-black text-white leading-none">{atualHoras > 0 ? atualHoras.toFixed(1) : '—'}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <div className="flex justify-between mb-1.5">
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider">Progresso da semana</p>
+                          <p className="text-[10px] text-zinc-500">{diasDecorridos} de 7 dias</p>
+                        </div>
+                        <div className="h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-emerald-400 transition-all" style={{ width: `${Math.round((diasDecorridos / 7) * 100)}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
+
+                  {/* Distribuição por modalidade — semana atual */}
+                  {modais.length > 0 && (
+                    <div className="border-t border-white/[0.07] px-5 pt-4 pb-5">
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Distribuição por modalidade · por tempo de atividade</p>
+                      <div className="space-y-2.5">
+                        {modais.map(m => (
+                          <div key={m.nome}>
+                            <div className="flex items-center gap-3 mb-1">
+                              <p className="text-zinc-300 text-xs w-24 shrink-0 truncate font-medium">{labelModalidade(m.nome)}</p>
+                              <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                                <div className="h-full rounded-full bg-[#2DD4A7] transition-all" style={{ width: `${m.pct}%` }} />
+                              </div>
+                              <p className="text-zinc-400 text-xs w-8 text-right shrink-0 font-semibold">{m.pct}%</p>
+                            </div>
+                            <p className="text-zinc-600 text-[10px] pl-[6.5rem]">{m.horas} · {m.sessoes} sessão{m.sessoes !== 1 ? 'ões' : ''}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })()}
@@ -2145,7 +2241,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 flex-wrap">
                       <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Atividades livres — 30 dias</p>
-                      <span className="text-zinc-600 text-xs">{atividadesLivres14d.length > 0 ? `${atividadesLivres14d.length} atividades` : 'sem registros'}</span>
+                      <span className="text-zinc-600 text-xs">{atividadesLivres21d.length > 0 ? `${atividadesLivres21d.length} atividades` : 'sem registros'}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {backfillMsg && <span className="text-[10px] text-emerald-400">{backfillMsg}</span>}
@@ -2158,9 +2254,9 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                       </button>
                     </div>
                   </div>
-                  {atividadesLivres14d.length > 0 ? (
+                  {atividadesLivres21d.length > 0 ? (
                     <div className="divide-y divide-white/[0.04]">
-                      {atividadesLivres14d.slice(0, 20).map(a => (
+                      {atividadesLivres21d.slice(0, 20).map(a => (
                         <div key={a.id} className="px-5 py-4 flex items-center gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -2729,7 +2825,7 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             distancia_km: null as number | null,
             calorias: t.calorias,
           })),
-          ...atividadesLivres14d.filter(a => a.data >= q7AI).map(a => ({
+          ...atividadesLivres21d.filter(a => a.data >= q7AI).map(a => ({
             data: a.data,
             modalidade: a.modalidade,
             duracao_min: a.duracao_min,
@@ -2797,6 +2893,17 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
             } : null,
             treinosRegistrados: historicoTreinosDetalhado,
             medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
+            historicoCompleto: historicoIA ? {
+              atividades: historicoIA.atividades.map(a => ({
+                data: a.data,
+                modalidade: a.modalidade,
+                duracao_min: a.duracao_min,
+                distancia_km: a.distancia_km,
+                calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null,
+              })),
+              treinos: historicoIA.treinos,
+              sono: historicoIA.sono,
+            } : null,
           }} pacienteId={clienteId} />
         )
       })()}

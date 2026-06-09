@@ -68,6 +68,11 @@ export type ContextoProfissional = {
   } | null
   treinosRegistrados?: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[]
   medidasHistorico?: { data: string | null; peso: number | null; gorduraPct: number | null; massaMuscular: number | null }[]
+  historicoCompleto?: {
+    atividades: { data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias: number | null }[]
+    treinos: { data: string; nome: string; calorias: number | null; exercicios: string[] }[]
+    sono: { data: string; score: number | null; duracao_min: number | null }[]
+  } | null
 }
 
 const TERMOS_IRRELEVANTES = /^(nenhum[ao]?|nada|não|nao|sem|ok|okay|oke?|n\/a|-)$/i
@@ -259,6 +264,48 @@ DADOS NUTRICIONAIS:
       const dataFmt = m.data ? new Date(m.data).toLocaleDateString('pt-BR') : '?'
       return `- ${dataFmt}: ${m.peso ?? '?'}kg · gordura ${m.gorduraPct ?? '?'}% · massa muscular ${m.massaMuscular ?? '?'}kg`
     }).join('\n')
+  }
+
+  if (ctx.historicoCompleto) {
+    const atsByMonth: Record<string, { count: number; min: number; kcal: number }> = {}
+    ctx.historicoCompleto.atividades.forEach(a => {
+      const mes = a.data.slice(0, 7)
+      if (!atsByMonth[mes]) atsByMonth[mes] = { count: 0, min: 0, kcal: 0 }
+      atsByMonth[mes].count++
+      atsByMonth[mes].min += a.duracao_min ?? 0
+      atsByMonth[mes].kcal += a.calorias ?? 0
+    })
+    const atsLinhas = Object.entries(atsByMonth)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([mes, v]) => {
+        const nomeMes = new Date(mes + '-15T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+        const horas = v.min >= 60 ? `${(v.min / 60).toFixed(1)}h` : `${v.min}min`
+        return `- ${nomeMes}/${mes.slice(2, 4)}: ${v.count} atividades · ${horas}${v.kcal > 0 ? ` · ${v.kcal} kcal` : ''}`
+      }).join('\n')
+
+    const trByMonth: Record<string, number> = {}
+    ctx.historicoCompleto.treinos.forEach(t => { trByMonth[t.data.slice(0, 7)] = (trByMonth[t.data.slice(0, 7)] ?? 0) + 1 })
+    const trLinhas = Object.entries(trByMonth)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([mes, n]) => {
+        const nomeMes = new Date(mes + '-15T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+        return `- ${nomeMes}/${mes.slice(2, 4)}: ${n} treinos`
+      }).join('\n')
+
+    const sonoComScore = ctx.historicoCompleto.sono.filter(s => s.score !== null)
+    const mediaScore = sonoComScore.length
+      ? Math.round(sonoComScore.reduce((s, r) => s + (r.score ?? 0), 0) / sonoComScore.length)
+      : null
+    const sonoComDur = ctx.historicoCompleto.sono.filter(s => s.duracao_min !== null)
+    const mediaDur = sonoComDur.length
+      ? Math.round(sonoComDur.reduce((s, r) => s + (r.duracao_min ?? 0), 0) / sonoComDur.length)
+      : null
+
+    if (atsLinhas) secoesAdicionais += `\n\nHISTÓRICO COMPLETO — ATIVIDADES LIVRES (6 meses):\n${atsLinhas}`
+    if (trLinhas) secoesAdicionais += `\n\nHISTÓRICO COMPLETO — TREINOS DE MUSCULAÇÃO (6 meses):\n${trLinhas}`
+    if (mediaScore !== null || mediaDur !== null) {
+      secoesAdicionais += `\n\nHISTÓRICO DE SONO (últimos 6 meses):\nScore médio: ${mediaScore ?? '?'}/100 · Duração média: ${mediaDur !== null ? (mediaDur / 60).toFixed(1) + 'h' : '?'} · ${sonoComScore.length} noites registradas`
+    }
   }
 
   if (ctx.proximaConsulta) {
