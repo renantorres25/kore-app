@@ -729,13 +729,13 @@ export default function NutricionistaPaciente() {
     setTreinoCarregando(true)
     const trinta = new Date(); trinta.setDate(trinta.getDate() - 30)
     const q30 = trinta.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    // Janela móvel: últimos 7 dias completos (ontem e os 6 anteriores) vs os 7 dias completos anteriores a esses
+    // Semana calendário dom→sab (alinhada com getDay() == 0 para domingo)
     const todayLoadStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const dLoadBase = new Date(todayLoadStr + 'T12:00:00-03:00')
-    const currEndLoad = new Date(dLoadBase); currEndLoad.setDate(dLoadBase.getDate() - 1)
-    const currStartLoad = new Date(dLoadBase); currStartLoad.setDate(dLoadBase.getDate() - 7)
-    const prevEndLoad = new Date(dLoadBase); prevEndLoad.setDate(dLoadBase.getDate() - 8)
-    const prevStartLoad = new Date(dLoadBase); prevStartLoad.setDate(dLoadBase.getDate() - 14)
+    const currStartLoad = new Date(dLoadBase); currStartLoad.setDate(dLoadBase.getDate() - dLoadBase.getDay())
+    const currEndLoad   = new Date(dLoadBase); currEndLoad.setDate(dLoadBase.getDate() - dLoadBase.getDay() + 6)
+    const prevStartLoad = new Date(dLoadBase); prevStartLoad.setDate(dLoadBase.getDate() - dLoadBase.getDay() - 7)
+    const prevEndLoad   = new Date(dLoadBase); prevEndLoad.setDate(dLoadBase.getDate() - dLoadBase.getDay() - 1)
     const currWeekStartLoad = currStartLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const currWeekEndLoad = currEndLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const prevWeekStartLoad = prevStartLoad.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -1844,12 +1844,12 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
           const caloriasBase = planoAtivo?.calorias_meta
           const caloriasAjustadas = caloriasBase && ajuste ? Math.round(caloriasBase * (1 + ajuste.pct)) : null
           const pct = periodizacaoFase ? (periodizacaoFase.semana_bloco / periodizacaoFase.total_semanas_bloco) * 100 : 0
-          // Janela móvel: últimos 7 dias completos (ontem e os 6 anteriores) vs os 7 dias completos anteriores a esses
+          // Semana calendário dom→sab (alinhada com getDay() == 0 para domingo)
           const dBase = new Date(hoje + 'T12:00:00-03:00')
-          const currEnd = new Date(dBase); currEnd.setDate(dBase.getDate() - 1)
-          const currStart = new Date(dBase); currStart.setDate(dBase.getDate() - 7)
-          const prevEnd = new Date(dBase); prevEnd.setDate(dBase.getDate() - 8)
-          const prevStart = new Date(dBase); prevStart.setDate(dBase.getDate() - 14)
+          const currStart = new Date(dBase); currStart.setDate(dBase.getDate() - dBase.getDay())
+          const currEnd   = new Date(dBase); currEnd.setDate(dBase.getDate() - dBase.getDay() + 6)
+          const prevStart = new Date(dBase); prevStart.setDate(dBase.getDate() - dBase.getDay() - 7)
+          const prevEnd   = new Date(dBase); prevEnd.setDate(dBase.getDate() - dBase.getDay() - 1)
           const q7CurrStr = currStart.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
           const q7CurrEndStr = currEnd.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
           const q14CurrStr = prevStart.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
