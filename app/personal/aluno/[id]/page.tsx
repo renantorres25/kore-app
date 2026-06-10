@@ -144,7 +144,7 @@ export default function PersonalAluno() {
   const [historicoIACarregado, setHistoricoIACarregado] = useState(false)
   const [historicoIACarregando, setHistoricoIACarregando] = useState(false)
   const [historicoIA, setHistoricoIA] = useState<{
-    atividades: { data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_wearable: number | null; calorias_estimadas: number | null }[]
+    atividades: { data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_wearable: number | null; calorias_estimadas: number | null; fc_media: number | null; fc_max: number | null }[]
     treinos: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[]
     sono: { data: string; score: number | null; duracao_min: number | null }[]
   } | null>(null)
@@ -1612,6 +1612,8 @@ export default function PersonalAluno() {
               duracao_min: a.duracao_min,
               distancia_km: a.distancia_km,
               calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null,
+              fc_media: a.fc_media ?? null,
+              fc_max: a.fc_max ?? null,
             })),
             treinos: historicoIA.treinos,
             sono: historicoIA.sono,

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import AlimentoBusca, { type AlimentoTACO } from '../../../components/AlimentoBusca'
@@ -49,6 +49,22 @@ const EXTRAS_VAZIO: ExtrasEd = { hidratacaoLitros: '', hidratacaoOri: '', oriTre
 
 function getTodayBR() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function diasSemTreinar(ultimoTreino: string | null): number {
+  if (!ultimoTreino) return 999
+  const d = new Date(ultimoTreino + 'T12:00:00-03:00')
+  return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+function getDistribuicaoModalidadeNutri(lista: { modalidade: string }[]) {
+  const map: Record<string, number> = {}
+  lista.forEach(a => { map[a.modalidade] = (map[a.modalidade] ?? 0) + 1 })
+  const total = lista.length
+  return Object.entries(map)
+    .map(([tipo, count]) => ({ tipo, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
 }
 
 const TERMOS_VAZIOS = /^(nenhum|nada|não|nao|sem\s|n\/a|ok\b)/i
@@ -152,7 +168,7 @@ export default function NutricionistaPaciente() {
     id: string; data: string; nome: string; plano: string | null; calorias: number | null; volume: number; exercicios: string[]
   }[]>([])
   const [atividadesLivres21d, setAtividadesLivres21d] = useState<{
-    id: string; data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_estimadas: number | null; calorias_wearable: number | null; intensidade: number | null
+    id: string; data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_estimadas: number | null; calorias_wearable: number | null; intensidade: number | null; fc_media: number | null; fc_max: number | null
   }[]>([])
   const [recuperacao7d, setRecuperacao7d] = useState<{ data: string; score: number | null; duracao: number | null }[]>([])
   const [recuperacaoPrev7d, setRecuperacaoPrev7d] = useState<{ data: string; score: number | null }[]>([])
@@ -180,10 +196,56 @@ export default function NutricionistaPaciente() {
   const [historicoIACarregado, setHistoricoIACarregado] = useState(false)
   const [historicoIACarregando, setHistoricoIACarregando] = useState(false)
   const [historicoIA, setHistoricoIA] = useState<{
-    atividades: { data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_wearable: number | null; calorias_estimadas: number | null }[]
+    atividades: { data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_wearable: number | null; calorias_estimadas: number | null; fc_media: number | null; fc_max: number | null }[]
     treinos: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[]
     sono: { data: string; score: number | null; duracao_min: number | null }[]
   } | null>(null)
+
+  const fcmaxEstimado = useMemo(() => {
+    return paciente?.fcmax ?? (Math.max(0, ...atividadesLivres21d.filter(a => a.fc_max != null).map(a => a.fc_max as number)) || null)
+  }, [paciente?.fcmax, atividadesLivres21d])
+
+  const cargaInternaSemanas = useMemo(() => {
+    if (!fcmaxEstimado) return null
+    const hoje = getTodayBR()
+    const dBase = new Date(hoje + 'T12:00:00-03:00')
+    const fmtISO = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    return [3, 2, 1, 0].map(n => {
+      const ini = new Date(dBase); ini.setDate(dBase.getDate() - dBase.getDay() - n * 7)
+      const fim = new Date(dBase); fim.setDate(dBase.getDate() - dBase.getDay() - n * 7 + 6)
+      const iniStr = fmtISO(ini), fimStr = fmtISO(fim)
+      const atual = n === 0
+      const ativs = atividadesLivres21d.filter(a =>
+        a.data >= iniStr && a.data <= (atual ? hoje : fimStr) &&
+        a.fc_media != null && a.duracao_min != null
+      )
+      const carga = Math.round(ativs.reduce((acc, a) => acc + ((a.fc_media as number) / fcmaxEstimado) * (a.duracao_min as number), 0))
+      return { label: atual ? 'Esta semana' : `Sem ${4 - n}`, carga, atual }
+    })
+  }, [fcmaxEstimado, atividadesLivres21d])
+
+  const distModalidade28d = useMemo(() => {
+    const hoje = getTodayBR()
+    const vinte8 = new Date(); vinte8.setDate(vinte8.getDate() - 28)
+    const vinte8Str = vinte8.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    return getDistribuicaoModalidadeNutri(atividadesLivres21d.filter(a => a.data >= vinte8Str && a.data <= hoje))
+  }, [atividadesLivres21d])
+
+  const treinamentoChat = useMemo(() => {
+    const seteD = new Date(); seteD.setDate(seteD.getDate() - 7)
+    const seteDStr = seteD.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const ultimoTreino = historicoTreinosDetalhado[0]?.data ?? null
+    return {
+      treinosSemana: historicoTreinosDetalhado.filter(t => t.data >= seteDStr).length,
+      diasSemTreinar: diasSemTreinar(ultimoTreino),
+      scoreRecuperacaoHoje: sonoHoje?.score_recuperacao ?? null,
+      sonoHorasHoje: sonoHoje?.duracao_minutos ? Math.round((sonoHoje.duracao_minutos / 60) * 10) / 10 : null,
+      periodizacaoFase: periodizacaoFase ? `${periodizacaoFase.nome_bloco} (${periodizacaoFase.tipo_bloco}) semana ${periodizacaoFase.semana_bloco}/${periodizacaoFase.total_semanas_bloco}` : null,
+      exerciciosMaxCarga: [] as { nome: string; maxCarga: number; sessoes: number }[],
+      planos: [] as { plano: string; nome: string; exercicios: { nome: string; series: number; repeticoes: number; carga: number | null; observacoes: string }[] }[],
+    }
+  }, [historicoTreinosDetalhado, sonoHoje, periodizacaoFase])
+
   const [atividades7dCount, setAtividades7dCount] = useState(0)
   const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
   const [loadingAnamnese, setLoadingAnamnese] = useState(false)
@@ -756,7 +818,7 @@ export default function NutricionistaPaciente() {
 
     const [{ data: treinosHist }, { data: ativs }, { data: sonoHist }, { data: personalNomeRpc }] = await Promise.all([
       supabase.from('treinos').select('id,data,nome,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).gte('data', q30).order('data', { ascending: false }),
-      supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,intensidade').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
+      supabase.from('atividades_livres').select('id,data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,intensidade,fc_media,fc_max').eq('usuario_id', clienteId).gte('data', q30).order('data', { ascending: false }),
       supabase.from('sono').select('data,score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).gte('data', prevWeekStartLoad).order('data', { ascending: true }),
       supabase.rpc('get_personal_trainer_nome', { p_cliente_id: clienteId }),
     ])
@@ -804,7 +866,7 @@ export default function NutricionistaPaciente() {
 
     const [{ data: ativs6m }, { data: sono6m }, { data: treinos6m }] = await Promise.all([
       supabase.from('atividades_livres')
-        .select('data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable')
+        .select('data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,fc_media,fc_max')
         .eq('usuario_id', clienteId).gte('data', q180).order('data', { ascending: false }),
       supabase.from('sono')
         .select('data,score_recuperacao,duracao_minutos')
@@ -829,7 +891,16 @@ export default function NutricionistaPaciente() {
     }
 
     setHistoricoIA({
-      atividades: (ativs6m ?? []) as any[],
+      atividades: (ativs6m ?? []).map((a: any) => ({
+        data: a.data,
+        modalidade: a.modalidade,
+        duracao_min: a.duracao_min,
+        distancia_km: a.distancia_km,
+        calorias_wearable: a.calorias_wearable,
+        calorias_estimadas: a.calorias_estimadas,
+        fc_media: a.fc_media ?? null,
+        fc_max: a.fc_max ?? null,
+      })),
       treinos: treinosMapeados,
       sono: ((sono6m ?? []) as any[]).map(s => ({ data: s.data, score: s.score_recuperacao, duracao_min: s.duracao_minutos })),
     })
@@ -2900,10 +2971,16 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                 duracao_min: a.duracao_min,
                 distancia_km: a.distancia_km,
                 calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null,
+                fc_media: a.fc_media ?? null,
+                fc_max: a.fc_max ?? null,
               })),
               treinos: historicoIA.treinos,
               sono: historicoIA.sono,
             } : null,
+            fcmaxEstimado: fcmaxEstimado ?? null,
+            cargaInternaSemanas: cargaInternaSemanas ?? null,
+            distModalidade28d: distModalidade28d ?? null,
+            treinamento: treinamentoChat,
           }} pacienteId={clienteId} />
         )
       })()}
