@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 import SidebarProfissional from '../../../components/SidebarProfissional'
-import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle } from 'lucide-react'
 import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
@@ -145,7 +145,7 @@ export default function PersonalAluno() {
   const [fichaObjetivo, setFichaObjetivo] = useState('')
   const [fichaMetaPeso, setFichaMetaPeso] = useState('')
   const [fichaMetaData, setFichaMetaData] = useState('')
-  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'evolucao' | 'perfil' | 'ia'>('visao-geral')
+  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'evolucao' | 'perfil'>('visao-geral')
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -521,7 +521,6 @@ export default function PersonalAluno() {
               { id: 'treinos',     label: 'Treinos',     Icon: Dumbbell },
               { id: 'evolucao',    label: 'Evolução',    Icon: TrendingUp },
               { id: 'perfil',      label: 'Perfil',      Icon: UserCircle },
-              { id: 'ia',          label: 'IA Clínica',  Icon: Sparkles },
             ] as { id: string; label: string; Icon: React.ComponentType<{ size?: number }> }[]).map(tab => (
               <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)}
                 style={{
@@ -1430,100 +1429,100 @@ export default function PersonalAluno() {
               </div>
             )}
 
-            {/* ── ABA IA CLÍNICA ───────────────────────────────────────── */}
-            {abaAtiva === 'ia' && aluno && (
-              <ProfissionalAIChat contexto={{
-                profissionalTipo: 'personal',
-                profissionalNome: personalNome || null,
-                paciente: {
-                  nome: aluno.nome,
-                  peso: aluno.peso,
-                  altura: aluno.altura,
-                  objetivo: aluno.objetivo,
-                  nivel: aluno.nivel,
-                  metaPeso: aluno.meta_peso,
-                  metaDataLimite: aluno.meta_data_limite,
-                  fcmax: aluno.fcmax,
-                  ftp: aluno.ftp,
-                },
-                alertasClinicos: {
-                  lesoes,
-                  restricoesFisicas: restricaoFisica,
-                  medicamentos,
-                  alergias,
-                  restricoesAlimentares: restricaoNutri,
-                },
-                treinamento: {
-                  treinosSemana: monitor?.treinosSemana ?? 0,
-                  diasSemTreinar: monitor?.ultimoTreino ? diasSemTreinar(monitor.ultimoTreino) : null,
-                  scoreRecuperacaoHoje: monitor?.scoreRecuperacao ?? null,
-                  sonoHorasHoje: monitor?.sonoHoras ?? null,
-                  exerciciosMaxCarga: Object.entries(cargaEvolucao)
-                    .map(([nome, pontos]) => ({
-                      nome,
-                      maxCarga: Math.max(...pontos.map(p => p.carga)),
-                      sessoes: pontos.length,
-                    }))
-                    .sort((a, b) => b.sessoes - a.sessoes)
-                    .slice(0, 6),
-                  periodizacaoFase: fasePeriodizacaoChat,
-                  planos: treinos.map(t => ({
-                    plano: t.plano,
-                    nome: t.nome,
-                    exercicios: t.exercicios.map(e => ({
-                      nome: e.nome,
-                      series: e.series,
-                      repeticoes: e.repeticoes,
-                      carga: e.carga_sugerida,
-                      observacoes: e.observacoes ?? '',
-                    })),
-                  })),
-                },
-                nutricao: planoNutri ? {
-                  caloriasPrescritas: planoNutri.calorias_meta,
-                  proteinaPrescritas: planoNutri.proteina_meta,
-                  caloriasSemanaisGastas: null,
-                  treinosSemana: monitor?.treinosSemana ?? 0,
-                  periodizacao: fasePeriodizacaoChat,
-                } : null,
-                composicao: medidasCP.length > 0 ? {
-                  ultimoPeso: medidasCP[medidasCP.length - 1].peso,
-                  gorduraPct: medidasCP[medidasCP.length - 1].gordura_pct,
-                  massaMuscular: medidasCP[medidasCP.length - 1].massa_muscular,
-                  data: medidasCP[medidasCP.length - 1].data,
-                } : null,
-                ultimaAvaliacao,
-                proximaConsulta: proximaConsultaInfo,
-                anamneseCompleta,
-                sono: { hoje: sonoHojeInfo, historico7d: sonoHistorico7d },
-                bemEstarHoje: bemEstarHojeInfo,
-                planoAlimentar: (() => {
-                  if (!planoNutri?.conteudo) return null
-                  try {
-                    const p = JSON.parse(planoNutri.conteudo)
-                    if (!p.refeicoes) return null
-                    return {
-                      calorias: planoNutri.calorias_meta,
-                      proteina: planoNutri.proteina_meta,
-                      refeicoes: (p.refeicoes ?? []).map((r: any) => ({
-                        nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
-                        alimentos: (r.alimentos ?? []).map((a: any) => a.nome).filter(Boolean),
-                      })),
-                      suplementos: (p.suplementos ?? []).map((s: any) => typeof s === 'string' ? s : s?.nome).filter(Boolean),
-                      hidratacao: p.hidratacao ?? null,
-                      orientacaoTreino: p.orientacao_treino ?? null,
-                      observacoes: p.nota_nutri ?? null,
-                    }
-                  } catch { return null }
-                })(),
-                treinosRegistrados: execucoes.map(e => ({ data: e.data, nome: e.nome, calorias: e.calorias, volume: e.volume, exercicios: e.exercicios.map(ex => ex.nome) })),
-                medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
-              }} pacienteId={clienteId} />
-            )}
-
           </div>
         </div>
       </div>
+
+      {/* ── CHAT IA FLUTUANTE (todas as abas) ───────────────────────── */}
+      {aluno && (
+        <ProfissionalAIChat contexto={{
+          profissionalTipo: 'personal',
+          profissionalNome: personalNome || null,
+          paciente: {
+            nome: aluno.nome,
+            peso: aluno.peso,
+            altura: aluno.altura,
+            objetivo: aluno.objetivo,
+            nivel: aluno.nivel,
+            metaPeso: aluno.meta_peso,
+            metaDataLimite: aluno.meta_data_limite,
+            fcmax: aluno.fcmax,
+            ftp: aluno.ftp,
+          },
+          alertasClinicos: {
+            lesoes,
+            restricoesFisicas: restricaoFisica,
+            medicamentos,
+            alergias,
+            restricoesAlimentares: restricaoNutri,
+          },
+          treinamento: {
+            treinosSemana: monitor?.treinosSemana ?? 0,
+            diasSemTreinar: monitor?.ultimoTreino ? diasSemTreinar(monitor.ultimoTreino) : null,
+            scoreRecuperacaoHoje: monitor?.scoreRecuperacao ?? null,
+            sonoHorasHoje: monitor?.sonoHoras ?? null,
+            exerciciosMaxCarga: Object.entries(cargaEvolucao)
+              .map(([nome, pontos]) => ({
+                nome,
+                maxCarga: Math.max(...pontos.map(p => p.carga)),
+                sessoes: pontos.length,
+              }))
+              .sort((a, b) => b.sessoes - a.sessoes)
+              .slice(0, 6),
+            periodizacaoFase: fasePeriodizacaoChat,
+            planos: treinos.map(t => ({
+              plano: t.plano,
+              nome: t.nome,
+              exercicios: t.exercicios.map(e => ({
+                nome: e.nome,
+                series: e.series,
+                repeticoes: e.repeticoes,
+                carga: e.carga_sugerida,
+                observacoes: e.observacoes ?? '',
+              })),
+            })),
+          },
+          nutricao: planoNutri ? {
+            caloriasPrescritas: planoNutri.calorias_meta,
+            proteinaPrescritas: planoNutri.proteina_meta,
+            caloriasSemanaisGastas: null,
+            treinosSemana: monitor?.treinosSemana ?? 0,
+            periodizacao: fasePeriodizacaoChat,
+          } : null,
+          composicao: medidasCP.length > 0 ? {
+            ultimoPeso: medidasCP[medidasCP.length - 1].peso,
+            gorduraPct: medidasCP[medidasCP.length - 1].gordura_pct,
+            massaMuscular: medidasCP[medidasCP.length - 1].massa_muscular,
+            data: medidasCP[medidasCP.length - 1].data,
+          } : null,
+          ultimaAvaliacao,
+          proximaConsulta: proximaConsultaInfo,
+          anamneseCompleta,
+          sono: { hoje: sonoHojeInfo, historico7d: sonoHistorico7d },
+          bemEstarHoje: bemEstarHojeInfo,
+          planoAlimentar: (() => {
+            if (!planoNutri?.conteudo) return null
+            try {
+              const p = JSON.parse(planoNutri.conteudo)
+              if (!p.refeicoes) return null
+              return {
+                calorias: planoNutri.calorias_meta,
+                proteina: planoNutri.proteina_meta,
+                refeicoes: (p.refeicoes ?? []).map((r: any) => ({
+                  nome: r.nome, horario: r.horario, calorias: r.calorias, proteina: r.proteina,
+                  alimentos: (r.alimentos ?? []).map((a: any) => a.nome).filter(Boolean),
+                })),
+                suplementos: (p.suplementos ?? []).map((s: any) => typeof s === 'string' ? s : s?.nome).filter(Boolean),
+                hidratacao: p.hidratacao ?? null,
+                orientacaoTreino: p.orientacao_treino ?? null,
+                observacoes: p.nota_nutri ?? null,
+              }
+            } catch { return null }
+          })(),
+          treinosRegistrados: execucoes.map(e => ({ data: e.data, nome: e.nome, calorias: e.calorias, volume: e.volume, exercicios: e.exercicios.map(ex => ex.nome) })),
+          medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
+        }} pacienteId={clienteId} />
+      )}
 
       {/* ── MODAL EDITAR TREINO ──────────────────────────────────────── */}
       {modalAberto && editandoTreino && (
