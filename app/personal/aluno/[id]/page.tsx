@@ -121,6 +121,25 @@ export default function PersonalAluno() {
   const fcmaxEstimado = useMemo(() => {
     return aluno?.fcmax ?? (Math.max(0, ...atividadesCalendario.filter(a => a.fc_max != null).map(a => a.fc_max as number)) || null)
   }, [aluno?.fcmax, atividadesCalendario])
+  const cargaInternaSemanas = useMemo(() => {
+    if (!fcmaxEstimado) return null
+    const hoje = getTodayBR()
+    const dBase = new Date(hoje + 'T12:00:00-03:00')
+    const fmtISO = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    return [3, 2, 1, 0].map(n => {
+      const ini = new Date(dBase); ini.setDate(dBase.getDate() - dBase.getDay() - n * 7)
+      const fim = new Date(dBase); fim.setDate(dBase.getDate() - dBase.getDay() - n * 7 + 6)
+      const iniStr = fmtISO(ini), fimStr = fmtISO(fim)
+      const atual = n === 0
+      const ativs = atividadesCalendario.filter(a =>
+        a.data >= iniStr && a.data <= (atual ? hoje : fimStr) &&
+        a.fc_media != null && a.duracao_min != null
+      )
+      const carga = Math.round(ativs.reduce((acc, a) => acc + ((a.fc_media as number) / fcmaxEstimado) * (a.duracao_min as number), 0))
+      return { label: atual ? 'Esta semana' : `Sem ${4 - n}`, carga, atual }
+    })
+  }, [fcmaxEstimado, atividadesCalendario])
+  const distModalidade28d = useMemo(() => getDistribuicaoModalidade(atividadesCalendario), [atividadesCalendario])
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [historicoIACarregado, setHistoricoIACarregado] = useState(false)
   const [historicoIACarregando, setHistoricoIACarregando] = useState(false)
@@ -347,7 +366,7 @@ export default function PersonalAluno() {
 
     const [{ data: ativs6m }, { data: sono6m }, { data: treinos6m }] = await Promise.all([
       supabase.from('atividades_livres')
-        .select('data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable')
+        .select('data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable,fc_media,fc_max')
         .eq('usuario_id', clienteId).gte('data', q180).order('data', { ascending: false }),
       supabase.from('sono')
         .select('data,score_recuperacao,duracao_minutos')
@@ -372,7 +391,16 @@ export default function PersonalAluno() {
     }
 
     setHistoricoIA({
-      atividades: (ativs6m ?? []) as any[],
+      atividades: (ativs6m ?? []).map((a: any) => ({
+        data: a.data,
+        modalidade: a.modalidade,
+        duracao_min: a.duracao_min,
+        distancia_km: a.distancia_km,
+        calorias_wearable: a.calorias_wearable,
+        calorias_estimadas: a.calorias_estimadas,
+        fc_media: a.fc_media ?? null,
+        fc_max: a.fc_max ?? null,
+      })),
       treinos: treinosMapeados,
       sono: ((sono6m ?? []) as any[]).map(s => ({ data: s.data, score: s.score_recuperacao, duracao_min: s.duracao_minutos })),
     })
@@ -1588,6 +1616,9 @@ export default function PersonalAluno() {
             treinos: historicoIA.treinos,
             sono: historicoIA.sono,
           } : null,
+          fcmaxEstimado: fcmaxEstimado ?? null,
+          cargaInternaSemanas: cargaInternaSemanas ?? null,
+          distModalidade28d: distModalidade28d ?? null,
         }} pacienteId={clienteId} />
       )}
 

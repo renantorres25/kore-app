@@ -73,6 +73,9 @@ export type ContextoProfissional = {
     treinos: { data: string; nome: string; calorias: number | null; exercicios: string[] }[]
     sono: { data: string; score: number | null; duracao_min: number | null }[]
   } | null
+  fcmaxEstimado?: number | null
+  cargaInternaSemanas?: { label: string; carga: number; atual: boolean }[] | null
+  distModalidade28d?: { tipo: string; count: number; pct: number }[] | null
 }
 
 const TERMOS_IRRELEVANTES = /^(nenhum[ao]?|nada|não|nao|sem|ok|okay|oke?|n\/a|-)$/i
@@ -311,6 +314,22 @@ DADOS NUTRICIONAIS:
   if (ctx.proximaConsulta) {
     const dataFmtConsulta = new Date(ctx.proximaConsulta.data).toLocaleDateString('pt-BR')
     secoesAdicionais += `\n\nPRÓXIMA CONSULTA AGENDADA: ${dataFmtConsulta}${ctx.proximaConsulta.hora ? ` às ${ctx.proximaConsulta.hora}` : ''}${ctx.proximaConsulta.tipo ? ` (${ctx.proximaConsulta.tipo})` : ''}`
+  }
+
+  if (ctx.fcmaxEstimado) {
+    secoesAdicionais += `\n\nFC MÁXIMA ESTIMADA: ${ctx.fcmaxEstimado} bpm (base para cálculo de zonas)`
+  }
+
+  if (ctx.cargaInternaSemanas?.length) {
+    secoesAdicionais += '\n\nCARGA INTERNA SEMANAL (FC% × minutos):\n' + ctx.cargaInternaSemanas.map(s =>
+      `${s.label}: ${s.carga}`
+    ).join('\n')
+  }
+
+  if (ctx.distModalidade28d?.length) {
+    secoesAdicionais += '\n\nDISTRIBUIÇÃO DE MODALIDADES (últimos 28 dias):\n' + ctx.distModalidade28d.map(d =>
+      `${d.tipo}: ${d.pct}% (${d.count} sessões)`
+    ).join('\n')
   }
 
   return `Você é o KORE AI — assistente clínico integrado ao perfil de ${pacNome} para uso exclusivo do ${tipo} ${ctx.profissionalNome ?? ''}.
