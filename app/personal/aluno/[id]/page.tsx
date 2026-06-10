@@ -5,7 +5,8 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 import SidebarProfissional from '../../../components/SidebarProfissional'
-import { LayoutDashboard, Dumbbell, TrendingUp, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle, Sparkles } from 'lucide-react'
+import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
@@ -39,6 +40,22 @@ function getInitials(nome: string | null, email: string): string {
 
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function formatDiaDetalhe(dataStr: string): string {
+  const d = new Date(dataStr + 'T12:00:00-03:00')
+  const s = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' })
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function getDistribuicaoModalidade(lista: AtividadeDia[]) {
+  const map: Record<string, number> = {}
+  lista.forEach(a => { map[a.tipo] = (map[a.tipo] ?? 0) + 1 })
+  const total = lista.length
+  return Object.entries(map)
+    .map(([tipo, count]) => ({ tipo, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
 }
 
 function diasSemTreinar(ultimoTreino: string | null): number {
@@ -90,7 +107,8 @@ export default function PersonalAluno() {
   const [treinosDatas, setTreinosDatas] = useState<string[]>([])
   const [atividadesLivres, setAtividadesLivres] = useState<{ data: string; duracao_min: number | null }[]>([])
   const [cargaPorData, setCargaPorData] = useState<Record<string, number>>({})
-  const [diasAtividade, setDiasAtividade] = useState<Map<string, 'treino' | 'livre'>>(new Map())
+  const [atividadesCalendario, setAtividadesCalendario] = useState<AtividadeDia[]>([])
+  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [planoNutri, setPlanoNutri] = useState<PlanoNutri | null>(null)
   const [restricaoNutri, setRestricaoNutri] = useState<string | null>(null)
@@ -115,7 +133,7 @@ export default function PersonalAluno() {
   const [fichaObjetivo, setFichaObjetivo] = useState('')
   const [fichaMetaPeso, setFichaMetaPeso] = useState('')
   const [fichaMetaData, setFichaMetaData] = useState('')
-  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'evolucao' | 'ia'>('visao-geral')
+  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'evolucao' | 'perfil' | 'ia'>('visao-geral')
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -176,7 +194,7 @@ export default function PersonalAluno() {
       { data: anamneseCompletaData }, { data: sonoHistData }, { data: proximaConsultaData },
     ] = await Promise.all([
       supabase.from('treinos').select('id, nome, plano, data, calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
-      supabase.from('atividades_livres').select('data, modalidade, duracao_min').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
+      supabase.from('atividades_livres').select('data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
       supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
       supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
       supabase.from('anamneses').select('restricoes_alimentares,suplementos,lesoes,restricoes_fisicas,medicamentos,alergias').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
@@ -204,10 +222,18 @@ export default function PersonalAluno() {
     if (alergiasCombined) setAlergias(alergiasCombined)
     if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
 
-    const diasMap = new Map<string, 'treino' | 'livre'>()
-    atvsLivres30?.forEach((a: { data: string }) => diasMap.set(a.data, 'livre'))
-    treinosCompletos?.forEach((t: { data: string }) => diasMap.set(t.data, 'treino'))
-    setDiasAtividade(diasMap)
+    const modLabelCalendario: Record<string, string> = { corrida: 'Corrida', bike: 'Bike', natacao: 'Natação', crossfit: 'Crossfit', outro: 'Atividade' }
+    const listaCalendario: AtividadeDia[] = []
+    treinosCompletos?.forEach((t: any) => {
+      listaCalendario.push({ data: t.data, tipo: 'musculacao', nome: t.nome ?? `Treino ${t.plano}`, detalhe: `Plano ${t.plano}`, calorias: t.calorias_estimadas ?? null })
+    })
+    atvsLivres30?.forEach((a: any) => {
+      let detalhe = a.duracao_min ? `${a.duracao_min}min` : ''
+      if (a.distancia_km) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_km}km`
+      if (a.distancia_m) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_m}m`
+      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null })
+    })
+    setAtividadesCalendario(listaCalendario)
     setTreinosDatas((treinosCompletos ?? []).map((t: any) => t.data))
     setAtividadesLivres((atvsLivres30 ?? []).map((a: any) => ({ data: a.data, duracao_min: a.duracao_min ?? null })))
 
@@ -482,6 +508,7 @@ export default function PersonalAluno() {
               { id: 'visao-geral', label: 'Visão Geral', Icon: LayoutDashboard },
               { id: 'treinos',     label: 'Treinos',     Icon: Dumbbell },
               { id: 'evolucao',    label: 'Evolução',    Icon: TrendingUp },
+              { id: 'perfil',      label: 'Perfil',      Icon: UserCircle },
               { id: 'ia',          label: 'IA Clínica',  Icon: Sparkles },
             ] as { id: string; label: string; Icon: React.ComponentType<{ size?: number }> }[]).map(tab => (
               <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)}
@@ -835,6 +862,174 @@ export default function PersonalAluno() {
                   </div>
                 )}
 
+                {/* Preparar briefing pré-treino */}
+                <button
+                  className="w-full rounded-2xl p-5 flex items-center gap-4 text-left transition-all hover:opacity-90 active:scale-[0.99]"
+                  style={{ background: '#0b1610', border: '1px solid rgba(16,185,129,0.10)' }}>
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 text-lg">✦</div>
+                  <div>
+                    <p className="text-white text-sm font-bold">Preparar briefing pré-treino</p>
+                    <p className="text-zinc-500 text-xs mt-0.5">Análise clínica dos últimos 7 dias — gere antes de cada sessão</p>
+                  </div>
+                  <span className="text-emerald-500/40 ml-auto">→</span>
+                </button>
+
+              </div>
+            )}
+
+            {/* ── ABA EVOLUÇÃO ─────────────────────────────────────────── */}
+            {abaAtiva === 'evolucao' && (
+              <div className="space-y-5">
+
+                {/* Composição Corporal — empty state */}
+                {medidasCP.length === 0 && (
+                  <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+                    <span className="text-3xl">📏</span>
+                    <div>
+                      <p className="text-white text-sm font-bold">Sem medidas corporais</p>
+                      <p className="text-zinc-600 text-xs mt-1">Registre as medidas iniciais do aluno para acompanhar a evolução</p>
+                    </div>
+                    <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
+                      className="mt-1 text-xs text-blue-400 border border-blue-500/20 bg-blue-500/10 rounded-xl px-4 py-2 hover:bg-blue-500/20 active:scale-95 transition-all font-semibold">
+                      + Registrar primeira medida
+                    </button>
+                  </div>
+                )}
+
+                {/* Composição Corporal — compacto */}
+                {medidasCP.length >= 2 && (() => {
+                  const primeira = medidasCP[0]
+                  const ultima = medidasCP[medidasCP.length - 1]
+                  const rows = [
+                    { label: 'Peso',     unit: 'kg', current: ultima.peso,          prev: primeira.peso,          inverse: true  },
+                    { label: 'Gordura',  unit: '%',  current: ultima.gordura_pct,    prev: primeira.gordura_pct,    inverse: true  },
+                    { label: 'Músculo',  unit: 'kg', current: ultima.massa_muscular, prev: primeira.massa_muscular, inverse: false },
+                  ].filter(r => r.current != null)
+                  if (!rows.length) return null
+                  return (
+                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                      <div className="flex items-center justify-between mb-4">
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Composição Corporal</p>
+                        <button onClick={() => setAbaAtiva('perfil')} className="text-[11px] text-blue-400 font-semibold hover:underline">Ver evolução →</button>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        {rows.map(r => {
+                          const delta = r.prev != null && r.current != null ? Math.round((r.current - r.prev) * 10) / 10 : null
+                          const positivo = delta !== null && (r.inverse ? delta < 0 : delta > 0)
+                          const deltaCor = !delta ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
+                          return (
+                            <div key={r.label} className="flex-1 text-center">
+                              <p className="text-zinc-500 text-[11px] uppercase tracking-wider mb-1">{r.label}</p>
+                              <p className="text-white text-xl font-black leading-none">{r.current}<span className="text-zinc-500 text-xs font-normal">{r.unit}</span></p>
+                              {delta !== null && delta !== 0 && <p className={`text-[10px] font-bold mt-1 ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{r.unit}</p>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Calendário de consistência */}
+                <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                  <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Calendário de consistência · 28 dias</p>
+                  <CalendarioConsistencia atividades={atividadesCalendario} onSelecionarDia={setDiaSelecionado} />
+                </div>
+
+                {/* Painel de detalhe do dia */}
+                {diaSelecionado && (
+                  <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                    <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 12, fontWeight: 700 }}>{formatDiaDetalhe(diaSelecionado)}</p>
+                    {(() => {
+                      const ativsDia = atividadesCalendario.filter(a => a.data === diaSelecionado)
+                      if (!ativsDia.length) return <p className="text-zinc-600 text-sm">Dia de descanso</p>
+                      return (
+                        <div className="space-y-3">
+                          {ativsDia.map((a, i) => {
+                            const cfg = MOD_CONFIG[a.tipo] ?? MOD_CONFIG['outro']
+                            return (
+                              <div key={i} className="flex items-center gap-3">
+                                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cfg.hex }} />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white text-sm font-semibold">{a.nome}</p>
+                                  {a.detalhe && <p className="text-zinc-500 text-[11px]">{a.detalhe}</p>}
+                                </div>
+                                {a.calorias != null && (
+                                  <p className="text-orange-400 text-sm font-bold shrink-0">{a.calorias} kcal</p>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+
+                {/* Distribuição por modalidade */}
+                {atividadesCalendario.length > 0 && (() => {
+                  const hoje = getTodayBR()
+                  const dBase = new Date(hoje + 'T12:00:00-03:00')
+                  const fmtISO = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+                  const semanaPassadaIni = new Date(dBase); semanaPassadaIni.setDate(dBase.getDate() - dBase.getDay() - 7)
+                  const semanaPassadaFim = new Date(dBase); semanaPassadaFim.setDate(dBase.getDate() - dBase.getDay() - 1)
+                  const vinte8DiasAtras  = new Date(dBase); vinte8DiasAtras.setDate(dBase.getDate() - 27)
+
+                  const semanaPassadaIniStr = fmtISO(semanaPassadaIni)
+                  const semanaPassadaFimStr = fmtISO(semanaPassadaFim)
+                  const vinte8Str = fmtISO(vinte8DiasAtras)
+
+                  const distSemana = getDistribuicaoModalidade(atividadesCalendario.filter(a => a.data >= semanaPassadaIniStr && a.data <= semanaPassadaFimStr))
+                  const dist28Dias = getDistribuicaoModalidade(atividadesCalendario.filter(a => a.data >= vinte8Str && a.data <= hoje))
+
+                  if (!distSemana.length && !dist28Dias.length) return null
+
+                  const renderBars = (dist: { tipo: string; count: number; pct: number }[]) => dist.length ? (
+                    <div className="space-y-2.5">
+                      {dist.map(d => {
+                        const cfg = MOD_CONFIG[d.tipo] ?? MOD_CONFIG['outro']
+                        return (
+                          <div key={d.tipo}>
+                            <div className="flex items-center gap-3 mb-1">
+                              <p className="text-zinc-300 text-xs w-24 shrink-0 truncate font-medium">{cfg.label}</p>
+                              <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all" style={{ width: `${d.pct}%`, background: cfg.hex }} />
+                              </div>
+                              <p className="text-zinc-400 text-xs w-8 text-right shrink-0 font-semibold">{d.pct}%</p>
+                            </div>
+                            <p className="text-zinc-600 text-[10px] pl-[6.5rem]">{d.count} sessão{d.count !== 1 ? 'ões' : ''}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : <p className="text-zinc-600 text-xs">Sem atividades</p>
+
+                  return (
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }}>
+                      <div className="px-5 py-3.5 border-b border-white/[0.07]">
+                        <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Distribuição por modalidade</p>
+                      </div>
+                      <div className="flex flex-col md:flex-row">
+                        <div className="flex-1 p-5 md:border-r border-white/[0.07]">
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Semana passada</p>
+                          {renderBars(distSemana)}
+                        </div>
+                        <div className="flex-1 p-5 border-t md:border-t-0 border-white/[0.07]">
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Últimos 28 dias</p>
+                          {renderBars(dist28Dias)}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+              </div>
+            )}
+
+            {/* ── ABA PERFIL ───────────────────────────────────────────── */}
+            {abaAtiva === 'perfil' && (
+              <div className="space-y-5">
+
                 {/* Quick actions */}
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => router.push(`/anamnese/${clienteId}`)}
@@ -953,106 +1148,6 @@ export default function PersonalAluno() {
                       </button>
                     </div>
                   )}
-                </div>
-
-                {/* Composição Corporal — empty state */}
-                {medidasCP.length === 0 && (
-                  <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
-                    <span className="text-3xl">📏</span>
-                    <div>
-                      <p className="text-white text-sm font-bold">Sem medidas corporais</p>
-                      <p className="text-zinc-600 text-xs mt-1">Registre as medidas iniciais do aluno para acompanhar a evolução</p>
-                    </div>
-                    <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-                      className="mt-1 text-xs text-blue-400 border border-blue-500/20 bg-blue-500/10 rounded-xl px-4 py-2 hover:bg-blue-500/20 active:scale-95 transition-all font-semibold">
-                      + Registrar primeira medida
-                    </button>
-                  </div>
-                )}
-
-                {/* Composição Corporal */}
-                {medidasCP.length >= 2 && (() => {
-                  const ultima = medidasCP[medidasCP.length - 1]
-                  const primeira = medidasCP[0]
-                  type MetricaDef = { key: keyof MedidaCP; label: string; unit: string; cor: string; inverse?: boolean }
-                  const metricas: MetricaDef[] = [
-                    { key: 'peso',           label: 'Peso',         unit: 'kg', cor: '#94a3b8' },
-                    { key: 'gordura_pct',    label: '% Gordura',    unit: '%',  cor: '#f97316', inverse: true },
-                    { key: 'massa_muscular', label: 'Massa musc.',  unit: 'kg', cor: '#34d399' },
-                    { key: 'cintura',        label: 'Cintura',      unit: 'cm', cor: '#a78bfa', inverse: true },
-                    { key: 'quadril',        label: 'Quadril',      unit: 'cm', cor: '#60a5fa' },
-                    { key: 'braco_dir',      label: 'Braço',        unit: 'cm', cor: '#fb923c' },
-                    { key: 'coxa_dir',       label: 'Coxa',         unit: 'cm', cor: '#f472b6' },
-                  ].filter(m => ultima[m.key] != null && primeira[m.key] != null)
-                  if (!metricas.length) return null
-                  function sparkline(key: keyof MedidaCP, cor: string) {
-                    const pts = medidasCP.filter(m => m[key] != null)
-                    if (pts.length < 2) return null
-                    const vals = pts.map(m => m[key] as number)
-                    const W = 56, H = 24, maxV = Math.max(...vals), minV = Math.min(...vals), range = maxV - minV || 1
-                    const xStep = W / Math.max(pts.length - 1, 1)
-                    const toY = (v: number) => H - 3 - ((v - minV) / range) * (H - 6)
-                    const d = vals.map((v, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')
-                    return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
-                  }
-                  return (
-                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, overflow: 'hidden' }}>
-                      <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Composição Corporal</p>
-                        <p className="text-zinc-600 text-[11px]">{medidasCP.length} registros</p>
-                      </div>
-                      <div className="divide-y divide-white/[0.04]">
-                        {metricas.map(m => {
-                          const cur = ultima[m.key] as number
-                          const ini = primeira[m.key] as number
-                          const delta = Math.round((cur - ini) * 10) / 10
-                          const positivo = m.inverse ? delta < 0 : delta > 0
-                          const deltaCor = delta === 0 ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
-                          return (
-                            <div key={m.key} style={{ padding: '10px 20px' }} className="flex items-center gap-3">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-zinc-500 text-[11px] uppercase tracking-wider mb-0.5">{m.label}</p>
-                                <div className="flex items-baseline gap-1.5">
-                                  <span className="text-white text-2xl font-black leading-none">{cur}</span>
-                                  <span className="text-zinc-500 text-[11px]">{m.unit}</span>
-                                  {delta !== 0 && <span className={`text-[11px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{m.unit}</span>}
-                                </div>
-                              </div>
-                              {sparkline(m.key, m.cor)}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                {/* Calendário de aderência - 28 dias */}
-                <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                  <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Calendário de aderência · 28 dias</p>
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {Array.from({ length: 28 }, (_, i) => {
-                      const d = new Date(getTodayBR() + 'T12:00:00-03:00')
-                      d.setDate(d.getDate() - (27 - i))
-                      const ds = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-                      const tipo = diasAtividade.get(ds)
-                      const isHoje = ds === getTodayBR()
-                      return (
-                        <div key={i} className={[
-                          'aspect-square rounded-lg flex items-center justify-center text-[8px] font-bold',
-                          tipo === 'treino' ? 'bg-emerald-500/75 text-black' : tipo === 'livre' ? 'bg-blue-500/60 text-white' : 'bg-white/[0.07] text-zinc-800',
-                          isHoje ? 'ring-1 ring-white/30' : '',
-                        ].join(' ')}>
-                          {d.getDate()}
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <div className="flex items-center gap-4 mt-3">
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/75" /><span className="text-zinc-500 text-[10px]">Musculação</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-500/60" /><span className="text-zinc-500 text-[10px]">Atividade livre</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-white/[0.07] border border-white/[0.14]" /><span className="text-zinc-500 text-[10px]">Descanso</span></div>
-                  </div>
                 </div>
 
               </div>
@@ -1228,14 +1323,6 @@ export default function PersonalAluno() {
                   )
                 })()}
 
-              </div>
-            )}
-
-            {/* ── ABA EVOLUÇÃO ─────────────────────────────────────────── */}
-            {abaAtiva === 'evolucao' && (
-              <div className="flex flex-col items-center py-20 gap-3 text-center">
-                <TrendingUp size={32} className="text-zinc-700" />
-                <p className="text-zinc-600 text-sm">Evolução — em breve</p>
               </div>
             )}
 
