@@ -33,6 +33,14 @@ type FaseCiclo = {
   diasAteProximoBloco: number | null
 }
 
+const MODALIDADES_TREINO = [
+  { nome: 'Musculação', icone: '🏋️', disponivel: true },
+  { nome: 'Assessoria de Corrida', icone: '🏃', disponivel: false },
+  { nome: 'Assessoria de Bike', icone: '🚴', disponivel: false },
+  { nome: 'Assessoria de Natação', icone: '🏊', disponivel: false },
+  { nome: 'Triathlon', icone: '🔱', disponivel: false },
+] as const
+
 function getInitials(nome: string | null, email: string): string {
   if (nome) { const p = nome.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0][0].toUpperCase() }
   return email[0].toUpperCase()
@@ -110,6 +118,7 @@ export default function PersonalAluno() {
   const [modalAberto, setModalAberto] = useState(false)
   const [editandoTreino, setEditandoTreino] = useState<Treino | null>(null)
   const [confirmaDeleteId, setConfirmaDeleteId] = useState<string | null>(null)
+  const [modalEmBreve, setModalEmBreve] = useState<string | null>(null)
   const [personalNome, setPersonalNome] = useState('')
   const [execucoes, setExecucoes] = useState<Execucao[]>([])
   const [cargaEvolucao, setCargaEvolucao] = useState<Record<string, CargaPonto[]>>({})
@@ -1356,7 +1365,7 @@ export default function PersonalAluno() {
             {abaAtiva === 'treinos' && (
               <div className="space-y-5">
 
-                {(() => {
+                {treinos.length > 0 && (() => {
                   const planosComTreino = PLANOS_MAX.filter(p => treinos.some(t => t.plano === p))
                   const proximoPlano = PLANOS_MAX.find(p => !treinos.some(t => t.plano === p))
                   const planosVisiveis = proximoPlano ? [...planosComTreino, proximoPlano] : planosComTreino
@@ -1420,6 +1429,26 @@ export default function PersonalAluno() {
                     <button onClick={abrirNovo} className="w-full border border-white/[0.14] text-zinc-400 font-bold py-4 rounded-2xl text-sm active:scale-95 hover:border-white/20 hover:text-white transition-all tracking-wide mt-4">
                       + Substituir Plano {planoAtivo}
                     </button>
+                  </div>
+                ) : treinos.length === 0 ? (
+                  <div className="py-6">
+                    <div className="text-center mb-5">
+                      <p className="text-white font-bold mb-1">Escolha a modalidade</p>
+                      <p className="text-zinc-600 text-sm">Selecione o tipo de treino para começar</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {MODALIDADES_TREINO.map((m, i) => (
+                        <button
+                          key={m.nome}
+                          onClick={() => m.disponivel ? abrirNovo() : setModalEmBreve(m.nome)}
+                          className={`flex flex-col items-center justify-center gap-1.5 py-4 active:scale-95 transition-all ${i === 4 ? 'col-span-2' : ''}`}
+                          style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16 }}
+                        >
+                          <span className="text-2xl">{m.icone}</span>
+                          <span className="text-white font-bold text-xs text-center">{m.nome}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center py-16 gap-4">
@@ -1743,6 +1772,27 @@ export default function PersonalAluno() {
                 Excluir
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL EM BREVE (modalidades futuras) ──────────────────────── */}
+      {modalEmBreve && (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setModalEmBreve(null)}>
+          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] px-5 pt-6 pb-10 space-y-4"
+            style={{ background: '#1c1c1c' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-2xl bg-white/[0.07] border border-white/[0.14] flex items-center justify-center mx-auto mb-1 text-2xl">🚧</div>
+            <p className="text-white font-black text-xl text-center">Em breve</p>
+            <p className="text-zinc-400 text-sm text-center leading-relaxed">
+              Prescrição de {modalEmBreve} chegando na próxima versão.
+            </p>
+            <button onClick={() => setModalEmBreve(null)}
+              className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+              Entendi
+            </button>
           </div>
         </div>
       )}
