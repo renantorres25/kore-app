@@ -194,7 +194,7 @@ export default function PersonalAluno() {
       { data: anamneseCompletaData }, { data: sonoHistData }, { data: proximaConsultaData },
     ] = await Promise.all([
       supabase.from('treinos').select('id, nome, plano, data, calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
-      supabase.from('atividades_livres').select('data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
+      supabase.from('atividades_livres').select('data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable, fc_media, fc_max').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
       supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
       supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
       supabase.from('anamneses').select('restricoes_alimentares,suplementos,lesoes,restricoes_fisicas,medicamentos,alergias').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
@@ -231,7 +231,7 @@ export default function PersonalAluno() {
       let detalhe = a.duracao_min ? `${a.duracao_min}min` : ''
       if (a.distancia_km) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_km}km`
       if (a.distancia_m) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_m}m`
-      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null })
+      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null })
     })
     setAtividadesCalendario(listaCalendario)
     setTreinosDatas((treinosCompletos ?? []).map((t: any) => t.data))
@@ -897,7 +897,7 @@ export default function PersonalAluno() {
                 )}
 
                 {/* Composição Corporal — compacto */}
-                {medidasCP.length >= 2 && (() => {
+                {medidasCP.length >= 1 && (() => {
                   const primeira = medidasCP[0]
                   const ultima = medidasCP[medidasCP.length - 1]
                   const rows = [
@@ -952,7 +952,13 @@ export default function PersonalAluno() {
                                 <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cfg.hex }} />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-white text-sm font-semibold">{a.nome}</p>
-                                  {a.detalhe && <p className="text-zinc-500 text-[11px]">{a.detalhe}</p>}
+                                  {(a.detalhe || a.fc_media != null || a.fc_max != null) && (
+                                    <p className="text-zinc-500 text-[11px]">
+                                      {a.detalhe}
+                                      {a.fc_media != null && <span className="text-red-300">{a.detalhe ? ' · ' : ''}FC méd {a.fc_media}bpm</span>}
+                                      {a.fc_max != null && <span className="text-red-500">{(a.detalhe || a.fc_media != null) ? ' · ' : ''}FC máx {a.fc_max}bpm</span>}
+                                    </p>
+                                  )}
                                 </div>
                                 {a.calorias != null && (
                                   <p className="text-orange-400 text-sm font-bold shrink-0">{a.calorias} kcal</p>
