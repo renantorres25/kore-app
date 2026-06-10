@@ -221,16 +221,33 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
   // ── RED-S (nutricionista) ────────────────────────
   if (caloriasPrescritas != null && pesoKg != null && pesoKg > 0) {
     const comCal = atividades30d.filter(a => (a.calorias_wearable ?? a.calorias_estimadas) != null)
+
     if (comCal.length >= 5) {
-      const totalGasto = comCal.reduce((s, a) => s + (a.calorias_wearable ?? a.calorias_estimadas ?? 0), 0)
-      const gastoMedioDiario = totalGasto / 30
-      const manutencaoEstimada = pesoKg * 33
-      const deficit = (manutencaoEstimada + gastoMedioDiario) - caloriasPrescritas
-      if (deficit > 500) {
+      // TMB estimada (Mifflin-St Jeor simplificado sem sexo: ~22 × peso)
+      const tmbEstimada = pesoKg * 22
+
+      // Fator de atividade baseado no volume de treino
+      // leve (<3 sessões/semana): 1.375
+      // moderado (3-5 sessões): 1.55
+      // intenso (>5 sessões): 1.725
+      const sessoesSemanais = atividades30d.filter(a => {
+        const hoje = getHojeStr()
+        const seteDias = getDateOffsetStr(6)
+        return a.data >= seteDias && a.data <= hoje
+      }).length
+
+      const fatorAtividade = sessoesSemanais <= 2 ? 1.375 : sessoesSemanais <= 5 ? 1.55 : 1.725
+      const tdeeEstimado = tmbEstimada * fatorAtividade
+
+      // TDEE já inclui atividade via fator — não soma gasto de treino separado
+      const deficit = tdeeEstimado - caloriasPrescritas
+
+      // Dispara se déficit > 300 kcal/dia (threshold mais conservador)
+      if (deficit > 300) {
         alertas.push({
           codigo: 'RED_S',
           nivel: 'vermelho',
-          dadoTecnico: `Déficit: ${Math.round(deficit)}kcal/dia | Gasto est.: ${Math.round(gastoMedioDiario)}kcal | Prescrito: ${caloriasPrescritas}kcal`,
+          dadoTecnico: `Déficit: ${Math.round(deficit)}kcal/dia | TDEE est.: ${Math.round(tdeeEstimado)}kcal | Prescrito: ${caloriasPrescritas}kcal`,
           mensagem: 'Plano calórico insuficiente para a carga de treino. Risco de perda muscular em 2–3 semanas.',
         })
       }

@@ -214,7 +214,7 @@ export default function NutricionistaPacientes() {
               {/* Painel de alertas — resumo */}
               <div className="mb-5 rounded-2xl border border-white/[0.07] overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20 }}>
                 <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
-                  <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Painel de alertas — últimos 14 dias</p>
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Painel de alertas — últimos 30 dias</p>
                 </div>
                 <div className="px-5 py-4 flex items-center gap-6 flex-wrap">
                   {[
