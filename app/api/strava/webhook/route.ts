@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
 
     const data = a.start_date_local?.split('T')[0] ?? new Date(a.start_date).toLocaleDateString('en-CA')
     const fcMedia = a.average_heartrate ? Math.round(a.average_heartrate) : null
+    const fcMax = a.max_heartrate ? Math.round(a.max_heartrate) : null
     let intensidade = 2
     if (fcMedia) intensidade = fcMedia > 160 ? 5 : fcMedia > 140 ? 4 : fcMedia > 120 ? 3 : 2
 
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest) {
       calorias_estimadas: calorias,
       calorias_wearable: calorias,
       fc_media: fcMedia,
+      fc_max: fcMax,
       elevacao: a.total_elevation_gain ? Math.round(a.total_elevation_gain) : null,
       intensidade,
       observacoes: `Strava · ${a.name ?? modalidade}`,

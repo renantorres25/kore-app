@@ -67,12 +67,12 @@ export async function POST(req: NextRequest) {
     // IDs já existentes no banco para este usuário
     const { data: existing } = await supabase
       .from('atividades_livres')
-      .select('id, strava_activity_id, calorias_wearable')
+      .select('id, strava_activity_id, calorias_wearable, fc_media, fc_max')
       .eq('usuario_id', usuarioId)
       .not('strava_activity_id', 'is', null)
 
-    const existingMap = new Map<number, { id: string; calorias_wearable: number | null }>(
-      (existing ?? []).map(e => [Number(e.strava_activity_id), { id: e.id, calorias_wearable: e.calorias_wearable }])
+    const existingMap = new Map<number, { id: string; calorias_wearable: number | null; fc_media: number | null; fc_max: number | null }>(
+      (existing ?? []).map(e => [Number(e.strava_activity_id), { id: e.id, calorias_wearable: e.calorias_wearable, fc_media: e.fc_media, fc_max: e.fc_max }])
     )
 
     let inseridos = 0
@@ -110,12 +110,27 @@ export async function POST(req: NextRequest) {
           strava_activity_id: stravaId,
         })
         if (!error) inseridos++
-      } else if (!entry.calorias_wearable && calorias) {
-        await supabase
-          .from('atividades_livres')
-          .update({ calorias_wearable: calorias, calorias_estimadas: calorias })
-          .eq('id', entry.id)
-        atualizados++
+      } else {
+        const precisaAtualizar =
+          (!entry.calorias_wearable && calorias) ||
+          (entry.fc_media == null && fcMedia != null) ||
+          (entry.fc_max == null && fcMax != null)
+
+        if (precisaAtualizar) {
+          const updatePayload: Record<string, any> = {}
+          if (!entry.calorias_wearable && calorias) {
+            updatePayload.calorias_wearable = calorias
+            updatePayload.calorias_estimadas = calorias
+          }
+          if (entry.fc_media == null && fcMedia != null) updatePayload.fc_media = fcMedia
+          if (entry.fc_max == null && fcMax != null) updatePayload.fc_max = fcMax
+
+          await supabase
+            .from('atividades_livres')
+            .update(updatePayload)
+            .eq('id', entry.id)
+          atualizados++
+        }
       }
     }
 
