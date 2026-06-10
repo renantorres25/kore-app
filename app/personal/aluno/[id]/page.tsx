@@ -83,7 +83,7 @@ export default function PersonalAluno() {
   const [anamneseCompleta, setAnamneseCompleta] = useState<any | null>(null)
   const [sonoHojeInfo, setSonoHojeInfo] = useState<{ score: number | null; duracaoMin: number | null } | null>(null)
   const [sonoHistorico7d, setSonoHistorico7d] = useState<{ data: string; score: number | null; duracaoMin: number | null }[]>([])
-  const [bemEstarHojeInfo, setBemEstarHojeInfo] = useState<{ humor: number | null; energia: number | null; dorMuscular: number | null; notas: string | null } | null>(null)
+  const [bemEstarHojeInfo, setBemEstarHojeInfo] = useState<{ humor: number | null; energia: number | null; motivacao: number | null; dorMuscular: number | null; notas: string | null } | null>(null)
   const [fasePeriodizacaoChat, setFasePeriodizacaoChat] = useState<string | null>(null)
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
@@ -125,7 +125,7 @@ export default function PersonalAluno() {
 
     setSonoHojeInfo({ score: sonoHoje?.score_recuperacao ?? null, duracaoMin: sonoHoje?.duracao_minutos ?? null })
     const bemHoje = (bemEstarData ?? []).find((b: any) => b.data === hoje)
-    if (bemHoje) setBemEstarHojeInfo({ humor: bemHoje.humor ?? null, energia: bemHoje.energia ?? null, dorMuscular: bemHoje.dor_muscular ?? null, notas: bemHoje.notas ?? null })
+    if (bemHoje) setBemEstarHojeInfo({ humor: bemHoje.humor ?? null, energia: bemHoje.energia ?? null, motivacao: bemHoje.motivacao ?? null, dorMuscular: bemHoje.dor_muscular ?? null, notas: bemHoje.notas ?? null })
 
     setMonitor({
       scoreRecuperacao: sonoHoje?.score_recuperacao ?? null,
@@ -503,77 +503,104 @@ export default function PersonalAluno() {
                   </div>
                 )}
 
-                {/* Monitoramento de hoje */}
-                {monitor && (
-                  <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                    <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Monitoramento hoje</p>
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Recuperação</p>
-                        {monitor.scoreRecuperacao ? (
-                          <p className={`text-2xl font-black leading-none ${monitor.scoreRecuperacao >= 70 ? 'text-emerald-400' : monitor.scoreRecuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {monitor.scoreRecuperacao}<span className="text-zinc-500 text-[11px] font-normal">/100</span>
-                          </p>
-                        ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
+                {/* Status de hoje */}
+                {monitor && (() => {
+                  const recuperacao = monitor.scoreRecuperacao
+                  const bemHoje = (bemEstarHojeInfo && bemEstarHojeInfo.humor != null && bemEstarHojeInfo.energia != null && bemEstarHojeInfo.motivacao != null)
+                    ? (bemEstarHojeInfo.humor + bemEstarHojeInfo.energia + bemEstarHojeInfo.motivacao) / 3
+                    : null
+                  const dias = monitor.ultimoTreino ? diasSemTreinar(monitor.ultimoTreino) : null
+
+                  let nivel: 'verde' | 'amarelo' | 'vermelho' | 'cinza' = 'cinza'
+                  let texto = 'Sem dados hoje'
+
+                  if (recuperacao != null || bemHoje != null) {
+                    const ruim = (recuperacao != null && recuperacao < 50) || (bemHoje != null && bemHoje < 3) || (dias != null && dias >= 7)
+                    const cautela = (recuperacao != null && recuperacao < 70) || (bemHoje != null && bemHoje < 4)
+                    if (ruim) { nivel = 'vermelho'; texto = 'Considerar descanso' }
+                    else if (cautela) { nivel = 'amarelo'; texto = 'Treinar com cautela' }
+                    else { nivel = 'verde'; texto = 'Treinar normalmente' }
+                  }
+
+                  const SEMAFORO_CFG = {
+                    verde:    { cor: '#34d399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)' },
+                    amarelo:  { cor: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)' },
+                    vermelho: { cor: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.25)' },
+                    cinza:    { cor: '#71717a', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.08)' },
+                  } as const
+                  const cfg = SEMAFORO_CFG[nivel]
+
+                  return (
+                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                      <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Status de hoje</p>
+
+                      <div className="flex items-center gap-3 mb-4 px-4 py-3.5 rounded-2xl" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+                        <div className="w-4 h-4 rounded-full shrink-0" style={{ background: cfg.cor, boxShadow: `0 0 12px ${cfg.cor}` }} />
+                        <p className="text-white font-black text-base">{texto}</p>
                       </div>
-                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Sono</p>
-                        {monitor.sonoHoras ? (
-                          <p className="text-2xl font-black text-white leading-none">{monitor.sonoHoras}<span className="text-zinc-500 text-[11px] font-normal">h</span></p>
-                        ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
+                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Recuperação</p>
+                          {recuperacao != null ? (
+                            <p className={`text-2xl font-black leading-none ${recuperacao >= 70 ? 'text-emerald-400' : recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {recuperacao}<span className="text-zinc-500 text-[11px] font-normal">/100</span>
+                            </p>
+                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
+                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Sono</p>
+                          {monitor.sonoHoras ? (
+                            <p className="text-2xl font-black text-white leading-none">{monitor.sonoHoras}<span className="text-zinc-500 text-[11px] font-normal">h</span></p>
+                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
+                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Bem-estar</p>
+                          {bemHoje != null ? (
+                            <p className={`text-2xl font-black leading-none ${bemHoje >= 4 ? 'text-emerald-400' : bemHoje >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {bemHoje.toFixed(1)}<span className="text-zinc-500 text-[11px] font-normal">/4</span>
+                            </p>
+                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
+                          <p className="text-zinc-600 text-[11px] mt-1">hoje</p>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
+                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Inatividade</p>
+                          {dias != null ? (
+                            <p className={`text-2xl font-black leading-none ${dias <= 2 ? 'text-emerald-400' : dias <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {dias}<span className="text-zinc-500 text-[11px] font-normal">d</span>
+                            </p>
+                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
+                          <p className="text-zinc-600 text-[11px] mt-1">sem treinar</p>
+                        </div>
                       </div>
+
+                      {(aluno?.nivel || aluno?.fcmax || aluno?.ftp || ultimaAvaliacao) && (
+                        <div className="mt-4 pt-4 border-t border-white/[0.09] flex flex-wrap gap-2">
+                          {aluno?.nivel && (
+                            <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
+                              Nível: {aluno.nivel}
+                            </span>
+                          )}
+                          {aluno?.fcmax && (
+                            <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
+                              FC máx: {aluno.fcmax} bpm
+                            </span>
+                          )}
+                          {aluno?.ftp && (
+                            <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
+                              FTP: {aluno.ftp}W
+                            </span>
+                          )}
+                          {ultimaAvaliacao && (
+                            <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
+                              Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
-                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>Bem-estar</p>
-                        {monitor.bemEstarMedia ? (
-                          <p className={`text-2xl font-black leading-none ${monitor.bemEstarMedia >= 4 ? 'text-emerald-400' : monitor.bemEstarMedia >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {monitor.bemEstarMedia}<span className="text-zinc-500 text-[11px] font-normal">/5</span>
-                          </p>
-                        ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                        <p className="text-zinc-600 text-[11px] mt-1">média 7d</p>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
-                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>Treinos</p>
-                        <p className="text-white text-2xl font-black leading-none">{monitor.treinosSemana}<span className="text-zinc-500 text-[11px] font-normal">x</span></p>
-                        <p className="text-zinc-600 text-[11px] mt-1">na semana</p>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
-                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>Inatividade</p>
-                        {monitor.ultimoTreino ? (
-                          <p className={`text-2xl font-black leading-none ${diasSemTreinar(monitor.ultimoTreino) <= 2 ? 'text-emerald-400' : diasSemTreinar(monitor.ultimoTreino) <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {diasSemTreinar(monitor.ultimoTreino)}<span className="text-zinc-500 text-[11px] font-normal">d</span>
-                          </p>
-                        ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                        <p className="text-zinc-600 text-[11px] mt-1">sem treinar</p>
-                      </div>
-                    </div>
-                    {(aluno?.nivel || aluno?.fcmax || aluno?.ftp || ultimaAvaliacao) && (
-                      <div className="mt-4 pt-4 border-t border-white/[0.09] flex flex-wrap gap-2">
-                        {aluno?.nivel && (
-                          <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
-                            Nível: {aluno.nivel}
-                          </span>
-                        )}
-                        {aluno?.fcmax && (
-                          <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
-                            FC máx: {aluno.fcmax} bpm
-                          </span>
-                        )}
-                        {aluno?.ftp && (
-                          <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
-                            FTP: {aluno.ftp}W
-                          </span>
-                        )}
-                        {ultimaAvaliacao && (
-                          <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
-                            Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )
+                })()}
 
                 {/* Plano nutricional ativo */}
                 {(planoNutri || restricaoNutri) && (
