@@ -70,6 +70,9 @@ export default function PersonalAluno() {
   const [personalNome, setPersonalNome] = useState('')
   const [execucoes, setExecucoes] = useState<Execucao[]>([])
   const [cargaEvolucao, setCargaEvolucao] = useState<Record<string, CargaPonto[]>>({})
+  const [treinosDatas, setTreinosDatas] = useState<string[]>([])
+  const [atividadesLivres, setAtividadesLivres] = useState<{ data: string; duracao_min: number | null }[]>([])
+  const [cargaPorData, setCargaPorData] = useState<Record<string, number>>({})
   const [diasAtividade, setDiasAtividade] = useState<Map<string, 'treino' | 'livre'>>(new Map())
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [planoNutri, setPlanoNutri] = useState<PlanoNutri | null>(null)
@@ -155,7 +158,7 @@ export default function PersonalAluno() {
       { data: anamneseCompletaData }, { data: sonoHistData }, { data: proximaConsultaData },
     ] = await Promise.all([
       supabase.from('treinos').select('id, nome, plano, data, calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
-      supabase.from('atividades_livres').select('data, modalidade').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
+      supabase.from('atividades_livres').select('data, modalidade, duracao_min').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
       supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
       supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
       supabase.from('anamneses').select('restricoes_alimentares,suplementos,lesoes,restricoes_fisicas,medicamentos,alergias').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
@@ -187,6 +190,8 @@ export default function PersonalAluno() {
     atvsLivres30?.forEach((a: { data: string }) => diasMap.set(a.data, 'livre'))
     treinosCompletos?.forEach((t: { data: string }) => diasMap.set(t.data, 'treino'))
     setDiasAtividade(diasMap)
+    setTreinosDatas((treinosCompletos ?? []).map((t: any) => t.data))
+    setAtividadesLivres((atvsLivres30 ?? []).map((a: any) => ({ data: a.data, duracao_min: a.duracao_min ?? null })))
 
     if (treinosCompletos?.length) {
       const tIds = treinosCompletos.map((t: { id: string }) => t.id)
@@ -226,6 +231,15 @@ export default function PersonalAluno() {
         }
       }
       setCargaEvolucao(cargaMap)
+
+      const cargaPorDataMap: Record<string, number> = {}
+      for (const t of (treinosCompletos as any[])) {
+        const exsT = (exsHist ?? []).filter((e: any) => e.treino_id === t.id)
+        const srsT = (seriesHist ?? []).filter((s: any) => exsT.some((e: any) => e.id === s.exercicio_id))
+        const vol = srsT.reduce((acc: number, s: any) => acc + ((s.carga ?? 0) * (s.repeticoes ?? 0)), 0)
+        cargaPorDataMap[t.data] = (cargaPorDataMap[t.data] ?? 0) + vol
+      }
+      setCargaPorData(cargaPorDataMap)
     }
 
     // Fase de periodização para o chat
@@ -598,6 +612,134 @@ export default function PersonalAluno() {
                           )}
                         </div>
                       )}
+                    </div>
+                  )
+                })()}
+
+                {/* Resumo semanal */}
+                {(() => {
+                  const hoje = getTodayBR()
+                  const dBase = new Date(hoje + 'T12:00:00-03:00')
+                  const fmtISO = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+                  const currStart = new Date(dBase); currStart.setDate(dBase.getDate() - dBase.getDay())
+                  const prevStart = new Date(dBase); prevStart.setDate(dBase.getDate() - dBase.getDay() - 7)
+                  const prevEnd   = new Date(dBase); prevEnd.setDate(dBase.getDate() - dBase.getDay() - 1)
+                  const antStart  = new Date(dBase); antStart.setDate(dBase.getDate() - dBase.getDay() - 14)
+                  const antEnd    = new Date(dBase); antEnd.setDate(dBase.getDate() - dBase.getDay() - 8)
+
+                  const currStartStr = fmtISO(currStart)
+                  const prevStartStr = fmtISO(prevStart), prevEndStr = fmtISO(prevEnd)
+                  const antStartStr = fmtISO(antStart), antEndStr = fmtISO(antEnd)
+
+                  const treinosPrev   = treinosDatas.filter(d => d >= prevStartStr && d <= prevEndStr)
+                  const treinosAnt    = treinosDatas.filter(d => d >= antStartStr && d <= antEndStr)
+                  const treinosAtual  = treinosDatas.filter(d => d >= currStartStr && d <= hoje)
+                  const ativsPrev     = atividadesLivres.filter(a => a.data >= prevStartStr && a.data <= prevEndStr)
+                  const ativsAnt      = atividadesLivres.filter(a => a.data >= antStartStr && a.data <= antEndStr)
+                  const ativsAtual    = atividadesLivres.filter(a => a.data >= currStartStr && a.data <= hoje)
+
+                  const prevSessoes  = treinosPrev.length + ativsPrev.length
+                  const antSessoes   = treinosAnt.length + ativsAnt.length
+                  const atualSessoes = treinosAtual.length + ativsAtual.length
+
+                  const prevMin  = ativsPrev.reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosPrev.length * 60
+                  const antMin   = ativsAnt.reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosAnt.length * 60
+                  const atualMin = ativsAtual.reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosAtual.length * 60
+                  const prevHoras = prevMin / 60, antHoras = antMin / 60, atualHoras = atualMin / 60
+
+                  const sumCarga = (start: string, end: string) =>
+                    Object.entries(cargaPorData).filter(([d]) => d >= start && d <= end).reduce((s, [, v]) => s + v, 0)
+                  const cargaPrev  = sumCarga(prevStartStr, prevEndStr)
+                  const cargaAnt   = sumCarga(antStartStr, antEndStr)
+                  const cargaAtual = sumCarga(currStartStr, hoje)
+
+                  const semDelta = (curr: number, prev: number): number | null => {
+                    if (prev === 0 || curr === 0) return null
+                    return Math.round(((curr - prev) / prev) * 100)
+                  }
+
+                  const fmtCarga = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}t` : `${Math.round(v)}kg`
+                  const fmtDate = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')
+                  const diasDecorridos = dBase.getDay() === 0 ? 7 : dBase.getDay()
+
+                  if (prevSessoes === 0 && atualSessoes === 0) return null
+
+                  return (
+                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, overflow: 'hidden' }}>
+                      <div className="px-5 py-3.5 border-b border-white/[0.07]">
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Resumo semanal</p>
+                      </div>
+                      <div className="flex flex-col-reverse md:flex-row">
+                        {/* Semana passada */}
+                        <div className="flex-1 p-5 md:border-r border-white/[0.07]">
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Semana passada</p>
+                          <p className="text-zinc-500 text-[11px] mb-4">{fmtDate(prevStart)} – {fmtDate(prevEnd)}</p>
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Sessões</p>
+                              <div className="flex items-center leading-none">
+                                <span className="text-2xl font-black text-white">{prevSessoes > 0 ? prevSessoes : '—'}</span>
+                                {prevSessoes > 0 && (() => {
+                                  const d = semDelta(prevSessoes, antSessoes)
+                                  if (d === null) return null
+                                  return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-2 ${d >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>{d >= 0 ? '+' : ''}{d}%</span>
+                                })()}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Horas de treino</p>
+                              <div className="flex items-center leading-none">
+                                <span className="text-2xl font-black text-white">{prevHoras > 0 ? prevHoras.toFixed(1) : '—'}</span>
+                                {prevHoras > 0 && (() => {
+                                  const d = semDelta(prevHoras, antHoras)
+                                  if (d === null) return null
+                                  return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-2 ${d >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>{d >= 0 ? '+' : ''}{d}%</span>
+                                })()}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Carga total</p>
+                              <div className="flex items-center leading-none">
+                                <span className="text-2xl font-black text-blue-300">{cargaPrev > 0 ? fmtCarga(cargaPrev) : '—'}</span>
+                                {cargaPrev > 0 && (() => {
+                                  const d = semDelta(cargaPrev, cargaAnt)
+                                  if (d === null) return null
+                                  return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-2 ${d >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>{d >= 0 ? '+' : ''}{d}%</span>
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Semana atual */}
+                        <div className="flex-1 p-5 border-b md:border-b-0 border-white/[0.07]">
+                          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Semana atual</p>
+                          <p className="text-zinc-500 text-[11px] mb-4">{fmtDate(currStart)} – hoje</p>
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Sessões</p>
+                              <p className="text-2xl font-black text-white leading-none">{atualSessoes > 0 ? atualSessoes : '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Horas de treino</p>
+                              <p className="text-2xl font-black text-white leading-none">{atualHoras > 0 ? atualHoras.toFixed(1) : '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Carga acumulada</p>
+                              <p className="text-2xl font-black text-blue-300 leading-none">{cargaAtual > 0 ? fmtCarga(cargaAtual) : '—'}</p>
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <div className="flex justify-between mb-1.5">
+                              <p className="text-[10px] text-zinc-600 uppercase tracking-wider">Progresso da semana</p>
+                              <p className="text-[10px] text-zinc-500">{diasDecorridos} de 7 dias</p>
+                            </div>
+                            <div className="h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                              <div className="h-full rounded-full bg-emerald-400 transition-all" style={{ width: `${Math.round((diasDecorridos / 7) * 100)}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )
                 })()}
