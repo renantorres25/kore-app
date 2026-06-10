@@ -475,28 +475,28 @@ export default function PersonalAluno() {
 
                 {/* Alertas clínicos */}
                 {(lesoes || restricaoFisica || medicamentos) && (
-                  <div className="rounded-2xl border border-red-500/20 overflow-hidden" style={{ background: '#201212' }}>
-                    <div className="px-5 py-3 flex items-center gap-2 border-b border-red-500/10">
-                      <span className="text-red-400 text-sm">⚠</span>
-                      <p className="text-red-300 text-[10px] uppercase tracking-[0.15em] font-bold">Alertas clínicos</p>
+                  <div style={{ background: 'rgba(255,90,54,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,90,54,0.18)', borderRadius: 20, overflow: 'hidden' }}>
+                    <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,90,54,0.10)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14, color: '#f87171' }}>⚠</span>
+                      <p style={{ fontSize: 11, color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Alertas clínicos</p>
                     </div>
-                    <div className="px-5 py-3 flex flex-col gap-2">
+                    <div style={{ padding: '12px 20px' }} className="flex flex-col gap-3">
                       {lesoes && (
                         <div>
-                          <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Lesões</p>
-                          <p className="text-red-200/80 text-[11px] leading-relaxed">{lesoes}</p>
+                          <p className="text-zinc-500 text-[11px] uppercase tracking-wider mb-1">Lesões</p>
+                          <p className="text-red-200/80 text-sm leading-relaxed">{lesoes}</p>
                         </div>
                       )}
                       {restricaoFisica && (
                         <div>
-                          <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Restrições físicas</p>
-                          <p className="text-amber-200/80 text-[11px] leading-relaxed">{restricaoFisica}</p>
+                          <p className="text-zinc-500 text-[11px] uppercase tracking-wider mb-1">Restrições físicas</p>
+                          <p className="text-amber-200/80 text-sm leading-relaxed">{restricaoFisica}</p>
                         </div>
                       )}
                       {medicamentos && (
                         <div>
-                          <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-0.5">Medicamentos</p>
-                          <p className="text-zinc-300/80 text-[11px] leading-relaxed">{medicamentos}</p>
+                          <p className="text-zinc-500 text-[11px] uppercase tracking-wider mb-1">Medicamentos</p>
+                          <p className="text-zinc-300/80 text-sm leading-relaxed">{medicamentos}</p>
                         </div>
                       )}
                     </div>
@@ -505,51 +505,51 @@ export default function PersonalAluno() {
 
                 {/* Monitoramento de hoje */}
                 {monitor && (
-                  <div className="rounded-2xl p-4" style={{ background: 'var(--surface-1)' }}>
-                    <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Monitoramento hoje</p>
+                  <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                    <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Monitoramento hoje</p>
                     <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Recuperação</p>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Recuperação</p>
                         {monitor.scoreRecuperacao ? (
-                          <p className={`text-xl font-black ${monitor.scoreRecuperacao >= 70 ? 'text-emerald-400' : monitor.scoreRecuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {monitor.scoreRecuperacao}<span className="text-xs font-normal text-zinc-600">/100</span>
+                          <p className={`text-2xl font-black leading-none ${monitor.scoreRecuperacao >= 70 ? 'text-emerald-400' : monitor.scoreRecuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {monitor.scoreRecuperacao}<span className="text-zinc-500 text-[11px] font-normal">/100</span>
                           </p>
-                        ) : <p className="text-zinc-600 text-lg font-black">—</p>}
+                        ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
                       </div>
-                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">Sono</p>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Sono</p>
                         {monitor.sonoHoras ? (
-                          <p className="text-xl font-black text-white">{monitor.sonoHoras}<span className="text-xs font-normal text-zinc-600">h</span></p>
-                        ) : <p className="text-zinc-600 text-lg font-black">—</p>}
+                          <p className="text-2xl font-black text-white leading-none">{monitor.sonoHoras}<span className="text-zinc-500 text-[11px] font-normal">h</span></p>
+                        ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Bem-estar</p>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>Bem-estar</p>
                         {monitor.bemEstarMedia ? (
-                          <p className={`text-base font-black ${monitor.bemEstarMedia >= 4 ? 'text-emerald-400' : monitor.bemEstarMedia >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {monitor.bemEstarMedia}<span className="text-[9px] font-normal text-zinc-600">/5</span>
+                          <p className={`text-2xl font-black leading-none ${monitor.bemEstarMedia >= 4 ? 'text-emerald-400' : monitor.bemEstarMedia >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {monitor.bemEstarMedia}<span className="text-zinc-500 text-[11px] font-normal">/5</span>
                           </p>
-                        ) : <p className="text-zinc-600 text-base font-black">—</p>}
-                        <p className="text-zinc-700 text-[9px] mt-0.5">média 7d</p>
+                        ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
+                        <p className="text-zinc-600 text-[11px] mt-1">média 7d</p>
                       </div>
-                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Treinos</p>
-                        <p className="text-white text-base font-black">{monitor.treinosSemana}<span className="text-[9px] font-normal text-zinc-600">x</span></p>
-                        <p className="text-zinc-700 text-[9px] mt-0.5">na semana</p>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>Treinos</p>
+                        <p className="text-white text-2xl font-black leading-none">{monitor.treinosSemana}<span className="text-zinc-500 text-[11px] font-normal">x</span></p>
+                        <p className="text-zinc-600 text-[11px] mt-1">na semana</p>
                       </div>
-                      <div className="bg-white/[0.05] rounded-xl p-3 border border-white/[0.14]">
-                        <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1">Inatividade</p>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 12 }}>
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>Inatividade</p>
                         {monitor.ultimoTreino ? (
-                          <p className={`text-base font-black ${diasSemTreinar(monitor.ultimoTreino) <= 2 ? 'text-emerald-400' : diasSemTreinar(monitor.ultimoTreino) <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {diasSemTreinar(monitor.ultimoTreino)}<span className="text-[9px] font-normal text-zinc-600">d</span>
+                          <p className={`text-2xl font-black leading-none ${diasSemTreinar(monitor.ultimoTreino) <= 2 ? 'text-emerald-400' : diasSemTreinar(monitor.ultimoTreino) <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {diasSemTreinar(monitor.ultimoTreino)}<span className="text-zinc-500 text-[11px] font-normal">d</span>
                           </p>
-                        ) : <p className="text-zinc-600 text-base font-black">—</p>}
-                        <p className="text-zinc-700 text-[9px] mt-0.5">sem treinar</p>
+                        ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
+                        <p className="text-zinc-600 text-[11px] mt-1">sem treinar</p>
                       </div>
                     </div>
                     {(aluno?.nivel || aluno?.fcmax || aluno?.ftp || ultimaAvaliacao) && (
-                      <div className="mt-3 pt-3 border-t border-white/[0.09] flex flex-wrap gap-2">
+                      <div className="mt-4 pt-4 border-t border-white/[0.09] flex flex-wrap gap-2">
                         {aluno?.nivel && (
                           <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
                             Nível: {aluno.nivel}
@@ -577,59 +577,62 @@ export default function PersonalAluno() {
 
                 {/* Plano nutricional ativo */}
                 {(planoNutri || restricaoNutri) && (
-                  <div className="rounded-2xl border border-green-500/20 overflow-hidden" style={{ background: '#081209' }}>
-                    <div className="px-5 py-3.5 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-green-500/15 border border-green-500/25 flex items-center justify-center shrink-0">
+                  <div style={{ background: 'rgba(52,211,153,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(52,211,153,0.18)', borderRadius: 20, overflow: 'hidden' }}>
+                    <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <span className="text-sm">🥗</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-green-300 text-[10px] uppercase tracking-[0.15em] font-bold">Nutrição prescrita</p>
+                        <p style={{ fontSize: 11, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Nutrição prescrita</p>
                         {planoNutri && (
-                          <div className="flex gap-3 mt-0.5">
-                            {planoNutri.calorias_meta && <span className="text-white text-sm font-bold">{planoNutri.calorias_meta} <span className="text-zinc-500 font-normal text-[11px]">kcal</span></span>}
-                            {planoNutri.proteina_meta && <span className="text-blue-300 text-sm font-bold">{planoNutri.proteina_meta}<span className="text-zinc-500 font-normal text-[11px]">g prot</span></span>}
+                          <div className="flex gap-4 mt-1.5 items-baseline">
+                            {planoNutri.calorias_meta && <span className="text-2xl font-black text-white leading-none">{planoNutri.calorias_meta}<span className="text-zinc-500 font-normal text-[11px] ml-1">kcal</span></span>}
+                            {planoNutri.proteina_meta && <span className="text-2xl font-black text-blue-300 leading-none">{planoNutri.proteina_meta}<span className="text-zinc-500 font-normal text-[11px] ml-1">g prot</span></span>}
                           </div>
                         )}
                       </div>
                       {planoNutri?.created_at && (
-                        <span className="text-zinc-600 text-[9px] shrink-0">
+                        <span className="text-zinc-600 text-[10px] shrink-0">
                           {new Date(planoNutri.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' })}
                         </span>
                       )}
                     </div>
                     {restricaoNutri && (
-                      <div className="px-5 py-2.5 border-t border-green-500/10 flex items-start gap-2">
+                      <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(52,211,153,0.10)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                         <span className="text-amber-400 text-xs shrink-0 mt-0.5">⚠️</span>
-                        <p className="text-amber-300/80 text-[11px] leading-relaxed">{restricaoNutri}</p>
+                        <p className="text-amber-300/80 text-sm leading-relaxed">{restricaoNutri}</p>
                       </div>
                     )}
                   </div>
                 )}
 
                 {/* Quick actions */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => router.push(`/anamnese/${clienteId}`)}
-                    className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+                    style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}
+                    className="active:scale-[0.97] transition-all hover:border-white/20">
                     <span className="text-xl shrink-0">📋</span>
                     <div>
                       <p className="text-white text-sm font-bold">Anamnese</p>
-                      <p className="text-zinc-600 text-[10px]">Ficha de saúde</p>
+                      <p className="text-zinc-500 text-[11px]">Ficha de saúde</p>
                     </div>
                   </button>
                   <button onClick={() => router.push(`/evolucao-medidas/${clienteId}`)}
-                    className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left">
+                    style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}
+                    className="active:scale-[0.97] transition-all hover:border-white/20">
                     <span className="text-xl shrink-0">📏</span>
                     <div>
                       <p className="text-white text-sm font-bold">Medidas</p>
-                      <p className="text-zinc-600 text-[10px]">Evolução corporal</p>
+                      <p className="text-zinc-500 text-[11px]">Evolução corporal</p>
                     </div>
                   </button>
                   <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
-                    className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl border border-white/[0.14] bg-white/[0.05] hover:border-white/20 active:scale-[0.97] transition-all text-left col-span-2">
+                    style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', gridColumn: 'span 2' }}
+                    className="active:scale-[0.97] transition-all hover:border-white/20">
                     <span className="text-xl shrink-0">📅</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-bold">Periodização</p>
-                      <p className="text-zinc-600 text-[10px]">Blocos de treinamento</p>
+                      <p className="text-zinc-500 text-[11px]">Blocos de treinamento</p>
                     </div>
                   </button>
                 </div>
@@ -734,7 +737,7 @@ export default function PersonalAluno() {
 
                 {/* Composição Corporal — empty state */}
                 {medidasCP.length === 0 && (
-                  <div className="rounded-2xl px-5 py-8 flex flex-col items-center gap-3 text-center" style={{ background: 'var(--surface-1)' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
                     <span className="text-3xl">📏</span>
                     <div>
                       <p className="text-white text-sm font-bold">Sem medidas corporais</p>
@@ -773,10 +776,10 @@ export default function PersonalAluno() {
                     return <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 overflow-visible"><path d={d} fill="none" stroke={cor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, j) => <circle key={j} cx={j * xStep} cy={toY(v)} r="2" fill={cor} />)}</svg>
                   }
                   return (
-                    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)' }}>
-                      <div className="px-5 py-4 border-b border-white/[0.14] flex items-center justify-between">
-                        <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Composição Corporal</p>
-                        <p className="text-zinc-600 text-[9px]">{medidasCP.length} registros</p>
+                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, overflow: 'hidden' }}>
+                      <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Composição Corporal</p>
+                        <p className="text-zinc-600 text-[11px]">{medidasCP.length} registros</p>
                       </div>
                       <div className="divide-y divide-white/[0.04]">
                         {metricas.map(m => {
@@ -786,13 +789,13 @@ export default function PersonalAluno() {
                           const positivo = m.inverse ? delta < 0 : delta > 0
                           const deltaCor = delta === 0 ? 'text-zinc-600' : positivo ? 'text-emerald-400' : 'text-red-400'
                           return (
-                            <div key={m.key} className="flex items-center gap-3 px-5 py-3">
+                            <div key={m.key} style={{ padding: '10px 20px' }} className="flex items-center gap-3">
                               <div className="flex-1 min-w-0">
-                                <p className="text-zinc-400 text-[10px] uppercase tracking-wider">{m.label}</p>
+                                <p className="text-zinc-500 text-[11px] uppercase tracking-wider mb-0.5">{m.label}</p>
                                 <div className="flex items-baseline gap-1.5">
-                                  <span className="text-white text-lg font-bold">{cur}</span>
-                                  <span className="text-zinc-600 text-[10px]">{m.unit}</span>
-                                  {delta !== 0 && <span className={`text-[10px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{m.unit}</span>}
+                                  <span className="text-white text-2xl font-black leading-none">{cur}</span>
+                                  <span className="text-zinc-500 text-[11px]">{m.unit}</span>
+                                  {delta !== 0 && <span className={`text-[11px] font-bold ${deltaCor}`}>{delta > 0 ? '+' : ''}{delta}{m.unit}</span>}
                                 </div>
                               </div>
                               {sparkline(m.key, m.cor)}
@@ -805,8 +808,8 @@ export default function PersonalAluno() {
                 })()}
 
                 {/* Calendário de aderência - 28 dias */}
-                <div className="rounded-2xl p-5" style={{ background: 'var(--surface-1)' }}>
-                  <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 mb-4">Calendário de aderência · 28 dias</p>
+                <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                  <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Calendário de aderência · 28 dias</p>
                   <div className="grid grid-cols-7 gap-1.5">
                     {Array.from({ length: 28 }, (_, i) => {
                       const d = new Date(getTodayBR() + 'T12:00:00-03:00')
@@ -826,9 +829,9 @@ export default function PersonalAluno() {
                     })}
                   </div>
                   <div className="flex items-center gap-4 mt-3">
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/75" /><span className="text-zinc-600 text-[9px]">Musculação</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-500/60" /><span className="text-zinc-600 text-[9px]">Atividade livre</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-white/[0.07] border border-white/[0.14]" /><span className="text-zinc-600 text-[9px]">Descanso</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/75" /><span className="text-zinc-500 text-[10px]">Musculação</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-500/60" /><span className="text-zinc-500 text-[10px]">Atividade livre</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-white/[0.07] border border-white/[0.14]" /><span className="text-zinc-500 text-[10px]">Descanso</span></div>
                   </div>
                 </div>
 
