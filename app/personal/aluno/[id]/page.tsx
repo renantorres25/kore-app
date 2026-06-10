@@ -22,6 +22,15 @@ type Execucao = { id: string; nome: string; plano: string; data: string; caloria
 type CargaPonto = { data: string; carga: number }
 type MedidaCP = { data: string; peso: number | null; gordura_pct: number | null; massa_muscular: number | null; cintura: number | null; quadril: number | null; braco_dir: number | null; coxa_dir: number | null }
 type PlanoNutri = { id?: string; conteudo?: string | null; calorias_meta: number | null; proteina_meta: number | null; created_at: string }
+type FaseCiclo = {
+  nomeCiclo: string
+  nomeBloco: string
+  tipoBloco: string
+  semanaBloco: number
+  semanasBloco: number
+  totalSemanas: number
+  diasAteProximoBloco: number | null
+}
 
 function getInitials(nome: string | null, email: string): string {
   if (nome) { const p = nome.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0][0].toUpperCase() }
@@ -50,6 +59,14 @@ const CORES: Record<string, { text: string; bg: string; border: string }> = {
   C: { text: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20'  },
   D: { text: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20'  },
   E: { text: 'text-pink-400',    bg: 'bg-pink-500/10',    border: 'border-pink-500/20'    },
+}
+const TIPO_COR_LISTA: Record<string, string> = {
+  adaptacao:   'text-teal-400 border-teal-500/20 bg-teal-500/10',
+  hipertrofia: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10',
+  forca:       'text-blue-400 border-blue-500/20 bg-blue-500/10',
+  resistencia: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+  deload:      'text-zinc-400 border-zinc-500/20 bg-zinc-500/10',
+  potencia:    'text-orange-400 border-orange-500/20 bg-orange-500/10',
 }
 
 export default function PersonalAluno() {
@@ -88,6 +105,7 @@ export default function PersonalAluno() {
   const [sonoHistorico7d, setSonoHistorico7d] = useState<{ data: string; score: number | null; duracaoMin: number | null }[]>([])
   const [bemEstarHojeInfo, setBemEstarHojeInfo] = useState<{ humor: number | null; energia: number | null; motivacao: number | null; dorMuscular: number | null; notas: string | null } | null>(null)
   const [fasePeriodizacaoChat, setFasePeriodizacaoChat] = useState<string | null>(null)
+  const [faseCiclo, setFaseCiclo] = useState<FaseCiclo | null>(null)
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
   const [fichaPeso, setFichaPeso] = useState('')
@@ -242,21 +260,25 @@ export default function PersonalAluno() {
       setCargaPorData(cargaPorDataMap)
     }
 
-    // Fase de periodização para o chat
-    const { data: periAtiva } = await supabase.from('periodizacoes').select('id,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
+    // Fase de periodização ativa
+    const { data: periAtiva } = await supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (periAtiva) {
       const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,ordem').eq('periodizacao_id', periAtiva.id).order('ordem')
       if (blocos?.length) {
         const inicio = new Date(periAtiva.data_inicio + 'T12:00:00-03:00')
         const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
         const semanaTotal = Math.max(1, Math.floor(diasTotais / 7) + 1)
+        const totalSemanas = blocos.reduce((s: number, b: any) => s + b.semanas, 0)
         let acum = 0, blocoIdx = blocos.length - 1
         for (let i = 0; i < blocos.length; i++) {
           if (semanaTotal <= acum + (blocos[i] as any).semanas) { blocoIdx = i; break }
           acum += (blocos[i] as any).semanas
         }
         const b = blocos[blocoIdx] as any
-        const semanaNoBloco = semanaTotal - acum
+        const semanaNoBloco = Math.min(semanaTotal - acum, b.semanas)
+        const semanasRestantesBloco = b.semanas - semanaNoBloco
+        const diasAteProximo = blocoIdx < blocos.length - 1 ? semanasRestantesBloco * 7 : null
+        setFaseCiclo({ nomeCiclo: periAtiva.nome, nomeBloco: b.nome, tipoBloco: b.tipo, semanaBloco: semanaNoBloco, semanasBloco: b.semanas, totalSemanas, diasAteProximoBloco: diasAteProximo })
         setFasePeriodizacaoChat(`${b.nome} (${b.tipo}) — semana ${semanaNoBloco} de ${b.semanas}`)
       }
     }
@@ -744,6 +766,44 @@ export default function PersonalAluno() {
                   )
                 })()}
 
+                {/* Periodização ativa */}
+                <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                  <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Periodização ativa</p>
+                  {faseCiclo ? (
+                    <>
+                      <p className="text-zinc-500 text-xs mb-3">{faseCiclo.nomeCiclo}</p>
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className={`inline-block text-[10px] font-bold uppercase tracking-wider rounded-full px-2.5 py-1 border ${TIPO_COR_LISTA[faseCiclo.tipoBloco.toLowerCase()] ?? 'text-zinc-400 border-zinc-500/20 bg-zinc-500/10'}`}>
+                            {faseCiclo.tipoBloco}
+                          </span>
+                          <p className="text-white text-lg font-black mt-2">{faseCiclo.nomeBloco}</p>
+                          <p className="text-zinc-500 text-sm">Semana {faseCiclo.semanaBloco} de {faseCiclo.semanasBloco}</p>
+                        </div>
+                        <span className="text-[#2DD4A7] text-2xl font-black">{Math.round((faseCiclo.semanaBloco / faseCiclo.semanasBloco) * 100)}%</span>
+                      </div>
+                      <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden mb-4">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.round((faseCiclo.semanaBloco / faseCiclo.semanasBloco) * 100)}%`, background: '#2DD4A7' }} />
+                      </div>
+                      {faseCiclo.diasAteProximoBloco !== null && (
+                        <p className="text-zinc-500 text-xs mb-4">Próximo bloco em {faseCiclo.diasAteProximoBloco}d</p>
+                      )}
+                      <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
+                        className="w-full text-center text-sm font-bold text-white bg-white/[0.07] border border-white/[0.12] rounded-2xl py-3 active:scale-[0.97] transition-all hover:border-white/20">
+                        Ver periodização completa
+                      </button>
+                    </>
+                  ) : (
+                    <div className="text-center py-2">
+                      <p className="text-zinc-500 text-sm mb-4">Sem periodização ativa</p>
+                      <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
+                        className="w-full text-center text-sm font-bold text-white bg-white/[0.07] border border-white/[0.12] rounded-2xl py-3 active:scale-[0.97] transition-all hover:border-white/20">
+                        Criar periodização
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Plano nutricional ativo */}
                 {(planoNutri || restricaoNutri) && (
                   <div style={{ background: 'rgba(52,211,153,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(52,211,153,0.18)', borderRadius: 20, overflow: 'hidden' }}>
@@ -793,15 +853,6 @@ export default function PersonalAluno() {
                     <div>
                       <p className="text-white text-sm font-bold">Medidas</p>
                       <p className="text-zinc-500 text-[11px]">Evolução corporal</p>
-                    </div>
-                  </button>
-                  <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
-                    style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', gridColumn: 'span 2' }}
-                    className="active:scale-[0.97] transition-all hover:border-white/20">
-                    <span className="text-xl shrink-0">📅</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-bold">Periodização</p>
-                      <p className="text-zinc-500 text-[11px]">Blocos de treinamento</p>
                     </div>
                   </button>
                 </div>
