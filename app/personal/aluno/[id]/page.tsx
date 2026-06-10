@@ -186,9 +186,10 @@ export default function PersonalAluno() {
     if (!session) { router.push('/login'); return }
 
     const hoje = getTodayBR()
-    const semanaAtras = new Date()
-    semanaAtras.setDate(semanaAtras.getDate() - 7)
-    const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const hojeDate = new Date()
+    const domingoSemana = new Date(hojeDate)
+    domingoSemana.setDate(hojeDate.getDate() - hojeDate.getDay())
+    const semanaStr = domingoSemana.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
     const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }] = await Promise.all([
       supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp').eq('id', clienteId).single(),
