@@ -122,6 +122,13 @@ export default function PersonalAluno() {
     return aluno?.fcmax ?? (Math.max(0, ...atividadesCalendario.filter(a => a.fc_max != null).map(a => a.fc_max as number)) || null)
   }, [aluno?.fcmax, atividadesCalendario])
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
+  const [historicoIACarregado, setHistoricoIACarregado] = useState(false)
+  const [historicoIACarregando, setHistoricoIACarregando] = useState(false)
+  const [historicoIA, setHistoricoIA] = useState<{
+    atividades: { data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias_wearable: number | null; calorias_estimadas: number | null }[]
+    treinos: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[]
+    sono: { data: string; score: number | null; duracao_min: number | null }[]
+  } | null>(null)
   const [planoNutri, setPlanoNutri] = useState<PlanoNutri | null>(null)
   const [restricaoNutri, setRestricaoNutri] = useState<string | null>(null)
   const [lesoes, setLesoes] = useState<string | null>(null)
@@ -148,6 +155,12 @@ export default function PersonalAluno() {
   const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'evolucao' | 'perfil'>('visao-geral')
 
   useEffect(() => { carregar() }, [clienteId])
+
+  useEffect(() => {
+    if (clienteId && !historicoIACarregado && !historicoIACarregando) {
+      carregarHistoricoCompletoIA()
+    }
+  }, [clienteId])
 
   async function carregar() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -322,6 +335,49 @@ export default function PersonalAluno() {
     }
 
     setCarregando(false)
+  }
+
+  async function carregarHistoricoCompletoIA() {
+    if (historicoIACarregado || historicoIACarregando || !clienteId) return
+    setHistoricoIACarregando(true)
+
+    const seisM = new Date()
+    seisM.setDate(seisM.getDate() - 180)
+    const q180 = seisM.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+    const [{ data: ativs6m }, { data: sono6m }, { data: treinos6m }] = await Promise.all([
+      supabase.from('atividades_livres')
+        .select('data,modalidade,duracao_min,distancia_km,calorias_estimadas,calorias_wearable')
+        .eq('usuario_id', clienteId).gte('data', q180).order('data', { ascending: false }),
+      supabase.from('sono')
+        .select('data,score_recuperacao,duracao_minutos')
+        .eq('usuario_id', clienteId).gte('data', q180).order('data', { ascending: false }),
+      supabase.from('treinos')
+        .select('id,data,nome,calorias_estimadas')
+        .eq('cliente_id', clienteId).eq('concluido', true).gte('data', q180).order('data', { ascending: false }),
+    ])
+
+    let treinosMapeados: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[] = []
+    if (treinos6m?.length) {
+      const ids = (treinos6m as any[]).map(t => t.id)
+      const { data: exs } = await supabase
+        .from('exercicios_treino').select('treino_id,nome').in('treino_id', ids)
+      treinosMapeados = (treinos6m as any[]).map(t => ({
+        data: t.data,
+        nome: t.nome,
+        calorias: t.calorias_estimadas,
+        volume: 0,
+        exercicios: ((exs ?? []) as any[]).filter(e => e.treino_id === t.id).slice(0, 3).map((e: any) => e.nome),
+      }))
+    }
+
+    setHistoricoIA({
+      atividades: (ativs6m ?? []) as any[],
+      treinos: treinosMapeados,
+      sono: ((sono6m ?? []) as any[]).map(s => ({ data: s.data, score: s.score_recuperacao, duracao_min: s.duracao_minutos })),
+    })
+    setHistoricoIACarregado(true)
+    setHistoricoIACarregando(false)
   }
 
   function vazio(ordem: number): Exercicio { return { nome: '', series: 3, repeticoes: 12, carga_sugerida: null, observacoes: '', ordem } }
@@ -1521,6 +1577,17 @@ export default function PersonalAluno() {
           })(),
           treinosRegistrados: execucoes.map(e => ({ data: e.data, nome: e.nome, calorias: e.calorias, volume: e.volume, exercicios: e.exercicios.map(ex => ex.nome) })),
           medidasHistorico: medidasCP.map(m => ({ data: m.data, peso: m.peso, gorduraPct: m.gordura_pct, massaMuscular: m.massa_muscular })),
+          historicoCompleto: historicoIA ? {
+            atividades: historicoIA.atividades.map(a => ({
+              data: a.data,
+              modalidade: a.modalidade,
+              duracao_min: a.duracao_min,
+              distancia_km: a.distancia_km,
+              calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null,
+            })),
+            treinos: historicoIA.treinos,
+            sono: historicoIA.sono,
+          } : null,
         }} pacienteId={clienteId} />
       )}
 
