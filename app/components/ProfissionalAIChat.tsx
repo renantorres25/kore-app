@@ -385,7 +385,7 @@ const SUGESTOES: Record<'personal' | 'nutricionista', string[]> = {
   ],
 }
 
-export default function ProfissionalAIChat({ contexto, pacienteId }: { contexto: ContextoProfissional; pacienteId?: string }) {
+export default function ProfissionalAIChat({ contexto, pacienteId, historicoIACarregando }: { contexto: ContextoProfissional; pacienteId?: string; historicoIACarregando?: boolean }) {
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
@@ -553,6 +553,12 @@ export default function ProfissionalAIChat({ contexto, pacienteId }: { contexto:
                 </div>
               )
             })()}
+
+            {historicoIACarregando && (
+              <div className="mx-4 mt-3 px-3 py-2 rounded-xl border border-white/[0.08] bg-white/[0.04] shrink-0">
+                <p className="text-zinc-500 text-[10px] leading-relaxed">Carregando histórico completo...</p>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {mensagens.map((msg, i) => (

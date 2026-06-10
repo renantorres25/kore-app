@@ -1619,7 +1619,7 @@ export default function PersonalAluno() {
           fcmaxEstimado: fcmaxEstimado ?? null,
           cargaInternaSemanas: cargaInternaSemanas ?? null,
           distModalidade28d: distModalidade28d ?? null,
-        }} pacienteId={clienteId} />
+        }} pacienteId={clienteId} historicoIACarregando={historicoIACarregando} />
       )}
 
       {/* ── MODAL EDITAR TREINO ──────────────────────────────────────── */}
