@@ -210,15 +210,6 @@ export default function PersonalAluno() {
     const bemHoje = (bemEstarData ?? []).find((b: any) => b.data === hoje)
     if (bemHoje) setBemEstarHojeInfo({ humor: bemHoje.humor ?? null, energia: bemHoje.energia ?? null, motivacao: bemHoje.motivacao ?? null, dorMuscular: bemHoje.dor_muscular ?? null, notas: bemHoje.notas ?? null })
 
-    setMonitor({
-      scoreRecuperacao: sonoHoje?.score_recuperacao ?? null,
-      sonoHoras: sonoHoje?.duracao_minutos ? Math.round((sonoHoje.duracao_minutos / 60) * 10) / 10 : null,
-      bemEstarMedia: bemMedia,
-      totalTreinos: treinosHist?.length ?? 0,
-      treinosSemana: treinosHist?.filter(t => t.data >= semanaStr).length ?? 0,
-      ultimoTreino: treinosHist?.[0]?.data ?? null,
-    })
-
     if (treinosData?.length) {
       const ids = treinosData.map(t => t.id)
       const { data: exercicios } = await supabase.from('exercicios_treino').select('*').in('treino_id', ids).order('ordem')
@@ -247,6 +238,26 @@ export default function PersonalAluno() {
       supabase.from('sono').select('data,score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).gte('data', seteStr).order('data', { ascending: true }),
       supabase.from('agendamentos').select('data,hora,tipo').eq('cliente_id', clienteId).eq('status', 'agendado').gte('data', hoje).order('data').limit(1).maybeSingle(),
     ])
+
+    const treinosPrescritosNaSemana = treinosHist?.filter(t => t.data >= semanaStr).length ?? 0
+    const atividadesNaSemana = atvsLivres30?.filter(a => a.data >= semanaStr).length ?? 0
+    const totalTreinosSemana = treinosPrescritosNaSemana + atividadesNaSemana
+
+    const ultimoTreinoData = treinosHist?.[0]?.data ?? null
+    const ultimaAtivData = atvsLivres30?.[0]?.data ?? null
+    const ultimaAtividadeReal = [ultimoTreinoData, ultimaAtivData]
+      .filter((d): d is string => Boolean(d))
+      .sort()
+      .reverse()[0] ?? null
+
+    setMonitor({
+      scoreRecuperacao: sonoHoje?.score_recuperacao ?? null,
+      sonoHoras: sonoHoje?.duracao_minutos ? Math.round((sonoHoje.duracao_minutos / 60) * 10) / 10 : null,
+      bemEstarMedia: bemMedia,
+      totalTreinos: treinosHist?.length ?? 0,
+      treinosSemana: totalTreinosSemana,
+      ultimoTreino: ultimaAtividadeReal,
+    })
 
     if (medidasData?.length) setMedidasCP(medidasData as MedidaCP[])
     if (planoNutriData) setPlanoNutri(planoNutriData)
