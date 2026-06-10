@@ -359,13 +359,13 @@ export default function PersonalAluno() {
   const cores = CORES[planoAtivo]
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+    <main className="min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   return (
-    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row bg-[#0d1117]">
+    <main className="min-h-[100dvh] text-white flex flex-col md:flex-row">
       <SidebarProfissional tipo="personal" />
 
       <div className="flex-1 flex flex-col min-w-0 md:overflow-hidden md:h-screen">
