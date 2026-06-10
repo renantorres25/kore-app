@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import SidebarProfissional from '../components/SidebarProfissional'
 import { ChevronRight } from 'lucide-react'
+import { AtividadeCompleta, AlertaCientifico, AlertaNivel, computeAlertaCientifico } from '../lib/alertas-cientificos'
 
 type Aluno = {
   id: string
@@ -12,10 +13,9 @@ type Aluno = {
   nome: string | null
   email: string
   ativo: boolean
+  fcmax: number | null
+  dataNascimento: string | null
 }
-
-type AlertaNivel = 'vermelho' | 'amarelo' | 'verde' | 'cinza'
-type AlertaInfo = { nivel: AlertaNivel; causas: string[] }
 
 type Stats = {
   totalTreinos: number
@@ -23,7 +23,8 @@ type Stats = {
   ultimoTreino: string | null
   scoreHoje: number | null
   treinouHoje: boolean
-  alerta: AlertaInfo
+  alerta: AlertaCientifico
+  atividades30d: AtividadeCompleta[]
 }
 
 type FaseCiclo = {
@@ -73,26 +74,14 @@ function diasSemTreinar(ultimoTreino: string | null): number {
   return Math.floor((hoje.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function computeAlerta(totalTreinos: number, ultimoTreino: string | null, scoreHoje: number | null): AlertaInfo {
-  if (totalTreinos === 0) return { nivel: 'cinza', causas: [] }
-
-  const dias = diasSemTreinar(ultimoTreino)
-  const causas: string[] = []
-  let nivelMax: AlertaNivel = 'verde'
-  const promover = (n: AlertaNivel) => {
-    if (n === 'vermelho') nivelMax = 'vermelho'
-    else if (n === 'amarelo' && nivelMax !== 'vermelho') nivelMax = 'amarelo'
-  }
-
-  if (dias >= 7) { causas.push(`${dias} dias sem treinar`); promover('vermelho') }
-  else if (dias >= 3) { causas.push(`${dias} dias sem treinar`); promover('amarelo') }
-
-  if (scoreHoje != null) {
-    if (scoreHoje < 50) { causas.push(`Recuperação baixa (${scoreHoje}/100)`); promover('vermelho') }
-    else if (scoreHoje < 70) { causas.push(`Recuperação moderada (${scoreHoje}/100)`); promover('amarelo') }
-  }
-
-  return { nivel: nivelMax, causas: causas.slice(0, 3) }
+function calcularIdade(dataNascimento: string | null): number | null {
+  if (!dataNascimento) return null
+  const nasc = new Date(dataNascimento + 'T12:00:00-03:00')
+  const hoje = new Date()
+  let idade = hoje.getFullYear() - nasc.getFullYear()
+  const m = hoje.getMonth() - nasc.getMonth()
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--
+  return idade
 }
 
 export default function PersonalAlunos() {
@@ -102,6 +91,7 @@ export default function PersonalAlunos() {
   const [fases, setFases] = useState<Record<string, FaseCiclo | null>>({})
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
+  const [expandido, setExpandido] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     async function carregar() {
@@ -117,11 +107,14 @@ export default function PersonalAlunos() {
       if (!vinculos?.length) { setCarregando(false); return }
 
       const ids = vinculos.map(v => v.cliente_id)
-      const { data: perfis } = await supabase.from('perfis').select('id, nome, email').in('id', ids)
+      const { data: perfis } = await supabase.from('perfis').select('id, nome, email, fcmax, data_nascimento').in('id', ids)
 
       const alunosData: Aluno[] = vinculos.map(v => {
         const perfil = perfis?.find(p => p.id === v.cliente_id)
-        return { id: v.id, cliente_id: v.cliente_id, nome: perfil?.nome ?? null, email: perfil?.email ?? '', ativo: v.ativo }
+        return {
+          id: v.id, cliente_id: v.cliente_id, nome: perfil?.nome ?? null, email: perfil?.email ?? '', ativo: v.ativo,
+          fcmax: perfil?.fcmax ?? null, dataNascimento: perfil?.data_nascimento ?? null,
+        }
       })
       setAlunos(alunosData)
 
@@ -129,21 +122,28 @@ export default function PersonalAlunos() {
       const semanaAtras = new Date()
       semanaAtras.setDate(semanaAtras.getDate() - 7)
       const semanaStr = semanaAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+      const trintaCincoAtras = new Date()
+      trintaCincoAtras.setDate(trintaCincoAtras.getDate() - 35)
+      const trintaCincoStr = trintaCincoAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
       const statsMap: Record<string, Stats> = {}
       const fasesMap: Record<string, FaseCiclo | null> = {}
 
       await Promise.all(alunosData.map(async (aluno) => {
-        const [{ data: treinos }, { data: sono7d }, { data: periData }] = await Promise.all([
+        const [{ data: treinos }, { data: sono7d }, { data: periData }, { data: atividades35d }] = await Promise.all([
           supabase.from('treinos').select('data, concluido').eq('cliente_id', aluno.cliente_id).eq('concluido', true).order('data', { ascending: false }),
           supabase.from('sono').select('data, score_recuperacao').eq('usuario_id', aluno.cliente_id).gte('data', semanaStr).order('data', { ascending: false }),
           supabase.from('periodizacoes').select('id, nome, data_inicio').eq('cliente_id', aluno.cliente_id).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+          supabase.from('atividades_livres').select('data, duracao_min, fc_media, fc_max, calorias_wearable, calorias_estimadas').eq('usuario_id', aluno.cliente_id).gte('data', trintaCincoStr).order('data', { ascending: false }),
         ])
 
         const treinouHoje = treinos?.some(t => t.data === hoje) ?? false
         const sonoHoje = sono7d?.find(s => s.data === hoje)
-        const totalTreinos = treinos?.length ?? 0
-        const ultimoTreino = treinos?.[0]?.data ?? null
+        const totalAtividades = atividades35d?.length ?? 0
+        const ultimaAtividade = atividades35d?.[0]?.data ?? null
+        const ultimoTreino = [treinos?.[0]?.data ?? null, ultimaAtividade]
+          .filter(Boolean).sort().reverse()[0] ?? null
+        const totalTreinos = (treinos?.length ?? 0) + totalAtividades
         const scoreHoje = sonoHoje?.score_recuperacao ?? null
 
         statsMap[aluno.cliente_id] = {
@@ -152,7 +152,14 @@ export default function PersonalAlunos() {
           ultimoTreino,
           scoreHoje,
           treinouHoje,
-          alerta: computeAlerta(totalTreinos, ultimoTreino, scoreHoje),
+          alerta: computeAlertaCientifico({
+            atividades30d: atividades35d ?? [],
+            fcmaxPerfil: aluno.fcmax,
+            idade: calcularIdade(aluno.dataNascimento),
+            totalTreinos,
+            ultimoTreino,
+          }),
+          atividades30d: atividades35d ?? [],
         }
 
         if (periData) {
@@ -280,8 +287,9 @@ export default function PersonalAlunos() {
               <div className="space-y-2">
                 {alunosFiltrados.map((aluno) => {
                   const s = stats[aluno.cliente_id]
-                  const alerta = s?.alerta ?? { nivel: 'cinza' as AlertaNivel, causas: [] }
+                  const alerta = s?.alerta ?? { nivel: 'cinza' as AlertaNivel, alertas: [] }
                   const cfg = ALERTA_CFG[alerta.nivel]
+                  const expandido_ = expandido[aluno.cliente_id] ?? false
                   const dias = diasSemTreinar(s?.ultimoTreino ?? null)
 
                   const fase = fases[aluno.cliente_id]
@@ -339,11 +347,39 @@ export default function PersonalAlunos() {
                             {s?.scoreHoje != null && <span>Rec: {s.scoreHoje}/100</span>}
                           </div>
 
-                          {/* Causas do alerta */}
-                          {alerta.causas.length > 0 ? (
-                            <p className={`text-xs leading-relaxed font-medium ${cfg.causaColor}`}>
-                              {alerta.causas.join(' · ')}
-                            </p>
+                          {/* Alertas científicos */}
+                          {alerta.alertas.length > 0 ? (
+                            <div className="space-y-1.5">
+                              <div>
+                                <p className={`text-xs leading-relaxed font-medium ${cfg.causaColor}`}>
+                                  {alerta.alertas[0].mensagem}
+                                </p>
+                                <p className="text-[10px] text-zinc-600 mt-0.5">{alerta.alertas[0].dadoTecnico}</p>
+                              </div>
+                              {alerta.alertas.length > 1 && (
+                                <>
+                                  {expandido_ && alerta.alertas.slice(1).map(a => (
+                                    <div key={a.codigo}>
+                                      <p className={`text-xs leading-relaxed font-medium ${ALERTA_CFG[a.nivel].causaColor}`}>
+                                        {a.mensagem}
+                                      </p>
+                                      <p className="text-[10px] text-zinc-600 mt-0.5">{a.dadoTecnico}</p>
+                                    </div>
+                                  ))}
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setExpandido(prev => ({ ...prev, [aluno.cliente_id]: !prev[aluno.cliente_id] }))
+                                    }}
+                                    className="inline-block text-[10px] text-zinc-500 underline underline-offset-2"
+                                  >
+                                    {expandido_ ? 'Ver menos' : `+${alerta.alertas.length - 1} alerta${alerta.alertas.length - 1 !== 1 ? 's' : ''}`}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           ) : alerta.nivel === 'verde' ? (
                             <p className="text-xs text-emerald-700">Treinos em dia</p>
                           ) : alerta.nivel === 'cinza' ? (
