@@ -33,6 +33,7 @@ export type AtividadeDia = {
   calorias: number | null
   fc_media?: number | null
   fc_max?: number | null
+  duracao_min?: number | null
 }
 
 // modalidade → cor semântica do design system

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
@@ -58,6 +58,15 @@ function getDistribuicaoModalidade(lista: AtividadeDia[]) {
     .slice(0, 5)
 }
 
+function getZonaFC(fcMedia: number, fcmax: number): { zona: number; label: string; cor: string } {
+  const pct = fcMedia / fcmax
+  if (pct < 0.60) return { zona: 1, label: 'Z1 · Recuperação', cor: '#60a5fa' }
+  if (pct < 0.70) return { zona: 2, label: 'Z2 · Base aeróbica', cor: '#34d399' }
+  if (pct < 0.80) return { zona: 3, label: 'Z3 · Limiar', cor: '#fbbf24' }
+  if (pct < 0.90) return { zona: 4, label: 'Z4 · Anaeróbico', cor: '#f97316' }
+  return { zona: 5, label: 'Z5 · VO2max', cor: '#f87171' }
+}
+
 function diasSemTreinar(ultimoTreino: string | null): number {
   if (!ultimoTreino) return 999
   const d = new Date(ultimoTreino + 'T12:00:00-03:00')
@@ -109,6 +118,9 @@ export default function PersonalAluno() {
   const [cargaPorData, setCargaPorData] = useState<Record<string, number>>({})
   const [atividadesCalendario, setAtividadesCalendario] = useState<AtividadeDia[]>([])
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
+  const fcmaxEstimado = useMemo(() => {
+    return aluno?.fcmax ?? (Math.max(0, ...atividadesCalendario.filter(a => a.fc_max != null).map(a => a.fc_max as number)) || null)
+  }, [aluno?.fcmax, atividadesCalendario])
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [planoNutri, setPlanoNutri] = useState<PlanoNutri | null>(null)
   const [restricaoNutri, setRestricaoNutri] = useState<string | null>(null)
@@ -231,7 +243,7 @@ export default function PersonalAluno() {
       let detalhe = a.duracao_min ? `${a.duracao_min}min` : ''
       if (a.distancia_km) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_km}km`
       if (a.distancia_m) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_m}m`
-      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null })
+      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null, duracao_min: a.duracao_min ?? null })
     })
     setAtividadesCalendario(listaCalendario)
     setTreinosDatas((treinosCompletos ?? []).map((t: any) => t.data))
@@ -959,6 +971,17 @@ export default function PersonalAluno() {
                                       {a.fc_max != null && <span className="text-red-500">{(a.detalhe || a.fc_media != null) ? ' · ' : ''}FC máx {a.fc_max}bpm</span>}
                                     </p>
                                   )}
+                                  {a.fc_media != null && fcmaxEstimado != null && (() => {
+                                    const zona = getZonaFC(a.fc_media, fcmaxEstimado)
+                                    return (
+                                      <span
+                                        className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                        style={{ color: zona.cor, background: `${zona.cor}1A`, border: `1px solid ${zona.cor}33` }}
+                                      >
+                                        {zona.label}
+                                      </span>
+                                    )
+                                  })()}
                                 </div>
                                 {a.calorias != null && (
                                   <p className="text-orange-400 text-sm font-bold shrink-0">{a.calorias} kcal</p>
@@ -1025,6 +1048,81 @@ export default function PersonalAluno() {
                           {renderBars(dist28Dias)}
                         </div>
                       </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Carga interna semanal */}
+                {fcmaxEstimado != null && (() => {
+                  const hoje = getTodayBR()
+                  const dBase = new Date(hoje + 'T12:00:00-03:00')
+                  const fmtISO = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+
+                  const semanas = [3, 2, 1, 0].map(n => {
+                    const ini = new Date(dBase); ini.setDate(dBase.getDate() - dBase.getDay() - n * 7)
+                    const fim = new Date(dBase); fim.setDate(dBase.getDate() - dBase.getDay() - n * 7 + 6)
+                    const iniStr = fmtISO(ini)
+                    const fimStr = fmtISO(fim)
+                    const atual = n === 0
+
+                    const ativs = atividadesCalendario.filter(a =>
+                      a.data >= iniStr && a.data <= (atual ? hoje : fimStr) && a.fc_media != null && a.duracao_min != null
+                    )
+
+                    let cargaTotal = 0, pctPonderado = 0, minTotal = 0
+                    ativs.forEach(a => {
+                      const min = a.duracao_min ?? 0
+                      const pct = (a.fc_media as number) / fcmaxEstimado
+                      cargaTotal += pct * min
+                      pctPonderado += pct * min
+                      minTotal += min
+                    })
+                    const pctMedio = minTotal > 0 ? pctPonderado / minTotal : 0
+
+                    return { label: atual ? 'Esta sem.' : `Sem ${4 - n}`, carga: Math.round(cargaTotal), pctMedio, atual }
+                  })
+
+                  if (!semanas.some(s => s.carga > 0)) return null
+
+                  const maxCarga = Math.max(...semanas.map(s => s.carga), 1)
+
+                  const semanasCompletas = semanas.filter(s => !s.atual && s.carga > 0)
+                  const mediaHistorica = semanasCompletas.length
+                    ? Math.round(semanasCompletas.reduce((acc, s) => acc + s.carga, 0) / semanasCompletas.length) || null
+                    : null
+
+                  const corCarga = (pct: number) => {
+                    if (pct < 0.70) return '#34d399'
+                    if (pct < 0.80) return '#fbbf24'
+                    if (pct < 0.90) return '#f97316'
+                    return '#f87171'
+                  }
+
+                  return (
+                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                      <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Carga interna · Últimas 4 semanas</p>
+                      <div className="space-y-2.5">
+                        {semanas.map((s, i) => {
+                          const cor = s.carga > 0 ? corCarga(s.pctMedio) : 'rgba(255,255,255,0.15)'
+                          const acimaMedia = mediaHistorica == null || s.carga >= mediaHistorica
+                          const opacidade = s.atual ? 0.6 : (acimaMedia ? 1 : 0.5)
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              <p className="text-zinc-400 text-xs w-16 shrink-0 font-medium">{s.label}</p>
+                              <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full relative">
+                                <div className="h-full rounded-full transition-all" style={{ width: `${(s.carga / maxCarga) * 100}%`, background: cor, opacity: opacidade }} />
+                                {mediaHistorica != null && (
+                                  <div className="absolute" style={{ left: `${(mediaHistorica / maxCarga) * 100}%`, top: -3, bottom: -3, borderLeft: '1px dashed rgba(255,255,255,0.3)' }} />
+                                )}
+                              </div>
+                              <p className="text-zinc-400 text-xs w-10 text-right shrink-0 font-semibold">{s.carga}</p>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {mediaHistorica != null && (
+                        <p className="text-zinc-600 text-[10px] mt-3">Média das últimas {semanasCompletas.length} semana{semanasCompletas.length !== 1 ? 's' : ''}: {mediaHistorica}</p>
+                      )}
                     </div>
                   )
                 })()}
