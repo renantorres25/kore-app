@@ -69,8 +69,8 @@ const MODALIDADES_TREINO = [
   { nome: 'Triathlon', icone: '🔱', disponivel: false },
 ] as const
 
-type StatusAderencia = 'concluido' | 'parcial' | 'nao_realizado'
-const STATUS_ICON: Record<StatusAderencia, string> = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌' }
+type StatusAderencia = 'concluido' | 'parcial' | 'nao_realizado' | 'realizado_sem_planejamento'
+const STATUS_ICON: Record<StatusAderencia, string> = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌', realizado_sem_planejamento: '⬜' }
 
 type IndicadorAderencia = { icone: '✅' | '⚠️' | null; prescrito: string | null; realizado: string | null }
 
@@ -376,7 +376,7 @@ export default function PersonalAluno() {
       dias.includes(s.data) && (['corrida', 'bike', 'natacao'] as const).includes(s.modalidade as 'corrida' | 'bike' | 'natacao')
     )
 
-    return sessoesSemana
+    const itensSessoes = sessoesSemana
       .filter(sessao => sessao.data <= hoje) // só avalia aderência de dias já passados/hoje
       .map(sessao => {
         const ativ = atividadesCalendario.find(a => a.data === sessao.data && a.tipo === sessao.modalidade)
@@ -443,6 +443,35 @@ export default function PersonalAluno() {
 
         return { sessao, ativ, status, indDuracao, indDistancia, indPace, indFC }
       })
+
+    // Atividades realizadas sem sessão prescrita correspondente (mesmo dia + modalidade)
+    const indVazio: IndicadorAderencia = { icone: null, prescrito: null, realizado: null }
+    const extras = dias
+      .filter(d => d <= hoje)
+      .flatMap(d => {
+        const ativsDia = atividadesCalendario.filter(a =>
+          a.data === d && (['corrida', 'bike', 'natacao'] as const).includes(a.tipo as 'corrida' | 'bike' | 'natacao')
+        )
+        return ativsDia
+          .filter(ativ => !sessoesSemana.some(s => s.data === d && s.modalidade === ativ.tipo))
+          .map(ativ => {
+            const sessaoFake: SessaoPresc = {
+              data: d, modalidade: ativ.tipo as 'corrida' | 'bike' | 'natacao', tipo_sessao: null,
+              duracao_min: null, distancia_km: null, observacao: null, status: 'realizado_sem_planejamento', blocos: [],
+            }
+            return {
+              sessao: sessaoFake,
+              ativ,
+              status: 'realizado_sem_planejamento' as StatusAderencia,
+              indDuracao: { ...indVazio, realizado: ativ.duracao_min != null ? `${ativ.duracao_min}min` : null },
+              indDistancia: { ...indVazio, realizado: ativ.distancia_km != null ? `${ativ.distancia_km.toFixed(1)}km` : null },
+              indPace: indVazio,
+              indFC: { ...indVazio, realizado: ativ.fc_media != null ? `${ativ.fc_media}bpm` : null },
+            }
+          })
+      })
+
+    return [...itensSessoes, ...extras].sort((a, b) => a.sessao.data.localeCompare(b.sessao.data))
   }, [sessoesPrescritas, atividadesCalendario, semanaOffset])
 
   // Persiste o status calculado de volta em sessoes_prescritas quando ele difere do salvo
@@ -2245,7 +2274,10 @@ export default function PersonalAluno() {
                                 <span className={`text-base ${mod.text}`}>{mod.icone}</span>
                                 <span className="text-base">{STATUS_ICON[it.status]}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-white text-xs font-semibold capitalize">{dataLabel}</p>
+                                  <p className="text-white text-xs font-semibold capitalize">
+                                    {dataLabel}
+                                    {it.status === 'realizado_sem_planejamento' && <span className="text-zinc-500 font-normal normal-case"> · Realizado sem planejamento</span>}
+                                  </p>
                                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
                                     {indicadores.map(({ label, ind }) => (
                                       <p key={label} className="text-zinc-500 text-[10px]">
