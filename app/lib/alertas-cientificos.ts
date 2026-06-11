@@ -208,6 +208,16 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
     }
   }
 
+  // ── Carga elevada ─────────────────────────────────
+  if (acwr != null && acwr > 1.3) {
+    alertas.push({
+      codigo: 'CARGA_ELEVADA',
+      nivel: 'amarelo',
+      dadoTecnico: `ACWR: ${acwr.toFixed(2)} | Zona segura: 0.8–1.3`,
+      mensagem: 'Carga de treino elevada esta semana vs histórico recente.',
+    })
+  }
+
   // ── FC Drift ──────────────────────────────────────
   if (drift != null && drift > 8) {
     alertas.push({

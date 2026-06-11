@@ -77,6 +77,96 @@ function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
+function gerarNarrativaPMC(
+  pontos: PontoPMC[],
+  proximaProva: string | null // data ISO, null por enquanto
+): { emoji: string; titulo: string; linhas: string[]; cor: 'vermelho' | 'amarelo' | 'verde' } {
+
+  const ultimo = pontos[pontos.length - 1]
+  const { ctl, atl, tsb } = ultimo
+
+  // Quantos dias consecutivos com TSB negativo?
+  let diasNegativo = 0
+  for (let i = pontos.length - 1; i >= 0; i--) {
+    if (pontos[i].tsb < 0) diasNegativo++
+    else break
+  }
+
+  // ATL % acima do CTL
+  const atlAcimaCtl = ctl > 0 ? Math.round(((atl - ctl) / ctl) * 100) : 0
+
+  // Dias até a prova (para taper)
+  const diasAteProva = proximaProva
+    ? Math.round((new Date(proximaProva).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null
+
+  // TSB ideal para competir: entre +10 e +25
+  // Para chegar em TSB +15 saindo de TSB atual, precisa de ~(tsb negativo / 8) dias de redução
+  const diasTaperNecessario = tsb < 0 ? Math.round(Math.abs(tsb) / 8) : 0
+
+  // SOBRECARGA ELEVADA
+  if (tsb < -40) {
+    const linhas = [
+      `ATL ${atlAcimaCtl}% acima da carga crônica (CTL)`,
+      `Atleta em zona de sobrecarga há ${diasNegativo} dias`,
+    ]
+    if (diasAteProva != null && diasAteProva > 0) {
+      linhas.push(`Competição em ${diasAteProva} dias — taper de ${diasTaperNecessario} dias necessário`)
+      if (diasAteProva < diasTaperNecessario) {
+        linhas.push(`⚠️ Tempo insuficiente para recuperação completa antes da prova`)
+      }
+    } else {
+      linhas.push(`Reduza volume por ${Math.min(diasTaperNecessario, 5)} dias antes de aumentar intensidade`)
+    }
+    return { emoji: '🔴', titulo: 'Fadiga acumulada elevada', linhas, cor: 'vermelho' }
+  }
+
+  // FADIGA ALTA MAS CONTROLADA
+  if (tsb < -10) {
+    const linhas = [
+      `ATL ${atlAcimaCtl > 0 ? atlAcimaCtl + '% acima' : Math.abs(atlAcimaCtl) + '% abaixo'} da carga crônica`,
+      `TSB negativo há ${diasNegativo} dias — carga de construção normal`,
+    ]
+    if (diasAteProva != null && diasAteProva > 0) {
+      linhas.push(`Competição em ${diasAteProva} dias`)
+      if (diasAteProva <= diasTaperNecessario + 3) {
+        linhas.push(`Inicie redução de volume agora para chegar fresco`)
+      } else {
+        linhas.push(`Ainda há janela para manter carga antes do taper`)
+      }
+    } else {
+      linhas.push(`Monitore sono e recuperação diariamente`)
+    }
+    return { emoji: '🟡', titulo: 'Fadiga alta — fase de construção', linhas, cor: 'amarelo' }
+  }
+
+  // EQUILÍBRIO
+  if (tsb >= -10 && tsb <= 10) {
+    const linhas = [
+      `CTL e ATL equilibrados — atleta em manutenção`,
+      `Bom momento para manter consistência de treino`,
+    ]
+    if (diasAteProva != null && diasAteProva > 0 && diasAteProva <= 14) {
+      linhas.push(`Competição em ${diasAteProva} dias — redução leve de volume recomendada`)
+    }
+    return { emoji: '🟡', titulo: 'Equilíbrio — manutenção', linhas, cor: 'amarelo' }
+  }
+
+  // EM FORMA
+  const linhas = [
+    `TSB positivo — atleta descansada e em forma`,
+    `CTL ${ctl.toFixed(1)} indica boa base de condicionamento`,
+  ]
+  if (diasAteProva != null && diasAteProva > 0 && diasAteProva <= 7) {
+    linhas.push(`Competição em ${diasAteProva} dias — momento ideal para competir`)
+  } else if (diasAteProva != null && diasAteProva > 7) {
+    linhas.push(`Pode aumentar carga gradualmente — ACWR alvo: 1.0–1.3`)
+  } else {
+    linhas.push(`Pode aumentar carga gradualmente — ACWR alvo: 1.0–1.3`)
+  }
+  return { emoji: '🟢', titulo: 'Em forma — pronta para competir ou aumentar carga', linhas, cor: 'verde' }
+}
+
 function getInicioFimSemana(offset: number): { inicio: string; fim: string } {
   const hoje = getTodayBR()
   const dBase = new Date(hoje + 'T12:00:00-03:00')
@@ -1495,12 +1585,6 @@ export default function PersonalAluno() {
                     pontosPMC.map((p, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(p[key]).toFixed(1)}`).join(' ')
 
                   const ultimo = pontosPMC[pontosPMC.length - 1]
-                  const interpretacaoTSB = (tsb: number) => {
-                    if (tsb > 10) return 'Em forma — bom momento para competir ou aumentar carga'
-                    if (tsb >= -10) return 'Equilíbrio — manutenção'
-                    if (tsb >= -30) return 'Em carga — normal para fase de construção'
-                    return 'Sobrecarga — considere reduzir volume'
-                  }
 
                   return (
                     <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
@@ -1509,7 +1593,7 @@ export default function PersonalAluno() {
                       <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="overflow-visible">
                         <line x1="0" y1={toY(0)} x2={W} y2={toY(0)} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
                         <path d={pathFor('ctl')} fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d={pathFor('atl')} fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d={pathFor('atl')} fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         {pontosPMC.slice(0, -1).map((p, j) => {
                           const next = pontosPMC[j + 1]
                           const cor = (p.tsb + next.tsb) / 2 >= 0 ? '#34d399' : '#f87171'
@@ -1519,11 +1603,24 @@ export default function PersonalAluno() {
 
                       <div className="flex items-center gap-4 mt-3">
                         <p className="text-[11px] text-zinc-400"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: '#60a5fa' }} />CTL: <span className="text-white font-bold">{ultimo.ctl}</span></p>
-                        <p className="text-[11px] text-zinc-400"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: '#f87171' }} />ATL: <span className="text-white font-bold">{ultimo.atl}</span></p>
+                        <p className="text-[11px] text-zinc-400"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: '#f97316' }} />ATL: <span className="text-white font-bold">{ultimo.atl}</span></p>
                         <p className="text-[11px] text-zinc-400"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: ultimo.tsb >= 0 ? '#34d399' : '#f87171' }} />TSB: <span className="text-white font-bold">{ultimo.tsb}</span></p>
                       </div>
 
-                      <p className="text-zinc-500 text-[11px] mt-3">{interpretacaoTSB(ultimo.tsb)}</p>
+                      {(() => {
+                        const narrativa = gerarNarrativaPMC(pontosPMC, null) // null = sem prova cadastrada ainda
+                        const corTexto = narrativa.cor === 'vermelho' ? 'text-red-400' : narrativa.cor === 'amarelo' ? 'text-amber-400' : 'text-emerald-400'
+                        const corBg = narrativa.cor === 'vermelho' ? 'rgba(248,113,113,0.08)' : narrativa.cor === 'amarelo' ? 'rgba(251,191,36,0.08)' : 'rgba(52,211,153,0.08)'
+                        const corBorder = narrativa.cor === 'vermelho' ? 'rgba(248,113,113,0.20)' : narrativa.cor === 'amarelo' ? 'rgba(251,191,36,0.20)' : 'rgba(52,211,153,0.20)'
+                        return (
+                          <div className="mt-4 rounded-xl px-4 py-3" style={{ background: corBg, border: `1px solid ${corBorder}` }}>
+                            <p className={`text-sm font-bold mb-2 ${corTexto}`}>{narrativa.emoji} {narrativa.titulo}</p>
+                            {narrativa.linhas.map((linha, i) => (
+                              <p key={i} className="text-zinc-400 text-[11px] leading-relaxed">{linha}</p>
+                            ))}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })()}
