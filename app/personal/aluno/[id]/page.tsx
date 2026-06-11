@@ -68,6 +68,9 @@ const MODALIDADES_TREINO = [
   { nome: 'Triathlon', icone: '🔱', disponivel: false },
 ] as const
 
+type StatusAderencia = 'concluido' | 'parcial' | 'nao_realizado'
+const STATUS_ICON: Record<StatusAderencia, string> = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌' }
+
 function getInitials(nome: string | null, email: string): string {
   if (nome) { const p = nome.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0][0].toUpperCase() }
   return email[0].toUpperCase()
@@ -336,6 +339,50 @@ export default function PersonalAluno() {
     })
   }, [fcmaxEstimado, atividadesCalendario])
   const distModalidade28d = useMemo(() => getDistribuicaoModalidade(atividadesCalendario), [atividadesCalendario])
+  const itensAderenciaSemana = useMemo(() => {
+    const { inicio } = getInicioFimSemana(semanaOffset)
+    const iniDate = new Date(inicio + 'T12:00:00-03:00')
+    const dias = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(iniDate); d.setDate(iniDate.getDate() + i)
+      return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    })
+    const hoje = getTodayBR()
+
+    const sessoesSemana = sessoesPrescritas.filter(s =>
+      dias.includes(s.data) && (['corrida', 'bike', 'natacao'] as const).includes(s.modalidade as 'corrida' | 'bike' | 'natacao')
+    )
+
+    return sessoesSemana
+      .filter(sessao => sessao.data <= hoje) // só avalia aderência de dias já passados/hoje
+      .map(sessao => {
+        const ativ = atividadesCalendario.find(a => a.data === sessao.data && a.tipo === sessao.modalidade)
+        let status: StatusAderencia
+        if (!ativ) {
+          status = 'nao_realizado'
+        } else if (sessao.duracao_min != null && ativ.duracao_min != null && ativ.duracao_min < sessao.duracao_min * 0.7) {
+          status = 'parcial'
+        } else {
+          status = 'concluido'
+        }
+        return { sessao, ativ, status }
+      })
+  }, [sessoesPrescritas, atividadesCalendario, semanaOffset])
+
+  // Persiste o status calculado de volta em sessoes_prescritas quando ele difere do salvo
+  useEffect(() => {
+    const pendentes = itensAderenciaSemana.filter(it => it.sessao.id && it.status !== it.sessao.status)
+    if (pendentes.length === 0) return
+    ;(async () => {
+      for (const it of pendentes) {
+        await supabase.from('sessoes_prescritas').update({ status: it.status }).eq('id', it.sessao.id)
+      }
+      setSessoesPrescritas(prev => prev.map(s => {
+        const match = pendentes.find(p => p.sessao.id === s.id)
+        return match ? { ...s, status: match.status } : s
+      }))
+    })()
+  }, [itensAderenciaSemana])
+
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [historicoIACarregado, setHistoricoIACarregado] = useState(false)
   const [historicoIACarregando, setHistoricoIACarregando] = useState(false)
@@ -2094,32 +2141,8 @@ export default function PersonalAluno() {
 
                   {/* Aderência da Semana */}
                   {(() => {
-                    const { inicio } = getInicioFimSemana(semanaOffset)
-                    const iniDate = new Date(inicio + 'T12:00:00-03:00')
-                    const dias = Array.from({ length: 7 }, (_, i) => {
-                      const d = new Date(iniDate); d.setDate(iniDate.getDate() + i)
-                      return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-                    })
-
-                    const sessoesSemana = sessoesPrescritas.filter(s =>
-                      dias.includes(s.data) && (['corrida', 'bike', 'natacao'] as const).includes(s.modalidade as 'corrida' | 'bike' | 'natacao')
-                    )
-                    if (!sessoesSemana.length) return null
-
-                    const STATUS_ICON = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌' } as const
-
-                    const itens = sessoesSemana.map(sessao => {
-                      const ativ = atividadesCalendario.find(a => a.data === sessao.data && a.tipo === sessao.modalidade)
-                      let status: keyof typeof STATUS_ICON
-                      if (!ativ) {
-                        status = 'nao_realizado'
-                      } else if (sessao.duracao_min != null && ativ.duracao_min != null && ativ.duracao_min < sessao.duracao_min * 0.7) {
-                        status = 'parcial'
-                      } else {
-                        status = 'concluido'
-                      }
-                      return { sessao, ativ, status }
-                    })
+                    const itens = itensAderenciaSemana
+                    if (!itens.length) return null
 
                     const score = Math.round((itens.filter(it => it.status !== 'nao_realizado').length / itens.length) * 100)
                     const corScore = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171'
