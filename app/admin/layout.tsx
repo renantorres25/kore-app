@@ -67,6 +67,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Usuários', href: '/admin/usuarios' },
     { label: 'Financeiro', href: '/admin/financeiro' },
     { label: 'SAC', href: '/admin/sac' },
+    { label: 'Auditoria', href: '/admin/auditoria' },
   ]
 
   async function sair() {
