@@ -5,7 +5,7 @@ type Ctx = { params: Promise<{ id: string }> }
 
 // ── Detalhe do usuário ───────────────────────────────────────────────────────
 export async function GET(req: NextRequest, ctx: Ctx) {
-  const admin = await requireAdmin(req)
+  const admin = await requireAdmin(req, ['super_admin', 'admin', 'sac'])
   if (!admin) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   const { id } = await ctx.params
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
 // ── Ações administrativas sobre o usuário ────────────────────────────────────
 export async function POST(req: NextRequest, ctx: Ctx) {
-  const admin = await requireAdmin(req)
+  const admin = await requireAdmin(req, ['super_admin', 'admin'])
   if (!admin) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   const { id } = await ctx.params

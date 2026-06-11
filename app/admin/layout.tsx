@@ -61,13 +61,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
-  const nav = [
-    { label: 'Cockpit', href: '/admin' },
-    { label: 'Análise', href: '/admin/analise' },
-    { label: 'Usuários', href: '/admin/usuarios' },
-    { label: 'Financeiro', href: '/admin/financeiro' },
-    { label: 'SAC', href: '/admin/sac' },
+  const todosItens: { label: string; href: string; papeis: string[] | null }[] = [
+    { label: 'Cockpit', href: '/admin', papeis: null },
+    { label: 'Análise', href: '/admin/analise', papeis: null },
+    { label: 'Usuários', href: '/admin/usuarios', papeis: ['super_admin', 'admin', 'sac'] },
+    { label: 'Financeiro', href: '/admin/financeiro', papeis: ['super_admin', 'admin', 'financeiro'] },
+    { label: 'SAC', href: '/admin/sac', papeis: ['super_admin', 'admin', 'sac'] },
+    { label: 'Auditoria', href: '/admin/auditoria', papeis: ['super_admin', 'admin'] },
+    { label: 'Equipe', href: '/admin/equipe', papeis: ['super_admin'] },
   ]
+  const nav = todosItens.filter((i) => i.papeis === null || i.papeis.includes(papel))
 
   async function sair() {
     await supabase.auth.signOut()
