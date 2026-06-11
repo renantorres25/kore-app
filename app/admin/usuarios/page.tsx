@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { adminFetch } from '../../lib/adminFetch'
 
 const C = {
@@ -12,7 +13,8 @@ const JAKARTA = "'Plus Jakarta Sans', system-ui, sans-serif"
 
 type Usuario = { id: string; nome: string | null; email: string | null; tipo: string | null }
 
-const corTipo: Record<string, string> = { atleta: '#FF5A36', personal: '#60A5FA', nutricionista: '#2DD4A7' }
+const corTipo: Record<string, string> = { cliente: '#FF5A36', personal: '#60A5FA', nutricionista: '#2DD4A7' }
+const rotuloTipo: Record<string, string> = { cliente: 'Atleta', personal: 'Personal', nutricionista: 'Nutricionista' }
 
 function iniciais(nome: string | null) {
   if (!nome) return '?'
@@ -21,6 +23,7 @@ function iniciais(nome: string | null) {
 }
 
 export default function UsuariosPage() {
+  const router = useRouter()
   const [q, setQ] = useState('')
   const [tipo, setTipo] = useState('')
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -52,7 +55,7 @@ export default function UsuariosPage() {
 
   const filtros = [
     { label: 'Todos', val: '' },
-    { label: 'Atletas', val: 'atleta' },
+    { label: 'Atletas', val: 'cliente' },
     { label: 'Personais', val: 'personal' },
     { label: 'Nutris', val: 'nutricionista' },
   ]
@@ -91,8 +94,8 @@ export default function UsuariosPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {usuarios.map((u) => (
-          <div key={u.id}
-            style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 16px' }}>
+          <div key={u.id} onClick={() => router.push(`/admin/usuarios/${u.id}`)}
+            style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}>
             <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', color: corTipo[u.tipo || ''] || C.t2, fontWeight: 700, fontSize: 13 }}>
               {iniciais(u.nome)}
             </div>
@@ -101,7 +104,7 @@ export default function UsuariosPage() {
               <p style={{ color: C.t3, fontSize: 12, margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email || '—'}</p>
             </div>
             <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: corTipo[u.tipo || ''] || C.t2 }}>
-              {u.tipo || '—'}
+              {rotuloTipo[u.tipo || ''] || u.tipo || '—'}
             </span>
           </div>
         ))}

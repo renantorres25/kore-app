@@ -64,6 +64,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const nav = [
     { label: 'Cockpit', href: '/admin' },
     { label: 'Usuários', href: '/admin/usuarios' },
+    { label: 'Financeiro', href: '/admin/financeiro' },
+    { label: 'SAC', href: '/admin/sac' },
   ]
 
   async function sair() {
@@ -77,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <span style={{ fontFamily: SORA, fontWeight: 800, fontSize: 22, letterSpacing: '-0.04em', background: `linear-gradient(135deg, #fff, ${C.energy})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', paddingLeft: 8 }}>KORE</span>
         <span style={{ color: C.energy, fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, paddingLeft: 8, marginBottom: 18 }}>Admin</span>
         {nav.map((item) => {
-          const ativo = pathname === item.href
+          const ativo = item.href === '/admin' ? pathname === item.href : pathname.startsWith(item.href)
           return (
             <button key={item.href} onClick={() => router.push(item.href)}
               style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer',
