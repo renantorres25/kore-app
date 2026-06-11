@@ -63,6 +63,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const nav = [
     { label: 'Cockpit', href: '/admin' },
+    { label: 'Análise', href: '/admin/analise' },
     { label: 'Usuários', href: '/admin/usuarios' },
     { label: 'Financeiro', href: '/admin/financeiro' },
     { label: 'SAC', href: '/admin/sac' },
