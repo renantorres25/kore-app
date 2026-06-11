@@ -308,7 +308,7 @@ export default function PersonalAluno() {
     const noventaDiasAtras = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const { data } = await supabase
       .from('atividades_livres')
-      .select('data, duracao_min, fc_media')
+      .select('data, modalidade, duracao_min, distancia_km, fc_media')
       .eq('usuario_id', clienteId)
       .gte('data', noventaDiasAtras)
       .not('fc_media', 'is', null)

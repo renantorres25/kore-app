@@ -339,23 +339,71 @@ export type PontoPMC = {
   tsb: number        // form = CTL - ATL
 }
 
+type AtividadePMC = {
+  data: string
+  modalidade?: string | null
+  duracao_min: number | null
+  distancia_km: number | null
+  fc_media: number | null
+}
+
+/**
+ * Pace de limiar estimado para uma modalidade: média do pace das últimas 10 atividades
+ * dessa modalidade (com distância e duração válidas) × 0.95 (limiar ~5% mais rápido que o pace habitual).
+ * divisor: 1 para corrida (min/km), 10 para natação (min/100m).
+ */
+function calcularPaceLimiar(atividades: AtividadePMC[], modalidade: string, divisor: number): number | null {
+  const comPace = atividades
+    .filter(a => a.modalidade === modalidade && a.distancia_km && a.distancia_km > 0 && a.duracao_min && a.duracao_min > 0)
+    .sort((a, b) => b.data.localeCompare(a.data))
+    .slice(0, 10)
+  if (comPace.length === 0) return null
+  const paces = comPace.map(a => a.duracao_min! / (a.distancia_km! * divisor))
+  const media = paces.reduce((s, p) => s + p, 0) / paces.length
+  return media * 0.95
+}
+
+/**
+ * TSS de uma atividade:
+ * - Corrida/Natação com pace de limiar e distância disponíveis: rTSS/sTSS = (duracao_min/60) × (pace_limiar/pace_real)² × 100
+ * - Demais casos (bike, musculação, outros, ou pace não calculável): FC-based = (fc_media/fcmax) × duracao_min × (100/60)
+ */
+function tssAtividade(a: AtividadePMC, fcmax: number, paceLimiarCorrida: number | null, paceLimiarNatacao: number | null): number {
+  if (a.fc_media == null || a.duracao_min == null) return 0
+
+  if (a.modalidade === 'corrida' && paceLimiarCorrida != null && a.distancia_km && a.distancia_km > 0) {
+    const paceReal = a.duracao_min / a.distancia_km
+    return (a.duracao_min / 60) * (paceLimiarCorrida / paceReal) ** 2 * 100
+  }
+
+  if (a.modalidade === 'natacao' && paceLimiarNatacao != null && a.distancia_km && a.distancia_km > 0) {
+    const paceReal = a.duracao_min / (a.distancia_km * 10)
+    return (a.duracao_min / 60) * (paceLimiarNatacao / paceReal) ** 2 * 100
+  }
+
+  return (a.fc_media / fcmax) * a.duracao_min * (100 / 60)
+}
+
 /**
  * PMC (Performance Management Chart) — TSS diário + CTL/ATL/TSB via médias móveis exponenciais.
- * TSS diário = soma de (fc_media/fcmax) × duracao_min de todas as atividades do dia, normalizado para escala 0-100
- * (1h a 100% da FCmax = TSS 100).
+ * TSS diário = soma do TSS de cada atividade do dia (ver tssAtividade), normalizado para escala 0-100
+ * (1h a 100% da FCmax = TSS 100; corrida/natação usam pace vs. limiar estimado quando disponível).
  */
 export function calcularPMC(
-  atividades: { data: string; duracao_min: number | null; fc_media: number | null }[],
+  atividades: AtividadePMC[],
   fcmax: number,
   dias: number = 90
 ): PontoPMC[] {
   if (!fcmax || fcmax <= 0) return []
 
+  const paceLimiarCorrida = calcularPaceLimiar(atividades, 'corrida', 1)
+  const paceLimiarNatacao = calcularPaceLimiar(atividades, 'natacao', 10)
+
   // 1. Mapa de TSS por data
   const tssPorData = new Map<string, number>()
   for (const a of atividades) {
     if (a.fc_media == null || a.duracao_min == null) continue
-    const tss = (a.fc_media / fcmax) * a.duracao_min * (100 / 60)
+    const tss = tssAtividade(a, fcmax, paceLimiarCorrida, paceLimiarNatacao)
     tssPorData.set(a.data, (tssPorData.get(a.data) ?? 0) + tss)
   }
   if (tssPorData.size === 0) return []
