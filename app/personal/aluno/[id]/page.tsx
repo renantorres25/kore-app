@@ -593,13 +593,16 @@ export default function PersonalAluno() {
     domingoSemana.setDate(hojeDate.getDate() - hojeDate.getDay())
     const semanaStr = domingoSemana.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
-    const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }] = await Promise.all([
+    const { inicio: inicioSemanaAtual, fim: fimSemanaAtual } = getInicioFimSemana(0)
+
+    const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }, { data: sessoesSemanaAtual }] = await Promise.all([
       supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
       supabase.from('sono').select('score_recuperacao, duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).single(),
       supabase.from('bem_estar').select('data, humor, energia, motivacao, dor_muscular, notas').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
       supabase.from('treinos').select('data, concluido').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }),
       supabase.from('perfis').select('nome').eq('id', session.user.id).single(),
+      supabase.from('sessoes_prescritas').select('modalidade').eq('atleta_id', clienteId).gte('data', inicioSemanaAtual).lte('data', fimSemanaAtual),
     ])
 
     if (perfil) setAluno(perfil)
@@ -619,6 +622,21 @@ export default function PersonalAluno() {
       setTreinos(treinosData.map(t => ({ ...t, exercicios: exercicios?.filter(e => e.treino_id === t.id) ?? [] })))
     } else {
       setTreinos([])
+    }
+
+    // Entrada inteligente na aba Treinos: pula a tela de escolha se já há sessões prescritas na semana
+    if (modalidadeEscolhida === null) {
+      const modsTriathlon = (sessoesSemanaAtual ?? [])
+        .map((s: any) => s.modalidade)
+        .filter((m: string) => ['corrida', 'bike', 'natacao'].includes(m))
+      if (modsTriathlon.length > 0) {
+        const contagem: Record<string, number> = {}
+        modsTriathlon.forEach((m: string) => { contagem[m] = (contagem[m] ?? 0) + 1 })
+        const predominante = Object.entries(contagem).sort((a, b) => b[1] - a[1])[0][0] as 'corrida' | 'bike' | 'natacao'
+        setModalidadeEscolhida(predominante)
+      } else if (treinosData?.length) {
+        setModalidadeEscolhida('musculacao')
+      }
     }
 
     // Histórico de execuções + evolução de carga + calendário + composição corporal
