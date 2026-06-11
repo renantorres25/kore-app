@@ -26,6 +26,7 @@ function formatDate(dateStr: string): string {
 }
 
 export type AtividadeDia = {
+  id?: string | null
   data: string
   tipo: 'musculacao' | 'corrida' | 'bike' | 'natacao' | 'crossfit' | 'outro'
   nome: string

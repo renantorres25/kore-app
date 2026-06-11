@@ -72,14 +72,6 @@ const MODALIDADES_TREINO = [
 type StatusAderencia = 'concluido' | 'parcial' | 'nao_realizado' | 'realizado_sem_planejamento'
 const STATUS_ICON: Record<StatusAderencia, string> = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌', realizado_sem_planejamento: '⬜' }
 
-const STATUS_BADGE: Record<string, { label: string; emoji: string; cls: string }> = {
-  planejado: { label: 'Planejado', emoji: '🗓️', cls: 'text-zinc-400 bg-white/[0.05] border-white/[0.14]' },
-  concluido: { label: 'Realizado', emoji: '✅', cls: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  parcial: { label: 'Parcial', emoji: '⚠️', cls: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-  nao_realizado: { label: 'Não realizado', emoji: '❌', cls: 'text-red-400 bg-red-500/10 border-red-500/20' },
-  realizado_sem_planejamento: { label: 'Realizado sem planejamento', emoji: '⬜', cls: 'text-zinc-400 bg-white/[0.05] border-white/[0.14]' },
-}
-
 type IndicadorAderencia = { icone: '✅' | '⚠️' | null; prescrito: string | null; realizado: string | null }
 
 // "5:30/km" ou "1:45/100m" → segundos
@@ -335,7 +327,6 @@ export default function PersonalAluno() {
   const [carregandoSessoes, setCarregandoSessoes] = useState(false)
   const [sessaoEditando, setSessaoEditando] = useState<SessaoPresc | null>(null)
   const [diaEditando, setDiaEditando] = useState<string | null>(null)
-  const [sessaoDetalhe, setSessaoDetalhe] = useState<SessaoPresc | null>(null)
   const [salvandoSessao, setSalvandoSessao] = useState(false)
   const [confirmaDeleteSessaoId, setConfirmaDeleteSessaoId] = useState<string | null>(null)
   const [excluindoSessao, setExcluindoSessao] = useState(false)
@@ -641,7 +632,7 @@ export default function PersonalAluno() {
       { data: anamneseCompletaData }, { data: sonoHistData }, { data: proximaConsultaData },
     ] = await Promise.all([
       supabase.from('treinos').select('id, nome, plano, data, calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
-      supabase.from('atividades_livres').select('data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable, fc_media, fc_max').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
+      supabase.from('atividades_livres').select('id, data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable, fc_media, fc_max').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
       supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
       supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
       supabase.from('anamneses').select('restricoes_alimentares,suplementos,lesoes,restricoes_fisicas,medicamentos,alergias').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
@@ -698,7 +689,7 @@ export default function PersonalAluno() {
       let detalhe = a.duracao_min ? `${a.duracao_min}min` : ''
       if (a.distancia_km) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_km}km`
       if (a.distancia_m) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_m}m`
-      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null, duracao_min: a.duracao_min ?? null, distancia_km: a.distancia_km ?? null, distancia_m: a.distancia_m ?? null })
+      listaCalendario.push({ id: a.id ?? null, data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null, duracao_min: a.duracao_min ?? null, distancia_km: a.distancia_km ?? null, distancia_m: a.distancia_m ?? null })
     })
     setAtividadesCalendario(listaCalendario)
     setTreinosDatas((treinosCompletos ?? []).map((t: any) => t.data))
@@ -2215,14 +2206,19 @@ export default function PersonalAluno() {
                                 <div className="flex-1 w-full flex flex-col divide-y divide-white/[0.06]">
                                   {sessoesDoDia.map((sessao, idx) => {
                                     const mod = MODALIDADES_SESSAO[sessao.modalidade]
+                                    const ativ = atividadesCalendario.find(a => a.data === sessao.data && a.tipo === sessao.modalidade)
                                     return (
                                       <div key={sessao.id ?? idx} className={`relative w-full ${idx > 0 ? 'pt-1.5' : ''} ${idx < sessoesDoDia.length - 1 ? 'pb-1.5' : ''}`}>
                                         <button
                                           onClick={() => {
-                                            setDiaEditando(dataStr)
-                                            setSessaoEditando({ ...sessao, blocos: sessao.blocos.map(b => ({ ...b })) })
+                                            if (ativ?.id) {
+                                              router.push(`/atividade/${ativ.id}`)
+                                            } else {
+                                              setDiaEditando(dataStr)
+                                              setSessaoEditando({ ...sessao, blocos: sessao.blocos.map(b => ({ ...b })) })
+                                            }
                                           }}
-                                          className="w-full flex flex-col items-start gap-0.5 text-left active:scale-95 transition-all pr-5"
+                                          className="w-full flex flex-col items-start gap-0.5 text-left active:scale-95 transition-all"
                                         >
                                           <span className={`text-xl ${mod.text}`}>{mod.icone}</span>
                                           <p className="text-white text-xs font-bold leading-tight">
@@ -2230,13 +2226,6 @@ export default function PersonalAluno() {
                                           </p>
                                           {sessao.duracao_min != null && <p className="text-zinc-500 text-[10px]">{sessao.duracao_min} min</p>}
                                           {sessao.distancia_km != null && <p className="text-zinc-500 text-[10px]">{sessao.distancia_km} km</p>}
-                                        </button>
-                                        <button
-                                          onClick={() => setSessaoDetalhe(sessao)}
-                                          title="Ver detalhe"
-                                          className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all"
-                                        >
-                                          <span className="text-[11px]">ⓘ</span>
                                         </button>
                                       </div>
                                     )
@@ -2295,10 +2284,11 @@ export default function PersonalAluno() {
                               { label: 'Pace', ind: it.indPace },
                               { label: 'FC', ind: it.indFC },
                             ].filter(x => x.ind.prescrito != null)
+                            const ativId = it.ativ?.id
                             return (
                               <div key={i}
-                                onClick={() => setSessaoDetalhe(it.sessao)}
-                                className="flex items-start gap-2.5 -mx-2 px-2 py-1 rounded-lg cursor-pointer hover:bg-zinc-800/50 transition-colors">
+                                onClick={ativId ? () => router.push(`/atividade/${ativId}`) : undefined}
+                                className={`flex items-start gap-2.5 -mx-2 px-2 py-1 rounded-lg transition-colors ${ativId ? 'cursor-pointer hover:bg-zinc-800/50' : ''}`}>
                                 <span className={`text-base ${mod.text}`}>{mod.icone}</span>
                                 <span className="text-base">{STATUS_ICON[it.status]}</span>
                                 <div className="flex-1 min-w-0">
@@ -2314,7 +2304,7 @@ export default function PersonalAluno() {
                                     ))}
                                   </div>
                                 </div>
-                                <span className="text-zinc-600 text-sm self-center shrink-0">›</span>
+                                {ativId && <span className="text-zinc-600 text-sm self-center shrink-0">›</span>}
                               </div>
                             )
                           })}
@@ -2591,158 +2581,6 @@ export default function PersonalAluno() {
           </div>
         </div>
       )}
-
-      {/* ── DRAWER: DETALHE DA SESSÃO (Triathlon) ───────────────────── */}
-      {sessaoDetalhe && (() => {
-        const mod = MODALIDADES_SESSAO[sessaoDetalhe.modalidade]
-        const item = itensAderenciaSemana.find(it => sessaoDetalhe.id
-          ? it.sessao.id === sessaoDetalhe.id
-          : !it.sessao.id && it.sessao.data === sessaoDetalhe.data && it.sessao.modalidade === sessaoDetalhe.modalidade)
-        const badge = STATUS_BADGE[item?.status ?? 'planejado'] ?? STATUS_BADGE.planejado
-        const indicadores = item ? [
-          { label: 'Duração', ind: item.indDuracao },
-          { label: 'Distância', ind: item.indDistancia },
-          { label: 'Pace', ind: item.indPace },
-          { label: 'FC', ind: item.indFC },
-        ].filter(x => x.ind.prescrito != null) : []
-        return (
-          <div className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
-            onClick={() => setSessaoDetalhe(null)}>
-            <div className="w-full max-w-lg sm:m-4 rounded-t-3xl sm:rounded-3xl border border-white/[0.14] overflow-hidden flex flex-col"
-              style={{ background: 'var(--surface-1)', maxHeight: '92vh' }}
-              onClick={e => e.stopPropagation()}>
-
-              {/* Header */}
-              <div className="flex items-center justify-between p-5 border-b border-white/[0.11] shrink-0">
-                <div className="flex items-center gap-3">
-                  <span className={`text-2xl ${mod.text}`}>{mod.icone}</span>
-                  <div>
-                    <p className="text-white font-black text-lg">
-                      {sessaoDetalhe.modalidade === 'descanso' ? 'Descanso' : (sessaoDetalhe.tipo_sessao ? (TIPO_SESSAO_LABEL[sessaoDetalhe.tipo_sessao] ?? sessaoDetalhe.tipo_sessao) : mod.label)}
-                    </p>
-                    <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em] mt-0.5">{formatDiaDetalhe(sessaoDetalhe.data)}</p>
-                  </div>
-                </div>
-                <button onClick={() => setSessaoDetalhe(null)}
-                  className="w-9 h-9 rounded-xl bg-white/[0.09] flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all">
-                  ✕
-                </button>
-              </div>
-
-              {/* Corpo */}
-              <div className="overflow-y-auto flex-1 p-5 space-y-4">
-
-                {/* Status */}
-                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${badge.cls}`}>
-                  <span>{badge.emoji}</span>
-                  <span>{badge.label}</span>
-                </div>
-
-                {/* Resumo prescrito */}
-                {(sessaoDetalhe.duracao_min != null || sessaoDetalhe.distancia_km != null) && (
-                  <div className="flex gap-3 flex-wrap">
-                    {sessaoDetalhe.duracao_min != null && <span className="text-zinc-400 text-xs">{sessaoDetalhe.duracao_min} min</span>}
-                    {sessaoDetalhe.distancia_km != null && <span className="text-zinc-400 text-xs">{sessaoDetalhe.distancia_km} km</span>}
-                  </div>
-                )}
-
-                {sessaoDetalhe.observacao && (
-                  <p className="text-zinc-400 text-xs italic leading-relaxed">{sessaoDetalhe.observacao}</p>
-                )}
-
-                {/* Blocos */}
-                {sessaoDetalhe.blocos.length > 0 && (
-                  <div>
-                    <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-2">Blocos</p>
-                    <div className="space-y-2">
-                      {sessaoDetalhe.blocos.map((b, i) => (
-                        <div key={i} className="bg-white/[0.05] rounded-xl p-3 text-zinc-300 text-xs leading-relaxed">
-                          {gerarNarrativaBloco(b, sessaoDetalhe.modalidade)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Realizado */}
-                {item?.ativ && (() => {
-                  const ativ = item.ativ
-                  const horas = ativ.duracao_min != null ? Math.floor(ativ.duracao_min / 60) : null
-                  const minRestante = ativ.duracao_min != null ? ativ.duracao_min % 60 : null
-                  const duracaoFmt = ativ.duracao_min != null
-                    ? (horas! > 0 ? `${horas}h ${minRestante}min` : `${minRestante}min`)
-                    : null
-                  const distFmt = ativ.distancia_km != null ? `${ativ.distancia_km.toFixed(1).replace('.', ',')}km` : null
-
-                  let paceFmt: string | null = null
-                  let paceLabel = 'Pace médio'
-                  if (ativ.duracao_min != null) {
-                    if (sessaoDetalhe.modalidade === 'natacao' && ativ.distancia_m) {
-                      const sec = (ativ.duracao_min * 60) / (ativ.distancia_m / 100)
-                      paceFmt = `${Math.floor(sec / 60)}:${Math.round(sec % 60).toString().padStart(2, '0')} min/100m`
-                    } else if (sessaoDetalhe.modalidade === 'corrida' && ativ.distancia_km) {
-                      const sec = (ativ.duracao_min * 60) / ativ.distancia_km
-                      paceFmt = `${Math.floor(sec / 60)}:${Math.round(sec % 60).toString().padStart(2, '0')} min/km`
-                    } else if (sessaoDetalhe.modalidade === 'bike' && ativ.distancia_km) {
-                      const kmh = ativ.distancia_km / (ativ.duracao_min / 60)
-                      paceFmt = `${kmh.toFixed(1).replace('.', ',')} km/h`
-                      paceLabel = 'Velocidade média'
-                    }
-                  }
-
-                  if (!duracaoFmt && !distFmt && ativ.fc_media == null && !paceFmt && ativ.calorias == null) return null
-
-                  return (
-                    <div className="rounded-xl p-3 bg-emerald-950/40 border border-emerald-500/20 space-y-1">
-                      <p className="text-emerald-400 text-[10px] uppercase tracking-widest font-bold mb-1">Realizado</p>
-                      {(duracaoFmt || distFmt) && (
-                        <p className="text-zinc-200 text-xs">
-                          {mod.icone} {duracaoFmt}{duracaoFmt && distFmt ? '  •  ' : ''}{distFmt}
-                        </p>
-                      )}
-                      {ativ.fc_media != null && <p className="text-zinc-200 text-xs">❤️ FC média: {ativ.fc_media}bpm</p>}
-                      {paceFmt != null && <p className="text-zinc-200 text-xs">⚡ {paceLabel}: {paceFmt}</p>}
-                      {ativ.calorias != null && <p className="text-zinc-200 text-xs">🔥 {ativ.calorias} kcal</p>}
-                    </div>
-                  )
-                })()}
-
-                {/* Compliance */}
-                {indicadores.length > 0 && (
-                  <div>
-                    <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-2">Compliance</p>
-                    <div className="space-y-1.5">
-                      {indicadores.map(({ label, ind }) => (
-                        <p key={label} className="text-zinc-400 text-xs">
-                          {ind.icone ? `${ind.icone} ` : '· '}{label}: {ind.prescrito ?? '–'}{ind.realizado != null ? ` → ${ind.realizado}` : ''}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="p-5 border-t border-white/[0.11] flex gap-3 shrink-0">
-                <button onClick={() => setSessaoDetalhe(null)}
-                  className="flex-1 border border-white/[0.14] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
-                  Fechar
-                </button>
-                <button onClick={() => {
-                  setDiaEditando(sessaoDetalhe.data)
-                  setSessaoEditando({ ...sessaoDetalhe, blocos: sessaoDetalhe.blocos.map(b => ({ ...b })) })
-                  setSessaoDetalhe(null)
-                }}
-                  className="flex-1 bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
-                  Editar
-                </button>
-              </div>
-
-            </div>
-          </div>
-        )
-      })()}
 
       {/* ── MODAL: PRESCREVER/EDITAR SESSÃO (Triathlon) ─────────────── */}
       {diaEditando && sessaoEditando && (

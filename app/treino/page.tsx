@@ -424,6 +424,7 @@ export default function TreinoCliente() {
   const [pesoKg, setPesoKg] = useState<number>(70)
   const [blocoAtual, setBlocoAtual] = useState<BlocoAtual | null>(null)
   const [sessoesPrescritas, setSessoesPrescritas] = useState<SessaoPrescView[]>([])
+  const [atividadesSemanaPlanejado, setAtividadesSemanaPlanejado] = useState<{ id: string; data: string; modalidade: string }[]>([])
   const [carregandoSessoesPrescritas, setCarregandoSessoesPrescritas] = useState(false)
   const [semanaOffsetPlanejado, setSemanaOffsetPlanejado] = useState(0)
   const [diaSelecionadoPlanejado, setDiaSelecionadoPlanejado] = useState<string | null>(null)
@@ -446,13 +447,21 @@ export default function TreinoCliente() {
   async function carregarSessoesPrescritas(atletaId: string, offset: number) {
     setCarregandoSessoesPrescritas(true)
     const { inicio, fim } = getInicioFimSemana(offset)
-    const { data, error } = await supabase
-      .from('sessoes_prescritas')
-      .select('*, blocos_sessao(*)')
-      .eq('atleta_id', atletaId)
-      .gte('data', inicio)
-      .lte('data', fim)
-      .order('data')
+    const [{ data, error }, { data: ativs }] = await Promise.all([
+      supabase
+        .from('sessoes_prescritas')
+        .select('*, blocos_sessao(*)')
+        .eq('atleta_id', atletaId)
+        .gte('data', inicio)
+        .lte('data', fim)
+        .order('data'),
+      supabase
+        .from('atividades_livres')
+        .select('id, data, modalidade')
+        .eq('usuario_id', atletaId)
+        .gte('data', inicio)
+        .lte('data', fim),
+    ])
 
     if (!error && data) {
       setSessoesPrescritas((data as any[]).map(s => ({
@@ -474,6 +483,7 @@ export default function TreinoCliente() {
           })),
       })))
     }
+    setAtividadesSemanaPlanejado((ativs as any[] ?? []).map(a => ({ id: a.id, data: a.data, modalidade: a.modalidade })))
     setCarregandoSessoesPrescritas(false)
   }
 
@@ -1045,6 +1055,7 @@ Responda APENAS JSON válido:
             {sessoesDoDiaAtivo.map(sessao => {
               const mod = MODALIDADES_SESSAO[sessao.modalidade]
               const statusInfo = STATUS_SESSAO_LABEL[sessao.status] ?? STATUS_SESSAO_LABEL.planejado
+              const ativ = atividadesSemanaPlanejado.find(a => a.data === sessao.data && a.modalidade === sessao.modalidade)
               return (
                 <div key={sessao.id} style={{ ...glassSubtle, padding: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
@@ -1076,6 +1087,13 @@ Responda APENAS JSON válido:
                         </div>
                       ))}
                     </div>
+                  )}
+
+                  {ativ && (
+                    <button onClick={() => router.push(`/atividade/${ativ.id}`)}
+                      style={{ marginTop: 12, color: mod?.hex ?? C.t1, fontSize: 12, fontWeight: 700, fontFamily: FONT_DISPLAY, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                      Ver detalhe →
+                    </button>
                   )}
                 </div>
               )
