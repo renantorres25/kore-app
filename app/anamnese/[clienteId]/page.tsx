@@ -147,14 +147,14 @@ function SectionCard({ icon, titulo, subtitulo, badge, children, defaultOpen = t
 }) {
   const [aberto, setAberto] = useState(defaultOpen)
   return (
-    <div className="rounded-2xl overflow-hidden border border-white/[0.08]" style={{ background: 'var(--surface-1)' }}>
+    <div className="rounded-2xl overflow-hidden border border-white/[0.10]" style={{ background: 'var(--surface-1)' }}>
       <button onClick={() => setAberto(p => !p)}
         className="w-full px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
         style={{ borderBottom: aberto ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-lg bg-white/[0.07] flex items-center justify-center text-zinc-400 shrink-0">{icon}</div>
           <div className="flex-1 min-w-0">
-            <p className="text-white font-semibold text-sm">{titulo}</p>
+            <p className="text-white font-bold text-sm">{titulo}</p>
             {subtitulo && !aberto && <p className="text-zinc-600 text-xs mt-0.5 truncate">{subtitulo}</p>}
           </div>
           {badge && <span className="text-[10px] font-medium text-zinc-400 bg-white/[0.06] rounded-full px-2.5 py-0.5 shrink-0">{badge}</span>}
@@ -443,13 +443,13 @@ export default function AnamnesePage() {
   }
 
   if (carregando) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+    <main className="min-h-[100dvh] flex items-center justify-center text-white">
       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
     </main>
   )
 
   if (sucesso) return (
-    <main className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+    <main className="min-h-[100dvh] flex items-center justify-center text-white">
       <div className="flex flex-col items-center gap-4">
         <div className="text-6xl">✅</div>
         <p className="text-white font-bold text-lg">Anamnese salva!</p>
@@ -465,7 +465,7 @@ export default function AnamnesePage() {
   const outraNome = outraAnamnese?.profissional_nome ?? outraTipoLabel
 
   return (
-    <main className="min-h-[100dvh] text-white md:flex" style={{ background: 'var(--bg-base)' }}>
+    <main className="min-h-[100dvh] text-white md:flex">
       {isProfissional && <SidebarProfissional tipo={tipoSidebar} />}
       <div className="flex-1 md:overflow-y-auto md:h-screen">
       <div className="max-w-md mx-auto px-4 pb-32 md:max-w-3xl md:px-10" style={{ paddingTop: 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
