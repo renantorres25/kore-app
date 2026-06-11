@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       supabaseAdmin.from('perfis').select('*', { count: 'exact', head: true })
     )
 
-    const tipos = ['atleta', 'personal', 'nutricionista']
+    const tipos = ['cliente', 'personal', 'nutricionista']
     const porTipo: Record<string, number> = {}
     for (const t of tipos) {
       porTipo[t] =
@@ -34,9 +34,21 @@ export async function GET(req: NextRequest) {
         )) ?? 0
     }
 
-    const novos30 = await safeCount(() =>
-      supabaseAdmin.from('perfis').select('*', { count: 'exact', head: true }).gte('created_at', desde30)
-    )
+    // Novos usuários: data de cadastro vem do auth.users (sempre tem created_at).
+    let novos30: number | null = null
+    try {
+      const corte = new Date(desde30).getTime()
+      const { data: lista } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+      const usuariosAuth = lista?.users || []
+      let n = 0
+      for (const u of usuariosAuth) {
+        const c = u?.created_at ? new Date(u.created_at).getTime() : 0
+        if (c >= corte) n = n + 1
+      }
+      novos30 = n
+    } catch {
+      novos30 = null
+    }
     const vinculos = await safeCount(() =>
       supabaseAdmin.from('vinculos').select('*', { count: 'exact', head: true })
     )

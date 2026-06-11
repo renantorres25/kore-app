@@ -80,7 +80,7 @@ export default function CockpitPage() {
 
           <h2 style={{ fontFamily: SORA, fontSize: 16, fontWeight: 700, color: C.t1, margin: '28px 0 12px' }}>Usuários por perfil</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
-            <Card label="Atletas" valor={fmt(kpis.porTipo?.atleta)} cor={C.energy} />
+            <Card label="Atletas" valor={fmt(kpis.porTipo?.cliente)} cor={C.energy} />
             <Card label="Personais" valor={fmt(kpis.porTipo?.personal)} cor={C.sleep} />
             <Card label="Nutricionistas" valor={fmt(kpis.porTipo?.nutricionista)} cor={C.good} />
           </div>
