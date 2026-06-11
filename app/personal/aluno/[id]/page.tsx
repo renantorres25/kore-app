@@ -403,7 +403,20 @@ export default function PersonalAluno() {
       .gte('data', noventaDiasAtras)
       .not('fc_media', 'is', null)
       .order('data')
-    if (data && fcmaxEstimado != null) setPontosPMC(calcularPMC(data, fcmaxEstimado, 90))
+    if (data && fcmaxEstimado != null) {
+      const pontosPMC = calcularPMC(data, fcmaxEstimado, 90)
+      setPontosPMC(pontosPMC)
+
+      const ultimoPonto = pontosPMC[pontosPMC.length - 1]
+      if (ultimoPonto) {
+        await supabase.from('perfis').update({
+          tsb_atual: ultimoPonto.tsb,
+          atl_atual: ultimoPonto.atl,
+          ctl_atual: ultimoPonto.ctl,
+          metricas_atualizadas_em: new Date().toISOString()
+        }).eq('id', clienteId)
+      }
+    }
     setPmcCarregado(true)
     setCarregandoPMC(false)
   }

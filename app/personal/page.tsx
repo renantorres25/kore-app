@@ -15,6 +15,7 @@ type Aluno = {
   ativo: boolean
   fcmax: number | null
   dataNascimento: string | null
+  tsb_atual: number | null
 }
 
 type Stats = {
@@ -107,13 +108,13 @@ export default function PersonalAlunos() {
       if (!vinculos?.length) { setCarregando(false); return }
 
       const ids = vinculos.map(v => v.cliente_id)
-      const { data: perfis } = await supabase.from('perfis').select('id, nome, email, fcmax, data_nascimento').in('id', ids)
+      const { data: perfis } = await supabase.from('perfis').select('id, nome, email, fcmax, data_nascimento, tsb_atual, ctl_atual, atl_atual').in('id', ids)
 
       const alunosData: Aluno[] = vinculos.map(v => {
         const perfil = perfis?.find(p => p.id === v.cliente_id)
         return {
           id: v.id, cliente_id: v.cliente_id, nome: perfil?.nome ?? null, email: perfil?.email ?? '', ativo: v.ativo,
-          fcmax: perfil?.fcmax ?? null, dataNascimento: perfil?.data_nascimento ?? null,
+          fcmax: perfil?.fcmax ?? null, dataNascimento: perfil?.data_nascimento ?? null, tsb_atual: perfil?.tsb_atual ?? null,
         }
       })
       setAlunos(alunosData)
@@ -145,6 +146,7 @@ export default function PersonalAlunos() {
           .filter(Boolean).sort().reverse()[0] ?? null
         const totalTreinos = (treinos?.length ?? 0) + totalAtividades
         const scoreHoje = sonoHoje?.score_recuperacao ?? null
+        const perfil = perfis?.find(p => p.id === aluno.cliente_id)
 
         statsMap[aluno.cliente_id] = {
           totalTreinos,
@@ -158,6 +160,9 @@ export default function PersonalAlunos() {
             idade: calcularIdade(aluno.dataNascimento),
             totalTreinos,
             ultimoTreino,
+            tsb_atual: aluno.tsb_atual ?? null,
+            ctl_atual: perfil?.ctl_atual ?? null,
+            atl_atual: perfil?.atl_atual ?? null,
           }),
           atividades30d: atividades35d ?? [],
         }

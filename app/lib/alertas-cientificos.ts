@@ -158,6 +158,10 @@ export type ComputeAlertaParams = {
   proteinaPrescritas?: number | null
   pesoKg?: number | null
   evolucaoPeso?: { data: string; peso: number }[]
+  // PMC
+  tsb_atual?: number | null
+  ctl_atual?: number | null
+  atl_atual?: number | null
 }
 
 export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCientifico {
@@ -172,6 +176,25 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
   }
 
   const alertas: AlertaItem[] = []
+
+  // ── TSB (PMC) ─────────────────────────────────────
+  if (params.tsb_atual != null) {
+    if (params.tsb_atual < -40) {
+      alertas.push({
+        codigo: 'FADIGA_ACUMULADA',
+        nivel: 'vermelho',
+        dadoTecnico: `TSB: ${params.tsb_atual} | CTL: ${params.ctl_atual ?? '?'} | ATL: ${params.atl_atual ?? '?'}`,
+        mensagem: 'Fadiga acumulada elevada. Reduza volume por 2-3 dias.',
+      })
+    } else if (params.tsb_atual < -20) {
+      alertas.push({
+        codigo: 'CARGA_INTENSA',
+        nivel: 'amarelo',
+        dadoTecnico: `TSB: ${params.tsb_atual} | CTL: ${params.ctl_atual ?? '?'} | ATL: ${params.atl_atual ?? '?'}`,
+        mensagem: 'Atleta em fase de carga intensa. Monitore recuperação.',
+      })
+    }
+  }
 
   const fcMaxAtividades = atividades30d
     .map(a => a.fc_max)
