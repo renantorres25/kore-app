@@ -50,7 +50,7 @@ type BlocoSessao = {
 type SessaoPresc = {
   id?: string
   data: string
-  modalidade: 'corrida' | 'bike' | 'natacao' | 'descanso'
+  modalidade: 'corrida' | 'bike' | 'natacao' | 'musculacao' | 'descanso'
   tipo_sessao: string | null
   duracao_min: number | null
   distancia_km: number | null
@@ -157,10 +157,11 @@ function calcularWatts(ftpPct: number | null, ftp: number | null): number | null
 }
 
 const MODALIDADES_SESSAO: Record<string, { label: string; icone: string; text: string; bg: string; border: string }> = {
-  corrida:  { label: 'Corrida',  icone: '🏃', text: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20' },
-  bike:     { label: 'Bike',     icone: '🚴', text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-  natacao:  { label: 'Natação',  icone: '🏊', text: 'text-cyan-400',   bg: 'bg-cyan-500/10',   border: 'border-cyan-500/20' },
-  descanso: { label: 'Descanso', icone: '😴', text: 'text-zinc-400',   bg: 'bg-zinc-500/10',   border: 'border-zinc-500/20' },
+  corrida:    { label: 'Corrida',    icone: '🏃', text: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20' },
+  bike:       { label: 'Bike',       icone: '🚴', text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+  natacao:    { label: 'Natação',    icone: '🏊', text: 'text-cyan-400',   bg: 'bg-cyan-500/10',   border: 'border-cyan-500/20' },
+  musculacao: { label: 'Musculação', icone: '🏋️', text: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+  descanso:   { label: 'Descanso',   icone: '😴', text: 'text-zinc-400',   bg: 'bg-zinc-500/10',   border: 'border-zinc-500/20' },
 }
 const TIPOS_SESSAO = ['continuo', 'intervalado', 'longo', 'regenerativo', 'fartlek', 'ritmo', 'tecnico'] as const
 const TIPO_SESSAO_LABEL: Record<string, string> = {
@@ -170,11 +171,20 @@ const TIPO_SESSAO_LABEL: Record<string, string> = {
 const NOMES_BLOCO = ['Aquecimento', 'Principal', 'Desaquecimento', 'Intervalo', 'Outro'] as const
 const DIAS_SEMANA_LABEL = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
 
+function getTabsModalidadeSessao(modalidadeEscolhida: 'musculacao' | 'triathlon' | 'corrida' | 'bike' | 'natacao' | null): SessaoPresc['modalidade'][] {
+  switch (modalidadeEscolhida) {
+    case 'corrida': return ['corrida', 'musculacao', 'descanso']
+    case 'bike': return ['bike', 'musculacao', 'descanso']
+    case 'natacao': return ['natacao', 'musculacao', 'descanso']
+    default: return ['corrida', 'bike', 'natacao', 'musculacao', 'descanso']
+  }
+}
+
 function vazioBloco(ordem: number): BlocoSessao {
   return { ordem, nome: 'Principal', duracao_min: null, distancia_km: null, repeticoes: null, zona_fc: null, fc_min: null, fc_max: null, pace_alvo: null, ftp_pct: null, watts_alvo: null, observacao: null }
 }
-function vazioSessao(data: string): SessaoPresc {
-  return { data, modalidade: 'corrida', tipo_sessao: 'continuo', duracao_min: null, distancia_km: null, observacao: null, status: 'planejado', blocos: [vazioBloco(1)] }
+function vazioSessao(data: string, modalidade: SessaoPresc['modalidade'] = 'corrida'): SessaoPresc {
+  return { data, modalidade, tipo_sessao: 'continuo', duracao_min: null, distancia_km: null, observacao: null, status: 'planejado', blocos: [vazioBloco(1)] }
 }
 
 export default function PersonalAluno() {
@@ -193,7 +203,7 @@ export default function PersonalAluno() {
   const [editandoTreino, setEditandoTreino] = useState<Treino | null>(null)
   const [confirmaDeleteId, setConfirmaDeleteId] = useState<string | null>(null)
   const [modalEmBreve, setModalEmBreve] = useState<string | null>(null)
-  const [modalidadeEscolhida, setModalidadeEscolhida] = useState<'musculacao' | 'triathlon' | null>(null)
+  const [modalidadeEscolhida, setModalidadeEscolhida] = useState<'musculacao' | 'triathlon' | 'corrida' | 'bike' | 'natacao' | null>(null)
   const [semanaOffset, setSemanaOffset] = useState(0)
   const [sessoesPrescritas, setSessoesPrescritas] = useState<SessaoPresc[]>([])
   const [carregandoSessoes, setCarregandoSessoes] = useState(false)
@@ -272,7 +282,7 @@ export default function PersonalAluno() {
   }, [treinos])
 
   useEffect(() => {
-    if (modalidadeEscolhida === 'triathlon' && clienteId) carregarSessoesSemana(semanaOffset)
+    if (['triathlon', 'corrida', 'bike', 'natacao'].includes(modalidadeEscolhida ?? '') && clienteId) carregarSessoesSemana(semanaOffset)
   }, [modalidadeEscolhida, semanaOffset, clienteId])
 
   useEffect(() => {
@@ -1590,9 +1600,13 @@ export default function PersonalAluno() {
                         <button
                           key={m.nome}
                           onClick={() => {
-                            if (m.nome === 'Triathlon') setModalidadeEscolhida('triathlon')
+                            const nome: string = m.nome
+                            if (nome === 'Triathlon') setModalidadeEscolhida('triathlon')
+                            else if (nome === 'Assessoria de Corrida') setModalidadeEscolhida('corrida')
+                            else if (nome === 'Assessoria de Bike') setModalidadeEscolhida('bike')
+                            else if (nome === 'Assessoria de Natação') setModalidadeEscolhida('natacao')
                             else if (m.disponivel) { setModalidadeEscolhida('musculacao'); abrirNovo() }
-                            else setModalEmBreve(m.nome)
+                            else setModalEmBreve(nome)
                           }}
                           className={`flex flex-col items-center justify-center gap-1.5 py-4 active:scale-95 transition-all ${i === 4 ? 'col-span-2' : ''}`}
                           style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16 }}
@@ -1775,7 +1789,14 @@ export default function PersonalAluno() {
                   </>
                 ) : (
                   <>
-                  <button onClick={() => setModalidadeEscolhida(null)} className="text-zinc-500 text-xs font-bold uppercase tracking-wider hover:text-white transition-all active:scale-95">← Voltar</button>
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => setModalidadeEscolhida(null)} className="text-zinc-500 text-xs font-bold uppercase tracking-wider hover:text-white transition-all active:scale-95">← Voltar</button>
+                    {modalidadeEscolhida !== 'triathlon' && (
+                      <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                        {modalidadeEscolhida === 'corrida' ? 'Assessoria de Corrida' : modalidadeEscolhida === 'bike' ? 'Assessoria de Bike' : modalidadeEscolhida === 'natacao' ? 'Assessoria de Natação' : ''}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Header da semana */}
                   {(() => {
@@ -1813,6 +1834,8 @@ export default function PersonalAluno() {
                       const d = new Date(iniDate); d.setDate(iniDate.getDate() + i)
                       return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
                     })
+                    const modalidadePadrao: SessaoPresc['modalidade'] =
+                      modalidadeEscolhida === 'bike' ? 'bike' : modalidadeEscolhida === 'natacao' ? 'natacao' : 'corrida'
                     return (
                       <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-7 sm:overflow-visible">
                         {dias.map((dataStr, i) => {
@@ -1861,7 +1884,7 @@ export default function PersonalAluno() {
                                 <button
                                   onClick={() => {
                                     setDiaEditando(dataStr)
-                                    setSessaoEditando(vazioSessao(dataStr))
+                                    setSessaoEditando(vazioSessao(dataStr, modalidadePadrao))
                                   }}
                                   className="flex-1 w-full flex items-center justify-center active:scale-95 transition-all"
                                 >
@@ -1872,7 +1895,7 @@ export default function PersonalAluno() {
                                 <button
                                   onClick={() => {
                                     setDiaEditando(dataStr)
-                                    setSessaoEditando(vazioSessao(dataStr))
+                                    setSessaoEditando(vazioSessao(dataStr, modalidadePadrao))
                                   }}
                                   className="self-end w-6 h-6 rounded-lg bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all"
                                 >
@@ -2162,13 +2185,13 @@ export default function PersonalAluno() {
               {/* Modalidade */}
               <div>
                 <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Modalidade</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(Object.keys(MODALIDADES_SESSAO) as Array<keyof typeof MODALIDADES_SESSAO>).map(mKey => {
+                <div className={`grid gap-2 ${getTabsModalidadeSessao(modalidadeEscolhida).length === 5 ? 'grid-cols-5' : 'grid-cols-3'}`}>
+                  {getTabsModalidadeSessao(modalidadeEscolhida).map(mKey => {
                     const m = MODALIDADES_SESSAO[mKey]
                     const ativo = sessaoEditando.modalidade === mKey
                     return (
                       <button key={mKey}
-                        onClick={() => setSessaoEditando(prev => prev ? { ...prev, modalidade: mKey as SessaoPresc['modalidade'] } : prev)}
+                        onClick={() => setSessaoEditando(prev => prev ? { ...prev, modalidade: mKey } : prev)}
                         className={`flex flex-col items-center gap-1 py-3 rounded-xl border text-[11px] font-bold transition-all active:scale-95 ${ativo ? `${m.bg} ${m.border} ${m.text}` : 'bg-white/[0.05] border-white/[0.11] text-zinc-500'}`}>
                         <span className="text-xl">{m.icone}</span>
                         {m.label}
@@ -2255,29 +2278,33 @@ export default function PersonalAluno() {
                               </div>
                             )}
 
-                            {/* Zona de FC */}
-                            <div>
-                              <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Zona de FC</label>
-                              <div className="flex gap-1.5">
-                                {Object.keys(ZONAS_FC).map(z => (
-                                  <button key={z} onClick={() => setZonaBloco(i, z)}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all active:scale-95 ${bloco.zona_fc === z ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
-                                    {z}
-                                  </button>
-                                ))}
+                            {/* Zona de FC — não exibe para musculação */}
+                            {sessaoEditando.modalidade !== 'musculacao' && (
+                              <div>
+                                <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Zona de FC</label>
+                                <div className="flex gap-1.5">
+                                  {Object.keys(ZONAS_FC).map(z => (
+                                    <button key={z} onClick={() => setZonaBloco(i, z)}
+                                      className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all active:scale-95 ${bloco.zona_fc === z ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
+                                      {z}
+                                    </button>
+                                  ))}
+                                </div>
+                                {bloco.fc_min != null && bloco.fc_max != null && (
+                                  <p className="text-zinc-500 text-[10px] mt-1.5">{bloco.zona_fc} → {bloco.fc_min}–{bloco.fc_max} bpm</p>
+                                )}
                               </div>
-                              {bloco.fc_min != null && bloco.fc_max != null && (
-                                <p className="text-zinc-500 text-[10px] mt-1.5">{bloco.zona_fc} → {bloco.fc_min}–{bloco.fc_max} bpm</p>
-                              )}
-                            </div>
+                            )}
 
                             {/* Pace alvo — corrida/natação */}
                             {(sessaoEditando.modalidade === 'corrida' || sessaoEditando.modalidade === 'natacao') && (
                               <div>
-                                <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Pace alvo</label>
+                                <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">
+                                  {sessaoEditando.modalidade === 'natacao' ? 'Pace/100m' : 'Pace alvo'}
+                                </label>
                                 <input value={bloco.pace_alvo ?? ''}
                                   onChange={e => updateBlocoEditando(i, { pace_alvo: e.target.value || null })}
-                                  placeholder="Ex: 5:30/km"
+                                  placeholder={sessaoEditando.modalidade === 'natacao' ? 'Ex: 1:45/100m' : 'Ex: 5:30/km'}
                                   className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
                               </div>
                             )}
