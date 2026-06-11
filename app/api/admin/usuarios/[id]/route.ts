@@ -104,9 +104,12 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       if (body?.confirmar !== 'EXCLUIR') {
         return NextResponse.json({ erro: 'Confirmação inválida.' }, { status: 400 })
       }
+      // Apaga todos os dados do usuário (função no banco, em transação).
+      const { error } = await supabaseAdmin.rpc('excluir_usuario_kore', { uid: id })
+      if (error) return NextResponse.json({ erro: 'Falha ao excluir os dados do usuário.' }, { status: 500 })
+      // Remove o login (auth). O perfil já foi apagado pela função acima.
       try { await supabaseAdmin.auth.admin.deleteUser(id) } catch { /* segue */ }
-      try { await supabaseAdmin.from('perfis').delete().eq('id', id) } catch { /* segue */ }
-      resultado = 'Usuário excluído.'
+      resultado = 'Usuário e todos os seus dados foram excluídos.'
     } else {
       return NextResponse.json({ erro: 'Ação inválida.' }, { status: 400 })
     }
