@@ -76,6 +76,13 @@ export type ContextoProfissional = {
   fcmaxEstimado?: number | null
   cargaInternaSemanas?: { label: string; carga: number; atual: boolean }[] | null
   distModalidade28d?: { tipo: string; count: number; pct: number }[] | null
+  pmcAtual?: {
+    tsb: number
+    ctl: number
+    atl: number
+    diasEmSobrecarga: number
+    interpretacao: string
+  } | null
 }
 
 const TERMOS_IRRELEVANTES = /^(nenhum[ao]?|nada|não|nao|sem|ok|okay|oke?|n\/a|-)$/i
@@ -370,6 +377,15 @@ DADOS NUTRICIONAIS:
     secoesAdicionais += '\n\nDISTRIBUIÇÃO DE MODALIDADES (últimos 28 dias):\n' + ctx.distModalidade28d.map(d =>
       `${d.tipo}: ${d.pct}% (${d.count} sessões)`
     ).join('\n')
+  }
+
+  if (ctx.pmcAtual) {
+    secoesAdicionais += `\n\nPERFORMANCE MANAGEMENT CHART (PMC):\n` +
+      `CTL (Fitness/Condicionamento): ${ctx.pmcAtual.ctl}\n` +
+      `ATL (Fadiga aguda): ${ctx.pmcAtual.atl}\n` +
+      `TSB (Form/Frescor): ${ctx.pmcAtual.tsb}\n` +
+      `Dias em sobrecarga (TSB < -20): ${ctx.pmcAtual.diasEmSobrecarga}\n` +
+      `Interpretação: ${ctx.pmcAtual.interpretacao}`
   }
 
   return `Você é o KORE AI — assistente clínico integrado ao perfil de ${pacNome} para uso exclusivo do ${tipo} ${ctx.profissionalNome ?? ''}.

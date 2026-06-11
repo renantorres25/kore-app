@@ -2270,6 +2270,26 @@ export default function PersonalAluno() {
           fcmaxEstimado: fcmaxEstimado ?? null,
           cargaInternaSemanas: cargaInternaSemanas ?? null,
           distModalidade28d: distModalidade28d ?? null,
+          pmcAtual: pontosPMC.length > 0 ? {
+            tsb: pontosPMC[pontosPMC.length - 1].tsb,
+            ctl: pontosPMC[pontosPMC.length - 1].ctl,
+            atl: pontosPMC[pontosPMC.length - 1].atl,
+            diasEmSobrecarga: (() => {
+              let dias = 0
+              for (let i = pontosPMC.length - 1; i >= 0; i--) {
+                if (pontosPMC[i].tsb < -20) dias++
+                else break
+              }
+              return dias
+            })(),
+            interpretacao: pontosPMC[pontosPMC.length - 1].tsb > 10
+              ? 'Em forma — pronta para competir ou aumentar carga'
+              : pontosPMC[pontosPMC.length - 1].tsb > -10
+              ? 'Equilíbrio — manutenção'
+              : pontosPMC[pontosPMC.length - 1].tsb > -30
+              ? 'Em carga — fase de construção normal'
+              : 'Sobrecarga — reduzir volume recomendado'
+          } : null,
         }} pacienteId={clienteId} historicoIACarregando={historicoIACarregando} />
       )}
 
