@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
+import { gerarNarrativaBloco } from '../lib/narrativa-treino'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
 import SidebarProfissional from '../components/SidebarProfissional'
 
@@ -995,18 +996,6 @@ Responda APENAS JSON válido:
     const diaAtivo = (diaSelecionadoPlanejado && dias.includes(diaSelecionadoPlanejado)) ? diaSelecionadoPlanejado : (dias.includes(hoje) ? hoje : dias[0])
     const sessoesDoDiaAtivo = sessoesPrescritas.filter(s => s.data === diaAtivo)
 
-    const fmtBlocoLinha = (b: BlocoSessaoView, modalidade: SessaoPrescView['modalidade']) => {
-      const partes: string[] = []
-      if (b.repeticoes && b.repeticoes > 1) partes.push(`${b.repeticoes}x`)
-      if (b.distancia_km != null) partes.push(`${b.distancia_km}km`)
-      if (b.duracao_min != null) partes.push(`${b.duracao_min}min`)
-      if (b.zona_fc) partes.push(b.zona_fc.toUpperCase())
-      if (b.pace_alvo) partes.push(`pace ${b.pace_alvo}`)
-      if (modalidade === 'bike' && b.ftp_pct != null) partes.push(`${b.ftp_pct}% FTP${b.watts_alvo != null ? ` (${b.watts_alvo}W)` : ''}`)
-      if (b.fc_min != null && b.fc_max != null) partes.push(`FC ${b.fc_min}–${b.fc_max}bpm`)
-      return partes.join(' · ')
-    }
-
     return (
       <div style={{ ...glass, padding: 20, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -1082,8 +1071,8 @@ Responda APENAS JSON válido:
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {sessao.blocos.map(b => (
                         <div key={b.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                          <span style={{ color: mod?.hex ?? C.t2, fontSize: 11, fontWeight: 700, fontFamily: FONT_DISPLAY, flexShrink: 0, minWidth: 88 }}>{b.nome}</span>
-                          <span style={{ ...dataNum(C.t2), fontSize: 11 }}>{fmtBlocoLinha(b, sessao.modalidade) || '—'}</span>
+                          <span style={{ color: mod?.hex ?? C.t2, fontSize: 13, flexShrink: 0, lineHeight: '1.5' }}>•</span>
+                          <span style={{ ...dataNum(C.t2), fontSize: 11, lineHeight: 1.5 }}>{gerarNarrativaBloco(b, sessao.modalidade)}</span>
                         </div>
                       ))}
                     </div>

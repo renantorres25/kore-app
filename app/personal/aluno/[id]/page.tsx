@@ -8,6 +8,7 @@ import SidebarProfissional from '../../../components/SidebarProfissional'
 import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle } from 'lucide-react'
 import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
 import { calcularPMC, type PontoPMC } from '../../../lib/alertas-cientificos'
+import { gerarNarrativaBloco } from '../../../lib/narrativa-treino'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
@@ -2704,6 +2705,9 @@ export default function PersonalAluno() {
                                 placeholder="Opcional"
                                 className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
                             </div>
+
+                            {/* Prévia narrativa */}
+                            <p className="text-zinc-500 text-[10px] italic">{gerarNarrativaBloco(bloco, sessaoEditando.modalidade)}</p>
                           </div>
                         )
                       })}
