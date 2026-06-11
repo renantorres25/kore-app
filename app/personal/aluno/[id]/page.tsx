@@ -71,6 +71,29 @@ const MODALIDADES_TREINO = [
 type StatusAderencia = 'concluido' | 'parcial' | 'nao_realizado'
 const STATUS_ICON: Record<StatusAderencia, string> = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌' }
 
+type IndicadorAderencia = { icone: '✅' | '⚠️' | null; prescrito: string | null; realizado: string | null }
+
+// "5:30/km" ou "1:45/100m" → segundos
+function parsePaceToSec(pace: string | null): number | null {
+  if (!pace) return null
+  const m = pace.match(/(\d+):(\d{2})/)
+  if (!m) return null
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10)
+}
+
+function formatSecToPace(sec: number): string {
+  const min = Math.floor(sec / 60)
+  const s = Math.round(sec % 60)
+  return `${min}:${s.toString().padStart(2, '0')}`
+}
+
+// Compara prescrito vs realizado dentro de uma tolerância (relativa ou absoluta)
+function compararIndicador(prescrito: number | null, realizado: number | null, tolerancia: number, relativo: boolean): '✅' | '⚠️' | null {
+  if (prescrito == null || realizado == null) return null
+  const diff = relativo ? Math.abs(realizado - prescrito) / prescrito : Math.abs(realizado - prescrito)
+  return diff <= tolerancia ? '✅' : '⚠️'
+}
+
 function getInitials(nome: string | null, email: string): string {
   if (nome) { const p = nome.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0][0].toUpperCase() }
   return email[0].toUpperCase()
@@ -364,7 +387,60 @@ export default function PersonalAluno() {
         } else {
           status = 'concluido'
         }
-        return { sessao, ativ, status }
+
+        // Indicador: duração
+        const prescritoMin = sessao.duracao_min
+        const realizadoMin = ativ?.duracao_min ?? null
+        const indDuracao: IndicadorAderencia = {
+          icone: ativ ? compararIndicador(prescritoMin, realizadoMin, 0.15, true) : null,
+          prescrito: prescritoMin != null ? `${prescritoMin}min` : null,
+          realizado: realizadoMin != null ? `${realizadoMin}min` : null,
+        }
+
+        // Indicador: distância
+        const distSomaBlocos = sessao.blocos.reduce((acc, b) => acc + (b.distancia_km ?? 0), 0)
+        const prescritoDist = sessao.distancia_km ?? (distSomaBlocos > 0 ? distSomaBlocos : null)
+        const realizadoDist = ativ?.distancia_km ?? null
+        const indDistancia: IndicadorAderencia = {
+          icone: ativ ? compararIndicador(prescritoDist, realizadoDist, 0.10, true) : null,
+          prescrito: prescritoDist != null ? `${prescritoDist.toFixed(1)}km` : null,
+          realizado: realizadoDist != null ? `${realizadoDist.toFixed(1)}km` : null,
+        }
+
+        // Indicador: pace (corrida = min/km, natação = min/100m; bike não se aplica)
+        let indPace: IndicadorAderencia = { icone: null, prescrito: null, realizado: null }
+        if (sessao.modalidade === 'corrida' || sessao.modalidade === 'natacao') {
+          const blocoPrincipal = sessao.blocos.find(b => b.nome === 'Principal') ?? sessao.blocos[0]
+          const prescritoPaceSec = blocoPrincipal ? parsePaceToSec(blocoPrincipal.pace_alvo) : null
+          let realizadoPaceSec: number | null = null
+          if (ativ?.duracao_min != null) {
+            if (sessao.modalidade === 'corrida' && ativ.distancia_km) {
+              realizadoPaceSec = (ativ.duracao_min * 60) / ativ.distancia_km
+            } else if (sessao.modalidade === 'natacao' && ativ.distancia_m) {
+              realizadoPaceSec = (ativ.duracao_min * 60) / (ativ.distancia_m / 100)
+            }
+          }
+          const unidade = sessao.modalidade === 'corrida' ? '/km' : '/100m'
+          indPace = {
+            icone: ativ ? compararIndicador(prescritoPaceSec, realizadoPaceSec, 0.08, true) : null,
+            prescrito: prescritoPaceSec != null ? `${formatSecToPace(prescritoPaceSec)}${unidade}` : null,
+            realizado: realizadoPaceSec != null ? `${formatSecToPace(realizadoPaceSec)}${unidade}` : null,
+          }
+        }
+
+        // Indicador: FC média
+        const blocosComFC = sessao.blocos.filter(b => b.fc_min != null && b.fc_max != null)
+        const prescritoFC = blocosComFC.length > 0
+          ? Math.round(blocosComFC.reduce((acc, b) => acc + ((b.fc_min! + b.fc_max!) / 2), 0) / blocosComFC.length)
+          : null
+        const realizadoFC = ativ?.fc_media ?? null
+        const indFC: IndicadorAderencia = {
+          icone: ativ ? compararIndicador(prescritoFC, realizadoFC, 7, false) : null,
+          prescrito: prescritoFC != null ? `${prescritoFC}bpm` : null,
+          realizado: realizadoFC != null ? `${realizadoFC}bpm` : null,
+        }
+
+        return { sessao, ativ, status, indDuracao, indDistancia, indPace, indFC }
       })
   }, [sessoesPrescritas, atividadesCalendario, semanaOffset])
 
@@ -574,7 +650,7 @@ export default function PersonalAluno() {
       let detalhe = a.duracao_min ? `${a.duracao_min}min` : ''
       if (a.distancia_km) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_km}km`
       if (a.distancia_m) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_m}m`
-      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null, duracao_min: a.duracao_min ?? null })
+      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null, duracao_min: a.duracao_min ?? null, distancia_km: a.distancia_km ?? null, distancia_m: a.distancia_m ?? null })
     })
     setAtividadesCalendario(listaCalendario)
     setTreinosDatas((treinosCompletos ?? []).map((t: any) => t.data))
@@ -2157,19 +2233,25 @@ export default function PersonalAluno() {
                           {itens.map((it, i) => {
                             const mod = MODALIDADES_SESSAO[it.sessao.modalidade]
                             const dataLabel = new Date(it.sessao.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', timeZone: 'America/Sao_Paulo' })
-                            const prescritoMin = it.sessao.duracao_min
-                            const realizadoMin = it.ativ?.duracao_min ?? 0
-                            const diffPct = prescritoMin ? Math.round(((realizadoMin - prescritoMin) / prescritoMin) * 100) : null
+                            const indicadores = [
+                              { label: 'Duração', ind: it.indDuracao },
+                              { label: 'Distância', ind: it.indDistancia },
+                              { label: 'Pace', ind: it.indPace },
+                              { label: 'FC', ind: it.indFC },
+                            ].filter(x => x.ind.prescrito != null || x.ind.realizado != null)
                             return (
-                              <div key={i} className="flex items-center gap-2.5">
+                              <div key={i} className="flex items-start gap-2.5">
                                 <span className={`text-base ${mod.text}`}>{mod.icone}</span>
                                 <span className="text-base">{STATUS_ICON[it.status]}</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-white text-xs font-semibold capitalize">{dataLabel}</p>
-                                  <p className="text-zinc-500 text-[10px]">
-                                    Prescrito: {prescritoMin ?? '–'}min | Realizado: {realizadoMin}min
-                                    {diffPct != null && <span className={diffPct >= 0 ? 'text-emerald-400' : 'text-red-400'}> ({diffPct > 0 ? '+' : ''}{diffPct}%)</span>}
-                                  </p>
+                                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                                    {indicadores.map(({ label, ind }) => (
+                                      <p key={label} className="text-zinc-500 text-[10px]">
+                                        {ind.icone ? `${ind.icone} ` : ''}{label}: {ind.prescrito ?? '–'}{ind.realizado != null ? ` → ${ind.realizado}` : ''}
+                                      </p>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                             )
