@@ -23,6 +23,9 @@ type Kpis = {
   total: number | null
   porTipo: Record<string, number>
   novos30: number | null
+  novos7: number | null
+  ativos7: number | null
+  ativos30: number | null
   vinculos: number | null
   assinantesAtivos: number
   mrr: number
@@ -70,7 +73,10 @@ export default function CockpitPage() {
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
             <Card label="Usuários totais" valor={fmt(kpis.total)} cor={C.t1} />
-            <Card label="Novos (30 dias)" valor={fmt(kpis.novos30)} cor={C.good} />
+            <Card label="Ativos (7 dias)" valor={fmt(kpis.ativos7)} cor={C.good} />
+            <Card label="Ativos (30 dias)" valor={fmt(kpis.ativos30)} cor={C.good} />
+            <Card label="Novos (7 dias)" valor={fmt(kpis.novos7)} cor={C.sleep} />
+            <Card label="Novos (30 dias)" valor={fmt(kpis.novos30)} cor={C.sleep} />
             <Card label="Vínculos (triângulo)" valor={fmt(kpis.vinculos)} cor={C.recovery} />
             <Card label="Assinantes ativos" valor={fmt(kpis.assinantesAtivos)} cor={C.sleep} />
             <Card label="MRR estimado" valor={`R$ ${fmt(kpis.mrr)}`} cor={C.energy} />

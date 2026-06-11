@@ -34,18 +34,32 @@ export async function GET(req: NextRequest) {
         )) ?? 0
     }
 
-    // Novos usuários: data de cadastro vem do auth.users (sempre tem created_at).
+    // Stats de auth.users: cadastro (novos) e último acesso (ativos).
     let novos30: number | null = null
+    let novos7: number | null = null
+    let ativos7: number | null = null
+    let ativos30: number | null = null
     try {
-      const corte = new Date(desde30).getTime()
       const { data: lista } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
       const usuariosAuth = lista?.users || []
-      let n = 0
+      const d30 = new Date(desde30).getTime()
+      const d7 = new Date(agora - 7 * 24 * 3600 * 1000).getTime()
+      let n30 = 0
+      let n7 = 0
+      let a7 = 0
+      let a30 = 0
       for (const u of usuariosAuth) {
-        const c = u?.created_at ? new Date(u.created_at).getTime() : 0
-        if (c >= corte) n = n + 1
+        const cr = u?.created_at ? new Date(u.created_at).getTime() : 0
+        if (cr >= d30) n30 = n30 + 1
+        if (cr >= d7) n7 = n7 + 1
+        const ls = u?.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0
+        if (ls >= d7) a7 = a7 + 1
+        if (ls >= d30) a30 = a30 + 1
       }
-      novos30 = n
+      novos30 = n30
+      novos7 = n7
+      ativos7 = a7
+      ativos30 = a30
     } catch {
       novos30 = null
     }
@@ -78,6 +92,9 @@ export async function GET(req: NextRequest) {
       total,
       porTipo,
       novos30,
+      novos7,
+      ativos7,
+      ativos30,
       vinculos,
       assinantesAtivos,
       mrr,

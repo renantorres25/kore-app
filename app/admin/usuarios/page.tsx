@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { adminFetch } from '../../lib/adminFetch'
 
 const C = {
@@ -21,6 +22,7 @@ function iniciais(nome: string | null) {
 }
 
 export default function UsuariosPage() {
+  const router = useRouter()
   const [q, setQ] = useState('')
   const [tipo, setTipo] = useState('')
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -91,8 +93,8 @@ export default function UsuariosPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {usuarios.map((u) => (
-          <div key={u.id}
-            style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 16px' }}>
+          <div key={u.id} onClick={() => router.push(`/admin/usuarios/${u.id}`)}
+            style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}>
             <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', color: corTipo[u.tipo || ''] || C.t2, fontWeight: 700, fontSize: 13 }}>
               {iniciais(u.nome)}
             </div>
