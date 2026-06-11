@@ -146,7 +146,7 @@ function ListaEspera() {
       <div style={{ ...glass, borderRadius: 28, maxWidth: 512, margin: '0 auto', padding: 40, textAlign: 'center' }}>
         <p style={{ color: C.energy, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.35em', fontWeight: 700, marginBottom: 12, fontFamily: JAKARTA }}>Acesso antecipado</p>
         <h2 style={{ fontFamily: SORA, fontSize: 28, fontWeight: 800, color: C.t1, marginBottom: 12, lineHeight: 1.15 }}>
-          Quer ser dos primeiros<br />a usar o KORE?
+          Quer ser dos primeiros <br />a usar o KORE?
         </h2>
         <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6, marginBottom: 24, fontFamily: JAKARTA }}>
           Deixe seu email e avisamos quando as próximas vagas abrirem. Sem spam.
@@ -469,6 +469,7 @@ export default function Landing() {
       `}</style>
 
       {/* ── NAV ─────────────────────────────────────────────────────────── */}
+      <header role="banner">
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -485,6 +486,7 @@ export default function Landing() {
           <PrimaryBtn onClick={() => router.push('/login?modo=cadastro')} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 12 }}>Participar do piloto</PrimaryBtn>
         </div>
       </nav>
+      </header>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* HERO                                                              */}
@@ -788,7 +790,7 @@ export default function Landing() {
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <SectionLabel>O problema</SectionLabel>
           <h2 style={{ fontFamily: SORA, fontSize: 'clamp(32px, 6vw, 48px)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05 }}>
-            Hoje, tudo está<br /><span style={{ color: C.t2 }}>espalhado.</span>
+            Hoje, tudo está <br /><span style={{ color: C.t2 }}>espalhado.</span>
           </h2>
         </div>
 
@@ -915,7 +917,7 @@ export default function Landing() {
         <div style={{ position: 'relative', maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
           <SectionLabel>Fase atual</SectionLabel>
           <h2 style={{ fontFamily: SORA, fontSize: 'clamp(32px, 6vw, 48px)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 24 }}>
-            Em piloto com os<br />primeiros profissionais.
+            Em piloto com os <br />primeiros profissionais.
           </h2>
           <p style={{ color: C.t2, fontSize: 18, lineHeight: 1.6, marginBottom: 40, maxWidth: 640, marginLeft: 'auto', marginRight: 'auto' }}>
             Estamos validando o KORE com uma turma selecionada de atletas, personal trainers e nutricionistas. Os feedbacks estão moldando o produto agora.
@@ -953,7 +955,7 @@ export default function Landing() {
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <SectionLabel>Como funciona</SectionLabel>
             <h2 style={{ fontFamily: SORA, fontSize: 'clamp(32px, 6vw, 48px)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05 }}>
-              Pronto em<br /><span style={{ color: C.t2 }}>60 segundos.</span>
+              Pronto em <br /><span style={{ color: C.t2 }}>60 segundos.</span>
             </h2>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 640, margin: '0 auto' }}>
@@ -1081,7 +1083,7 @@ export default function Landing() {
               <span style={{ color: C.energy, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.25em', fontWeight: 700 }}>Vagas abertas · Piloto gratuito</span>
             </span>
             <h2 style={{ fontFamily: SORA, fontSize: 'clamp(32px, 6vw, 48px)', fontWeight: 800, marginBottom: 20, lineHeight: 1.1, textTransform: 'uppercase', letterSpacing: '-0.02em' }}>
-              Faça parte do piloto<br />do KORE.
+              Faça parte do piloto <br />do KORE.
             </h2>
             <p style={{ color: C.t2, fontSize: 16, lineHeight: 1.6, marginBottom: 32, maxWidth: 448, marginLeft: 'auto', marginRight: 'auto' }}>
               Estamos selecionando atletas, personal trainers e nutricionistas para validar o produto. Sem custo. Com acesso completo.

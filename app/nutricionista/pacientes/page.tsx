@@ -3,21 +3,23 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import NavBar from '../../components/NavBar'
 import SidebarProfissional from '../../components/SidebarProfissional'
 import { ChevronRight } from 'lucide-react'
+import { AtividadeCompleta, AlertaCientifico, AlertaNivel, computeAlertaCientifico } from '../../lib/alertas-cientificos'
 
 type Paciente = {
   id: string; cliente_id: string; nome: string | null; email: string
   peso: number | null; objetivo: string | null
+  fcmax: number | null; dataNascimento: string | null
 }
-type AlertaNivel = 'vermelho' | 'amarelo' | 'verde' | 'cinza'
-type AlertaInfo = { nivel: AlertaNivel; causas: string[] }
 type Stats = {
   sonoScore: number | null; sonoHoras: number | null
   treinos7d: number; ultimoTreino: string | null
   kcal7d: number; temPlano: boolean
-  alerta: AlertaInfo
+  alerta: AlertaCientifico
+  atividades30d: AtividadeCompleta[]
+  evolucaoMedidas: { data: string; peso: number | null }[]
+  planoNutri: { calorias_meta: number | null; proteina_meta: number | null } | null
 }
 
 function getInitials(nome: string | null, email: string) {
@@ -31,10 +33,15 @@ function getDateOffset(days: number) {
   const d = new Date(); d.setDate(d.getDate() - days)
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
-function daysBetween(a: string, b: string) {
-  return Math.round((new Date(b + 'T12:00:00-03:00').getTime() - new Date(a + 'T12:00:00-03:00').getTime()) / 86400000)
+function calcularIdade(dataNascimento: string | null): number | null {
+  if (!dataNascimento) return null
+  const nasc = new Date(dataNascimento + 'T12:00:00-03:00')
+  const hoje = new Date()
+  let idade = hoje.getFullYear() - nasc.getFullYear()
+  const m = hoje.getMonth() - nasc.getMonth()
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--
+  return idade
 }
-function avg(arr: number[]) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : null }
 
 const OBJETIVO_LABEL: Record<string, string> = {
   perder_peso: 'Perder peso', ganhar_massa: 'Ganhar massa',
@@ -48,86 +55,13 @@ const ALERTA_CFG: Record<AlertaNivel, { dot: string; border: string; bg: string;
   cinza:    { dot: 'bg-zinc-600',    border: 'border-white/[0.07]', bg: '',                    causaColor: 'text-zinc-600' },
 }
 
-function computeAlerta(
-  sonoArr: { data: string; score_recuperacao: number | null }[],
-  treinosArr: { data: string }[],
-  ativsArr: { data: string; duracao_min: number | null }[],
-  medidasArr: { data: string; peso: number | null }[],
-  objetivo: string | null
-): AlertaInfo {
-  const hoje = getTodayBR()
-  const q7  = getDateOffset(7)
-  const q14 = getDateOffset(14)
-
-  const causas: string[] = []
-  let nivelMax: AlertaNivel = 'verde'
-  const promover = (n: AlertaNivel) => {
-    if (n === 'vermelho') nivelMax = 'vermelho'
-    else if (n === 'amarelo' && nivelMax !== 'vermelho') nivelMax = 'amarelo'
-  }
-
-  // 1. Sono: queda > 20% vs semana anterior → vermelho; > 10% → amarelo
-  const sono7curr = sonoArr.filter(s => s.data >= q7  && s.score_recuperacao != null).map(s => s.score_recuperacao!)
-  const sono7prev = sonoArr.filter(s => s.data >= q14 && s.data < q7 && s.score_recuperacao != null).map(s => s.score_recuperacao!)
-  if (sono7curr.length >= 2 && sono7prev.length >= 2) {
-    const avgC = avg(sono7curr)!
-    const avgP = avg(sono7prev)!
-    if (avgP > 0) {
-      const queda = (avgP - avgC) / avgP
-      if (queda >= 0.20) { causas.push(`Sono caiu ${Math.round(queda * 100)}%`); promover('vermelho') }
-      else if (queda >= 0.10) { causas.push(`Sono caiu ${Math.round(queda * 100)}%`); promover('amarelo') }
-    }
-  }
-
-  // 2. Peso estagnado > 10 dias (só para objetivos de composição)
-  if (objetivo === 'perder_peso' || objetivo === 'ganhar_massa') {
-    const medOrdenadas = [...medidasArr].sort((a, b) => b.data.localeCompare(a.data))
-    if (medOrdenadas.length >= 1) {
-      const diasSemPesar = daysBetween(medOrdenadas[0].data, hoje)
-      if (diasSemPesar >= 14) {
-        causas.push(`Sem pesagem há ${diasSemPesar} dias`)
-        promover(diasSemPesar >= 21 ? 'vermelho' : 'amarelo')
-      } else if (medOrdenadas.length >= 2) {
-        const [ult, ant] = medOrdenadas
-        if (ult.peso != null && ant.peso != null) {
-          const diasEnt = daysBetween(ant.data, ult.data)
-          if (diasEnt >= 10 && Math.abs(ult.peso - ant.peso) < 0.5) {
-            causas.push(`Peso estagnado ${diasEnt} dias`)
-            promover('vermelho')
-          }
-        }
-      }
-    }
-  }
-
-  // 3. Volume +30% sem melhora de recuperação → vermelho; +15% → amarelo
-  const vol7  = ativsArr.filter(a => a.data >= q7).reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosArr.filter(t => t.data >= q7).length * 60
-  const vol14 = ativsArr.filter(a => a.data >= q14 && a.data < q7).reduce((s, a) => s + (a.duracao_min ?? 0), 0) + treinosArr.filter(t => t.data >= q14 && t.data < q7).length * 60
-  if (vol14 > 60 && vol7 > 0) {
-    const aumento = (vol7 - vol14) / vol14
-    const sonoNaoMelhorou = !(sono7curr.length >= 2 && sono7prev.length >= 2 && avg(sono7curr)! > avg(sono7prev)!)
-    if (aumento >= 0.30 && sonoNaoMelhorou) {
-      causas.push(`Volume de treino +${Math.round(aumento * 100)}%`)
-      promover('vermelho')
-    } else if (aumento >= 0.15) {
-      causas.push(`Volume +${Math.round(aumento * 100)}%`)
-      promover('amarelo')
-    }
-  }
-
-  // Sem nenhum dado → cinza
-  const temDados = sonoArr.length > 0 || medidasArr.length > 0 || treinosArr.length > 0 || ativsArr.length > 0
-  if (!temDados) return { nivel: 'cinza', causas: [] }
-
-  return { nivel: nivelMax, causas: causas.slice(0, 3) }
-}
-
 export default function NutricionistaPacientes() {
   const router = useRouter()
   const [pacientes, setPacientes] = useState<Paciente[]>([])
   const [stats, setStats] = useState<Record<string, Stats>>({})
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
+  const [expandido, setExpandido] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     async function carregar() {
@@ -142,34 +76,42 @@ export default function NutricionistaPacientes() {
       const ids = vinculos.map(v => v.cliente_id)
 
       const { data: perfis } = await supabase
-        .from('perfis').select('id, nome, email, peso, objetivo').in('id', ids)
+        .from('perfis').select('id, nome, email, peso, objetivo, fcmax, data_nascimento').in('id', ids)
 
       const pacientesData: Paciente[] = vinculos.map(v => {
         const p = perfis?.find(x => x.id === v.cliente_id)
-        return { id: v.id, cliente_id: v.cliente_id, nome: p?.nome ?? null, email: p?.email ?? '', peso: p?.peso ?? null, objetivo: p?.objetivo ?? null }
+        return {
+          id: v.id, cliente_id: v.cliente_id, nome: p?.nome ?? null, email: p?.email ?? '', peso: p?.peso ?? null, objetivo: p?.objetivo ?? null,
+          fcmax: p?.fcmax ?? null, dataNascimento: p?.data_nascimento ?? null,
+        }
       })
       setPacientes(pacientesData)
 
       const hoje    = getTodayBR()
       const q7str   = getDateOffset(7)
       const q14str  = getDateOffset(14)
-      const q60str  = getDateOffset(60)
+      const trintaCincoStr = getDateOffset(35)
 
-      const [{ data: sonos14d }, { data: treinos14d }, { data: ativs14d }, { data: planos }, { data: medidas60d }] = await Promise.all([
+      const [{ data: sonos14d }, { data: treinos14d }, { data: ativs14d }, { data: planos }, { data: atividades35dAll }] = await Promise.all([
         supabase.from('sono').select('usuario_id, data, score_recuperacao, duracao_minutos').in('usuario_id', ids).gte('data', q14str),
         supabase.from('treinos').select('cliente_id, data, calorias_estimadas').in('cliente_id', ids).gte('data', q14str).eq('concluido', true).order('data', { ascending: false }),
         supabase.from('atividades_livres').select('usuario_id, data, duracao_min, calorias_estimadas, calorias_wearable').in('usuario_id', ids).gte('data', q14str),
-        supabase.from('planos_nutricionais').select('usuario_id').in('usuario_id', ids).eq('ativo', true),
-        supabase.from('evolucao_medidas').select('cliente_id, data, peso').in('cliente_id', ids).gte('data', q60str).order('data'),
+        supabase.from('planos_nutricionais').select('usuario_id, calorias_meta, proteina_meta').in('usuario_id', ids).eq('ativo', true),
+        supabase.from('atividades_livres').select('usuario_id, data, duracao_min, fc_media, fc_max, calorias_wearable, calorias_estimadas').in('usuario_id', ids).gte('data', trintaCincoStr).order('data', { ascending: false }),
       ])
 
       const statsMap: Record<string, Stats> = {}
-      for (const pac of pacientesData) {
+      await Promise.all(pacientesData.map(async (pac) => {
         const cid       = pac.cliente_id
         const pacSono   = sonos14d?.filter(s => s.usuario_id === cid) ?? []
         const pacTreinos = treinos14d?.filter(t => t.cliente_id === cid) ?? []
         const pacAtivs  = ativs14d?.filter(a => a.usuario_id === cid) ?? []
-        const pacMedidas = medidas60d?.filter(m => m.cliente_id === cid) ?? []
+        const atividades30d = atividades35dAll?.filter(a => a.usuario_id === cid) ?? []
+        const planoNutri = planos?.find(pl => pl.usuario_id === cid) ?? null
+
+        const { data: evolucaoMedidas } = await supabase
+          .from('evolucao_medidas').select('data, peso')
+          .eq('cliente_id', cid).order('data', { ascending: false }).limit(3)
 
         const sonoHoje  = pacSono.find(s => s.data === hoje)
         const treinos7d = pacTreinos.filter(t => t.data >= q7str)
@@ -179,16 +121,35 @@ export default function NutricionistaPacientes() {
           ...ativs7d.map(a => a.calorias_wearable ?? a.calorias_estimadas ?? 0),
         ].reduce((s, v) => s + v, 0)
 
+        const ultimaAtividade = atividades30d[0]?.data ?? null
+        const ultimoTreinoCalc = [pacTreinos[0]?.data ?? null, ultimaAtividade]
+          .filter(Boolean).sort().reverse()[0] ?? null
+        const totalTreinosCalc = pacTreinos.length + atividades30d.length
+        const evolucaoPeso = (evolucaoMedidas ?? []).filter((m): m is { data: string; peso: number } => m.peso != null)
+
         statsMap[cid] = {
           sonoScore: sonoHoje?.score_recuperacao ?? null,
           sonoHoras: sonoHoje?.duracao_minutos ? Math.round((sonoHoje.duracao_minutos / 60) * 10) / 10 : null,
           treinos7d: treinos7d.length,
           ultimoTreino: treinos7d[0]?.data ?? null,
           kcal7d,
-          temPlano: !!(planos?.find(pl => pl.usuario_id === cid)),
-          alerta: computeAlerta(pacSono, pacTreinos, pacAtivs, pacMedidas, pac.objetivo),
+          temPlano: !!planoNutri,
+          alerta: computeAlertaCientifico({
+            atividades30d,
+            fcmaxPerfil: pac.fcmax,
+            idade: calcularIdade(pac.dataNascimento),
+            totalTreinos: totalTreinosCalc,
+            ultimoTreino: ultimoTreinoCalc,
+            caloriasPrescritas: planoNutri?.calorias_meta ?? null,
+            proteinaPrescritas: planoNutri?.proteina_meta ?? null,
+            pesoKg: pac.peso,
+            evolucaoPeso,
+          }),
+          atividades30d,
+          evolucaoMedidas: evolucaoMedidas ?? [],
+          planoNutri: planoNutri ? { calorias_meta: planoNutri.calorias_meta ?? null, proteina_meta: planoNutri.proteina_meta ?? null } : null,
         }
-      }
+      }))
       setStats(statsMap)
       setCarregando(false)
     }
@@ -253,7 +214,7 @@ export default function NutricionistaPacientes() {
               {/* Painel de alertas — resumo */}
               <div className="mb-5 rounded-2xl border border-white/[0.07] overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20 }}>
                 <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
-                  <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Painel de alertas — últimos 14 dias</p>
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-[0.15em]">Painel de alertas — últimos 30 dias</p>
                 </div>
                 <div className="px-5 py-4 flex items-center gap-6 flex-wrap">
                   {[
@@ -288,8 +249,9 @@ export default function NutricionistaPacientes() {
               <div className="space-y-2">
                 {pacientesFiltrados.map((pac) => {
                   const s = stats[pac.cliente_id]
-                  const alerta = s?.alerta ?? { nivel: 'cinza' as AlertaNivel, causas: [] }
+                  const alerta = s?.alerta ?? { nivel: 'cinza' as AlertaNivel, alertas: [] }
                   const cfg = ALERTA_CFG[alerta.nivel]
+                  const expandido_ = expandido[pac.cliente_id] ?? false
 
                   return (
                     <button key={pac.id}
@@ -323,11 +285,39 @@ export default function NutricionistaPacientes() {
                             {(s?.kcal7d ?? 0) > 0 && <span>~{s!.kcal7d.toLocaleString('pt-BR')} kcal</span>}
                           </div>
 
-                          {/* Causas do alerta */}
-                          {alerta.causas.length > 0 ? (
-                            <p className={`text-xs leading-relaxed font-medium ${cfg.causaColor}`}>
-                              {alerta.causas.join(' · ')}
-                            </p>
+                          {/* Alertas científicos */}
+                          {alerta.alertas.length > 0 ? (
+                            <div className="space-y-1.5">
+                              <div>
+                                <p className={`text-[11px] leading-relaxed font-medium ${cfg.causaColor}`}>
+                                  {alerta.alertas[0].mensagem}
+                                </p>
+                                <p className="font-mono text-[10px] text-zinc-400 mt-0.5">{alerta.alertas[0].dadoTecnico}</p>
+                              </div>
+                              {alerta.alertas.length > 1 && (
+                                <>
+                                  {expandido_ && alerta.alertas.slice(1).map(a => (
+                                    <div key={a.codigo}>
+                                      <p className={`text-[11px] leading-relaxed font-medium ${ALERTA_CFG[a.nivel].causaColor}`}>
+                                        {a.mensagem}
+                                      </p>
+                                      <p className="font-mono text-[10px] text-zinc-400 mt-0.5">{a.dadoTecnico}</p>
+                                    </div>
+                                  ))}
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setExpandido(prev => ({ ...prev, [pac.cliente_id]: !prev[pac.cliente_id] }))
+                                    }}
+                                    className="inline-block text-[10px] text-zinc-500 underline underline-offset-2"
+                                  >
+                                    {expandido_ ? 'Ver menos' : `+${alerta.alertas.length - 1} alerta${alerta.alertas.length - 1 !== 1 ? 's' : ''}`}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           ) : alerta.nivel === 'verde' ? (
                             <p className="text-xs text-emerald-700">Métricas estáveis</p>
                           ) : alerta.nivel === 'cinza' ? (
@@ -350,8 +340,6 @@ export default function NutricionistaPacientes() {
             </>
           )}
         </div>
-
-        <div className="md:hidden"><NavBar tipo="nutricionista" ativa="pacientes" /></div>
       </div>
     </main>
   )

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
-import NavBar from '../components/NavBar'
+import SidebarProfissional from '../components/SidebarProfissional'
 
 /* ── Design System: Energetic Precision ──────────────────────── */
 const C = {
@@ -725,10 +725,9 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
 
   /* ── Layout ───────────────────────────────────────────────── */
   return (
-    <main style={{
-      minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY,
-      paddingLeft: isDesktop ? 220 : 0,
-    }}>
+    <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
+      <SidebarProfissional tipo="cliente" />
+      <div className="flex-1 md:overflow-y-auto md:h-screen">
       <style>{`
         @keyframes koreSpin { to { transform: rotate(360deg) } }
         @keyframes korePulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }
@@ -782,7 +781,7 @@ Responda em português. Máximo 4 parágrafos curtos. Sem markdown, sem bullets,
           </div>
         )}
       </div>
-      <NavBar tipo="cliente" ativa="sono" />
+      </div>
     </main>
   )
 }

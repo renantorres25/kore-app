@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { Home, Users, Calendar, User, LogOut } from 'lucide-react'
+import { Home, Users, Calendar, User, LogOut, Dumbbell, Utensils, TrendingUp } from 'lucide-react'
 
-type Props = { tipo: 'nutricionista' | 'personal' }
+type Props = { tipo: 'cliente' | 'nutricionista' | 'personal' }
 
 const C = {
   energy: '#FF5A36', energy2: '#FF8A3D',
@@ -15,28 +15,49 @@ const C = {
 const FONT_DISPLAY = "'Sora', system-ui, sans-serif"
 const FONT_BODY    = "'Plus Jakarta Sans', system-ui, sans-serif"
 
+const TIPO_LABEL: Record<Props['tipo'], string> = {
+  nutricionista: 'Nutricionista',
+  personal:      'Personal Trainer',
+  cliente:       'Atleta',
+}
+
 export default function SidebarProfissional({ tipo }: Props) {
   const router   = useRouter()
   const pathname = usePathname()
   const [nome, setNome]       = useState<string | null>(null)
   const [initials, setInitials] = useState('?')
+  const [isDesktop, setIsDesktop] = useState(false)
 
-  const isNutri  = tipo === 'nutricionista'
-  const accent   = isNutri ? C.good : C.sleep
+  const accent = tipo === 'nutricionista' ? C.good : tipo === 'personal' ? C.sleep : C.energy
 
-  const navItems = isNutri
+  const navItems = tipo === 'nutricionista'
     ? [
         { icon: <Home size={16} />,     label: 'Início',     href: '/dashboard' },
         { icon: <Users size={16} />,    label: 'Pacientes',  href: '/nutricionista/pacientes' },
         { icon: <Calendar size={16} />, label: 'Agenda',     href: '/agenda' },
         { icon: <User size={16} />,     label: 'Perfil',     href: '/perfil' },
       ]
-    : [
+    : tipo === 'personal'
+    ? [
         { icon: <Home size={16} />,     label: 'Início',     href: '/dashboard' },
         { icon: <Users size={16} />,    label: 'Alunos',     href: '/personal' },
         { icon: <Calendar size={16} />, label: 'Agenda',     href: '/agenda' },
         { icon: <User size={16} />,     label: 'Perfil',     href: '/perfil' },
       ]
+    : [
+        { icon: <Home size={16} />,       label: 'Início',   href: '/dashboard' },
+        { icon: <Dumbbell size={16} />,   label: 'Treino',   href: '/treino' },
+        { icon: <Utensils size={16} />,   label: 'Nutrição', href: '/nutricao' },
+        { icon: <TrendingUp size={16} />, label: 'Evolução', href: '/evolucao' },
+        { icon: <User size={16} />,       label: 'Perfil',   href: '/perfil' },
+      ]
+
+  useEffect(() => {
+    const checarLargura = () => setIsDesktop(window.innerWidth >= 768)
+    checarLargura()
+    window.addEventListener('resize', checarLargura)
+    return () => window.removeEventListener('resize', checarLargura)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -64,7 +85,44 @@ export default function SidebarProfissional({ tipo }: Props) {
     return pathname.startsWith(href)
   }
 
+  if (!isDesktop) return (
+    <>
+    {/* ── BOTTOM NAV MOBILE ────────────────────────────────────── */}
+    <nav style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+      borderTop: '1px solid rgba(255,255,255,0.12)',
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      background: 'rgba(255,255,255,0.06)',
+      backdropFilter: 'blur(24px) saturate(130%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(130%)',
+    }}>
+      <div style={{ maxWidth: 448, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px' }}>
+        {navItems.map(item => {
+          const active = isActive(item.href)
+          return (
+            <button key={item.href} onClick={() => router.push(item.href)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                padding: '8px 12px', borderRadius: 16,
+                background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                color: active ? accent : C.t3,
+              }}>
+              {item.icon}
+              <span style={{ fontFamily: FONT_BODY, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
+                {item.label}
+              </span>
+              {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: accent }} />}
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+    </>
+  )
+
   return (
+    <>
+    {/* ── SIDEBAR DESKTOP ──────────────────────────────────────── */}
     <aside style={{
       width: 220, flexShrink: 0, height: '100vh', position: 'sticky', top: 0,
       display: 'flex', flexDirection: 'column',
@@ -84,7 +142,7 @@ export default function SidebarProfissional({ tipo }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent, boxShadow: `0 0 6px ${accent}` }} />
           <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: accent, letterSpacing: '0.05em' }}>
-            {isNutri ? 'Nutricionista' : 'Personal Trainer'}
+            {TIPO_LABEL[tipo]}
           </span>
         </div>
       </div>
@@ -146,5 +204,6 @@ export default function SidebarProfissional({ tipo }: Props) {
         </button>
       </div>
     </aside>
+    </>
   )
 }

@@ -68,6 +68,21 @@ export type ContextoProfissional = {
   } | null
   treinosRegistrados?: { data: string; nome: string; calorias: number | null; volume: number; exercicios: string[] }[]
   medidasHistorico?: { data: string | null; peso: number | null; gorduraPct: number | null; massaMuscular: number | null }[]
+  historicoCompleto?: {
+    atividades: { data: string; modalidade: string; duracao_min: number; distancia_km: number | null; calorias: number | null; fc_media?: number | null; fc_max?: number | null }[]
+    treinos: { data: string; nome: string; calorias: number | null; exercicios: string[] }[]
+    sono: { data: string; score: number | null; duracao_min: number | null }[]
+  } | null
+  fcmaxEstimado?: number | null
+  cargaInternaSemanas?: { label: string; carga: number; atual: boolean }[] | null
+  distModalidade28d?: { tipo: string; count: number; pct: number }[] | null
+  pmcAtual?: {
+    tsb: number
+    ctl: number
+    atl: number
+    diasEmSobrecarga: number
+    interpretacao: string
+  } | null
 }
 
 const TERMOS_IRRELEVANTES = /^(nenhum[ao]?|nada|não|nao|sem|ok|okay|oke?|n\/a|-)$/i
@@ -127,6 +142,13 @@ function formatAnamnese(a: Record<string, any> | null | undefined): string | nul
 
 function buildSystemPrompt(ctx: ContextoProfissional): string {
   const tipo = ctx.profissionalTipo === 'personal' ? 'Personal Trainer' : 'Nutricionista'
+
+  const agora = new Date()
+  const diaSemana = agora.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
+  const dataStr = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })
+  const diasRestantes = 6 - agora.getDay()
+  const contextoTemporal = `CONTEXTO TEMPORAL: Hoje é ${diaSemana}, ${dataStr}. A semana calendário vai de domingo a sábado. Restam ${diasRestantes} dia(s) para fechar a semana atual — considere isso ao comparar semana atual vs semanas anteriores.`
+
   const pacNome = ctx.paciente.nome ?? 'paciente'
   const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
 
@@ -181,6 +203,16 @@ DADOS DE TREINO:
 - Sono hoje: ${ctx.treinamento.sonoHorasHoje ? `${ctx.treinamento.sonoHorasHoje}h` : 'não registrado'}
 - Principais cargas históricas: ${ex}
 - Fase de periodização atual: ${ctx.treinamento.periodizacaoFase ?? 'não configurada'}${planosTexto}${atividadesPersonalTexto}`
+
+    if (ctx.nutricao) {
+      dadosEspecificos += '\n\nNUTRIÇÃO PRESCRITA (cruzamento):'
+      if (ctx.nutricao.caloriasPrescritas)
+        dadosEspecificos += `\nCalorias prescritas: ${ctx.nutricao.caloriasPrescritas} kcal/dia`
+      if (ctx.nutricao.proteinaPrescritas)
+        dadosEspecificos += `\nProteína prescrita: ${ctx.nutricao.proteinaPrescritas}g/dia`
+      if (ctx.nutricao.caloriasSemanaisGastas)
+        dadosEspecificos += `\nCalorias gastas na semana: ${ctx.nutricao.caloriasSemanaisGastas} kcal`
+    }
   }
 
   if (ctx.profissionalTipo === 'nutricionista' && ctx.nutricao) {
@@ -201,6 +233,22 @@ DADOS NUTRICIONAIS:
 - Atividades esta semana: ${ctx.nutricao.treinosSemana} sessões
 - Calorias gastas nos treinos esta semana: ${ctx.nutricao.caloriasSemanaisGastas ? `${ctx.nutricao.caloriasSemanaisGastas} kcal` : 'sem dados'}
 - Fase de periodização: ${ctx.nutricao.periodizacao ?? 'não configurada'}${atividadesTexto}`
+
+    if (ctx.treinamento) {
+      dadosEspecificos += '\n\nDADOS DE TREINO DO ATLETA (cruzamento):'
+      if (ctx.treinamento.diasSemTreinar != null)
+        dadosEspecificos += `\nDias sem treinar: ${ctx.treinamento.diasSemTreinar}`
+      if (ctx.treinamento.treinosSemana != null)
+        dadosEspecificos += `\nTreinos esta semana: ${ctx.treinamento.treinosSemana}`
+      if (ctx.treinamento.scoreRecuperacaoHoje != null)
+        dadosEspecificos += `\nScore de recuperação hoje: ${ctx.treinamento.scoreRecuperacaoHoje}/100`
+      if (ctx.fcmaxEstimado)
+        dadosEspecificos += `\nFC máxima estimada: ${ctx.fcmaxEstimado} bpm`
+      if (ctx.cargaInternaSemanas?.length)
+        dadosEspecificos += `\nCarga interna: ${ctx.cargaInternaSemanas.map(s => `${s.label}: ${s.carga}`).join(' → ')}`
+      if (ctx.distModalidade28d?.length)
+        dadosEspecificos += `\nDistribuição modalidades 28d: ${ctx.distModalidade28d.map(d => `${d.tipo} ${d.pct}%`).join(', ')}`
+    }
   }
 
   let secoesAdicionais = ''
@@ -261,9 +309,83 @@ DADOS NUTRICIONAIS:
     }).join('\n')
   }
 
+  if (ctx.historicoCompleto) {
+    const atsByMonth: Record<string, { count: number; min: number; kcal: number; fcSoma: number; fcCount: number; fcMax: number }> = {}
+    ctx.historicoCompleto.atividades.forEach(a => {
+      const mes = a.data.slice(0, 7)
+      if (!atsByMonth[mes]) atsByMonth[mes] = { count: 0, min: 0, kcal: 0, fcSoma: 0, fcCount: 0, fcMax: 0 }
+      atsByMonth[mes].count++
+      atsByMonth[mes].min += a.duracao_min ?? 0
+      atsByMonth[mes].kcal += a.calorias ?? 0
+      if (a.fc_media != null) {
+        atsByMonth[mes].fcSoma += a.fc_media
+        atsByMonth[mes].fcCount++
+      }
+      if (a.fc_max != null) atsByMonth[mes].fcMax = Math.max(atsByMonth[mes].fcMax, a.fc_max)
+    })
+    const atsLinhas = Object.entries(atsByMonth)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([mes, v]) => {
+        const nomeMes = new Date(mes + '-15T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+        const horas = v.min >= 60 ? `${(v.min / 60).toFixed(1)}h` : `${v.min}min`
+        const fcMedTexto = v.fcCount > 0 ? ` · FC méd ~${Math.round(v.fcSoma / v.fcCount)}bpm` : ''
+        const fcMaxTexto = v.fcMax > 0 ? ` · FC máx ${v.fcMax}bpm` : ''
+        return `- ${nomeMes}/${mes.slice(2, 4)}: ${v.count} atividades · ${horas}${v.kcal > 0 ? ` · ${v.kcal} kcal` : ''}${fcMedTexto}${fcMaxTexto}`
+      }).join('\n')
+
+    const trByMonth: Record<string, number> = {}
+    ctx.historicoCompleto.treinos.forEach(t => { trByMonth[t.data.slice(0, 7)] = (trByMonth[t.data.slice(0, 7)] ?? 0) + 1 })
+    const trLinhas = Object.entries(trByMonth)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([mes, n]) => {
+        const nomeMes = new Date(mes + '-15T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+        return `- ${nomeMes}/${mes.slice(2, 4)}: ${n} treinos`
+      }).join('\n')
+
+    const sonoComScore = ctx.historicoCompleto.sono.filter(s => s.score !== null)
+    const mediaScore = sonoComScore.length
+      ? Math.round(sonoComScore.reduce((s, r) => s + (r.score ?? 0), 0) / sonoComScore.length)
+      : null
+    const sonoComDur = ctx.historicoCompleto.sono.filter(s => s.duracao_min !== null)
+    const mediaDur = sonoComDur.length
+      ? Math.round(sonoComDur.reduce((s, r) => s + (r.duracao_min ?? 0), 0) / sonoComDur.length)
+      : null
+
+    if (atsLinhas) secoesAdicionais += `\n\nHISTÓRICO COMPLETO — ATIVIDADES LIVRES (6 meses):\n${atsLinhas}`
+    if (trLinhas) secoesAdicionais += `\n\nHISTÓRICO COMPLETO — TREINOS DE MUSCULAÇÃO (6 meses):\n${trLinhas}`
+    if (mediaScore !== null || mediaDur !== null) {
+      secoesAdicionais += `\n\nHISTÓRICO DE SONO (últimos 6 meses):\nScore médio: ${mediaScore ?? '?'}/100 · Duração média: ${mediaDur !== null ? (mediaDur / 60).toFixed(1) + 'h' : '?'} · ${sonoComScore.length} noites registradas`
+    }
+  }
+
   if (ctx.proximaConsulta) {
     const dataFmtConsulta = new Date(ctx.proximaConsulta.data).toLocaleDateString('pt-BR')
     secoesAdicionais += `\n\nPRÓXIMA CONSULTA AGENDADA: ${dataFmtConsulta}${ctx.proximaConsulta.hora ? ` às ${ctx.proximaConsulta.hora}` : ''}${ctx.proximaConsulta.tipo ? ` (${ctx.proximaConsulta.tipo})` : ''}`
+  }
+
+  if (ctx.fcmaxEstimado) {
+    secoesAdicionais += `\n\nFC MÁXIMA ESTIMADA: ${ctx.fcmaxEstimado} bpm (base para cálculo de zonas)`
+  }
+
+  if (ctx.cargaInternaSemanas?.length) {
+    secoesAdicionais += '\n\nCARGA INTERNA SEMANAL (FC% × minutos):\n' + ctx.cargaInternaSemanas.map(s =>
+      `${s.label}: ${s.carga}`
+    ).join('\n')
+  }
+
+  if (ctx.distModalidade28d?.length) {
+    secoesAdicionais += '\n\nDISTRIBUIÇÃO DE MODALIDADES (últimos 28 dias):\n' + ctx.distModalidade28d.map(d =>
+      `${d.tipo}: ${d.pct}% (${d.count} sessões)`
+    ).join('\n')
+  }
+
+  if (ctx.pmcAtual) {
+    secoesAdicionais += `\n\nPERFORMANCE MANAGEMENT CHART (PMC):\n` +
+      `CTL (Fitness/Condicionamento): ${ctx.pmcAtual.ctl}\n` +
+      `ATL (Fadiga aguda): ${ctx.pmcAtual.atl}\n` +
+      `TSB (Form/Frescor): ${ctx.pmcAtual.tsb}\n` +
+      `Dias em sobrecarga (TSB < -20): ${ctx.pmcAtual.diasEmSobrecarga}\n` +
+      `Interpretação: ${ctx.pmcAtual.interpretacao}`
   }
 
   return `Você é o KORE AI — assistente clínico integrado ao perfil de ${pacNome} para uso exclusivo do ${tipo} ${ctx.profissionalNome ?? ''}.
@@ -277,6 +399,8 @@ REGRAS:
 - Sempre considere os alertas clínicos em todas as recomendações
 - Foque em insights práticos e acionáveis para o profissional
 - Contexto: ${hoje}
+
+${contextoTemporal}
 
 PERFIL DO PACIENTE/ALUNO:
 - Nome: ${pacNome} | Objetivo: ${ctx.paciente.objetivo ?? '?'}
@@ -319,7 +443,7 @@ const SUGESTOES: Record<'personal' | 'nutricionista', string[]> = {
   ],
 }
 
-export default function ProfissionalAIChat({ contexto, pacienteId }: { contexto: ContextoProfissional; pacienteId?: string }) {
+export default function ProfissionalAIChat({ contexto, pacienteId, historicoIACarregando }: { contexto: ContextoProfissional; pacienteId?: string; historicoIACarregando?: boolean }) {
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
@@ -487,6 +611,12 @@ export default function ProfissionalAIChat({ contexto, pacienteId }: { contexto:
                 </div>
               )
             })()}
+
+            {historicoIACarregando && (
+              <div className="mx-4 mt-3 px-3 py-2 rounded-xl border border-white/[0.08] bg-white/[0.04] shrink-0">
+                <p className="text-zinc-500 text-[10px] leading-relaxed">Carregando histórico completo...</p>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {mensagens.map((msg, i) => (
