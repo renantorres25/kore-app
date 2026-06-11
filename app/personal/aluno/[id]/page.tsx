@@ -399,7 +399,8 @@ export default function PersonalAluno() {
         }
 
         // Indicador: duração
-        const prescritoMin = sessao.duracao_min
+        const durSomaBlocos = sessao.blocos.reduce((acc, b) => acc + (b.duracao_min ?? 0), 0)
+        const prescritoMin = durSomaBlocos > 0 ? durSomaBlocos : sessao.duracao_min
         const realizadoMin = ativ?.duracao_min ?? null
         const indDuracao: IndicadorAderencia = {
           icone: ativ ? compararIndicador(prescritoMin, realizadoMin, 0.15, true) : null,
@@ -409,12 +410,12 @@ export default function PersonalAluno() {
 
         // Indicador: distância
         const distSomaBlocos = sessao.blocos.reduce((acc, b) => acc + (b.distancia_km ?? 0), 0)
-        const prescritoDist = sessao.distancia_km ?? (distSomaBlocos > 0 ? distSomaBlocos : null)
+        const prescritoDist = distSomaBlocos > 0 ? distSomaBlocos : sessao.distancia_km
         const realizadoDist = ativ?.distancia_km ?? null
         const indDistancia: IndicadorAderencia = {
           icone: ativ ? compararIndicador(prescritoDist, realizadoDist, 0.10, true) : null,
-          prescrito: prescritoDist != null ? `${prescritoDist.toFixed(1)}km` : null,
-          realizado: realizadoDist != null ? `${realizadoDist.toFixed(1)}km` : null,
+          prescrito: prescritoDist != null ? `${prescritoDist.toFixed(1).replace('.', ',')}km` : null,
+          realizado: realizadoDist != null ? `${realizadoDist.toFixed(1).replace('.', ',')}km` : null,
         }
 
         // Indicador: pace (corrida = min/km, natação = min/100m; bike não se aplica)
@@ -438,15 +439,23 @@ export default function PersonalAluno() {
           }
         }
 
-        // Indicador: FC média
+        // Indicador: FC média (faixa prescrita = média dos fc_min/fc_max dos blocos)
         const blocosComFC = sessao.blocos.filter(b => b.fc_min != null && b.fc_max != null)
-        const prescritoFC = blocosComFC.length > 0
-          ? Math.round(blocosComFC.reduce((acc, b) => acc + ((b.fc_min! + b.fc_max!) / 2), 0) / blocosComFC.length)
+        const fcMinPrescrito = blocosComFC.length > 0
+          ? Math.round(blocosComFC.reduce((acc, b) => acc + b.fc_min!, 0) / blocosComFC.length)
+          : null
+        const fcMaxPrescrito = blocosComFC.length > 0
+          ? Math.round(blocosComFC.reduce((acc, b) => acc + b.fc_max!, 0) / blocosComFC.length)
           : null
         const realizadoFC = ativ?.fc_media ?? null
+        let iconeFC: '✅' | '⚠️' | null = null
+        if (ativ && realizadoFC != null && fcMinPrescrito != null && fcMaxPrescrito != null) {
+          const tolerancia = 7
+          iconeFC = (realizadoFC >= fcMinPrescrito - tolerancia && realizadoFC <= fcMaxPrescrito + tolerancia) ? '✅' : '⚠️'
+        }
         const indFC: IndicadorAderencia = {
-          icone: ativ ? compararIndicador(prescritoFC, realizadoFC, 7, false) : null,
-          prescrito: prescritoFC != null ? `${prescritoFC}bpm` : null,
+          icone: iconeFC,
+          prescrito: (fcMinPrescrito != null && fcMaxPrescrito != null) ? `${fcMinPrescrito}–${fcMaxPrescrito}bpm` : null,
           realizado: realizadoFC != null ? `${realizadoFC}bpm` : null,
         }
 
@@ -2285,7 +2294,7 @@ export default function PersonalAluno() {
                               { label: 'Distância', ind: it.indDistancia },
                               { label: 'Pace', ind: it.indPace },
                               { label: 'FC', ind: it.indFC },
-                            ].filter(x => x.ind.prescrito != null || x.ind.realizado != null)
+                            ].filter(x => x.ind.prescrito != null)
                             return (
                               <div key={i}
                                 onClick={() => setSessaoDetalhe(it.sessao)}
@@ -2595,7 +2604,7 @@ export default function PersonalAluno() {
           { label: 'Distância', ind: item.indDistancia },
           { label: 'Pace', ind: item.indPace },
           { label: 'FC', ind: item.indFC },
-        ].filter(x => x.ind.prescrito != null || x.ind.realizado != null) : []
+        ].filter(x => x.ind.prescrito != null) : []
         return (
           <div className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center"
             style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
