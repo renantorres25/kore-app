@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     const { data, error } = await supabaseAdmin
       .from('vinculos')
       .select('*')
-      .or(`atleta_id.eq.${id},profissional_id.eq.${id}`)
+      .or(`cliente_id.eq.${id},profissional_id.eq.${id}`)
     if (!error && data) vinculos = data
   } catch { /* segue sem vínculos */ }
 

@@ -13,7 +13,8 @@ const JAKARTA = "'Plus Jakarta Sans', system-ui, sans-serif"
 
 type Usuario = { id: string; nome: string | null; email: string | null; tipo: string | null }
 
-const corTipo: Record<string, string> = { atleta: '#FF5A36', personal: '#60A5FA', nutricionista: '#2DD4A7' }
+const corTipo: Record<string, string> = { cliente: '#FF5A36', personal: '#60A5FA', nutricionista: '#2DD4A7' }
+const rotuloTipo: Record<string, string> = { cliente: 'Atleta', personal: 'Personal', nutricionista: 'Nutricionista' }
 
 function iniciais(nome: string | null) {
   if (!nome) return '?'
@@ -54,7 +55,7 @@ export default function UsuariosPage() {
 
   const filtros = [
     { label: 'Todos', val: '' },
-    { label: 'Atletas', val: 'atleta' },
+    { label: 'Atletas', val: 'cliente' },
     { label: 'Personais', val: 'personal' },
     { label: 'Nutris', val: 'nutricionista' },
   ]
@@ -103,7 +104,7 @@ export default function UsuariosPage() {
               <p style={{ color: C.t3, fontSize: 12, margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email || '—'}</p>
             </div>
             <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: corTipo[u.tipo || ''] || C.t2 }}>
-              {u.tipo || '—'}
+              {rotuloTipo[u.tipo || ''] || u.tipo || '—'}
             </span>
           </div>
         ))}
