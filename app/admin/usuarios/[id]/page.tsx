@@ -63,6 +63,13 @@ export default function UsuarioDetalhePage() {
   const [msg, setMsg] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [novoTipo, setNovoTipo] = useState('')
+  const [planoAssin, setPlanoAssin] = useState('solo')
+
+  async function excluir() {
+    const texto = window.prompt('Esta ação é IRREVERSÍVEL e remove o acesso e o cadastro do usuário. Digite EXCLUIR para confirmar:')
+    if (texto !== 'EXCLUIR') { if (texto !== null) setErro('Confirmação incorreta. Nada foi excluído.'); return }
+    await acao({ acao: 'excluir', confirmar: 'EXCLUIR' })
+  }
 
   const carregar = useCallback(async () => {
     setErro('')
@@ -80,6 +87,7 @@ export default function UsuarioDetalhePage() {
     setOcupado(true); setMsg(''); setErro('')
     try {
       const r = await adminPost<{ resultado: string }>(`/api/admin/usuarios/${id}`, corpo)
+      if (corpo.acao === 'excluir') { router.push('/admin/usuarios'); return }
       setMsg(r.resultado)
       await carregar()
     } catch (e: any) { setErro(e.message) } finally { setOcupado(false) }
@@ -169,8 +177,25 @@ export default function UsuarioDetalhePage() {
             <button disabled={ocupado || novoTipo === tipo} onClick={() => acao({ acao: 'mudar_perfil', tipo: novoTipo }, `Alterar o perfil deste usuário para "${rotuloTipo[novoTipo]}"?`)}
               style={btn(C.energy)}>Alterar perfil</button>
           </div>
+
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <select value={planoAssin} onChange={(e) => setPlanoAssin(e.target.value)}
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 10px', color: C.t1, fontFamily: JAKARTA, fontSize: 13 }}>
+              <option value="solo">Solo (R$79)</option>
+              <option value="conectado">Conectado (R$129)</option>
+            </select>
+            <button disabled={ocupado} onClick={() => acao({ acao: 'registrar_assinatura', plano: planoAssin, status: 'ativa' }, `Registrar assinatura ${planoAssin} (ativa) para este usuário?`)}
+              style={btn(C.good)}>Registrar assinatura</button>
+          </div>
         </div>
         <p style={{ color: C.t3, fontSize: 11, marginTop: 12 }}>Toda ação fica registrada no log de auditoria.</p>
+      </div>
+
+      {/* Zona de perigo */}
+      <div style={{ ...glass, marginTop: 16, borderColor: 'rgba(251,113,133,0.35)' }}>
+        <p style={{ color: C.danger, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 700, margin: '0 0 8px' }}>Zona de perigo</p>
+        <p style={{ color: C.t2, fontSize: 13, margin: '0 0 12px' }}>Excluir remove o acesso e o cadastro do usuário de forma irreversível (LGPD).</p>
+        <button disabled={ocupado} onClick={excluir} style={{ ...btn(C.danger), background: 'rgba(251,113,133,0.10)' }}>Excluir usuário</button>
       </div>
     </div>
   )

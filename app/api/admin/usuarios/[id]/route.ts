@@ -91,6 +91,22 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL || 'https://kore-app-blue.vercel.app'}/nova-senha`
       await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo })
       resultado = 'E-mail de redefinição de senha enviado.'
+    } else if (acao === 'registrar_assinatura') {
+      const plano = body?.plano
+      const status = body?.status || 'ativa'
+      if (!['solo', 'conectado'].includes(plano)) {
+        return NextResponse.json({ erro: 'Plano inválido.' }, { status: 400 })
+      }
+      const { error } = await supabaseAdmin.from('assinaturas').insert({ user_id: id, plano, status })
+      if (error) return NextResponse.json({ erro: 'Falha ao registrar assinatura.' }, { status: 500 })
+      resultado = `Assinatura ${plano} registrada (${status}).`
+    } else if (acao === 'excluir') {
+      if (body?.confirmar !== 'EXCLUIR') {
+        return NextResponse.json({ erro: 'Confirmação inválida.' }, { status: 400 })
+      }
+      try { await supabaseAdmin.auth.admin.deleteUser(id) } catch { /* segue */ }
+      try { await supabaseAdmin.from('perfis').delete().eq('id', id) } catch { /* segue */ }
+      resultado = 'Usuário excluído.'
     } else {
       return NextResponse.json({ erro: 'Ação inválida.' }, { status: 400 })
     }

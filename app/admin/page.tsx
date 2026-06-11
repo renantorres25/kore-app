@@ -26,6 +26,7 @@ type Kpis = {
   novos7: number | null
   ativos7: number | null
   ativos30: number | null
+  crescimentoSemanal: number[]
   vinculos: number | null
   assinantesAtivos: number
   mrr: number
@@ -90,6 +91,24 @@ export default function CockpitPage() {
             <Card label="Personais" valor={fmt(kpis.porTipo?.personal)} cor={C.sleep} />
             <Card label="Nutricionistas" valor={fmt(kpis.porTipo?.nutricionista)} cor={C.good} />
           </div>
+
+          {kpis.crescimentoSemanal && kpis.crescimentoSemanal.length > 0 && (
+            <>
+              <h2 style={{ fontFamily: SORA, fontSize: 16, fontWeight: 700, color: C.t1, margin: '28px 0 12px' }}>Novos usuários por semana (8 semanas)</h2>
+              <div style={{ ...glass, display: 'flex', alignItems: 'flex-end', gap: 10, height: 150 }}>
+                {(() => {
+                  const max = Math.max(1, ...kpis.crescimentoSemanal)
+                  return kpis.crescimentoSemanal.map((v, i) => (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 6 }}>
+                      <span style={{ color: C.t2, fontSize: 11, fontWeight: 700 }}>{v}</span>
+                      <div style={{ width: '70%', height: `${Math.max(4, (v / max) * 100)}%`, background: `linear-gradient(180deg, ${C.energy}, ${C.energy}66)`, borderRadius: '6px 6px 0 0' }} />
+                      <span style={{ color: C.t3, fontSize: 9 }}>{i === 7 ? 'agora' : `-${7 - i}s`}</span>
+                    </div>
+                  ))
+                })()}
+              </div>
+            </>
+          )}
 
           <p style={{ color: C.t3, fontSize: 12, marginTop: 22 }}>
             MRR estimado a partir das assinaturas ativas (Solo R$79 / Conectado R$129). Métricas de receita e eventos crescem conforme o app populá-las.
