@@ -386,10 +386,10 @@ export default function PersonalAluno() {
   }, [clienteId])
 
   useEffect(() => {
-    if (abaAtiva === 'evolucao' && clienteId && fcmaxEstimado != null && !pmcCarregado && !carregandoPMC) {
+    if (clienteId && fcmaxEstimado != null && !pmcCarregado && !carregandoPMC) {
       carregarPMC()
     }
-  }, [abaAtiva, clienteId, fcmaxEstimado, pmcCarregado, carregandoPMC])
+  }, [clienteId, fcmaxEstimado, pmcCarregado, carregandoPMC])
 
   async function carregarPMC() {
     setCarregandoPMC(true)
