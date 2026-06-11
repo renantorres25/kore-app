@@ -330,3 +330,62 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
 
   return { nivel: 'cinza', alertas: [] }
 }
+
+export type PontoPMC = {
+  data: string
+  tss: number        // carga do dia
+  ctl: number        // fitness (42 dias)
+  atl: number        // fadiga (7 dias)
+  tsb: number        // form = CTL - ATL
+}
+
+/**
+ * PMC (Performance Management Chart) — TSS diário + CTL/ATL/TSB via médias móveis exponenciais.
+ * TSS diário = soma de (fc_media/fcmax) × duracao_min de todas as atividades do dia, normalizado para escala 0-100
+ * (1h a 100% da FCmax = TSS 100).
+ */
+export function calcularPMC(
+  atividades: { data: string; duracao_min: number | null; fc_media: number | null }[],
+  fcmax: number,
+  dias: number = 90
+): PontoPMC[] {
+  if (!fcmax || fcmax <= 0) return []
+
+  // 1. Mapa de TSS por data
+  const tssPorData = new Map<string, number>()
+  for (const a of atividades) {
+    if (a.fc_media == null || a.duracao_min == null) continue
+    const tss = (a.fc_media / fcmax) * a.duracao_min * (100 / 60)
+    tssPorData.set(a.data, (tssPorData.get(a.data) ?? 0) + tss)
+  }
+  if (tssPorData.size === 0) return []
+
+  // 2. Range completo de datas (da atividade mais antiga até hoje), preenchendo dias sem treino com TSS=0
+  const inicioStr = [...tssPorData.keys()].sort()[0]
+  const hojeStr = getHojeStr()
+  const inicio = new Date(inicioStr + 'T12:00:00-03:00')
+  const hoje = new Date(hojeStr + 'T12:00:00-03:00')
+  const totalDias = Math.floor((hoje.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+  // 3-5. CTL (EMA 42d), ATL (EMA 7d), TSB = CTL(ontem) - ATL(ontem)
+  const pontos: PontoPMC[] = []
+  let ctl = 0
+  let atl = 0
+  for (let i = 0; i < totalDias; i++) {
+    const d = new Date(inicio); d.setDate(inicio.getDate() + i)
+    const dataStr = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const tss = tssPorData.get(dataStr) ?? 0
+    const tsb = ctl - atl
+    ctl = ctl + (tss - ctl) / 42
+    atl = atl + (tss - atl) / 7
+    pontos.push({
+      data: dataStr,
+      tss: Math.round(tss),
+      ctl: Math.round(ctl * 10) / 10,
+      atl: Math.round(atl * 10) / 10,
+      tsb: Math.round(tsb * 10) / 10,
+    })
+  }
+
+  return pontos.slice(-dias)
+}

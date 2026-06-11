@@ -7,6 +7,7 @@ import ProfissionalAIChat, { type ContextoProfissional } from '../../../componen
 import SidebarProfissional from '../../../components/SidebarProfissional'
 import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle } from 'lucide-react'
 import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
+import { calcularPMC, type PontoPMC } from '../../../lib/alertas-cientificos'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
@@ -220,6 +221,9 @@ export default function PersonalAluno() {
   const [cargaPorData, setCargaPorData] = useState<Record<string, number>>({})
   const [atividadesCalendario, setAtividadesCalendario] = useState<AtividadeDia[]>([])
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
+  const [pontosPMC, setPontosPMC] = useState<PontoPMC[]>([])
+  const [pmcCarregado, setPmcCarregado] = useState(false)
+  const [carregandoPMC, setCarregandoPMC] = useState(false)
   const fcmaxEstimado = useMemo(() => {
     return aluno?.fcmax ?? (Math.max(0, ...atividadesCalendario.filter(a => a.fc_max != null).map(a => a.fc_max as number)) || null)
   }, [aluno?.fcmax, atividadesCalendario])
@@ -290,6 +294,29 @@ export default function PersonalAluno() {
       carregarHistoricoCompletoIA()
     }
   }, [clienteId])
+
+  useEffect(() => {
+    if (abaAtiva === 'evolucao' && clienteId && fcmaxEstimado != null && !pmcCarregado && !carregandoPMC) {
+      carregarPMC()
+    }
+  }, [abaAtiva, clienteId, fcmaxEstimado, pmcCarregado, carregandoPMC])
+
+  async function carregarPMC() {
+    setCarregandoPMC(true)
+    const d = new Date()
+    d.setDate(d.getDate() - 90)
+    const noventaDiasAtras = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const { data } = await supabase
+      .from('atividades_livres')
+      .select('data, duracao_min, fc_media')
+      .eq('usuario_id', clienteId)
+      .gte('data', noventaDiasAtras)
+      .not('fc_media', 'is', null)
+      .order('data')
+    if (data && fcmaxEstimado != null) setPontosPMC(calcularPMC(data, fcmaxEstimado, 90))
+    setPmcCarregado(true)
+    setCarregandoPMC(false)
+  }
 
   async function carregar() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -1455,6 +1482,52 @@ export default function PersonalAluno() {
                   )
                 })()}
 
+                {/* Performance Management Chart (PMC) */}
+                {pontosPMC.length > 0 && (() => {
+                  const W = 280, H = 100
+                  const valores = pontosPMC.flatMap(p => [p.ctl, p.atl, p.tsb])
+                  const maxV = Math.max(...valores, 1)
+                  const minV = Math.min(...valores, 0)
+                  const range = maxV - minV || 1
+                  const toY = (v: number) => H - 3 - ((v - minV) / range) * (H - 6)
+                  const xStep = W / Math.max(pontosPMC.length - 1, 1)
+                  const pathFor = (key: 'ctl' | 'atl' | 'tsb') =>
+                    pontosPMC.map((p, j) => `${j === 0 ? 'M' : 'L'}${(j * xStep).toFixed(1)},${toY(p[key]).toFixed(1)}`).join(' ')
+
+                  const ultimo = pontosPMC[pontosPMC.length - 1]
+                  const interpretacaoTSB = (tsb: number) => {
+                    if (tsb > 10) return 'Em forma — bom momento para competir ou aumentar carga'
+                    if (tsb >= -10) return 'Equilíbrio — manutenção'
+                    if (tsb >= -30) return 'Em carga — normal para fase de construção'
+                    return 'Sobrecarga — considere reduzir volume'
+                  }
+
+                  return (
+                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                      <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Performance Management Chart</p>
+
+                      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="overflow-visible">
+                        <line x1="0" y1={toY(0)} x2={W} y2={toY(0)} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
+                        <path d={pathFor('ctl')} fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d={pathFor('atl')} fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        {pontosPMC.slice(0, -1).map((p, j) => {
+                          const next = pontosPMC[j + 1]
+                          const cor = (p.tsb + next.tsb) / 2 >= 0 ? '#34d399' : '#f87171'
+                          return <line key={j} x1={j * xStep} y1={toY(p.tsb)} x2={(j + 1) * xStep} y2={toY(next.tsb)} stroke={cor} strokeWidth="1.5" strokeLinecap="round" />
+                        })}
+                      </svg>
+
+                      <div className="flex items-center gap-4 mt-3">
+                        <p className="text-[11px] text-zinc-400"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: '#60a5fa' }} />CTL: <span className="text-white font-bold">{ultimo.ctl}</span></p>
+                        <p className="text-[11px] text-zinc-400"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: '#f87171' }} />ATL: <span className="text-white font-bold">{ultimo.atl}</span></p>
+                        <p className="text-[11px] text-zinc-400"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: ultimo.tsb >= 0 ? '#34d399' : '#f87171' }} />TSB: <span className="text-white font-bold">{ultimo.tsb}</span></p>
+                      </div>
+
+                      <p className="text-zinc-500 text-[11px] mt-3">{interpretacaoTSB(ultimo.tsb)}</p>
+                    </div>
+                  )
+                })()}
+
               </div>
             )}
 
@@ -1905,6 +1978,70 @@ export default function PersonalAluno() {
                             </div>
                           )
                         })}
+                      </div>
+                    )
+                  })()}
+
+                  {/* Aderência da Semana */}
+                  {(() => {
+                    const { inicio } = getInicioFimSemana(semanaOffset)
+                    const iniDate = new Date(inicio + 'T12:00:00-03:00')
+                    const dias = Array.from({ length: 7 }, (_, i) => {
+                      const d = new Date(iniDate); d.setDate(iniDate.getDate() + i)
+                      return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+                    })
+
+                    const sessoesSemana = sessoesPrescritas.filter(s =>
+                      dias.includes(s.data) && (['corrida', 'bike', 'natacao'] as const).includes(s.modalidade as 'corrida' | 'bike' | 'natacao')
+                    )
+                    if (!sessoesSemana.length) return null
+
+                    const STATUS_ICON = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌' } as const
+
+                    const itens = sessoesSemana.map(sessao => {
+                      const ativ = atividadesCalendario.find(a => a.data === sessao.data && a.tipo === sessao.modalidade)
+                      let status: keyof typeof STATUS_ICON
+                      if (!ativ) {
+                        status = 'nao_realizado'
+                      } else if (sessao.duracao_min != null && ativ.duracao_min != null && ativ.duracao_min < sessao.duracao_min * 0.7) {
+                        status = 'parcial'
+                      } else {
+                        status = 'concluido'
+                      }
+                      return { sessao, ativ, status }
+                    })
+
+                    const score = Math.round((itens.filter(it => it.status !== 'nao_realizado').length / itens.length) * 100)
+                    const corScore = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171'
+
+                    return (
+                      <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                        <div className="flex items-center justify-between mb-4">
+                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Aderência da Semana</p>
+                          <span className="text-sm font-black" style={{ color: corScore }}>Aderência: {score}%</span>
+                        </div>
+                        <div className="space-y-2.5">
+                          {itens.map((it, i) => {
+                            const mod = MODALIDADES_SESSAO[it.sessao.modalidade]
+                            const dataLabel = new Date(it.sessao.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', timeZone: 'America/Sao_Paulo' })
+                            const prescritoMin = it.sessao.duracao_min
+                            const realizadoMin = it.ativ?.duracao_min ?? 0
+                            const diffPct = prescritoMin ? Math.round(((realizadoMin - prescritoMin) / prescritoMin) * 100) : null
+                            return (
+                              <div key={i} className="flex items-center gap-2.5">
+                                <span className={`text-base ${mod.text}`}>{mod.icone}</span>
+                                <span className="text-base">{STATUS_ICON[it.status]}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white text-xs font-semibold capitalize">{dataLabel}</p>
+                                  <p className="text-zinc-500 text-[10px]">
+                                    Prescrito: {prescritoMin ?? '–'}min | Realizado: {realizadoMin}min
+                                    {diffPct != null && <span className={diffPct >= 0 ? 'text-emerald-400' : 'text-red-400'}> ({diffPct > 0 ? '+' : ''}{diffPct}%)</span>}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                     )
                   })()}
