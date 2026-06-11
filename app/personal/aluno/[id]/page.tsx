@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import ProfissionalAIChat, { type ContextoProfissional } from '../../../components/ProfissionalAIChat'
 import SidebarProfissional from '../../../components/SidebarProfissional'
-import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle } from 'lucide-react'
+import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle, CalendarClock } from 'lucide-react'
 import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
 import { calcularPMC, type PontoPMC } from '../../../lib/alertas-cientificos'
 import { gerarNarrativaBloco } from '../../../lib/narrativa-treino'
@@ -247,15 +247,6 @@ const CORES: Record<string, { text: string; bg: string; border: string }> = {
   D: { text: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20'  },
   E: { text: 'text-pink-400',    bg: 'bg-pink-500/10',    border: 'border-pink-500/20'    },
 }
-const TIPO_COR_LISTA: Record<string, string> = {
-  adaptacao:   'text-teal-400 border-teal-500/20 bg-teal-500/10',
-  hipertrofia: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10',
-  forca:       'text-blue-400 border-blue-500/20 bg-blue-500/10',
-  resistencia: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
-  deload:      'text-zinc-400 border-zinc-500/20 bg-zinc-500/10',
-  potencia:    'text-orange-400 border-orange-500/20 bg-orange-500/10',
-}
-
 const ZONAS_FC: Record<string, { label: string; min: number; max: number }> = {
   Z1: { label: 'Recuperação',   min: 0.50, max: 0.60 },
   Z2: { label: 'Base aeróbica', min: 0.60, max: 0.70 },
@@ -529,7 +520,7 @@ export default function PersonalAluno() {
   const [fichaObjetivo, setFichaObjetivo] = useState('')
   const [fichaMetaPeso, setFichaMetaPeso] = useState('')
   const [fichaMetaData, setFichaMetaData] = useState('')
-  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'evolucao' | 'perfil'>('visao-geral')
+  const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'periodizacao' | 'evolucao' | 'perfil'>('visao-geral')
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -1156,12 +1147,13 @@ export default function PersonalAluno() {
         <div className="shrink-0 overflow-x-auto" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex px-4 md:px-8 min-w-max">
             {([
-              { id: 'visao-geral', label: 'Visão Geral', Icon: LayoutDashboard },
-              { id: 'treinos',     label: 'Treinos',     Icon: Dumbbell },
-              { id: 'evolucao',    label: 'Evolução',    Icon: TrendingUp },
-              { id: 'perfil',      label: 'Perfil',      Icon: UserCircle },
+              { id: 'visao-geral',  label: 'Visão Geral',  Icon: LayoutDashboard },
+              { id: 'treinos',      label: 'Treinos',      Icon: Dumbbell },
+              { id: 'periodizacao', label: 'Periodização', Icon: CalendarClock },
+              { id: 'evolucao',     label: 'Evolução',     Icon: TrendingUp },
+              { id: 'perfil',       label: 'Perfil',       Icon: UserCircle },
             ] as { id: string; label: string; Icon: React.ComponentType<{ size?: number }> }[]).map(tab => (
-              <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)}
+              <button key={tab.id} onClick={() => tab.id === 'periodizacao' ? router.push(`/personal/periodizacao/${clienteId}`) : setAbaAtiva(tab.id as any)}
                 style={{
                   padding: '12px 16px', fontSize: 13,
                   color: abaAtiva === tab.id ? '#F5F6F8' : '#7A8290',
@@ -1444,40 +1436,21 @@ export default function PersonalAluno() {
                 })()}
 
                 {/* Periodização ativa */}
-                <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                  <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Periodização ativa</p>
+                <div
+                  onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
+                  className="cursor-pointer hover:brightness-110 transition-all"
+                  style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Periodização</p>
+                    <span className="text-zinc-500 text-xs font-bold">Ver periodização →</span>
+                  </div>
                   {faseCiclo ? (
                     <>
-                      <p className="text-zinc-500 text-xs mb-3">{faseCiclo.nomeCiclo}</p>
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <span className={`inline-block text-[10px] font-bold uppercase tracking-wider rounded-full px-2.5 py-1 border ${TIPO_COR_LISTA[faseCiclo.tipoBloco.toLowerCase()] ?? 'text-zinc-400 border-zinc-500/20 bg-zinc-500/10'}`}>
-                            {faseCiclo.tipoBloco}
-                          </span>
-                          <p className="text-white text-lg font-black mt-2">{faseCiclo.nomeBloco}</p>
-                          <p className="text-zinc-500 text-sm">Semana {faseCiclo.semanaBloco} de {faseCiclo.semanasBloco}</p>
-                        </div>
-                        <span className="text-[#2DD4A7] text-2xl font-black">{Math.round((faseCiclo.semanaBloco / faseCiclo.semanasBloco) * 100)}%</span>
-                      </div>
-                      <div className="h-2 bg-white/[0.08] rounded-full overflow-hidden mb-4">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.round((faseCiclo.semanaBloco / faseCiclo.semanasBloco) * 100)}%`, background: '#2DD4A7' }} />
-                      </div>
-                      {faseCiclo.diasAteProximoBloco !== null && (
-                        <p className="text-zinc-500 text-xs mb-4">Próximo bloco em {faseCiclo.diasAteProximoBloco}d</p>
-                      )}
-                      <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
-                        className="w-full text-center text-sm font-bold text-white bg-white/[0.07] border border-white/[0.12] rounded-2xl py-3 active:scale-[0.97] transition-all hover:border-white/20">
-                        Ver periodização completa
-                      </button>
+                      <p className="text-zinc-500 text-xs mb-1">{faseCiclo.nomeCiclo}</p>
+                      <p className="text-white font-bold">{faseCiclo.nomeBloco} · Semana {faseCiclo.semanaBloco} de {faseCiclo.semanasBloco}</p>
                     </>
                   ) : (
-                    <div className="text-center py-2">
-                      <p className="text-zinc-500 text-sm mb-4">Sem periodização ativa</p>
-                      <button onClick={() => router.push(`/personal/periodizacao/${clienteId}`)}
-                        className="w-full text-center text-sm font-bold text-white bg-white/[0.07] border border-white/[0.12] rounded-2xl py-3 active:scale-[0.97] transition-all hover:border-white/20">
-                        Criar periodização
-                      </button>
-                    </div>
+                    <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
                   )}
                 </div>
 
