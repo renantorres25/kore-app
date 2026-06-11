@@ -4,7 +4,7 @@ import { supabaseAdmin, requireAdmin } from '../../../lib/supabaseAdmin'
 const STATUS = ['aberto', 'em_andamento', 'resolvido', 'fechado']
 
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin(req)
+  const admin = await requireAdmin(req, ['super_admin', 'admin', 'sac'])
   if (!admin) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   try {
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin(req)
+  const admin = await requireAdmin(req, ['super_admin', 'admin', 'sac'])
   if (!admin) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   try {

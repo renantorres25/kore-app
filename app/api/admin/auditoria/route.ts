@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, requireAdmin } from '../../../lib/supabaseAdmin'
 
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin(req)
+  const admin = await requireAdmin(req, ['super_admin', 'admin'])
   if (!admin) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   try {

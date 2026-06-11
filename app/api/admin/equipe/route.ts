@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       if (!email || !PAPEIS.includes(papel)) {
         return NextResponse.json({ erro: 'E-mail ou papel inválido.' }, { status: 400 })
       }
-      const { data: perfil } = await supabaseAdmin.from('perfis').select('id').eq('email', email).maybeSingle()
+      const { data: perfil } = await supabaseAdmin.from('perfis').select('id').ilike('email', email).maybeSingle()
       if (!perfil) return NextResponse.json({ erro: 'Nenhum usuário do KORE com esse e-mail.' }, { status: 404 })
       const { error } = await supabaseAdmin.from('admin_users').insert({ user_id: perfil.id, papel, ativo: true })
       if (error) return NextResponse.json({ erro: 'Já é admin ou falha ao adicionar.' }, { status: 500 })

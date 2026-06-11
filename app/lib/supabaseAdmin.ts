@@ -13,7 +13,7 @@ export type AdminInfo = { userId: string; papel: string }
 
 // Valida o token do chamador e confirma que ele está em admin_users (ativo).
 // Retorna os dados do admin, ou null se não for admin / token inválido.
-export async function requireAdmin(req: NextRequest): Promise<AdminInfo | null> {
+export async function requireAdmin(req: NextRequest, papeisPermitidos?: string[]): Promise<AdminInfo | null> {
   const authHeader = req.headers.get('authorization') || ''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
   if (!token) return null
@@ -29,5 +29,6 @@ export async function requireAdmin(req: NextRequest): Promise<AdminInfo | null> 
     .maybeSingle()
 
   if (!admin) return null
+  if (papeisPermitidos && !papeisPermitidos.includes(admin.papel)) return null
   return { userId: userData.user.id, papel: admin.papel }
 }

@@ -4,7 +4,7 @@ import { supabaseAdmin, requireAdmin } from '../../../lib/supabaseAdmin'
 const PRECOS: Record<string, number> = { solo: 79, conectado: 129 }
 
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin(req)
+  const admin = await requireAdmin(req, ['super_admin', 'admin', 'financeiro'])
   if (!admin) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   try {
