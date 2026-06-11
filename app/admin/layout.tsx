@@ -67,6 +67,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Usuários', href: '/admin/usuarios', papeis: ['super_admin', 'admin', 'sac'] },
     { label: 'Financeiro', href: '/admin/financeiro', papeis: ['super_admin', 'admin', 'financeiro'] },
     { label: 'SAC', href: '/admin/sac', papeis: ['super_admin', 'admin', 'sac'] },
+    { label: 'Conteúdo', href: '/admin/conteudo', papeis: ['super_admin', 'admin'] },
+    { label: 'Sistema', href: '/admin/sistema', papeis: ['super_admin', 'admin'] },
     { label: 'Auditoria', href: '/admin/auditoria', papeis: ['super_admin', 'admin'] },
     { label: 'Equipe', href: '/admin/equipe', papeis: ['super_admin'] },
   ]
