@@ -8,6 +8,7 @@ import SidebarProfissional from '../../../components/SidebarProfissional'
 import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle } from 'lucide-react'
 import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
 import { calcularPMC, type PontoPMC } from '../../../lib/alertas-cientificos'
+import { gerarNarrativaBloco } from '../../../lib/narrativa-treino'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
@@ -67,6 +68,32 @@ const MODALIDADES_TREINO = [
   { nome: 'Assessoria de Natação', icone: '🏊', disponivel: false },
   { nome: 'Triathlon', icone: '🔱', disponivel: false },
 ] as const
+
+type StatusAderencia = 'concluido' | 'parcial' | 'nao_realizado' | 'realizado_sem_planejamento'
+const STATUS_ICON: Record<StatusAderencia, string> = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌', realizado_sem_planejamento: '⬜' }
+
+type IndicadorAderencia = { icone: '✅' | '⚠️' | null; prescrito: string | null; realizado: string | null }
+
+// "5:30/km" ou "1:45/100m" → segundos
+function parsePaceToSec(pace: string | null): number | null {
+  if (!pace) return null
+  const m = pace.match(/(\d+):(\d{2})/)
+  if (!m) return null
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10)
+}
+
+function formatSecToPace(sec: number): string {
+  const min = Math.floor(sec / 60)
+  const s = Math.round(sec % 60)
+  return `${min}:${s.toString().padStart(2, '0')}`
+}
+
+// Compara prescrito vs realizado dentro de uma tolerância (relativa ou absoluta)
+function compararIndicador(prescrito: number | null, realizado: number | null, tolerancia: number, relativo: boolean): '✅' | '⚠️' | null {
+  if (prescrito == null || realizado == null) return null
+  const diff = relativo ? Math.abs(realizado - prescrito) / prescrito : Math.abs(realizado - prescrito)
+  return diff <= tolerancia ? '✅' : '⚠️'
+}
 
 function getInitials(nome: string | null, email: string): string {
   if (nome) { const p = nome.trim().split(' '); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0][0].toUpperCase() }
@@ -336,6 +363,132 @@ export default function PersonalAluno() {
     })
   }, [fcmaxEstimado, atividadesCalendario])
   const distModalidade28d = useMemo(() => getDistribuicaoModalidade(atividadesCalendario), [atividadesCalendario])
+  const itensAderenciaSemana = useMemo(() => {
+    const { inicio } = getInicioFimSemana(semanaOffset)
+    const iniDate = new Date(inicio + 'T12:00:00-03:00')
+    const dias = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(iniDate); d.setDate(iniDate.getDate() + i)
+      return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    })
+    const hoje = getTodayBR()
+
+    const sessoesSemana = sessoesPrescritas.filter(s =>
+      dias.includes(s.data) && (['corrida', 'bike', 'natacao'] as const).includes(s.modalidade as 'corrida' | 'bike' | 'natacao')
+    )
+
+    const itensSessoes = sessoesSemana
+      .filter(sessao => sessao.data <= hoje) // só avalia aderência de dias já passados/hoje
+      .map(sessao => {
+        const ativ = atividadesCalendario.find(a => a.data === sessao.data && a.tipo === sessao.modalidade)
+        let status: StatusAderencia
+        if (!ativ) {
+          status = 'nao_realizado'
+        } else if (sessao.duracao_min != null && ativ.duracao_min != null && ativ.duracao_min < sessao.duracao_min * 0.7) {
+          status = 'parcial'
+        } else {
+          status = 'concluido'
+        }
+
+        // Indicador: duração
+        const prescritoMin = sessao.duracao_min
+        const realizadoMin = ativ?.duracao_min ?? null
+        const indDuracao: IndicadorAderencia = {
+          icone: ativ ? compararIndicador(prescritoMin, realizadoMin, 0.15, true) : null,
+          prescrito: prescritoMin != null ? `${prescritoMin}min` : null,
+          realizado: realizadoMin != null ? `${realizadoMin}min` : null,
+        }
+
+        // Indicador: distância
+        const distSomaBlocos = sessao.blocos.reduce((acc, b) => acc + (b.distancia_km ?? 0), 0)
+        const prescritoDist = sessao.distancia_km ?? (distSomaBlocos > 0 ? distSomaBlocos : null)
+        const realizadoDist = ativ?.distancia_km ?? null
+        const indDistancia: IndicadorAderencia = {
+          icone: ativ ? compararIndicador(prescritoDist, realizadoDist, 0.10, true) : null,
+          prescrito: prescritoDist != null ? `${prescritoDist.toFixed(1)}km` : null,
+          realizado: realizadoDist != null ? `${realizadoDist.toFixed(1)}km` : null,
+        }
+
+        // Indicador: pace (corrida = min/km, natação = min/100m; bike não se aplica)
+        let indPace: IndicadorAderencia = { icone: null, prescrito: null, realizado: null }
+        if (sessao.modalidade === 'corrida' || sessao.modalidade === 'natacao') {
+          const blocoPrincipal = sessao.blocos.find(b => b.nome === 'Principal') ?? sessao.blocos[0]
+          const prescritoPaceSec = blocoPrincipal ? parsePaceToSec(blocoPrincipal.pace_alvo) : null
+          let realizadoPaceSec: number | null = null
+          if (ativ?.duracao_min != null) {
+            if (sessao.modalidade === 'corrida' && ativ.distancia_km) {
+              realizadoPaceSec = (ativ.duracao_min * 60) / ativ.distancia_km
+            } else if (sessao.modalidade === 'natacao' && ativ.distancia_m) {
+              realizadoPaceSec = (ativ.duracao_min * 60) / (ativ.distancia_m / 100)
+            }
+          }
+          const unidade = sessao.modalidade === 'corrida' ? '/km' : '/100m'
+          indPace = {
+            icone: ativ ? compararIndicador(prescritoPaceSec, realizadoPaceSec, 0.08, true) : null,
+            prescrito: prescritoPaceSec != null ? `${formatSecToPace(prescritoPaceSec)}${unidade}` : null,
+            realizado: realizadoPaceSec != null ? `${formatSecToPace(realizadoPaceSec)}${unidade}` : null,
+          }
+        }
+
+        // Indicador: FC média
+        const blocosComFC = sessao.blocos.filter(b => b.fc_min != null && b.fc_max != null)
+        const prescritoFC = blocosComFC.length > 0
+          ? Math.round(blocosComFC.reduce((acc, b) => acc + ((b.fc_min! + b.fc_max!) / 2), 0) / blocosComFC.length)
+          : null
+        const realizadoFC = ativ?.fc_media ?? null
+        const indFC: IndicadorAderencia = {
+          icone: ativ ? compararIndicador(prescritoFC, realizadoFC, 7, false) : null,
+          prescrito: prescritoFC != null ? `${prescritoFC}bpm` : null,
+          realizado: realizadoFC != null ? `${realizadoFC}bpm` : null,
+        }
+
+        return { sessao, ativ, status, indDuracao, indDistancia, indPace, indFC }
+      })
+
+    // Atividades realizadas sem sessão prescrita correspondente (mesmo dia + modalidade)
+    const indVazio: IndicadorAderencia = { icone: null, prescrito: null, realizado: null }
+    const extras = dias
+      .filter(d => d <= hoje)
+      .flatMap(d => {
+        const ativsDia = atividadesCalendario.filter(a =>
+          a.data === d && (['corrida', 'bike', 'natacao'] as const).includes(a.tipo as 'corrida' | 'bike' | 'natacao')
+        )
+        return ativsDia
+          .filter(ativ => !sessoesSemana.some(s => s.data === d && s.modalidade === ativ.tipo))
+          .map(ativ => {
+            const sessaoFake: SessaoPresc = {
+              data: d, modalidade: ativ.tipo as 'corrida' | 'bike' | 'natacao', tipo_sessao: null,
+              duracao_min: null, distancia_km: null, observacao: null, status: 'realizado_sem_planejamento', blocos: [],
+            }
+            return {
+              sessao: sessaoFake,
+              ativ,
+              status: 'realizado_sem_planejamento' as StatusAderencia,
+              indDuracao: { ...indVazio, realizado: ativ.duracao_min != null ? `${ativ.duracao_min}min` : null },
+              indDistancia: { ...indVazio, realizado: ativ.distancia_km != null ? `${ativ.distancia_km.toFixed(1)}km` : null },
+              indPace: indVazio,
+              indFC: { ...indVazio, realizado: ativ.fc_media != null ? `${ativ.fc_media}bpm` : null },
+            }
+          })
+      })
+
+    return [...itensSessoes, ...extras].sort((a, b) => a.sessao.data.localeCompare(b.sessao.data))
+  }, [sessoesPrescritas, atividadesCalendario, semanaOffset])
+
+  // Persiste o status calculado de volta em sessoes_prescritas quando ele difere do salvo
+  useEffect(() => {
+    const pendentes = itensAderenciaSemana.filter(it => it.sessao.id && it.status !== it.sessao.status)
+    if (pendentes.length === 0) return
+    ;(async () => {
+      for (const it of pendentes) {
+        await supabase.from('sessoes_prescritas').update({ status: it.status }).eq('id', it.sessao.id)
+      }
+      setSessoesPrescritas(prev => prev.map(s => {
+        const match = pendentes.find(p => p.sessao.id === s.id)
+        return match ? { ...s, status: match.status } : s
+      }))
+    })()
+  }, [itensAderenciaSemana])
+
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [historicoIACarregado, setHistoricoIACarregado] = useState(false)
   const [historicoIACarregando, setHistoricoIACarregando] = useState(false)
@@ -527,7 +680,7 @@ export default function PersonalAluno() {
       let detalhe = a.duracao_min ? `${a.duracao_min}min` : ''
       if (a.distancia_km) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_km}km`
       if (a.distancia_m) detalhe += `${detalhe ? ' · ' : ''}${a.distancia_m}m`
-      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null, duracao_min: a.duracao_min ?? null })
+      listaCalendario.push({ data: a.data, tipo: a.modalidade, nome: modLabelCalendario[a.modalidade] ?? 'Atividade', detalhe, calorias: a.calorias_wearable ?? a.calorias_estimadas ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null, duracao_min: a.duracao_min ?? null, distancia_km: a.distancia_km ?? null, distancia_m: a.distancia_m ?? null })
     })
     setAtividadesCalendario(listaCalendario)
     setTreinosDatas((treinosCompletos ?? []).map((t: any) => t.data))
@@ -2094,32 +2247,8 @@ export default function PersonalAluno() {
 
                   {/* Aderência da Semana */}
                   {(() => {
-                    const { inicio } = getInicioFimSemana(semanaOffset)
-                    const iniDate = new Date(inicio + 'T12:00:00-03:00')
-                    const dias = Array.from({ length: 7 }, (_, i) => {
-                      const d = new Date(iniDate); d.setDate(iniDate.getDate() + i)
-                      return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-                    })
-
-                    const sessoesSemana = sessoesPrescritas.filter(s =>
-                      dias.includes(s.data) && (['corrida', 'bike', 'natacao'] as const).includes(s.modalidade as 'corrida' | 'bike' | 'natacao')
-                    )
-                    if (!sessoesSemana.length) return null
-
-                    const STATUS_ICON = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌' } as const
-
-                    const itens = sessoesSemana.map(sessao => {
-                      const ativ = atividadesCalendario.find(a => a.data === sessao.data && a.tipo === sessao.modalidade)
-                      let status: keyof typeof STATUS_ICON
-                      if (!ativ) {
-                        status = 'nao_realizado'
-                      } else if (sessao.duracao_min != null && ativ.duracao_min != null && ativ.duracao_min < sessao.duracao_min * 0.7) {
-                        status = 'parcial'
-                      } else {
-                        status = 'concluido'
-                      }
-                      return { sessao, ativ, status }
-                    })
+                    const itens = itensAderenciaSemana
+                    if (!itens.length) return null
 
                     const score = Math.round((itens.filter(it => it.status !== 'nao_realizado').length / itens.length) * 100)
                     const corScore = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171'
@@ -2134,19 +2263,28 @@ export default function PersonalAluno() {
                           {itens.map((it, i) => {
                             const mod = MODALIDADES_SESSAO[it.sessao.modalidade]
                             const dataLabel = new Date(it.sessao.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', timeZone: 'America/Sao_Paulo' })
-                            const prescritoMin = it.sessao.duracao_min
-                            const realizadoMin = it.ativ?.duracao_min ?? 0
-                            const diffPct = prescritoMin ? Math.round(((realizadoMin - prescritoMin) / prescritoMin) * 100) : null
+                            const indicadores = [
+                              { label: 'Duração', ind: it.indDuracao },
+                              { label: 'Distância', ind: it.indDistancia },
+                              { label: 'Pace', ind: it.indPace },
+                              { label: 'FC', ind: it.indFC },
+                            ].filter(x => x.ind.prescrito != null || x.ind.realizado != null)
                             return (
-                              <div key={i} className="flex items-center gap-2.5">
+                              <div key={i} className="flex items-start gap-2.5">
                                 <span className={`text-base ${mod.text}`}>{mod.icone}</span>
                                 <span className="text-base">{STATUS_ICON[it.status]}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-white text-xs font-semibold capitalize">{dataLabel}</p>
-                                  <p className="text-zinc-500 text-[10px]">
-                                    Prescrito: {prescritoMin ?? '–'}min | Realizado: {realizadoMin}min
-                                    {diffPct != null && <span className={diffPct >= 0 ? 'text-emerald-400' : 'text-red-400'}> ({diffPct > 0 ? '+' : ''}{diffPct}%)</span>}
+                                  <p className="text-white text-xs font-semibold capitalize">
+                                    {dataLabel}
+                                    {it.status === 'realizado_sem_planejamento' && <span className="text-zinc-500 font-normal normal-case"> · Realizado sem planejamento</span>}
                                   </p>
+                                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                                    {indicadores.map(({ label, ind }) => (
+                                      <p key={label} className="text-zinc-500 text-[10px]">
+                                        {ind.icone ? `${ind.icone} ` : ''}{label}: {ind.prescrito ?? '–'}{ind.realizado != null ? ` → ${ind.realizado}` : ''}
+                                      </p>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                             )
@@ -2599,6 +2737,9 @@ export default function PersonalAluno() {
                                 placeholder="Opcional"
                                 className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
                             </div>
+
+                            {/* Prévia narrativa */}
+                            <p className="text-zinc-500 text-[10px] italic">{gerarNarrativaBloco(bloco, sessaoEditando.modalidade)}</p>
                           </div>
                         )
                       })}

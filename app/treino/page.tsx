@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
+import { gerarNarrativaBloco } from '../lib/narrativa-treino'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
 import SidebarProfissional from '../components/SidebarProfissional'
 
@@ -12,6 +13,33 @@ type Treino = { id: string; nome: string; descricao: string | null; plano: strin
 type SerieRegistrada = { exercicio_id: string; numero_serie: number; carga: number | null; repeticoes: number; concluida: boolean }
 type BlocoAtual = { nome: string; tipo: string; semanaNoBloco: number; totalSemanas: number; descricao: string | null; semanaGlobal: number; totalSemanasCiclo: number; ciclonome: string }
 type Modalidade = 'musculacao' | 'corrida' | 'bike' | 'natacao' | 'crossfit' | 'outro'
+
+type BlocoSessaoView = {
+  id: string
+  ordem: number
+  nome: string
+  duracao_min: number | null
+  distancia_km: number | null
+  repeticoes: number | null
+  zona_fc: string | null
+  fc_min: number | null
+  fc_max: number | null
+  pace_alvo: string | null
+  ftp_pct: number | null
+  watts_alvo: number | null
+  observacao: string | null
+}
+type SessaoPrescView = {
+  id: string
+  data: string
+  modalidade: 'corrida' | 'bike' | 'natacao' | 'musculacao' | 'descanso'
+  tipo_sessao: string | null
+  duracao_min: number | null
+  distancia_km: number | null
+  observacao: string | null
+  status: string
+  blocos: BlocoSessaoView[]
+}
 
 /* ─────────────────────────────────────────────────────────
    DESIGN SYSTEM · ENERGETIC PRECISION
@@ -137,6 +165,37 @@ const alpha = (hex: string, a: number) => {
   const h = hex.replace('#', '')
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16)
   return `rgba(${r},${g},${b},${a})`
+}
+
+/* ─── Treino Planejado (sessões prescritas pelo coach) ─── */
+const MODALIDADES_SESSAO: Record<string, { label: string; icone: string; hex: string }> = {
+  corrida:    { label: 'Corrida',    icone: '🏃', hex: C.sleep },
+  bike:       { label: 'Bike',       icone: '🚴', hex: C.energy2 },
+  natacao:    { label: 'Natação',    icone: '🏊', hex: '#22D3EE' },
+  musculacao: { label: 'Musculação', icone: '🏋️', hex: C.recovery },
+  descanso:   { label: 'Descanso',   icone: '😴', hex: C.t3 },
+}
+const TIPO_SESSAO_LABEL: Record<string, string> = {
+  continuo: 'Contínuo', intervalado: 'Intervalado', longo: 'Longo', regenerativo: 'Regenerativo',
+  fartlek: 'Fartlek', ritmo: 'Ritmo', tecnico: 'Técnico', forca: 'Força', livre: 'Livre',
+}
+const STATUS_SESSAO_LABEL: Record<string, { label: string; hex: string }> = {
+  planejado: { label: 'Planejado', hex: C.t2 },
+  concluido: { label: 'Realizado', hex: C.good },
+  parcial: { label: 'Parcial', hex: C.warn },
+  cancelado: { label: 'Cancelado', hex: C.t3 },
+  nao_realizado: { label: 'Não realizado', hex: C.danger },
+  realizado_sem_planejamento: { label: 'Realizado sem planejamento', hex: C.t2 },
+}
+const DIAS_SEMANA_LABEL = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
+
+function getInicioFimSemana(offset: number): { inicio: string; fim: string } {
+  const hoje = getTodayBR()
+  const dBase = new Date(hoje + 'T12:00:00-03:00')
+  const fmtISO = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  const ini = new Date(dBase); ini.setDate(dBase.getDate() - dBase.getDay() + offset * 7)
+  const fim = new Date(dBase); fim.setDate(dBase.getDate() - dBase.getDay() + offset * 7 + 6)
+  return { inicio: fmtISO(ini), fim: fmtISO(fim) }
 }
 
 const sectionTitle = (hex: string): React.CSSProperties => ({
@@ -364,6 +423,10 @@ export default function TreinoCliente() {
   const [score, setScore] = useState<number | null>(null)
   const [pesoKg, setPesoKg] = useState<number>(70)
   const [blocoAtual, setBlocoAtual] = useState<BlocoAtual | null>(null)
+  const [sessoesPrescritas, setSessoesPrescritas] = useState<SessaoPrescView[]>([])
+  const [carregandoSessoesPrescritas, setCarregandoSessoesPrescritas] = useState(false)
+  const [semanaOffsetPlanejado, setSemanaOffsetPlanejado] = useState(0)
+  const [diaSelecionadoPlanejado, setDiaSelecionadoPlanejado] = useState<string | null>(null)
 
   const MENSAGENS_GERANDO = [
     'Analisando seu perfil e histórico...',
@@ -374,6 +437,46 @@ export default function TreinoCliente() {
   ]
 
   useEffect(() => { carregar() }, [])
+
+  useEffect(() => {
+    if (!userId) return
+    carregarSessoesPrescritas(userId, semanaOffsetPlanejado)
+  }, [userId, semanaOffsetPlanejado])
+
+  async function carregarSessoesPrescritas(atletaId: string, offset: number) {
+    setCarregandoSessoesPrescritas(true)
+    const { inicio, fim } = getInicioFimSemana(offset)
+    const { data, error } = await supabase
+      .from('sessoes_prescritas')
+      .select('*, blocos_sessao(*)')
+      .eq('atleta_id', atletaId)
+      .gte('data', inicio)
+      .lte('data', fim)
+      .order('data')
+
+    if (!error && data) {
+      setSessoesPrescritas((data as any[]).map(s => ({
+        id: s.id,
+        data: s.data,
+        modalidade: s.modalidade,
+        tipo_sessao: s.tipo_sessao,
+        duracao_min: s.duracao_min,
+        distancia_km: s.distancia_km,
+        observacao: s.observacao,
+        status: s.status,
+        blocos: (s.blocos_sessao ?? [])
+          .slice()
+          .sort((a: any, b: any) => a.ordem - b.ordem)
+          .map((b: any) => ({
+            id: b.id, ordem: b.ordem, nome: b.nome, duracao_min: b.duracao_min, distancia_km: b.distancia_km,
+            repeticoes: b.repeticoes, zona_fc: b.zona_fc, fc_min: b.fc_min, fc_max: b.fc_max,
+            pace_alvo: b.pace_alvo, ftp_pct: b.ftp_pct, watts_alvo: b.watts_alvo, observacao: b.observacao,
+          })),
+      })))
+    }
+    setCarregandoSessoesPrescritas(false)
+  }
+
   useEffect(() => {
     async function verificarHoje() {
       const { data: { session } } = await supabase.auth.getSession()
@@ -882,6 +985,107 @@ Responda APENAS JSON válido:
   /* ───── TELA PRINCIPAL ───── */
   const sel = treinos.find(t => t.plano === planoAtivo)
 
+  const treinoPlanejadoBox = (() => {
+    const { inicio } = getInicioFimSemana(semanaOffsetPlanejado)
+    const iniDate = new Date(inicio + 'T12:00:00-03:00')
+    const hoje = getTodayBR()
+    const dias = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(iniDate); d.setDate(iniDate.getDate() + i)
+      return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    })
+    const diaAtivo = (diaSelecionadoPlanejado && dias.includes(diaSelecionadoPlanejado)) ? diaSelecionadoPlanejado : (dias.includes(hoje) ? hoje : dias[0])
+    const sessoesDoDiaAtivo = sessoesPrescritas.filter(s => s.data === diaAtivo)
+
+    return (
+      <div style={{ ...glass, padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.15em', color: C.t2 }}>Treino Planejado</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={() => { setSemanaOffsetPlanejado(o => o - 1); setDiaSelecionadoPlanejado(null) }}
+              style={{ width: 28, height: 28, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: C.t2 }}>←</button>
+            <button onClick={() => { setSemanaOffsetPlanejado(o => o + 1); setDiaSelecionadoPlanejado(null) }}
+              style={{ width: 28, height: 28, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: C.t2 }}>→</button>
+          </div>
+        </div>
+
+        {/* Navegação horizontal por dia */}
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 16 }}>
+          {dias.map((dataStr, i) => {
+            const sessoesDoDia = sessoesPrescritas.filter(s => s.data === dataStr)
+            const isHoje = dataStr === hoje
+            const isAtivo = dataStr === diaAtivo
+            const numeroDia = new Date(dataStr + 'T12:00:00-03:00').getDate()
+            return (
+              <button key={dataStr} onClick={() => setDiaSelecionadoPlanejado(dataStr)}
+                style={{
+                  flexShrink: 0, width: 56, minHeight: 76, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  borderRadius: 14, cursor: 'pointer', padding: '8px 4px',
+                  background: isAtivo ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${isAtivo ? 'rgba(255,255,255,0.22)' : isHoje ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.07)'}`,
+                }}>
+                <span style={{ color: C.t3, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em' }}>{DIAS_SEMANA_LABEL[i]}</span>
+                <span style={{ ...dataNum(C.t1), fontSize: 13, fontWeight: 700 }}>{numeroDia}</span>
+                {sessoesDoDia.length > 0 ? (
+                  <span style={{ fontSize: 16 }}>{MODALIDADES_SESSAO[sessoesDoDia[0].modalidade]?.icone}</span>
+                ) : (
+                  <span style={{ fontSize: 16, opacity: 0.25 }}>—</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Detalhe do dia selecionado */}
+        {carregandoSessoesPrescritas ? (
+          <p style={{ color: C.t3, fontSize: 13 }}>Carregando...</p>
+        ) : sessoesDoDiaAtivo.length === 0 ? (
+          <p style={{ color: C.t3, fontSize: 13 }}>Nenhum treino planejado para este dia.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {sessoesDoDiaAtivo.map(sessao => {
+              const mod = MODALIDADES_SESSAO[sessao.modalidade]
+              const statusInfo = STATUS_SESSAO_LABEL[sessao.status] ?? STATUS_SESSAO_LABEL.planejado
+              return (
+                <div key={sessao.id} style={{ ...glassSubtle, padding: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 22 }}>{mod?.icone}</span>
+                      <div>
+                        <p style={{ color: mod?.hex ?? C.t1, fontWeight: 700, fontSize: 14, fontFamily: FONT_DISPLAY }}>
+                          {sessao.modalidade === 'descanso' ? 'Descanso' : (sessao.tipo_sessao ? (TIPO_SESSAO_LABEL[sessao.tipo_sessao] ?? sessao.tipo_sessao) : mod?.label)}
+                        </p>
+                        <p style={{ color: C.t3, fontSize: 11 }}>
+                          {sessao.duracao_min != null && `${sessao.duracao_min} min`}
+                          {sessao.distancia_km != null && ` · ${sessao.distancia_km} km`}
+                        </p>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 10px', borderRadius: 999, color: statusInfo.hex, background: alpha(statusInfo.hex, 0.12), border: `1px solid ${alpha(statusInfo.hex, 0.3)}` }}>
+                      {statusInfo.label}
+                    </span>
+                  </div>
+
+                  {sessao.observacao && <p style={{ color: C.t2, fontSize: 12, marginBottom: 10, lineHeight: 1.5 }}>{sessao.observacao}</p>}
+
+                  {sessao.blocos.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {sessao.blocos.map(b => (
+                        <div key={b.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                          <span style={{ color: mod?.hex ?? C.t2, fontSize: 13, flexShrink: 0, lineHeight: '1.5' }}>•</span>
+                          <span style={{ ...dataNum(C.t2), fontSize: 11, lineHeight: 1.5 }}>{gerarNarrativaBloco(b, sessao.modalidade)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  })()
+
   const blocoBox = blocoAtual && (() => {
     const tb = TIPO_BLOCO[blocoAtual.tipo] ?? TIPO_BLOCO.adaptacao
     const pct = Math.round((blocoAtual.semanaGlobal / blocoAtual.totalSemanasCiclo) * 100)
@@ -1078,6 +1282,7 @@ Responda APENAS JSON válido:
         {isDesktop ? (
           /* ── LAYOUT DESKTOP: 3 áreas ── */
           <>
+            {treinoPlanejadoBox}
             {blocoBox}
             {/* Planos + Atividades em grid principal */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, alignItems: 'start' }}>
@@ -1092,6 +1297,7 @@ Responda APENAS JSON válido:
           </>
         ) : (
           <>
+            {treinoPlanejadoBox}
             {blocoBox}
             {planosBox}
             {iaBox}

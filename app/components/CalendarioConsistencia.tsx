@@ -34,6 +34,8 @@ export type AtividadeDia = {
   fc_media?: number | null
   fc_max?: number | null
   duracao_min?: number | null
+  distancia_km?: number | null
+  distancia_m?: number | null
 }
 
 // modalidade → cor semântica do design system
