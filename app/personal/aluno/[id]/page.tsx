@@ -32,6 +32,32 @@ type FaseCiclo = {
   totalSemanas: number
   diasAteProximoBloco: number | null
 }
+type BlocoSessao = {
+  id?: string
+  ordem: number
+  nome: string
+  duracao_min: number | null
+  distancia_km: number | null
+  repeticoes: number | null
+  zona_fc: string | null
+  fc_min: number | null
+  fc_max: number | null
+  pace_alvo: string | null
+  ftp_pct: number | null
+  watts_alvo: number | null
+  observacao: string | null
+}
+type SessaoPresc = {
+  id?: string
+  data: string
+  modalidade: 'corrida' | 'bike' | 'natacao' | 'descanso'
+  tipo_sessao: string | null
+  duracao_min: number | null
+  distancia_km: number | null
+  observacao: string | null
+  status: string
+  blocos: BlocoSessao[]
+}
 
 const MODALIDADES_TREINO = [
   { nome: 'Musculação', icone: '🏋️', disponivel: true },
@@ -48,6 +74,15 @@ function getInitials(nome: string | null, email: string): string {
 
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function getInicioFimSemana(offset: number): { inicio: string; fim: string } {
+  const hoje = getTodayBR()
+  const dBase = new Date(hoje + 'T12:00:00-03:00')
+  const fmtISO = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  const ini = new Date(dBase); ini.setDate(dBase.getDate() - dBase.getDay() + offset * 7)
+  const fim = new Date(dBase); fim.setDate(dBase.getDate() - dBase.getDay() + offset * 7 + 6)
+  return { inicio: fmtISO(ini), fim: fmtISO(fim) }
 }
 
 function formatDiaDetalhe(dataStr: string): string {
@@ -103,6 +138,45 @@ const TIPO_COR_LISTA: Record<string, string> = {
   potencia:    'text-orange-400 border-orange-500/20 bg-orange-500/10',
 }
 
+const ZONAS_FC: Record<string, { label: string; min: number; max: number }> = {
+  Z1: { label: 'Recuperação',   min: 0.50, max: 0.60 },
+  Z2: { label: 'Base aeróbica', min: 0.60, max: 0.70 },
+  Z3: { label: 'Limiar',        min: 0.70, max: 0.80 },
+  Z4: { label: 'Anaeróbico',    min: 0.80, max: 0.90 },
+  Z5: { label: 'VO2max',        min: 0.90, max: 1.00 },
+}
+function calcularFaixaFC(zona: string | null, fcmax: number | null): { min: number; max: number } | null {
+  if (!zona || !fcmax) return null
+  const z = ZONAS_FC[zona]
+  if (!z) return null
+  return { min: Math.round(fcmax * z.min), max: Math.round(fcmax * z.max) }
+}
+function calcularWatts(ftpPct: number | null, ftp: number | null): number | null {
+  if (!ftpPct || !ftp) return null
+  return Math.round(ftp * (ftpPct / 100))
+}
+
+const MODALIDADES_SESSAO: Record<string, { label: string; icone: string; text: string; bg: string; border: string }> = {
+  corrida:  { label: 'Corrida',  icone: '🏃', text: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20' },
+  bike:     { label: 'Bike',     icone: '🚴', text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+  natacao:  { label: 'Natação',  icone: '🏊', text: 'text-cyan-400',   bg: 'bg-cyan-500/10',   border: 'border-cyan-500/20' },
+  descanso: { label: 'Descanso', icone: '😴', text: 'text-zinc-400',   bg: 'bg-zinc-500/10',   border: 'border-zinc-500/20' },
+}
+const TIPOS_SESSAO = ['continuo', 'intervalado', 'longo', 'regenerativo', 'fartlek', 'ritmo', 'tecnico'] as const
+const TIPO_SESSAO_LABEL: Record<string, string> = {
+  continuo: 'Contínuo', intervalado: 'Intervalado', longo: 'Longo', regenerativo: 'Regenerativo',
+  fartlek: 'Fartlek', ritmo: 'Ritmo', tecnico: 'Técnico',
+}
+const NOMES_BLOCO = ['Aquecimento', 'Principal', 'Desaquecimento', 'Intervalo', 'Outro'] as const
+const DIAS_SEMANA_LABEL = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
+
+function vazioBloco(ordem: number): BlocoSessao {
+  return { ordem, nome: 'Principal', duracao_min: null, distancia_km: null, repeticoes: null, zona_fc: null, fc_min: null, fc_max: null, pace_alvo: null, ftp_pct: null, watts_alvo: null, observacao: null }
+}
+function vazioSessao(data: string): SessaoPresc {
+  return { data, modalidade: 'corrida', tipo_sessao: 'continuo', duracao_min: null, distancia_km: null, observacao: null, status: 'planejado', blocos: [vazioBloco(1)] }
+}
+
 export default function PersonalAluno() {
   const router = useRouter()
   const params = useParams()
@@ -119,6 +193,15 @@ export default function PersonalAluno() {
   const [editandoTreino, setEditandoTreino] = useState<Treino | null>(null)
   const [confirmaDeleteId, setConfirmaDeleteId] = useState<string | null>(null)
   const [modalEmBreve, setModalEmBreve] = useState<string | null>(null)
+  const [modalidadeEscolhida, setModalidadeEscolhida] = useState<'musculacao' | 'triathlon' | null>(null)
+  const [semanaOffset, setSemanaOffset] = useState(0)
+  const [sessoesPrescritas, setSessoesPrescritas] = useState<SessaoPresc[]>([])
+  const [carregandoSessoes, setCarregandoSessoes] = useState(false)
+  const [sessaoEditando, setSessaoEditando] = useState<SessaoPresc | null>(null)
+  const [diaEditando, setDiaEditando] = useState<string | null>(null)
+  const [salvandoSessao, setSalvandoSessao] = useState(false)
+  const [confirmaDeleteSessaoId, setConfirmaDeleteSessaoId] = useState<string | null>(null)
+  const [excluindoSessao, setExcluindoSessao] = useState(false)
   const [personalNome, setPersonalNome] = useState('')
   const [execucoes, setExecucoes] = useState<Execucao[]>([])
   const [cargaEvolucao, setCargaEvolucao] = useState<Record<string, CargaPonto[]>>({})
@@ -183,6 +266,14 @@ export default function PersonalAluno() {
   const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'evolucao' | 'perfil'>('visao-geral')
 
   useEffect(() => { carregar() }, [clienteId])
+
+  useEffect(() => {
+    if (treinos.length > 0 && modalidadeEscolhida === null) setModalidadeEscolhida('musculacao')
+  }, [treinos])
+
+  useEffect(() => {
+    if (modalidadeEscolhida === 'triathlon' && clienteId) carregarSessoesSemana(semanaOffset)
+  }, [modalidadeEscolhida, semanaOffset, clienteId])
 
   useEffect(() => {
     if (clienteId && !historicoIACarregado && !historicoIACarregando) {
@@ -427,6 +518,129 @@ export default function PersonalAluno() {
     })
     setHistoricoIACarregado(true)
     setHistoricoIACarregando(false)
+  }
+
+  async function carregarSessoesSemana(offset: number) {
+    setCarregandoSessoes(true)
+    const { inicio, fim } = getInicioFimSemana(offset)
+    const { data, error } = await supabase
+      .from('sessoes_prescritas')
+      .select('*, blocos_sessao(*)')
+      .eq('atleta_id', clienteId)
+      .gte('data', inicio)
+      .lte('data', fim)
+      .order('data')
+
+    if (!error && data) {
+      setSessoesPrescritas(data.map((s: any) => ({
+        id: s.id,
+        data: s.data,
+        modalidade: s.modalidade,
+        tipo_sessao: s.tipo_sessao,
+        duracao_min: s.duracao_min,
+        distancia_km: s.distancia_km,
+        observacao: s.observacao,
+        status: s.status,
+        blocos: (s.blocos_sessao ?? [])
+          .slice()
+          .sort((a: any, b: any) => a.ordem - b.ordem)
+          .map((b: any) => ({
+            id: b.id, ordem: b.ordem, nome: b.nome, duracao_min: b.duracao_min, distancia_km: b.distancia_km,
+            repeticoes: b.repeticoes, zona_fc: b.zona_fc, fc_min: b.fc_min, fc_max: b.fc_max,
+            pace_alvo: b.pace_alvo, ftp_pct: b.ftp_pct, watts_alvo: b.watts_alvo, observacao: b.observacao,
+          })),
+      })))
+    }
+    setCarregandoSessoes(false)
+  }
+
+  function updateBlocoEditando(i: number, patch: Partial<BlocoSessao>) {
+    setSessaoEditando(prev => {
+      if (!prev) return prev
+      return { ...prev, blocos: prev.blocos.map((b, j) => j === i ? { ...b, ...patch } : b) }
+    })
+  }
+  function addBlocoEditando() {
+    setSessaoEditando(prev => prev ? { ...prev, blocos: [...prev.blocos, vazioBloco(prev.blocos.length + 1)] } : prev)
+  }
+  function removerBlocoEditando(i: number) {
+    setSessaoEditando(prev => {
+      if (!prev || prev.blocos.length <= 1) return prev
+      return { ...prev, blocos: prev.blocos.filter((_, j) => j !== i).map((b, j) => ({ ...b, ordem: j + 1 })) }
+    })
+  }
+  function setZonaBloco(i: number, zona: string) {
+    setSessaoEditando(prev => {
+      if (!prev) return prev
+      const atual = prev.blocos[i]
+      const novaZona = atual.zona_fc === zona ? null : zona
+      const faixa = calcularFaixaFC(novaZona, fcmaxEstimado)
+      return { ...prev, blocos: prev.blocos.map((b, j) => j === i ? { ...b, zona_fc: novaZona, fc_min: faixa?.min ?? null, fc_max: faixa?.max ?? null } : b) }
+    })
+  }
+
+  async function salvarSessao() {
+    if (!sessaoEditando || !diaEditando) return
+    setSalvandoSessao(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setSalvandoSessao(false); return }
+
+    const blocos = sessaoEditando.modalidade === 'descanso' ? [] : sessaoEditando.blocos
+    const payload = {
+      coach_id: session.user.id,
+      atleta_id: clienteId,
+      data: diaEditando,
+      modalidade: sessaoEditando.modalidade,
+      tipo_sessao: sessaoEditando.modalidade === 'descanso' ? null : sessaoEditando.tipo_sessao,
+      duracao_min: sessaoEditando.duracao_min,
+      distancia_km: sessaoEditando.distancia_km,
+      observacao: sessaoEditando.observacao,
+      status: sessaoEditando.status,
+    }
+
+    let sessaoId = sessaoEditando.id
+    if (sessaoId) {
+      await supabase.from('sessoes_prescritas').update(payload).eq('id', sessaoId)
+      await supabase.from('blocos_sessao').delete().eq('sessao_id', sessaoId)
+    } else {
+      const { data: nova, error } = await supabase.from('sessoes_prescritas').insert(payload).select('id').single()
+      if (error || !nova) { setSalvandoSessao(false); return }
+      sessaoId = nova.id
+    }
+
+    if (blocos.length > 0 && sessaoId) {
+      await supabase.from('blocos_sessao').insert(blocos.map((b, i) => ({
+        sessao_id: sessaoId,
+        ordem: i + 1,
+        nome: b.nome,
+        duracao_min: b.duracao_min,
+        distancia_km: b.distancia_km,
+        repeticoes: b.repeticoes,
+        zona_fc: b.zona_fc,
+        fc_min: b.fc_min,
+        fc_max: b.fc_max,
+        pace_alvo: b.pace_alvo,
+        ftp_pct: b.ftp_pct,
+        watts_alvo: b.watts_alvo,
+        observacao: b.observacao,
+      })))
+    }
+
+    await carregarSessoesSemana(semanaOffset)
+    setSalvandoSessao(false)
+    setDiaEditando(null)
+    setSessaoEditando(null)
+  }
+
+  async function excluirSessao(id: string) {
+    setExcluindoSessao(true)
+    await supabase.from('blocos_sessao').delete().eq('sessao_id', id)
+    await supabase.from('sessoes_prescritas').delete().eq('id', id)
+    await carregarSessoesSemana(semanaOffset)
+    setExcluindoSessao(false)
+    setConfirmaDeleteSessaoId(null)
+    setDiaEditando(null)
+    setSessaoEditando(null)
   }
 
   function vazio(ordem: number): Exercicio { return { nome: '', series: 3, repeticoes: 12, carga_sugerida: null, observacoes: '', ordem } }
@@ -1365,7 +1579,35 @@ export default function PersonalAluno() {
             {abaAtiva === 'treinos' && (
               <div className="space-y-5">
 
-                {treinos.length > 0 && (() => {
+                {modalidadeEscolhida === null ? (
+                  <div className="py-6">
+                    <div className="text-center mb-5">
+                      <p className="text-white font-bold mb-1">Escolha a modalidade</p>
+                      <p className="text-zinc-600 text-sm">Selecione o tipo de treino para começar</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {MODALIDADES_TREINO.map((m, i) => (
+                        <button
+                          key={m.nome}
+                          onClick={() => {
+                            if (m.nome === 'Triathlon') setModalidadeEscolhida('triathlon')
+                            else if (m.disponivel) { setModalidadeEscolhida('musculacao'); abrirNovo() }
+                            else setModalEmBreve(m.nome)
+                          }}
+                          className={`flex flex-col items-center justify-center gap-1.5 py-4 active:scale-95 transition-all ${i === 4 ? 'col-span-2' : ''}`}
+                          style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16 }}
+                        >
+                          <span className="text-2xl">{m.icone}</span>
+                          <span className="text-white font-bold text-xs text-center">{m.nome}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : modalidadeEscolhida === 'musculacao' ? (
+                  <>
+                  <button onClick={() => setModalidadeEscolhida(null)} className="text-zinc-500 text-xs font-bold uppercase tracking-wider hover:text-white transition-all active:scale-95">← Voltar</button>
+
+                  {treinos.length > 0 && (() => {
                   const planosComTreino = PLANOS_MAX.filter(p => treinos.some(t => t.plano === p))
                   const proximoPlano = PLANOS_MAX.find(p => !treinos.some(t => t.plano === p))
                   const planosVisiveis = proximoPlano ? [...planosComTreino, proximoPlano] : planosComTreino
@@ -1429,26 +1671,6 @@ export default function PersonalAluno() {
                     <button onClick={abrirNovo} className="w-full border border-white/[0.14] text-zinc-400 font-bold py-4 rounded-2xl text-sm active:scale-95 hover:border-white/20 hover:text-white transition-all tracking-wide mt-4">
                       + Substituir Plano {planoAtivo}
                     </button>
-                  </div>
-                ) : treinos.length === 0 ? (
-                  <div className="py-6">
-                    <div className="text-center mb-5">
-                      <p className="text-white font-bold mb-1">Escolha a modalidade</p>
-                      <p className="text-zinc-600 text-sm">Selecione o tipo de treino para começar</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {MODALIDADES_TREINO.map((m, i) => (
-                        <button
-                          key={m.nome}
-                          onClick={() => m.disponivel ? abrirNovo() : setModalEmBreve(m.nome)}
-                          className={`flex flex-col items-center justify-center gap-1.5 py-4 active:scale-95 transition-all ${i === 4 ? 'col-span-2' : ''}`}
-                          style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16 }}
-                        >
-                          <span className="text-2xl">{m.icone}</span>
-                          <span className="text-white font-bold text-xs text-center">{m.nome}</span>
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center py-16 gap-4">
@@ -1550,6 +1772,122 @@ export default function PersonalAluno() {
                     </div>
                   )
                 })()}
+                  </>
+                ) : (
+                  <>
+                  <button onClick={() => setModalidadeEscolhida(null)} className="text-zinc-500 text-xs font-bold uppercase tracking-wider hover:text-white transition-all active:scale-95">← Voltar</button>
+
+                  {/* Header da semana */}
+                  {(() => {
+                    const { inicio, fim } = getInicioFimSemana(semanaOffset)
+                    const fmtCurto = (s: string) => {
+                      const d = new Date(s + 'T12:00:00-03:00')
+                      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' })
+                    }
+                    return (
+                      <div className="flex items-center justify-between gap-2">
+                        <button onClick={() => setSemanaOffset(o => o - 1)}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white active:scale-95 transition-all shrink-0"
+                          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.11)' }}>
+                          ←
+                        </button>
+                        <div className="text-center">
+                          <p className="text-white font-bold text-sm">{fmtCurto(inicio)} – {fmtCurto(fim)}</p>
+                          {semanaOffset === 0 && <p className="text-zinc-600 text-[10px] uppercase tracking-wider mt-0.5">Semana atual</p>}
+                        </div>
+                        <button onClick={() => setSemanaOffset(o => o + 1)}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white active:scale-95 transition-all shrink-0"
+                          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.11)' }}>
+                          →
+                        </button>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Grid dos 7 dias */}
+                  {(() => {
+                    const { inicio } = getInicioFimSemana(semanaOffset)
+                    const iniDate = new Date(inicio + 'T12:00:00-03:00')
+                    const hoje = getTodayBR()
+                    const dias = Array.from({ length: 7 }, (_, i) => {
+                      const d = new Date(iniDate); d.setDate(iniDate.getDate() + i)
+                      return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+                    })
+                    return (
+                      <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-7 sm:overflow-visible">
+                        {dias.map((dataStr, i) => {
+                          const sessoesDoDia = sessoesPrescritas.filter(s => s.data === dataStr)
+                          const d = new Date(dataStr + 'T12:00:00-03:00')
+                          const numeroDia = d.getDate()
+                          const isHoje = dataStr === hoje
+                          const temSessoes = sessoesDoDia.length > 0
+                          return (
+                            <div
+                              key={dataStr}
+                              className={`shrink-0 w-[100px] sm:w-auto min-h-[110px] flex flex-col gap-1.5 p-2.5 rounded-2xl ${isHoje ? 'ring-1 ring-white/30' : ''}`}
+                              style={temSessoes
+                                ? { background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 16 }
+                                : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16 }
+                              }
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">{DIAS_SEMANA_LABEL[i]}</span>
+                                <span className="text-zinc-600 text-[10px]">{numeroDia}</span>
+                              </div>
+                              {temSessoes ? (
+                                <div className="flex-1 w-full flex flex-col divide-y divide-white/[0.06]">
+                                  {sessoesDoDia.map((sessao, idx) => {
+                                    const mod = MODALIDADES_SESSAO[sessao.modalidade]
+                                    return (
+                                      <button
+                                        key={sessao.id ?? idx}
+                                        onClick={() => {
+                                          setDiaEditando(dataStr)
+                                          setSessaoEditando({ ...sessao, blocos: sessao.blocos.map(b => ({ ...b })) })
+                                        }}
+                                        className={`w-full flex flex-col items-start gap-0.5 text-left active:scale-95 transition-all ${idx > 0 ? 'pt-1.5' : ''} ${idx < sessoesDoDia.length - 1 ? 'pb-1.5' : ''}`}
+                                      >
+                                        <span className={`text-xl ${mod.text}`}>{mod.icone}</span>
+                                        <p className="text-white text-xs font-bold leading-tight">
+                                          {sessao.modalidade === 'descanso' ? 'Descanso' : (sessao.tipo_sessao ? (TIPO_SESSAO_LABEL[sessao.tipo_sessao] ?? sessao.tipo_sessao) : mod.label)}
+                                        </p>
+                                        {sessao.duracao_min != null && <p className="text-zinc-500 text-[10px]">{sessao.duracao_min} min</p>}
+                                        {sessao.distancia_km != null && <p className="text-zinc-500 text-[10px]">{sessao.distancia_km} km</p>}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setDiaEditando(dataStr)
+                                    setSessaoEditando(vazioSessao(dataStr))
+                                  }}
+                                  className="flex-1 w-full flex items-center justify-center active:scale-95 transition-all"
+                                >
+                                  <span className="text-zinc-600 text-lg">+</span>
+                                </button>
+                              )}
+                              {temSessoes && (
+                                <button
+                                  onClick={() => {
+                                    setDiaEditando(dataStr)
+                                    setSessaoEditando(vazioSessao(dataStr))
+                                  }}
+                                  className="self-end w-6 h-6 rounded-lg bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white active:scale-90 transition-all"
+                                >
+                                  +
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
+
+                  </>
+                )}
 
               </div>
             )}
@@ -1793,6 +2131,247 @@ export default function PersonalAluno() {
               className="w-full bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
               Entendi
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: PRESCREVER/EDITAR SESSÃO (Triathlon) ─────────────── */}
+      {diaEditando && sessaoEditando && (
+        <div className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+          onClick={() => { setDiaEditando(null); setSessaoEditando(null) }}>
+          <div className="w-full max-w-lg sm:m-4 rounded-t-3xl sm:rounded-3xl border border-white/[0.14] overflow-hidden flex flex-col"
+            style={{ background: 'var(--surface-1)', maxHeight: '92vh' }}
+            onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-white/[0.11] shrink-0">
+              <div>
+                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em] mb-0.5">{formatDiaDetalhe(diaEditando)}</p>
+                <p className="text-white font-black text-lg">{sessaoEditando.id ? 'Editar sessão' : 'Nova sessão'}</p>
+              </div>
+              <button onClick={() => { setDiaEditando(null); setSessaoEditando(null) }}
+                className="w-9 h-9 rounded-xl bg-white/[0.09] flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all">
+                ✕
+              </button>
+            </div>
+
+            {/* Corpo */}
+            <div className="overflow-y-auto flex-1 p-5 space-y-4">
+
+              {/* Modalidade */}
+              <div>
+                <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Modalidade</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(Object.keys(MODALIDADES_SESSAO) as Array<keyof typeof MODALIDADES_SESSAO>).map(mKey => {
+                    const m = MODALIDADES_SESSAO[mKey]
+                    const ativo = sessaoEditando.modalidade === mKey
+                    return (
+                      <button key={mKey}
+                        onClick={() => setSessaoEditando(prev => prev ? { ...prev, modalidade: mKey as SessaoPresc['modalidade'] } : prev)}
+                        className={`flex flex-col items-center gap-1 py-3 rounded-xl border text-[11px] font-bold transition-all active:scale-95 ${ativo ? `${m.bg} ${m.border} ${m.text}` : 'bg-white/[0.05] border-white/[0.11] text-zinc-500'}`}>
+                        <span className="text-xl">{m.icone}</span>
+                        {m.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {sessaoEditando.modalidade !== 'descanso' && (
+                <>
+                  {/* Tipo de sessão */}
+                  <div>
+                    <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Tipo de sessão</label>
+                    <div className="flex flex-wrap gap-2">
+                      {TIPOS_SESSAO.map(t => (
+                        <button key={t}
+                          onClick={() => setSessaoEditando(prev => prev ? { ...prev, tipo_sessao: t } : prev)}
+                          className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${sessaoEditando.tipo_sessao === t ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
+                          {TIPO_SESSAO_LABEL[t]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Blocos */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-zinc-500 text-[10px] uppercase tracking-widest">Blocos</label>
+                      <span className="text-zinc-600 text-[10px]">{sessaoEditando.blocos.length} bloco{sessaoEditando.blocos.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="space-y-3">
+                      {sessaoEditando.blocos.map((bloco, i) => {
+                        const watts = calcularWatts(bloco.ftp_pct, aluno?.ftp ?? null)
+                        const usaDistancia = bloco.distancia_km != null
+                        return (
+                          <div key={i} className="bg-white/[0.05] rounded-2xl p-4 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <select value={bloco.nome} onChange={e => updateBlocoEditando(i, { nome: e.target.value })}
+                                className="bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2 text-white text-xs font-bold focus:outline-none focus:border-white/20">
+                                {NOMES_BLOCO.map(n => <option key={n} value={n} className="bg-[#1c1c1c]">{n}</option>)}
+                              </select>
+                              {sessaoEditando.blocos.length > 1 && (
+                                <button onClick={() => removerBlocoEditando(i)}
+                                  className="text-red-500/60 hover:text-red-400 text-[11px] font-semibold active:scale-90 transition-all">
+                                  Remover
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Duração / Distância */}
+                            <div>
+                              <div className="flex gap-2 mb-2">
+                                <button onClick={() => updateBlocoEditando(i, { distancia_km: null, duracao_min: bloco.duracao_min ?? 0 })}
+                                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all ${!usaDistancia ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-500 border-white/[0.14]'}`}>
+                                  Duração (min)
+                                </button>
+                                <button onClick={() => updateBlocoEditando(i, { duracao_min: null, distancia_km: bloco.distancia_km ?? 0 })}
+                                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all ${usaDistancia ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-500 border-white/[0.14]'}`}>
+                                  Distância (km)
+                                </button>
+                              </div>
+                              {usaDistancia ? (
+                                <input type="number" step="0.1" inputMode="decimal" value={bloco.distancia_km ?? ''}
+                                  onChange={e => updateBlocoEditando(i, { distancia_km: e.target.value ? parseFloat(e.target.value) : null })}
+                                  placeholder="Ex: 5"
+                                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
+                              ) : (
+                                <input type="number" inputMode="numeric" value={bloco.duracao_min ?? ''}
+                                  onChange={e => updateBlocoEditando(i, { duracao_min: e.target.value ? parseInt(e.target.value) : null })}
+                                  placeholder="Ex: 20"
+                                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
+                              )}
+                            </div>
+
+                            {/* Repetições — intervalado */}
+                            {sessaoEditando.tipo_sessao === 'intervalado' && (
+                              <div>
+                                <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Repetições</label>
+                                <input type="number" inputMode="numeric" value={bloco.repeticoes ?? ''}
+                                  onChange={e => updateBlocoEditando(i, { repeticoes: e.target.value ? parseInt(e.target.value) : null })}
+                                  placeholder="Ex: 6"
+                                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
+                              </div>
+                            )}
+
+                            {/* Zona de FC */}
+                            <div>
+                              <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Zona de FC</label>
+                              <div className="flex gap-1.5">
+                                {Object.keys(ZONAS_FC).map(z => (
+                                  <button key={z} onClick={() => setZonaBloco(i, z)}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all active:scale-95 ${bloco.zona_fc === z ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-400 border-white/[0.14]'}`}>
+                                    {z}
+                                  </button>
+                                ))}
+                              </div>
+                              {bloco.fc_min != null && bloco.fc_max != null && (
+                                <p className="text-zinc-500 text-[10px] mt-1.5">{bloco.zona_fc} → {bloco.fc_min}–{bloco.fc_max} bpm</p>
+                              )}
+                            </div>
+
+                            {/* Pace alvo — corrida/natação */}
+                            {(sessaoEditando.modalidade === 'corrida' || sessaoEditando.modalidade === 'natacao') && (
+                              <div>
+                                <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Pace alvo</label>
+                                <input value={bloco.pace_alvo ?? ''}
+                                  onChange={e => updateBlocoEditando(i, { pace_alvo: e.target.value || null })}
+                                  placeholder="Ex: 5:30/km"
+                                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
+                              </div>
+                            )}
+
+                            {/* % FTP — bike */}
+                            {sessaoEditando.modalidade === 'bike' && (
+                              <div>
+                                <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">% FTP</label>
+                                <input type="number" inputMode="numeric" value={bloco.ftp_pct ?? ''}
+                                  onChange={e => {
+                                    const pct = e.target.value ? parseInt(e.target.value) : null
+                                    updateBlocoEditando(i, { ftp_pct: pct, watts_alvo: calcularWatts(pct, aluno?.ftp ?? null) })
+                                  }}
+                                  placeholder="Ex: 75"
+                                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
+                                {watts != null && <p className="text-zinc-500 text-[10px] mt-1.5">{bloco.ftp_pct}% FTP → {watts}W</p>}
+                              </div>
+                            )}
+
+                            {/* Observação do bloco */}
+                            <div>
+                              <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Observação</label>
+                              <input value={bloco.observacao ?? ''}
+                                onChange={e => updateBlocoEditando(i, { observacao: e.target.value || null })}
+                                placeholder="Opcional"
+                                className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20" />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <button onClick={addBlocoEditando}
+                      className="w-full mt-3 py-3 rounded-xl border border-dashed border-white/[0.14] text-zinc-500 text-xs font-bold active:scale-95 transition-all">
+                      + Adicionar bloco
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Observação geral */}
+              <div>
+                <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Observação geral</label>
+                <textarea value={sessaoEditando.observacao ?? ''}
+                  onChange={e => setSessaoEditando(prev => prev ? { ...prev, observacao: e.target.value || null } : prev)}
+                  placeholder="Opcional" rows={2}
+                  className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 resize-none" />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-white/[0.11] flex gap-3 shrink-0">
+              {sessaoEditando.id && (
+                <button onClick={() => setConfirmaDeleteSessaoId(sessaoEditando.id!)}
+                  className="w-14 border border-red-500/25 text-red-400 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+                  🗑
+                </button>
+              )}
+              <button onClick={() => { setDiaEditando(null); setSessaoEditando(null) }}
+                className="flex-1 border border-white/[0.14] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+                Cancelar
+              </button>
+              <button onClick={() => salvarSessao()} disabled={salvandoSessao}
+                className="flex-1 bg-white text-black font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-50">
+                {salvandoSessao ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CONFIRMAÇÃO DE EXCLUSÃO DE SESSÃO ─────────────────── */}
+      {confirmaDeleteSessaoId && (
+        <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setConfirmaDeleteSessaoId(null)}>
+          <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.14] px-5 pt-6 pb-10 sm:pb-6 space-y-4"
+            style={{ background: '#1c1c1c' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/25 flex items-center justify-center mx-auto mb-1 text-2xl">⚠️</div>
+            <p className="text-white font-black text-xl text-center">Excluir sessão?</p>
+            <p className="text-zinc-400 text-sm text-center leading-relaxed">
+              Isso remove a sessão e todos os blocos prescritos permanentemente. Não é possível desfazer.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setConfirmaDeleteSessaoId(null)}
+                className="flex-1 border border-white/[0.12] text-zinc-300 font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all">
+                Cancelar
+              </button>
+              <button onClick={() => excluirSessao(confirmaDeleteSessaoId)} disabled={excluindoSessao}
+                className="flex-1 bg-red-500 text-white font-bold py-4 rounded-2xl text-sm active:scale-95 transition-all disabled:opacity-50">
+                {excluindoSessao ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
           </div>
         </div>
       )}
