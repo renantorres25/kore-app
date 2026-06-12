@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // Envia o email
     const { error: emailError } = await resend.emails.send({
-      from: 'KORE <onboarding@resend.dev>',
+      from: 'KORE <nao-responda@usekore.app>',
       to: email_convidado,
       subject: `${nome_profissional} te convidou para o KORE`,
       html: `

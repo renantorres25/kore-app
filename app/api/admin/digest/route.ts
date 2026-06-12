@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       </body></html>`
 
     const { error } = await resend.emails.send({
-      from: 'KORE <onboarding@resend.dev>',
+      from: 'KORE <nao-responda@usekore.app>',
       to: emails,
       subject: `KORE — Resumo semanal (${hoje})`,
       html,

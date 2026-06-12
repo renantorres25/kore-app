@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const planoLabel = plano ? `Plano ${plano}` : 'Novo treino'
 
     await resend.emails.send({
-      from: 'KORE <onboarding@resend.dev>',
+      from: 'KORE <nao-responda@usekore.app>',
       to: aluno_email,
       subject: `${personal_nome} prescreveu um novo treino para você`,
       html: `
