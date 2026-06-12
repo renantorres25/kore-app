@@ -16,6 +16,7 @@ type Paciente = {
   meta_peso: number | null; meta_data_limite: string | null
   nivel: string | null; fcmax: number | null; ftp: number | null
   whatsapp: string | null
+  avatar_url: string | null
 }
 type TreinoDia = { data: string; calorias_estimadas: number | null; plano: string | null }
 type Sono = { score_recuperacao: number | null; duracao_minutos: number | null }
@@ -303,7 +304,7 @@ export default function NutricionistaPaciente() {
         { data: anamneseData }, { data: ultimaAvalData }, { data: proximaConsultaData },
         { data: anamneseCompletaData },
       ] = await Promise.all([
-        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp,whatsapp').eq('id', clienteId).single(),
+        supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp,whatsapp,avatar_url').eq('id', clienteId).single(),
         supabase.from('treinos').select('data,calorias_estimadas').eq('cliente_id', clienteId).gte('data', semStr).eq('concluido', true),
         supabase.from('treinos').select('data,plano,calorias_estimadas').eq('cliente_id', clienteId).eq('data', hoje).eq('concluido', true).maybeSingle(),
         supabase.from('atividades_livres').select('modalidade,duracao_min,calorias_wearable').eq('usuario_id', clienteId).eq('data', hoje),
@@ -1101,9 +1102,13 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
           <div className="flex items-center justify-between gap-6">
             {/* Avatar + nome + dados primários */}
             <div className="flex items-center gap-4 min-w-0">
-              <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(45,212,167,0.12)', border: '1px solid rgba(45,212,167,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 20px rgba(45,212,167,0.15)' }}>
-                <span style={{ color: '#2DD4A7', fontWeight: 900, fontSize: 16, fontFamily: "'Sora', system-ui" }}>{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
-              </div>
+              {paciente?.avatar_url ? (
+                <img src={paciente.avatar_url} alt={paciente.nome ?? paciente.email} className="w-12 h-12 rounded-full object-cover border-2 border-white/20" style={{ flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(45,212,167,0.12)', border: '1px solid rgba(45,212,167,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 20px rgba(45,212,167,0.15)' }}>
+                  <span style={{ color: '#2DD4A7', fontWeight: 900, fontSize: 16, fontFamily: "'Sora', system-ui" }}>{paciente ? getInitials(paciente.nome, paciente.email) : '?'}</span>
+                </div>
+              )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 style={{ fontFamily: "'Sora', system-ui", fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#F5F6F8', lineHeight: 1 }}>{paciente?.nome ?? paciente?.email ?? 'Paciente'}</h1>

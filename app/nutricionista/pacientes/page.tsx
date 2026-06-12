@@ -11,6 +11,7 @@ type Paciente = {
   id: string; cliente_id: string; nome: string | null; email: string
   peso: number | null; objetivo: string | null
   fcmax: number | null; dataNascimento: string | null
+  avatar_url: string | null
 }
 type Stats = {
   sonoScore: number | null; sonoHoras: number | null
@@ -76,13 +77,13 @@ export default function NutricionistaPacientes() {
       const ids = vinculos.map(v => v.cliente_id)
 
       const { data: perfis } = await supabase
-        .from('perfis').select('id, nome, email, peso, objetivo, fcmax, data_nascimento').in('id', ids)
+        .from('perfis').select('id, nome, email, peso, objetivo, fcmax, data_nascimento, avatar_url').in('id', ids)
 
       const pacientesData: Paciente[] = vinculos.map(v => {
         const p = perfis?.find(x => x.id === v.cliente_id)
         return {
           id: v.id, cliente_id: v.cliente_id, nome: p?.nome ?? null, email: p?.email ?? '', peso: p?.peso ?? null, objetivo: p?.objetivo ?? null,
-          fcmax: p?.fcmax ?? null, dataNascimento: p?.data_nascimento ?? null,
+          fcmax: p?.fcmax ?? null, dataNascimento: p?.data_nascimento ?? null, avatar_url: p?.avatar_url ?? null,
         }
       })
       setPacientes(pacientesData)
@@ -260,9 +261,13 @@ export default function NutricionistaPacientes() {
                       <div className="flex items-start gap-4">
                         {/* Avatar + dot de alerta */}
                         <div className="relative shrink-0 mt-0.5">
-                          <div className="w-10 h-10 rounded-xl bg-white/[0.07] flex items-center justify-center">
-                            <span className="font-bold text-sm text-zinc-300">{getInitials(pac.nome, pac.email)}</span>
-                          </div>
+                          {pac.avatar_url ? (
+                            <img src={pac.avatar_url} alt={pac.nome ?? pac.email} className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.07] flex items-center justify-center">
+                              <span className="font-bold text-sm text-zinc-300">{getInitials(pac.nome, pac.email)}</span>
+                            </div>
+                          )}
                           <div className={`absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[var(--bg-base,#0d1117)] ${cfg.dot}`} />
                         </div>
 

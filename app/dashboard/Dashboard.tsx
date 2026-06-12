@@ -1302,7 +1302,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDeskt
   const [totalAlunos, setTotalAlunos] = useState(0)
   const [treinaramHoje, setTreinaramHoje] = useState(0)
   const [alertas, setAlertas] = useState(0)
-  const [alunosRecentes, setAlunosRecentes] = useState<{ nome: string | null; email: string; treinouHoje: boolean; score: number | null }[]>([])
+  const [alunosRecentes, setAlunosRecentes] = useState<{ nome: string | null; email: string; treinouHoje: boolean; score: number | null; avatar_url: string | null }[]>([])
   const [notifBlocos, setNotifBlocos] = useState<{ clienteId: string; nome: string | null; email: string; blocoAtual: string; proximoBloco: string; diasRestantes: number }[]>([])
   const [loadingStats, setLoadingStats] = useState(true)
 
@@ -1318,7 +1318,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDeskt
       const ids = vinculos.map(v => v.cliente_id)
       setTotalAlunos(ids.length)
       const [{ data: perfis }, { data: treinosHoje }, { data: treinos7d }, { data: scores }] = await Promise.all([
-        supabase.from('perfis').select('id, nome, email').in('id', ids),
+        supabase.from('perfis').select('id, nome, email, avatar_url').in('id', ids),
         supabase.from('treinos').select('cliente_id').eq('concluido', true).eq('data', hoje).in('cliente_id', ids),
         supabase.from('treinos').select('cliente_id, data').eq('concluido', true).gte('data', semanaStr).in('cliente_id', ids),
         supabase.from('sono').select('usuario_id, score_recuperacao').eq('data', hoje).in('usuario_id', ids),
@@ -1330,7 +1330,7 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDeskt
       const alertasCount = ids.filter(id => (treinos7dSet.get(id) ?? 0) === 0).length
       setTreinaramHoje(treinaramSet.size)
       setAlertas(alertasCount)
-      setAlunosRecentes((perfis ?? []).map(p => ({ nome: p.nome, email: p.email, treinouHoje: treinaramSet.has(p.id), score: scoreMap.get(p.id) ?? null })).slice(0, 4))
+      setAlunosRecentes((perfis ?? []).map(p => ({ nome: p.nome, email: p.email, treinouHoje: treinaramSet.has(p.id), score: scoreMap.get(p.id) ?? null, avatar_url: p.avatar_url ?? null })).slice(0, 4))
 
       // Notificações de fim de bloco
       const { data: perisAtivas } = await supabase.from('periodizacoes').select('id,nome,data_inicio,cliente_id').in('cliente_id', ids).eq('personal_id', session.user.id).eq('status', 'ativo')
@@ -1443,9 +1443,13 @@ function DashboardPersonal({ perfil, onLogout, onOpenNotifs, notifCount, isDeskt
           <div>
             {alunosRecentes.map((a, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                <div style={{ width: 32, height: 32, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 800, background: a.treinouHoje ? `${C.good}1a` : 'rgba(255,255,255,0.07)', color: a.treinouHoje ? C.good : C.t2 }}>
-                  {(a.nome ?? a.email)[0].toUpperCase()}
-                </div>
+                {a.avatar_url ? (
+                  <img src={a.avatar_url} alt={a.nome ?? a.email} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 32, height: 32, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 800, background: a.treinouHoje ? `${C.good}1a` : 'rgba(255,255,255,0.07)', color: a.treinouHoje ? C.good : C.t2 }}>
+                    {(a.nome ?? a.email)[0].toUpperCase()}
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: C.t1, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.nome ?? a.email.split('@')[0]}</p>
                   <p style={{ fontSize: 11, color: a.treinouHoje ? C.good : C.t3 }}>{a.treinouHoje ? '✓ Treinou hoje' : 'Não treinou hoje'}</p>
@@ -1509,6 +1513,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
     id: string; nome: string | null; email: string
     sonoScore: number | null; treinos7d: number; kcal7d: number
     temPlano: boolean; diasDesdeUltimoPlano: number | null
+    avatar_url: string | null
   }[]>([])
   const [planosParaRevisar, setPlanosParaRevisar] = useState<{
     pacienteId: string; nome: string | null; email: string; diasDesdeRevisao: number
@@ -1535,7 +1540,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
       setTotalPacientes(ids.length)
 
       const [{ data: perfis }, { data: sonos }, { data: treinos }, { data: atividades }, { data: planos }] = await Promise.all([
-        supabase.from('perfis').select('id, nome, email').in('id', ids),
+        supabase.from('perfis').select('id, nome, email, avatar_url').in('id', ids),
         supabase.from('sono').select('usuario_id, score_recuperacao').in('usuario_id', ids).eq('data', hoje),
         supabase.from('treinos').select('cliente_id, calorias_estimadas').in('cliente_id', ids).gte('data', semStr).eq('concluido', true),
         supabase.from('atividades_livres').select('usuario_id, calorias_estimadas, calorias_wearable').in('usuario_id', ids).gte('data', semStr),
@@ -1609,6 +1614,7 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
         diasDesdeUltimoPlano: planoMaisRecenteMap.has(p.id)
           ? Math.floor((hoje30 - new Date(planoMaisRecenteMap.get(p.id)!).getTime()) / (1000 * 60 * 60 * 24))
           : null,
+        avatar_url: p.avatar_url ?? null,
       }))
       setPacientesRecentes(recentes)
       setLoadingStats(false)
@@ -1776,9 +1782,13 @@ function DashboardNutricionista({ perfil, onLogout, onOpenNotifs, notifCount, is
               return (
                 <button key={i} onClick={() => router.push(`/nutricionista/paciente/${p.id}`)}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', textAlign: 'left', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', cursor: 'pointer' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 12, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ color: C.t2, fontSize: 14, fontWeight: 700 }}>{(p.nome ?? p.email)[0].toUpperCase()}</span>
-                  </div>
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt={p.nome ?? p.email} className="w-10 h-10 rounded-full object-cover" style={{ flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 36, height: 36, borderRadius: 12, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ color: C.t2, fontSize: 14, fontWeight: 700 }}>{(p.nome ?? p.email)[0].toUpperCase()}</span>
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                       <p style={{ color: C.t1, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome ?? p.email.split('@')[0]}</p>

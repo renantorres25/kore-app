@@ -59,6 +59,10 @@ export async function GET(req: NextRequest) {
     connected_at: new Date().toISOString(),
   }, { onConflict: 'usuario_id' })
 
+  if (athlete.profile_medium) {
+    await supabase.from('perfis').update({ avatar_url: athlete.profile_medium }).eq('id', state)
+  }
+
   // Sincroniza atividades dos últimos 30 dias imediatamente
   await syncAtividades(state, access_token)
 
