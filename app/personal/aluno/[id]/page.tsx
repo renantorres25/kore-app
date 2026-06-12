@@ -11,7 +11,7 @@ import { calcularPMC, type PontoPMC } from '../../../lib/alertas-cientificos'
 import { gerarNarrativaBloco } from '../../../lib/narrativa-treino'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
-type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number }
+type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number; grupo_muscular?: string | null; tecnica?: string | null }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; status: string; data: string | null; exercicios: Exercicio[] }
 type Monitor = {
   scoreRecuperacao: number | null
@@ -1313,7 +1313,7 @@ export default function PersonalAluno() {
     setSessaoEditando(null)
   }
 
-  function vazio(ordem: number): Exercicio { return { nome: '', series: 3, repeticoes: 12, carga_sugerida: null, observacoes: '', ordem } }
+  function vazio(ordem: number): Exercicio { return { nome: '', series: 3, repeticoes: 12, carga_sugerida: null, observacoes: '', ordem, grupo_muscular: null, tecnica: null } }
 
   function abrirNovo() {
     setErroSalvar('')
@@ -1365,7 +1365,7 @@ export default function PersonalAluno() {
         if (error) throw error
         await supabase.from('exercicios_treino').delete().eq('treino_id', tid)
       }
-      const exs = editandoTreino.exercicios.filter(e => e.nome.trim()).map(e => ({ treino_id: tid, nome: e.nome.trim(), series: e.series, repeticoes: e.repeticoes, carga_sugerida: e.carga_sugerida, observacoes: e.observacoes, ordem: e.ordem }))
+      const exs = editandoTreino.exercicios.filter(e => e.nome.trim()).map(e => ({ treino_id: tid, nome: e.nome.trim(), series: e.series, repeticoes: e.repeticoes, carga_sugerida: e.carga_sugerida, observacoes: e.observacoes, ordem: e.ordem, grupo_muscular: e.grupo_muscular ?? null, tecnica: e.tecnica ?? null }))
       if (exs.length) {
         const { error } = await supabase.from('exercicios_treino').insert(exs)
         if (error) throw error
@@ -3236,12 +3236,12 @@ export default function PersonalAluno() {
 
       {/* ── MODAL EDITAR TREINO ──────────────────────────────────────── */}
       {modalAberto && editandoTreino && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] overflow-hidden" style={{ background: 'var(--surface-1)', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-300">
+          <div className="w-full max-w-md rounded-t-3xl border border-white/[0.11] overflow-hidden transition-transform duration-300 ease-out" style={{ background: 'var(--surface-1)', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
 
             <div className="flex items-center justify-between p-5 border-b border-white/[0.11] shrink-0">
               <div>
-                <p className={`text-[10px] uppercase tracking-[0.2em] mb-0.5 ${CORES[editandoTreino.plano].text}`}>Plano {editandoTreino.plano}</p>
+                <p className={`text-[10px] uppercase tracking-[0.2em] mb-0.5 ${CORES[editandoTreino.plano ?? 'A'].text}`}>Plano {editandoTreino.plano}</p>
                 <p className="text-white font-black text-lg">{editandoTreino.id ? 'Editar treino' : 'Novo treino'}</p>
               </div>
               <button onClick={() => { setModalAberto(false); setEditandoTreino(null) }} className="w-9 h-9 rounded-xl bg-white/[0.09] flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all">✕</button>
@@ -3250,11 +3250,11 @@ export default function PersonalAluno() {
             <div className="overflow-y-auto flex-1 p-5 space-y-4">
               <div>
                 <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Nome do treino</label>
-                <input value={editandoTreino.nome} onChange={e => setEditandoTreino({ ...editandoTreino, nome: e.target.value })} placeholder="Ex: Treino A — Peito e Tríceps" className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors" />
+                <input value={editandoTreino.nome} onChange={e => setEditandoTreino({ ...editandoTreino, nome: e.target.value })} placeholder="Ex: Treino A — Peito e Tríceps" className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors" />
               </div>
               <div>
                 <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Observações gerais</label>
-                <textarea value={editandoTreino.descricao ?? ''} onChange={e => setEditandoTreino({ ...editandoTreino, descricao: e.target.value })} placeholder="Foco do treino, intensidade, observações..." rows={2} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors resize-none" />
+                <textarea value={editandoTreino.descricao ?? ''} onChange={e => setEditandoTreino({ ...editandoTreino, descricao: e.target.value })} placeholder="Foco do treino, intensidade, observações..." rows={2} className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors resize-none" />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -3265,22 +3265,53 @@ export default function PersonalAluno() {
                   {editandoTreino.exercicios.map((ex, i) => (
                     <div key={i} className="bg-white/[0.05] rounded-2xl p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${CORES[editandoTreino.plano].text}`}>Exercício {i + 1}</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${CORES[editandoTreino.plano ?? 'A'].text}`}>Exercício {i + 1}</span>
                         {editandoTreino.exercicios.length > 1 && <button onClick={() => removerExercicio(i)} className="text-red-500/50 hover:text-red-400 text-xs active:scale-90 transition-all">remover</button>}
                       </div>
-                      <input value={ex.nome} onChange={e => updateEx(i, 'nome', e.target.value)} placeholder="Nome do exercício" className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors mb-3" />
+                      <input value={ex.nome} onChange={e => updateEx(i, 'nome', e.target.value)} placeholder="Nome do exercício" className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/20 transition-colors mb-3" />
                       <div className="grid grid-cols-3 gap-2 mb-3">
                         <div>
-                          <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Séries</label>
-                          <input type="number" value={ex.series} onChange={e => updateEx(i, 'series', parseInt(e.target.value) || 0)} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition-colors text-center" />
+                          <label className="text-zinc-600 text-[10px] uppercase tracking-wider block mb-1.5">Séries</label>
+                          <input type="number" value={ex.series} onChange={e => updateEx(i, 'series', parseInt(e.target.value) || 0)} className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition-colors text-center" />
                         </div>
                         <div>
-                          <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Reps</label>
-                          <input type="number" value={ex.repeticoes} onChange={e => updateEx(i, 'repeticoes', parseInt(e.target.value) || 0)} className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition-colors text-center" />
+                          <label className="text-zinc-600 text-[10px] uppercase tracking-wider block mb-1.5">Reps</label>
+                          <input type="number" value={ex.repeticoes} onChange={e => updateEx(i, 'repeticoes', parseInt(e.target.value) || 0)} className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition-colors text-center" />
                         </div>
                         <div>
-                          <label className="text-zinc-600 text-[9px] uppercase tracking-wider block mb-1.5">Carga (kg)</label>
-                          <input type="number" value={ex.carga_sugerida ?? ''} onChange={e => updateEx(i, 'carga_sugerida', e.target.value ? parseFloat(e.target.value) : null)} placeholder="—" className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition-colors text-center placeholder:text-zinc-700" />
+                          <label className="text-zinc-600 text-[10px] uppercase tracking-wider block mb-1.5">Carga (kg)</label>
+                          <input type="number" value={ex.carga_sugerida ?? ''} onChange={e => updateEx(i, 'carga_sugerida', e.target.value ? parseFloat(e.target.value) : null)} placeholder="—" className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition-colors text-center placeholder:text-zinc-700" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div>
+                          <label className="text-zinc-600 text-[10px] uppercase tracking-wider block mb-1.5">Grupo muscular</label>
+                          <select value={ex.grupo_muscular ?? ''} onChange={e => updateEx(i, 'grupo_muscular', e.target.value || null)} className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-3 py-2 text-white text-sm appearance-none cursor-pointer focus:outline-none focus:border-white/20 transition-colors">
+                            <option value="" style={{ background: '#1a1a2e' }}>—</option>
+                            <option value="Peito" style={{ background: '#1a1a2e' }}>Peito</option>
+                            <option value="Costas" style={{ background: '#1a1a2e' }}>Costas</option>
+                            <option value="Ombros" style={{ background: '#1a1a2e' }}>Ombros</option>
+                            <option value="Bíceps" style={{ background: '#1a1a2e' }}>Bíceps</option>
+                            <option value="Tríceps" style={{ background: '#1a1a2e' }}>Tríceps</option>
+                            <option value="Abdômen" style={{ background: '#1a1a2e' }}>Abdômen</option>
+                            <option value="Quadríceps" style={{ background: '#1a1a2e' }}>Quadríceps</option>
+                            <option value="Posterior" style={{ background: '#1a1a2e' }}>Posterior</option>
+                            <option value="Glúteos" style={{ background: '#1a1a2e' }}>Glúteos</option>
+                            <option value="Panturrilha" style={{ background: '#1a1a2e' }}>Panturrilha</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-zinc-600 text-[10px] uppercase tracking-wider block mb-1.5">Técnica de execução</label>
+                          <select value={ex.tecnica ?? ''} onChange={e => updateEx(i, 'tecnica', e.target.value || null)} className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-3 py-2 text-white text-sm appearance-none cursor-pointer focus:outline-none focus:border-white/20 transition-colors">
+                            <option value="" style={{ background: '#1a1a2e' }}>—</option>
+                            <option value="Padrão" style={{ background: '#1a1a2e' }}>Padrão</option>
+                            <option value="Drop-set" style={{ background: '#1a1a2e' }}>Drop-set</option>
+                            <option value="Super-série" style={{ background: '#1a1a2e' }}>Super-série</option>
+                            <option value="Pirâmide" style={{ background: '#1a1a2e' }}>Pirâmide</option>
+                            <option value="Rest-pause" style={{ background: '#1a1a2e' }}>Rest-pause</option>
+                            <option value="Bi-set" style={{ background: '#1a1a2e' }}>Bi-set</option>
+                            <option value="Tri-set" style={{ background: '#1a1a2e' }}>Tri-set</option>
+                          </select>
                         </div>
                       </div>
                       {(() => {
@@ -3292,13 +3323,13 @@ export default function PersonalAluno() {
                           <div className="flex items-center gap-2 mb-3 px-1">
                             <p className="text-zinc-600 text-[10px] flex-1">Última vez: <span className="text-zinc-400 font-semibold">{ultima.carga}kg</span> · {new Date(ultima.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}</p>
                             <button onClick={() => updateEx(i, 'carga_sugerida', sugestao)}
-                              className="text-[9px] text-blue-400 border border-blue-500/20 bg-blue-500/10 rounded-lg px-2 py-1 active:scale-95 transition-all uppercase tracking-wider shrink-0">
+                              className={`text-[9px] ${CORES[editandoTreino?.plano ?? 'A'].text} border border-white/10 bg-white/5 rounded-lg px-2 py-1 active:scale-95 transition-all uppercase tracking-wider shrink-0`}>
                               +2.5kg →
                             </button>
                           </div>
                         )
                       })()}
-                      <input value={ex.observacoes} onChange={e => updateEx(i, 'observacoes', e.target.value)} placeholder="Observações (opcional)" className="w-full bg-white/[0.07] border border-white/[0.14] rounded-xl px-3 py-2.5 text-zinc-400 text-sm placeholder:text-zinc-700 focus:outline-none focus:border-white/20 transition-colors" />
+                      <input value={ex.observacoes} onChange={e => updateEx(i, 'observacoes', e.target.value)} placeholder="Observações (opcional)" className="w-full bg-white/[0.07] border border-white/[0.10] rounded-xl px-3 py-2.5 text-zinc-400 text-sm placeholder:text-zinc-700 focus:outline-none focus:border-white/20 transition-colors" />
                     </div>
                   ))}
                 </div>
@@ -3320,8 +3351,7 @@ export default function PersonalAluno() {
 
       {/* ── MODAL CONFIRMAÇÃO DE DELETE ──────────────────────────────── */}
       {confirmaDeleteId && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setConfirmaDeleteId(null)}>
           <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] px-5 pt-6 pb-10 space-y-4"
             style={{ background: '#1c1c1c' }}
@@ -3347,8 +3377,7 @@ export default function PersonalAluno() {
 
       {/* ── MODAL EM BREVE (modalidades futuras) ──────────────────────── */}
       {modalEmBreve && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setModalEmBreve(null)}>
           <div className="w-full max-w-md rounded-t-3xl border border-white/[0.14] px-5 pt-6 pb-10 space-y-4"
             style={{ background: '#1c1c1c' }}
@@ -3368,8 +3397,7 @@ export default function PersonalAluno() {
 
       {/* ── MODAL: PRESCREVER/EDITAR SESSÃO (Triathlon) ─────────────── */}
       {diaEditando && sessaoEditando && (
-        <div className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+        <div className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => { setDiaEditando(null); setSessaoEditando(null) }}>
           <div className="w-full max-w-lg sm:m-4 rounded-t-3xl sm:rounded-3xl border border-white/[0.14] overflow-hidden flex flex-col"
             style={{ background: 'var(--surface-1)', maxHeight: '92vh' }}
@@ -3589,8 +3617,7 @@ export default function PersonalAluno() {
 
       {/* ── MODAL CONFIRMAÇÃO DE EXCLUSÃO DE SESSÃO ─────────────────── */}
       {confirmaDeleteSessaoId && (
-        <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+        <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setConfirmaDeleteSessaoId(null)}>
           <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.14] px-5 pt-6 pb-10 sm:pb-6 space-y-4"
             style={{ background: '#1c1c1c' }}
