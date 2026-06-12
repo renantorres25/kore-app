@@ -75,6 +75,39 @@ function getPeriTipoCfg(tipo: string) {
   return PERI_TIPO[tipo.toLowerCase()] ?? PERI_TIPO_DEF
 }
 
+const PERI_FOCO_FASE: Record<string, string> = {
+  'base aeróbica': 'Foco em volume Z1-Z2. Treinos longos e moderados. Construção de base aeróbica. Evite intensidade alta.',
+  'base aerobica': 'Foco em volume Z1-Z2. Treinos longos e moderados. Construção de base aeróbica. Evite intensidade alta.',
+  base: 'Foco em volume Z1-Z2. Treinos longos e moderados. Construção de base aeróbica. Evite intensidade alta.',
+  volume: 'Aumento progressivo de quilometragem. Manter 80% dos treinos em Z2. Introduzir um treino longo semanal.',
+  intensidade: 'Treinos de qualidade: intervalados, tempo runs e fartlek. Reduza volume total em 10-15%.',
+  limiar: 'Treinos no limiar anaeróbico. Pace de corrida de 20-30min. FC entre Z3-Z4.',
+  vo2max: 'Intervalados curtos de alta intensidade. 4-6x 3-5min em Z5. Recuperação completa entre séries.',
+  taper: 'Redução de volume em 40-60%. Mantém intensidade. Descanso é treino. Foco em recuperação e chegada fresco.',
+  recuperacao: 'Volume mínimo. Apenas treinos regenerativos Z1. Priorize sono e nutrição.',
+  recuperação: 'Volume mínimo. Apenas treinos regenerativos Z1. Priorize sono e nutrição.',
+  hipertrofia: '4 séries 8-12 reps, 65-75% 1RM. Progressão de carga semanal. TUT elevado.',
+  forca: '3-5 séries 3-6 reps, 80-90% 1RM. Descanso completo entre séries.',
+  força: '3-5 séries 3-6 reps, 80-90% 1RM. Descanso completo entre séries.',
+  adaptacao: '3-4 séries 12-15 reps, cargas moderadas. Foco em técnica e ativação muscular.',
+  adaptação: '3-4 séries 12-15 reps, cargas moderadas. Foco em técnica e ativação muscular.',
+  deload: 'Volume e carga reduzidos em 40%. Mantém padrões de movimento. Recuperação ativa.',
+  resistencia: 'Volume elevado em ritmo constante. Construção de base de resistência aeróbica.',
+  resistência: 'Volume elevado em ritmo constante. Construção de base de resistência aeróbica.',
+  potencia: 'Treinos de alta intensidade com cargas elevadas. Foco em explosão e velocidade.',
+  potência: 'Treinos de alta intensidade com cargas elevadas. Foco em explosão e velocidade.',
+  'específico swim/bike/run': 'Treinos específicos das três modalidades, simulando ritmo de prova.',
+  'especifico swim/bike/run': 'Treinos específicos das três modalidades, simulando ritmo de prova.',
+  brick: 'Treinos combinados (ex: bike + corrida) para adaptação às transições da prova.',
+  competicao: 'Simulações de prova em intensidade e volume próximos ao dia da competição.',
+  competição: 'Simulações de prova em intensidade e volume próximos ao dia da competição.',
+  transicao: 'Redução de carga e foco em recuperação entre blocos de treino.',
+  transição: 'Redução de carga e foco em recuperação entre blocos de treino.',
+}
+function getPeriFocoFase(tipo: string): string {
+  return PERI_FOCO_FASE[tipo.toLowerCase()] ?? 'Siga as orientações específicas deste bloco para manter a progressão do ciclo.'
+}
+
 const PERI_MODALIDADE_INFO: Record<PeriModalidade, { label: string; icone: string }> = {
   musculacao: { label: 'Musculação', icone: '🏋️' },
   corrida:    { label: 'Corrida',    icone: '🏃' },
@@ -640,6 +673,8 @@ export default function PersonalAluno() {
   const [periDataProvaForm, setPeriDataProvaForm] = useState('')
   const [periDistanciaProvaForm, setPeriDistanciaProvaForm] = useState<'sprint' | 'olimpico' | '70.3' | 'full'>('70.3')
   const [periBlocosForm, setPeriBlocosForm] = useState<PeriBlocoRascunho[]>(PERI_BLOCOS_PADRAO_MUSCULACAO.map(b => ({ ...b })))
+  const [periBlocoSelecionado, setPeriBlocoSelecionado] = useState<PeriBloco | null>(null)
+  const [periEditando, setPeriEditando] = useState(false)
 
   useEffect(() => { carregar() }, [clienteId])
 
@@ -664,10 +699,20 @@ export default function PersonalAluno() {
   }, [clienteId, fcmaxEstimado, pmcCarregado, carregandoPMC])
 
   useEffect(() => {
-    if (abaAtiva === 'periodizacao' && clienteId && !periCarregado && !periCarregando) {
+    if ((abaAtiva === 'periodizacao' || abaAtiva === 'treinos') && clienteId && !periCarregado && !periCarregando) {
       carregarPeriodizacao()
     }
   }, [abaAtiva, clienteId, periCarregado, periCarregando])
+
+  const periFaseAtual = useMemo(() => {
+    if (!periodizacaoAtiva) return null
+    const semanaAtual = calcSemanaAtualPeri(periodizacaoAtiva.data_inicio, periodizacaoAtiva.blocos)
+    if (!semanaAtual || semanaAtual.blocoIdx >= periodizacaoAtiva.blocos.length) return null
+    const bloco = periodizacaoAtiva.blocos[semanaAtual.blocoIdx]
+    const totalSemanas = periodizacaoAtiva.blocos.reduce((s, b) => s + b.semanas, 0)
+    const semanasParaProva = periodizacaoAtiva.data_prova ? calcSemanasParaProvaPeri(periodizacaoAtiva.data_prova) : null
+    return { bloco, semanaAtual, totalSemanas, semanasParaProva }
+  }, [periodizacaoAtiva])
 
   async function carregarPeriodizacao() {
     setPeriCarregando(true)
@@ -679,7 +724,12 @@ export default function PersonalAluno() {
       const hist = peris.filter(p => p.status !== 'ativo')
       if (ativo) {
         const { data: blocos } = await supabase.from('blocos_periodizacao').select('*').eq('periodizacao_id', ativo.id).order('ordem')
-        setPeriodizacaoAtiva({ ...ativo, blocos: blocos ?? [] })
+        const blocosCarregados = blocos ?? []
+        setPeriodizacaoAtiva({ ...ativo, blocos: blocosCarregados })
+        const semanaAtual = calcSemanaAtualPeri(ativo.data_inicio, blocosCarregados)
+        if (semanaAtual && semanaAtual.blocoIdx < blocosCarregados.length) {
+          setPeriBlocoSelecionado(blocosCarregados[semanaAtual.blocoIdx])
+        }
       }
       if (hist.length) {
         const histComBlocos = await Promise.all(hist.map(async p => {
@@ -806,6 +856,51 @@ export default function PersonalAluno() {
     await supabase.from('periodizacoes').update({ status: 'arquivado' }).eq('id', periodizacaoAtiva.id)
     setPeriHistorico(prev => [{ ...periodizacaoAtiva, blocos: periodizacaoAtiva.blocos }, ...prev])
     setPeriodizacaoAtiva(null)
+  }
+
+  function iniciarEdicaoPeri() {
+    if (!periodizacaoAtiva) return
+    setPeriNomeForm(periodizacaoAtiva.nome)
+    setPeriDataInicioForm(periodizacaoAtiva.data_inicio)
+    setPeriDataProvaForm(periodizacaoAtiva.data_prova ?? '')
+    setPeriModalidadeForm((periodizacaoAtiva.modalidade as PeriModalidade) ?? 'musculacao')
+    setPeriBlocosForm(periodizacaoAtiva.blocos.map(b => ({ nome: b.nome, tipo: b.tipo, semanas: b.semanas, descricao: b.descricao ?? '', volume_alvo: b.volume_alvo })))
+    setPeriEtapaCriacao('form')
+    setPeriEditando(true)
+    setPeriBlocoSelecionado(null)
+    setTimeout(() => periFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+  }
+
+  async function salvarEdicaoPeri() {
+    if (!periodizacaoAtiva) return
+    setPeriSalvando(true)
+    const unidade = PERI_UNIDADE_VOLUME[periModalidadeForm]?.unidade ?? 'km'
+    await supabase.from('periodizacoes').update({
+      nome: periNomeForm.trim() || 'Ciclo de treinamento',
+      data_inicio: periDataInicioForm,
+      data_prova: periDataProvaForm || null,
+    }).eq('id', periodizacaoAtiva.id)
+    await supabase.from('blocos_periodizacao').delete().eq('periodizacao_id', periodizacaoAtiva.id)
+    await supabase.from('blocos_periodizacao').insert(
+      periBlocosForm.map((b, i) => ({
+        periodizacao_id: periodizacaoAtiva.id,
+        nome: b.nome.trim() || `Bloco ${i + 1}`,
+        tipo: b.tipo, semanas: b.semanas, ordem: i + 1,
+        descricao: b.descricao.trim() || null,
+        volume_alvo: b.volume_alvo,
+        unidade_volume: unidade,
+      }))
+    )
+    const { data: blocos } = await supabase.from('blocos_periodizacao').select('*').eq('periodizacao_id', periodizacaoAtiva.id).order('ordem')
+    setPeriodizacaoAtiva(p => p ? {
+      ...p,
+      nome: periNomeForm.trim() || 'Ciclo de treinamento',
+      data_inicio: periDataInicioForm,
+      data_prova: periDataProvaForm || null,
+      blocos: blocos ?? [],
+    } : p)
+    setPeriEditando(false)
+    setPeriSalvando(false)
   }
 
   async function carregarPMC() {
@@ -1855,10 +1950,12 @@ export default function PersonalAluno() {
                         {periodizacaoAtiva.blocos.map((b, i) => {
                           const cfg = getPeriTipoCfg(b.tipo)
                           const isAtual = semanaAtual?.blocoIdx === i
+                          const isSelecionado = periBlocoSelecionado?.id === b.id
                           let ini = 1
                           for (let j = 0; j < i; j++) ini += periodizacaoAtiva.blocos[j].semanas
                           return (
-                            <div key={b.id} className={`flex items-center gap-3 px-5 py-3.5 ${isAtual ? 'bg-white/[0.02]' : ''}`}>
+                            <button key={b.id} onClick={() => setPeriBlocoSelecionado(p => p?.id === b.id ? null : b)}
+                              className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-all ${isAtual ? 'bg-white/[0.02]' : ''} ${isSelecionado ? 'ring-2 ring-inset ring-white/30 bg-white/[0.03]' : ''} hover:bg-white/[0.03] active:scale-[0.99]`}>
                               <div className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot} ${isAtual ? '' : 'opacity-40'}`} />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -1872,7 +1969,7 @@ export default function PersonalAluno() {
                                 {b.descricao && isAtual && <p className="text-zinc-500 text-[10px] mt-1">{b.descricao}</p>}
                               </div>
                               <span className={`text-xs font-bold shrink-0 ${isAtual ? cfg.text : 'text-zinc-600'}`}>{b.semanas}s</span>
-                            </div>
+                            </button>
                           )
                         })}
                       </div>
@@ -1880,13 +1977,80 @@ export default function PersonalAluno() {
                         <p className="text-zinc-700 text-[9px]">
                           Início: {new Date(periodizacaoAtiva.data_inicio + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
                         </p>
-                        <button onClick={arquivarCicloPeri}
-                          className="text-[9px] text-zinc-500 border border-white/[0.10] rounded-lg px-2.5 py-1.5 active:scale-95 transition-all hover:text-zinc-300 uppercase tracking-wider">
-                          Arquivar ciclo
-                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={iniciarEdicaoPeri}
+                            className="text-[9px] text-zinc-500 border border-white/[0.10] rounded-lg px-2.5 py-1.5 active:scale-95 transition-all hover:text-zinc-300 uppercase tracking-wider">
+                            Editar ciclo
+                          </button>
+                          <button onClick={arquivarCicloPeri}
+                            className="text-[9px] text-zinc-500 border border-white/[0.10] rounded-lg px-2.5 py-1.5 active:scale-95 transition-all hover:text-zinc-300 uppercase tracking-wider">
+                            Arquivar ciclo
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
+
+                  {/* Painel de detalhe do bloco selecionado */}
+                  {periBlocoSelecionado && periodizacaoAtiva && (() => {
+                    const b = periBlocoSelecionado
+                    const cfg = getPeriTipoCfg(b.tipo)
+                    let ini = 1
+                    const idx = periodizacaoAtiva.blocos.findIndex(x => x.id === b.id)
+                    for (let j = 0; j < idx; j++) ini += periodizacaoAtiva.blocos[j].semanas
+                    const isAtual = semanaAtual?.blocoIdx === idx
+                    const semanaNoBloco = isAtual ? semanaAtual!.semanaNoBloco : null
+                    const pct = semanaNoBloco != null ? Math.min(100, (semanaNoBloco / b.semanas) * 100) : 0
+                    return (
+                      <div className={`rounded-2xl p-5 border ${cfg.border}`} style={{ background: 'var(--surface-1)' }}>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
+                            <p className={`font-bold text-sm uppercase tracking-wide ${cfg.text}`}>{b.nome}</p>
+                          </div>
+                          <span className="text-zinc-500 text-[11px]">Semana {ini}-{ini + b.semanas - 1}</span>
+                        </div>
+
+                        {b.volume_alvo != null && (
+                          <div className="mb-3">
+                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Volume alvo</p>
+                            <p className="text-white font-bold text-lg">{b.volume_alvo} {b.unidade_volume === 'h' ? 'h/semana' : 'km/semana'}</p>
+                          </div>
+                        )}
+
+                        {b.descricao && (
+                          <div className="mb-3">
+                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Orientações</p>
+                            <p className="text-zinc-300 text-sm leading-relaxed">{b.descricao}</p>
+                          </div>
+                        )}
+
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Progresso</p>
+                          {semanaNoBloco != null ? (
+                            <>
+                              <div className="h-2 bg-white/[0.09] rounded-full overflow-hidden mb-1">
+                                <div className={`h-full rounded-full transition-all ${cfg.dot}`} style={{ width: `${pct}%` }} />
+                              </div>
+                              <p className="text-zinc-600 text-[10px]">Semana {semanaNoBloco} de {b.semanas} ({Math.round(pct)}%)</p>
+                            </>
+                          ) : (
+                            <p className="text-zinc-600 text-[10px]">Semanas {ini}-{ini + b.semanas - 1}</p>
+                          )}
+                        </div>
+
+                        <div className="mb-4">
+                          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">O que focar nessa fase</p>
+                          <p className="text-zinc-400 text-sm leading-relaxed">{getPeriFocoFase(b.tipo)}</p>
+                        </div>
+
+                        <button onClick={iniciarEdicaoPeri}
+                          className="text-[10px] text-zinc-400 border border-white/[0.10] rounded-lg px-3 py-1.5 hover:border-white/20 active:scale-95 transition-all uppercase tracking-wider">
+                          Editar bloco
+                        </button>
+                      </div>
+                    )
+                  })()}
 
                   {/* Histórico */}
                   {periHistorico.length > 0 && (
@@ -1935,12 +2099,18 @@ export default function PersonalAluno() {
                     </div>
                   )}
 
-                  {/* Fluxo de criação */}
-                  {periCriando && (
+                  {/* Fluxo de criação / edição */}
+                  {(periCriando || periEditando) && (
                     <div ref={periFormRef} className="rounded-2xl border border-white/[0.10] overflow-hidden" style={{ background: 'var(--surface-1)' }}>
 
+                      {periEditando && (
+                        <div className="px-5 py-4 border-b border-white/[0.10]">
+                          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Editando ciclo</p>
+                        </div>
+                      )}
+
                       {/* ETAPA 1 — Escolha da modalidade */}
-                      {periEtapaCriacao === 'modalidade' && (
+                      {!periEditando && periEtapaCriacao === 'modalidade' && (
                         <>
                           <div className="px-5 py-4 border-b border-white/[0.10]">
                             <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Qual o foco deste ciclo?</p>
@@ -1968,9 +2138,13 @@ export default function PersonalAluno() {
                       {periEtapaCriacao === 'form' && (
                         <>
                           <div className="px-5 py-4 border-b border-white/[0.10] flex items-center justify-between">
-                            <button onClick={() => setPeriEtapaCriacao('modalidade')} className="text-zinc-500 text-[10px] uppercase tracking-widest flex items-center gap-1 hover:text-zinc-300 transition-colors">
-                              ← Trocar modalidade
-                            </button>
+                            {periEditando ? (
+                              <span className="text-zinc-500 text-[10px] uppercase tracking-widest">Ajuste o ciclo abaixo</span>
+                            ) : (
+                              <button onClick={() => setPeriEtapaCriacao('modalidade')} className="text-zinc-500 text-[10px] uppercase tracking-widest flex items-center gap-1 hover:text-zinc-300 transition-colors">
+                                ← Trocar modalidade
+                              </button>
+                            )}
                             <span className="text-lg">{PERI_MODALIDADE_INFO[periModalidadeForm].icone} {PERI_MODALIDADE_INFO[periModalidadeForm].label}</span>
                           </div>
                           <div className="p-5 space-y-4">
@@ -2083,13 +2257,13 @@ export default function PersonalAluno() {
                             </div>
 
                             <div className="flex gap-2 pt-2">
-                              <button onClick={() => setPeriCriando(false)}
+                              <button onClick={() => periEditando ? setPeriEditando(false) : setPeriCriando(false)}
                                 className="flex-1 py-3 rounded-xl border border-white/[0.10] text-zinc-400 text-sm font-bold active:scale-95 transition-all">
                                 Cancelar
                               </button>
-                              <button onClick={salvarCicloPeri} disabled={periSalvando}
+                              <button onClick={periEditando ? salvarEdicaoPeri : salvarCicloPeri} disabled={periSalvando}
                                 className="flex-1 py-3 rounded-xl bg-white text-black text-sm font-bold active:scale-95 transition-all disabled:opacity-50">
-                                {periSalvando ? 'Salvando…' : 'Salvar ciclo'}
+                                {periSalvando ? 'Salvando…' : periEditando ? 'Salvar alterações' : 'Salvar ciclo'}
                               </button>
                             </div>
                           </div>
@@ -2735,6 +2909,23 @@ export default function PersonalAluno() {
                       </span>
                     )}
                   </div>
+
+                  {/* Banner de fase da periodização */}
+                  {periodizacaoAtiva && periFaseAtual && ((periodizacaoAtiva.modalidade ?? 'musculacao') === modalidadeEscolhida) && (() => {
+                    const cfg = getPeriTipoCfg(periFaseAtual.bloco.tipo)
+                    return (
+                      <div className={`rounded-xl px-4 py-3 border ${cfg.border} flex items-center gap-3`} style={{ background: 'var(--surface-1)' }}>
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-zinc-300 text-xs font-semibold">📅 Periodização: {periFaseAtual.bloco.nome}</p>
+                          <p className="text-zinc-600 text-[10px] mt-0.5">
+                            Semana {periFaseAtual.semanaAtual.semanaNoBloco} de {periFaseAtual.bloco.semanas}
+                            {periFaseAtual.semanasParaProva !== null && ` · ${periFaseAtual.semanasParaProva === 0 ? 'prova esta semana' : `${periFaseAtual.semanasParaProva} ${periFaseAtual.semanasParaProva === 1 ? 'semana' : 'semanas'} para a prova`}`}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Header da semana */}
                   {(() => {
