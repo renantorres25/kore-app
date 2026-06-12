@@ -655,6 +655,8 @@ export default function PersonalAluno() {
   const [fichaObjetivo, setFichaObjetivo] = useState('')
   const [fichaMetaPeso, setFichaMetaPeso] = useState('')
   const [fichaMetaData, setFichaMetaData] = useState('')
+  const [fichaFcmax, setFichaFcmax] = useState('')
+  const [fichaFtp, setFichaFtp] = useState('')
   const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'periodizacao' | 'evolucao' | 'perfil'>('visao-geral')
 
   // ── Periodização (aba dedicada) ──────────────────────────────────────
@@ -1411,6 +1413,8 @@ export default function PersonalAluno() {
       objetivo: fichaObjetivo || null,
       meta_peso: fichaMetaPeso ? parseFloat(fichaMetaPeso) || null : null,
       meta_data_limite: fichaMetaData || null,
+      fcmax: fichaFcmax ? parseInt(fichaFcmax) || null : null,
+      ftp: fichaFtp ? parseInt(fichaFtp) || null : null,
     }
     await supabase.from('perfis').update(updates).eq('id', clienteId)
     setAluno(prev => prev ? { ...prev, ...updates } : prev)
@@ -1638,30 +1642,38 @@ export default function PersonalAluno() {
                         </div>
                       </div>
 
-                      {(aluno?.nivel || aluno?.fcmax || aluno?.ftp || ultimaAvaliacao) && (
-                        <div className="mt-4 pt-4 border-t border-white/[0.09] flex flex-wrap gap-2">
-                          {aluno?.nivel && (
-                            <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
-                              Nível: {aluno.nivel}
-                            </span>
-                          )}
-                          {aluno?.fcmax && (
-                            <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
-                              FC máx: {aluno.fcmax} bpm
-                            </span>
-                          )}
-                          {aluno?.ftp && (
-                            <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
-                              FTP: {aluno.ftp}W
-                            </span>
-                          )}
-                          {ultimaAvaliacao && (
-                            <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
-                              Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      <div className="mt-4 pt-4 border-t border-white/[0.09] flex flex-wrap gap-2">
+                        {aluno?.nivel && (
+                          <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
+                            Nível: {aluno.nivel}
+                          </span>
+                        )}
+                        {aluno?.fcmax ? (
+                          <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
+                            FCmax: {aluno.fcmax}bpm
+                          </span>
+                        ) : (
+                          <button onClick={() => setAbaAtiva('perfil')}
+                            className="text-[10px] text-zinc-500 bg-white/[0.05] border border-white/[0.10] rounded-full px-2.5 py-0.5 active:scale-95 transition-all">
+                            ⚠️ FCmax: não definido
+                          </button>
+                        )}
+                        {aluno?.ftp ? (
+                          <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
+                            FTP: {aluno.ftp}W
+                          </span>
+                        ) : (
+                          <button onClick={() => setAbaAtiva('perfil')}
+                            className="text-[10px] text-zinc-500 bg-white/[0.05] border border-white/[0.10] rounded-full px-2.5 py-0.5 active:scale-95 transition-all">
+                            ⚠️ FTP: não definido
+                          </button>
+                        )}
+                        {ultimaAvaliacao && (
+                          <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
+                            Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )
                 })()}
@@ -2608,6 +2620,8 @@ export default function PersonalAluno() {
                         setFichaObjetivo(aluno?.objetivo ?? '')
                         setFichaMetaPeso(String(aluno?.meta_peso ?? ''))
                         setFichaMetaData(aluno?.meta_data_limite ?? '')
+                        setFichaFcmax(String(aluno?.fcmax ?? ''))
+                        setFichaFtp(String(aluno?.ftp ?? ''))
                       }
                       setEditandoFicha(p => !p)
                     }}
@@ -2683,6 +2697,24 @@ export default function PersonalAluno() {
                             <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
                               className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30"
                               style={{ colorScheme: 'dark' }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="border-t border-white/[0.14] pt-3">
+                        <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2.5">Performance</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">FC Máxima (bpm)</p>
+                            <input type="number" value={fichaFcmax} onChange={e => setFichaFcmax(e.target.value)}
+                              placeholder="Ex: 185"
+                              className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
+                          </div>
+                          <div>
+                            <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">FTP (watts) — opcional</p>
+                            <input type="number" value={fichaFtp} onChange={e => setFichaFtp(e.target.value)}
+                              placeholder="Ex: 220 (só para ciclistas)"
+                              className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
+                            <p className="text-zinc-700 text-[9px] mt-1">Potência no Limiar (ciclismo)</p>
                           </div>
                         </div>
                       </div>
