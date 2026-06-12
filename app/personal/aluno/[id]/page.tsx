@@ -684,6 +684,7 @@ export default function PersonalAluno() {
   const [sonoHistorico7d, setSonoHistorico7d] = useState<{ data: string; score: number | null; duracaoMin: number | null }[]>([])
   const [bemEstarHojeInfo, setBemEstarHojeInfo] = useState<{ humor: number | null; energia: number | null; motivacao: number | null; dorMuscular: number | null; notas: string | null } | null>(null)
   const [fasePeriodizacaoChat, setFasePeriodizacaoChat] = useState<string | null>(null)
+  const [dataProvaCiclo, setDataProvaCiclo] = useState<string | null>(null)
   const [faseCiclo, setFaseCiclo] = useState<FaseCiclo | null>(null)
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
@@ -1154,9 +1155,10 @@ export default function PersonalAluno() {
     }
 
     // Fase de periodização ativa
-    const { data: periAtiva } = await supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const { data: periAtiva } = await supabase.from('periodizacoes').select('id,nome,data_inicio,data_prova').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (periAtiva) {
-      const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,ordem').eq('periodizacao_id', periAtiva.id).order('ordem')
+      setDataProvaCiclo(periAtiva.data_prova ?? null)
+      const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,ordem,descricao').eq('periodizacao_id', periAtiva.id).order('ordem')
       if (blocos?.length) {
         const inicio = new Date(periAtiva.data_inicio + 'T12:00:00-03:00')
         const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
@@ -1172,7 +1174,16 @@ export default function PersonalAluno() {
         const semanasRestantesBloco = b.semanas - semanaNoBloco
         const diasAteProximo = blocoIdx < blocos.length - 1 ? semanasRestantesBloco * 7 : null
         setFaseCiclo({ nomeCiclo: periAtiva.nome, nomeBloco: b.nome, tipoBloco: b.tipo, semanaBloco: semanaNoBloco, semanasBloco: b.semanas, totalSemanas, diasAteProximoBloco: diasAteProximo })
-        setFasePeriodizacaoChat(`${b.nome} (${b.tipo}) — semana ${semanaNoBloco} de ${b.semanas}`)
+
+        let faseTexto = `Ciclo: ${periAtiva.nome} — ${b.nome} (${b.tipo}), semana ${semanaNoBloco} de ${b.semanas}`
+        if (periAtiva.data_prova) {
+          const dataProvaFmt = new Date(periAtiva.data_prova + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+          const semanasParaProva = calcSemanasParaProvaPeri(periAtiva.data_prova)
+          faseTexto += ` — Prova: ${dataProvaFmt}`
+          if (semanasParaProva != null) faseTexto += ` (faltam ${semanasParaProva} semanas)`
+        }
+        if (b.descricao) faseTexto += ` — Foco: ${b.descricao}`
+        setFasePeriodizacaoChat(faseTexto)
       }
     }
 
@@ -2612,7 +2623,7 @@ export default function PersonalAluno() {
                       </div>
 
                       {(() => {
-                        const narrativa = gerarNarrativaPMC(pontosPMC, null) // null = sem prova cadastrada ainda
+                        const narrativa = gerarNarrativaPMC(pontosPMC, dataProvaCiclo)
                         const corTexto = narrativa.cor === 'vermelho' ? 'text-red-400' : narrativa.cor === 'amarelo' ? 'text-amber-400' : 'text-emerald-400'
                         const corBg = narrativa.cor === 'vermelho' ? 'rgba(248,113,113,0.08)' : narrativa.cor === 'amarelo' ? 'rgba(251,191,36,0.08)' : 'rgba(52,211,153,0.08)'
                         const corBorder = narrativa.cor === 'vermelho' ? 'rgba(248,113,113,0.20)' : narrativa.cor === 'amarelo' ? 'rgba(251,191,36,0.20)' : 'rgba(52,211,153,0.20)'
@@ -3305,13 +3316,16 @@ export default function PersonalAluno() {
               }
               return dias
             })(),
-            interpretacao: pontosPMC[pontosPMC.length - 1].tsb > 10
-              ? 'Em forma — pronta para competir ou aumentar carga'
-              : pontosPMC[pontosPMC.length - 1].tsb > -10
-              ? 'Equilíbrio — manutenção'
-              : pontosPMC[pontosPMC.length - 1].tsb > -30
-              ? 'Em carga — fase de construção normal'
-              : 'Sobrecarga — reduzir volume recomendado'
+            interpretacao: (() => {
+              const narrativa = gerarNarrativaPMC(pontosPMC, dataProvaCiclo)
+              return `${narrativa.titulo}. ${narrativa.linhas.join(' ')}`
+            })(),
+          } : (aluno.tsb_atual != null && aluno.ctl_atual != null && aluno.atl_atual != null) ? {
+            tsb: aluno.tsb_atual,
+            ctl: aluno.ctl_atual,
+            atl: aluno.atl_atual,
+            diasEmSobrecarga: 0,
+            interpretacao: `TSB salvo: ${aluno.tsb_atual} (CTL: ${aluno.ctl_atual}, ATL: ${aluno.atl_atual}). PMC não recalculado nesta sessão.`,
           } : null,
         }} pacienteId={clienteId} historicoIACarregando={historicoIACarregando} />
       )}
