@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { adminFetch } from '../../lib/adminFetch'
+import { adminFetch, adminPost } from '../../lib/adminFetch'
 
 const C = {
   energy: '#FF5A36', good: '#2DD4A7', sleep: '#60A5FA', warn: '#F5B544', danger: '#FB7185',
@@ -36,10 +36,21 @@ function Status({ label, ok }: { label: string; ok: boolean }) {
 export default function SistemaPage() {
   const [s, setS] = useState<Sistema | null>(null)
   const [erro, setErro] = useState('')
+  const [digestMsg, setDigestMsg] = useState('')
+  const [digestErro, setDigestErro] = useState('')
+  const [digestOcupado, setDigestOcupado] = useState(false)
 
   useEffect(() => {
     adminFetch<Sistema>('/api/admin/sistema').then(setS).catch((e) => setErro(e.message))
   }, [])
+
+  async function enviarDigest() {
+    setDigestOcupado(true); setDigestMsg(''); setDigestErro('')
+    try {
+      const r = await adminPost<{ enviados: number }>('/api/admin/digest', {})
+      setDigestMsg(`Enviado para ${r.enviados} admin(s).`)
+    } catch (e: any) { setDigestErro(e.message) } finally { setDigestOcupado(false) }
+  }
 
   return (
     <div style={{ fontFamily: JAKARTA, maxWidth: 900, color: C.t1 }}>
@@ -80,6 +91,16 @@ export default function SistemaPage() {
             <p style={{ color: C.t3, fontSize: 11, marginTop: 8 }}>
               A captura de consentimento no cadastro ainda não está ativa (pendência F26 da auditoria). A exclusão de dados já está disponível na ficha de cada usuário.
             </p>
+          </div>
+
+          <div style={glass}>
+            <p style={{ color: C.energy, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 700, margin: '0 0 6px' }}>Digest semanal</p>
+            <p style={{ color: C.t2, fontSize: 13, margin: '0 0 12px' }}>Envia o resumo (usuários, crescimento, MRR, SAC) por e-mail para todos os admins ativos.</p>
+            {(digestMsg || digestErro) && <p style={{ color: digestErro ? C.danger : C.good, fontSize: 12, margin: '0 0 10px' }}>{digestErro || digestMsg}</p>}
+            <button disabled={digestOcupado} onClick={enviarDigest}
+              style={{ background: 'transparent', border: `1px solid ${C.sleep}`, color: C.sleep, fontWeight: 600, fontFamily: JAKARTA, fontSize: 13, padding: '9px 14px', borderRadius: 10, cursor: digestOcupado ? 'default' : 'pointer' }}>
+              {digestOcupado ? 'Enviando…' : 'Enviar agora'}
+            </button>
           </div>
         </div>
       )}
