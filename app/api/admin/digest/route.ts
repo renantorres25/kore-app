@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const atletas = await cnt(() => supabaseAdmin.from('perfis').select('*', { count: 'exact', head: true }).eq('tipo', 'cliente'))
     const personais = await cnt(() => supabaseAdmin.from('perfis').select('*', { count: 'exact', head: true }).eq('tipo', 'personal'))
     const nutris = await cnt(() => supabaseAdmin.from('perfis').select('*', { count: 'exact', head: true }).eq('tipo', 'nutricionista'))
-    const vinculos = await cnt(() => supabaseAdmin.from('vinculos').select('*', { count: 'exact', head: true }))
+    const vinculos = await cnt(() => supabaseAdmin.from('vinculos').select('*', { count: 'exact', head: true }).eq('ativo', true))
     const ticketsAbertos = await cnt(() => supabaseAdmin.from('tickets_sac').select('*', { count: 'exact', head: true }).eq('status', 'aberto'))
 
     let assinaturasAtivas = 0
@@ -91,7 +91,10 @@ export async function POST(req: NextRequest) {
       subject: `KORE — Resumo semanal (${hoje})`,
       html,
     })
-    if (error) return NextResponse.json({ erro: 'Falha ao enviar o e-mail.' }, { status: 500 })
+    if (error) {
+      console.error('[digest] Resend error:', error)
+      return NextResponse.json({ erro: `Resend: ${(error as any)?.message || JSON.stringify(error)}` }, { status: 500 })
+    }
 
     try {
       await supabaseAdmin.from('audit_log').insert({

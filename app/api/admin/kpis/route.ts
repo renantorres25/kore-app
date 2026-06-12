@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       novos30 = null
     }
     const vinculos = await safeCount(() =>
-      supabaseAdmin.from('vinculos').select('*', { count: 'exact', head: true })
+      supabaseAdmin.from('vinculos').select('*', { count: 'exact', head: true }).eq('ativo', true)
     )
     const eventosHoje = await safeCount(() =>
       supabaseAdmin.from('eventos').select('*', { count: 'exact', head: true }).gte('created_at', desde1)

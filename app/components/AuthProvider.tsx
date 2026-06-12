@@ -17,7 +17,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const isPublic = PUBLIC_ROUTES.some(r => pathname === r) || pathname.startsWith('/convite')
         if (!isPublic) router.push('/login')
       } else if (event === 'SIGNED_IN') {
-        registrarEvento('session_started')
+        // Evita ruído: SIGNED_IN dispara a cada renovação de token e em cada aba.
+        // Registra apenas uma vez por sessão de navegador.
+        try {
+          if (typeof window !== 'undefined' && !sessionStorage.getItem('kore_sess_logged')) {
+            sessionStorage.setItem('kore_sess_logged', '1')
+            registrarEvento('session_started')
+          }
+        } catch {
+          registrarEvento('session_started')
+        }
       }
     })
     return () => subscription.unsubscribe()
