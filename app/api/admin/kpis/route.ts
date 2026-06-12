@@ -41,8 +41,13 @@ export async function GET(req: NextRequest) {
     let ativos30: number | null = null
     let crescimentoSemanal: number[] = []
     try {
-      const { data: lista } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
-      const usuariosAuth = lista?.users || []
+      const usuariosAuth: any[] = []
+      for (let pg = 1; pg <= 50; pg++) {
+        const { data: lista } = await supabaseAdmin.auth.admin.listUsers({ page: pg, perPage: 1000 })
+        const us = lista?.users || []
+        usuariosAuth.push(...us)
+        if (us.length < 1000) break
+      }
       const d30 = new Date(desde30).getTime()
       const d7 = new Date(agora - 7 * 24 * 3600 * 1000).getTime()
       const semanaMs = 7 * 24 * 3600 * 1000

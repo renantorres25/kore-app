@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
       .select('id, nome, email, tipo', { count: 'exact' })
 
     if (tipo) query = query.eq('tipo', tipo)
-    if (q) query = query.or(`nome.ilike.%${q}%,email.ilike.%${q}%`)
+    if (q) {
+      const qSafe = q.replace(/[,()%*\\]/g, ' ').trim()
+      if (qSafe) query = query.or(`nome.ilike.%${qSafe}%,email.ilike.%${qSafe}%`)
+    }
 
     query = query.order('nome', { ascending: true }).range(offset, offset + limit - 1)
 

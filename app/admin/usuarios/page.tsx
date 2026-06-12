@@ -28,6 +28,8 @@ export default function UsuariosPage() {
   const [tipo, setTipo] = useState('')
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [total, setTotal] = useState(0)
+  const [offset, setOffset] = useState(0)
+  const LIMITE = 25
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
@@ -38,6 +40,8 @@ export default function UsuariosPage() {
       const params = new URLSearchParams()
       if (q) params.set('q', q)
       if (tipo) params.set('tipo', tipo)
+      params.set('limit', String(LIMITE))
+      params.set('offset', String(offset))
       const data = await adminFetch<{ usuarios: Usuario[]; total: number }>(`/api/admin/usuarios?${params.toString()}`)
       setUsuarios(data.usuarios)
       setTotal(data.total)
@@ -46,12 +50,14 @@ export default function UsuariosPage() {
     } finally {
       setCarregando(false)
     }
-  }, [q, tipo])
+  }, [q, tipo, offset])
 
   useEffect(() => {
     const t = setTimeout(carregar, 300)
     return () => clearTimeout(t)
   }, [carregar])
+
+  useEffect(() => { setOffset(0) }, [q, tipo])
 
   const filtros = [
     { label: 'Todos', val: '' },
@@ -109,6 +115,22 @@ export default function UsuariosPage() {
           </div>
         ))}
       </div>
+
+      {total > LIMITE && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
+          <span style={{ color: C.t3, fontSize: 12 }}>
+            {Math.min(offset + 1, total)}–{Math.min(offset + LIMITE, total)} de {total.toLocaleString('pt-BR')}
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMITE))} style={pag(offset === 0)}>Anterior</button>
+            <button disabled={offset + LIMITE >= total} onClick={() => setOffset(offset + LIMITE)} style={pag(offset + LIMITE >= total)}>Próximo</button>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+function pag(disabled: boolean): React.CSSProperties {
+  return { background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: disabled ? '#555555' : '#9AA0AD', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 13, padding: '7px 14px', borderRadius: 10, cursor: disabled ? 'default' : 'pointer' }
 }
