@@ -7,10 +7,10 @@ import ProfissionalAIChat, { type ContextoProfissional } from '../../../componen
 import SidebarProfissional from '../../../components/SidebarProfissional'
 import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle, CalendarClock } from 'lucide-react'
 import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
-import { calcularPMC, type PontoPMC } from '../../../lib/alertas-cientificos'
+import { calcularPMC, type PontoPMC, computeAlertaCientifico, type AlertaNivel } from '../../../lib/alertas-cientificos'
 import { gerarNarrativaBloco } from '../../../lib/narrativa-treino'
 
-type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
+type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null; tsb_atual: number | null; atl_atual: number | null; ctl_atual: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number; grupo_muscular?: string | null; tecnica?: string | null }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; status: string; data: string | null; exercicios: Exercicio[] }
 type Monitor = {
@@ -205,7 +205,12 @@ const MODALIDADES_TREINO = [
 ] as const
 
 type StatusAderencia = 'concluido' | 'parcial' | 'nao_realizado' | 'realizado_sem_planejamento'
-const STATUS_ICON: Record<StatusAderencia, string> = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌', realizado_sem_planejamento: '⬜' }
+const STATUS_BADGE: Record<StatusAderencia, { emoji: string; label: string; color: string; bg: string; border: string }> = {
+  concluido:                  { emoji: '✅', label: 'Realizado',      color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  parcial:                    { emoji: '⚠️', label: 'Parcial',        color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+  nao_realizado:              { emoji: '❌', label: 'Não realizado',  color: 'text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/20' },
+  realizado_sem_planejamento: { emoji: '⬜', label: 'Sem prescrição', color: 'text-zinc-400',    bg: 'bg-white/[0.04]',   border: 'border-white/[0.08]' },
+}
 
 type IndicadorAderencia = { icone: '✅' | '⚠️' | null; prescrito: string | null; realizado: string | null }
 
@@ -363,6 +368,24 @@ function getZonaFC(fcMedia: number, fcmax: number): { zona: number; label: strin
   return { zona: 5, label: 'Z5 · VO2max', cor: '#f87171' }
 }
 
+function calcularIdade(dataNascimento: string | null): number | null {
+  if (!dataNascimento) return null
+  const nasc = new Date(dataNascimento + 'T12:00:00-03:00')
+  const hoje = new Date()
+  let idade = hoje.getFullYear() - nasc.getFullYear()
+  const aindaNaoFezAniversario = (hoje.getMonth() < nasc.getMonth()) ||
+    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
+  if (aindaNaoFezAniversario) idade--
+  return idade
+}
+
+const ALERTA_CFG: Record<AlertaNivel, { dot: string; border: string; bg: string; causaColor: string }> = {
+  vermelho: { dot: 'bg-red-400',     border: 'border-red-500/20',   bg: 'bg-red-500/[0.04]',   causaColor: 'text-red-300' },
+  amarelo:  { dot: 'bg-amber-400',   border: 'border-amber-500/20', bg: 'bg-amber-500/[0.04]', causaColor: 'text-amber-300' },
+  verde:    { dot: 'bg-emerald-400', border: 'border-white/[0.07]', bg: '',                    causaColor: 'text-emerald-600' },
+  cinza:    { dot: 'bg-zinc-600',    border: 'border-white/[0.07]', bg: '',                    causaColor: 'text-zinc-600' },
+}
+
 function diasSemTreinar(ultimoTreino: string | null): number {
   if (!ultimoTreino) return 999
   const d = new Date(ultimoTreino + 'T12:00:00-03:00')
@@ -470,6 +493,27 @@ export default function PersonalAluno() {
   const fcmaxEstimado = useMemo(() => {
     return aluno?.fcmax ?? (Math.max(0, ...atividadesCalendario.filter(a => a.fc_max != null).map(a => a.fc_max as number)) || null)
   }, [aluno?.fcmax, atividadesCalendario])
+  const alertaCientifico = useMemo(() => {
+    if (!aluno) return null
+    const atividades30d = atividadesCalendario.map(a => ({
+      data: a.data,
+      duracao_min: a.duracao_min ?? null,
+      fc_media: a.fc_media ?? null,
+      fc_max: a.fc_max ?? null,
+      calorias_wearable: null,
+      calorias_estimadas: a.calorias ?? null,
+    }))
+    return computeAlertaCientifico({
+      atividades30d,
+      fcmaxPerfil: aluno.fcmax,
+      idade: calcularIdade(aluno.data_nascimento),
+      totalTreinos: monitor?.totalTreinos ?? 0,
+      ultimoTreino: monitor?.ultimoTreino ?? null,
+      tsb_atual: aluno.tsb_atual,
+      ctl_atual: aluno.ctl_atual,
+      atl_atual: aluno.atl_atual,
+    })
+  }, [aluno, atividadesCalendario, monitor])
   const cargaInternaSemanas = useMemo(() => {
     if (!fcmaxEstimado) return null
     const hoje = getTodayBR()
@@ -576,7 +620,11 @@ export default function PersonalAluno() {
           realizado: realizadoFC != null ? `${realizadoFC}bpm` : null,
         }
 
-        return { sessao, ativ, status, indDuracao, indDistancia, indPace, indFC }
+        return {
+          sessao, ativ, status, indDuracao, indDistancia, indPace, indFC,
+          prescritoMin, realizadoMin,
+          fcMinPrescrito, fcMaxPrescrito, realizadoFC,
+        }
       })
 
     // Atividades realizadas sem sessão prescrita correspondente (mesmo dia + modalidade)
@@ -602,6 +650,8 @@ export default function PersonalAluno() {
               indDistancia: { ...indVazio, realizado: ativ.distancia_km != null ? `${ativ.distancia_km.toFixed(1)}km` : null },
               indPace: indVazio,
               indFC: { ...indVazio, realizado: ativ.fc_media != null ? `${ativ.fc_media}bpm` : null },
+              prescritoMin: null, realizadoMin: ativ.duracao_min ?? null,
+              fcMinPrescrito: null, fcMaxPrescrito: null, realizadoFC: ativ.fc_media ?? null,
             }
           })
       })
@@ -645,6 +695,7 @@ export default function PersonalAluno() {
   const [sonoHistorico7d, setSonoHistorico7d] = useState<{ data: string; score: number | null; duracaoMin: number | null }[]>([])
   const [bemEstarHojeInfo, setBemEstarHojeInfo] = useState<{ humor: number | null; energia: number | null; motivacao: number | null; dorMuscular: number | null; notas: string | null } | null>(null)
   const [fasePeriodizacaoChat, setFasePeriodizacaoChat] = useState<string | null>(null)
+  const [dataProvaCiclo, setDataProvaCiclo] = useState<string | null>(null)
   const [faseCiclo, setFaseCiclo] = useState<FaseCiclo | null>(null)
   const [editandoFicha, setEditandoFicha] = useState(false)
   const [salvandoFicha, setSalvandoFicha] = useState(false)
@@ -655,6 +706,8 @@ export default function PersonalAluno() {
   const [fichaObjetivo, setFichaObjetivo] = useState('')
   const [fichaMetaPeso, setFichaMetaPeso] = useState('')
   const [fichaMetaData, setFichaMetaData] = useState('')
+  const [fichaFcmax, setFichaFcmax] = useState('')
+  const [fichaFtp, setFichaFtp] = useState('')
   const [abaAtiva, setAbaAtiva] = useState<'visao-geral' | 'treinos' | 'periodizacao' | 'evolucao' | 'perfil'>('visao-geral')
 
   // ── Periodização (aba dedicada) ──────────────────────────────────────
@@ -946,7 +999,7 @@ export default function PersonalAluno() {
     const { inicio: inicioSemanaAtual, fim: fimSemanaAtual } = getInicioFimSemana(0)
 
     const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }, { data: sessoesSemanaAtual }] = await Promise.all([
-      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp').eq('id', clienteId).single(),
+      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp, tsb_atual, atl_atual, ctl_atual').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
       supabase.from('sono').select('score_recuperacao, duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).single(),
       supabase.from('bem_estar').select('data, humor, energia, motivacao, dor_muscular, notas').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
@@ -1113,9 +1166,10 @@ export default function PersonalAluno() {
     }
 
     // Fase de periodização ativa
-    const { data: periAtiva } = await supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const { data: periAtiva } = await supabase.from('periodizacoes').select('id,nome,data_inicio,data_prova').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (periAtiva) {
-      const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,ordem').eq('periodizacao_id', periAtiva.id).order('ordem')
+      setDataProvaCiclo(periAtiva.data_prova ?? null)
+      const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,ordem,descricao').eq('periodizacao_id', periAtiva.id).order('ordem')
       if (blocos?.length) {
         const inicio = new Date(periAtiva.data_inicio + 'T12:00:00-03:00')
         const diasTotais = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24))
@@ -1131,7 +1185,16 @@ export default function PersonalAluno() {
         const semanasRestantesBloco = b.semanas - semanaNoBloco
         const diasAteProximo = blocoIdx < blocos.length - 1 ? semanasRestantesBloco * 7 : null
         setFaseCiclo({ nomeCiclo: periAtiva.nome, nomeBloco: b.nome, tipoBloco: b.tipo, semanaBloco: semanaNoBloco, semanasBloco: b.semanas, totalSemanas, diasAteProximoBloco: diasAteProximo })
-        setFasePeriodizacaoChat(`${b.nome} (${b.tipo}) — semana ${semanaNoBloco} de ${b.semanas}`)
+
+        let faseTexto = `Ciclo: ${periAtiva.nome} — ${b.nome} (${b.tipo}), semana ${semanaNoBloco} de ${b.semanas}`
+        if (periAtiva.data_prova) {
+          const dataProvaFmt = new Date(periAtiva.data_prova + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+          const semanasParaProva = calcSemanasParaProvaPeri(periAtiva.data_prova)
+          faseTexto += ` — Prova: ${dataProvaFmt}`
+          if (semanasParaProva != null) faseTexto += ` (faltam ${semanasParaProva} semanas)`
+        }
+        if (b.descricao) faseTexto += ` — Foco: ${b.descricao}`
+        setFasePeriodizacaoChat(faseTexto)
       }
     }
 
@@ -1411,6 +1474,8 @@ export default function PersonalAluno() {
       objetivo: fichaObjetivo || null,
       meta_peso: fichaMetaPeso ? parseFloat(fichaMetaPeso) || null : null,
       meta_data_limite: fichaMetaData || null,
+      fcmax: fichaFcmax ? parseInt(fichaFcmax) || null : null,
+      ftp: fichaFtp ? parseInt(fichaFtp) || null : null,
     }
     await supabase.from('perfis').update(updates).eq('id', clienteId)
     setAluno(prev => prev ? { ...prev, ...updates } : prev)
@@ -1537,6 +1602,33 @@ export default function PersonalAluno() {
             {abaAtiva === 'visao-geral' && (
               <div className="space-y-5">
 
+                {/* Alertas científicos (TSB/ACWR/FC drift/inatividade) */}
+                {alertaCientifico && (
+                  alertaCientifico.alertas.length > 0 ? (
+                    <div className={`rounded-2xl border ${ALERTA_CFG[alertaCientifico.nivel].border} ${ALERTA_CFG[alertaCientifico.nivel].bg} overflow-hidden`}>
+                      <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${ALERTA_CFG[alertaCientifico.nivel].dot}`} />
+                        <p className="text-[11px] text-zinc-400 uppercase tracking-[0.18em] font-bold">Alertas clínicos</p>
+                      </div>
+                      <div className="px-5 py-3 flex flex-col gap-3">
+                        {alertaCientifico.alertas.map(a => (
+                          <div key={a.codigo}>
+                            <p className={`text-sm leading-relaxed font-medium ${ALERTA_CFG[a.nivel].causaColor}`}>
+                              {a.nivel === 'vermelho' ? '🔴' : '🟡'} {a.mensagem}
+                            </p>
+                            <p className="text-[11px] text-zinc-600 mt-0.5">{a.dadoTecnico}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-white/[0.07] px-5 py-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <p className="text-sm text-emerald-300/90">✅ Sem alertas clínicos no momento</p>
+                    </div>
+                  )
+                )}
+
                 {/* Alertas clínicos */}
                 {(lesoes || restricaoFisica || medicamentos) && (
                   <div style={{ background: 'rgba(255,90,54,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,90,54,0.18)', borderRadius: 20, overflow: 'hidden' }}>
@@ -1595,76 +1687,87 @@ export default function PersonalAluno() {
                   const cfg = SEMAFORO_CFG[nivel]
 
                   return (
-                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                      <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Status de hoje</p>
-
-                      <div className="flex items-center gap-3 mb-4 px-4 py-3.5 rounded-2xl" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-                        <div className="w-4 h-4 rounded-full shrink-0" style={{ background: cfg.cor, boxShadow: `0 0 12px ${cfg.cor}` }} />
-                        <p className="text-white font-black text-base">{texto}</p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Recuperação</p>
-                          {recuperacao != null ? (
-                            <p className={`text-2xl font-black leading-none ${recuperacao >= 70 ? 'text-emerald-400' : recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {recuperacao}<span className="text-zinc-500 text-[11px] font-normal">/100</span>
-                            </p>
-                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Sono</p>
-                          {monitor.sonoHoras ? (
-                            <p className="text-2xl font-black text-white leading-none">{monitor.sonoHoras}<span className="text-zinc-500 text-[11px] font-normal">h</span></p>
-                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Bem-estar</p>
-                          {bemHoje != null ? (
-                            <p className={`text-2xl font-black leading-none ${bemHoje >= 4 ? 'text-emerald-400' : bemHoje >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {bemHoje.toFixed(1)}<span className="text-zinc-500 text-[11px] font-normal">/4</span>
-                            </p>
-                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                          <p className="text-zinc-600 text-[11px] mt-1">hoje</p>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Inatividade</p>
-                          {dias != null ? (
-                            <p className={`text-2xl font-black leading-none ${dias <= 2 ? 'text-emerald-400' : dias <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {dias}<span className="text-zinc-500 text-[11px] font-normal">d</span>
-                            </p>
-                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                          <p className="text-zinc-600 text-[11px] mt-1">sem treinar</p>
+                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 16 }}>
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Status de hoje</p>
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.cor, boxShadow: `0 0 8px ${cfg.cor}` }} />
+                          <p className="text-white font-bold text-xs">{texto}</p>
                         </div>
                       </div>
 
-                      {(aluno?.nivel || aluno?.fcmax || aluno?.ftp || ultimaAvaliacao) && (
-                        <div className="mt-4 pt-4 border-t border-white/[0.09] flex flex-wrap gap-2">
-                          {aluno?.nivel && (
-                            <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
-                              Nível: {aluno.nivel}
-                            </span>
-                          )}
-                          {aluno?.fcmax && (
-                            <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
-                              FC máx: {aluno.fcmax} bpm
-                            </span>
-                          )}
-                          {aluno?.ftp && (
-                            <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
-                              FTP: {aluno.ftp}W
-                            </span>
-                          )}
-                          {ultimaAvaliacao && (
-                            <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
-                              Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
-                            </span>
+                      {nivel !== 'cinza' ? (
+                        <div className="flex items-center gap-3 text-sm text-zinc-300 mt-3 flex-wrap">
+                          <span>😴 Sono: {monitor.sonoHoras ? <span className="text-white font-semibold">{monitor.sonoHoras}h</span> : <span className="text-zinc-600">--</span>}</span>
+                          <span className="text-zinc-700">│</span>
+                          <span>💚 Bem-estar: {bemHoje != null ? <span className="text-white font-semibold">{bemHoje.toFixed(1)}/4</span> : <span className="text-zinc-600">--</span>}</span>
+                          <span className="text-zinc-700">│</span>
+                          <span>🔋 Rec: {recuperacao != null ? <span className="text-white font-semibold">{recuperacao}/100</span> : <span className="text-zinc-600">--</span>}</span>
+                          {dias != null && (
+                            <>
+                              <span className="text-zinc-700">│</span>
+                              <span>📅 {dias}d sem treinar</span>
+                            </>
                           )}
                         </div>
+                      ) : (
+                        <p className="text-zinc-600 text-sm mt-3">Sem dados hoje</p>
                       )}
+
+                      <div className="mt-3 pt-3 border-t border-white/[0.09] flex flex-wrap gap-2">
+                        {aluno?.nivel && (
+                          <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
+                            Nível: {aluno.nivel}
+                          </span>
+                        )}
+                        {aluno?.fcmax ? (
+                          <span className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-full px-2.5 py-0.5">
+                            FCmax: {aluno.fcmax}bpm
+                          </span>
+                        ) : (
+                          <button onClick={() => setAbaAtiva('perfil')}
+                            className="text-[10px] text-zinc-500 bg-white/[0.05] border border-white/[0.10] rounded-full px-2.5 py-0.5 active:scale-95 transition-all">
+                            ⚠️ FCmax: não definido
+                          </button>
+                        )}
+                        {aluno?.ftp ? (
+                          <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-0.5">
+                            FTP: {aluno.ftp}W
+                          </span>
+                        ) : (
+                          <button onClick={() => setAbaAtiva('perfil')}
+                            className="text-[10px] text-zinc-500 bg-white/[0.05] border border-white/[0.10] rounded-full px-2.5 py-0.5 active:scale-95 transition-all">
+                            ⚠️ FTP: não definido
+                          </button>
+                        )}
+                        {ultimaAvaliacao && (
+                          <span className="text-[10px] text-zinc-400 bg-white/[0.05] rounded-full px-2.5 py-0.5">
+                            Última aval.: {new Date(ultimaAvaliacao).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )
                 })()}
+
+                {/* Periodização ativa */}
+                <div
+                  onClick={() => setAbaAtiva('periodizacao')}
+                  className="cursor-pointer hover:brightness-110 transition-all"
+                  style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Periodização</p>
+                    <span className="text-zinc-500 text-xs font-bold">Ver periodização →</span>
+                  </div>
+                  {faseCiclo ? (
+                    <>
+                      <p className="text-zinc-500 text-xs mb-1">{faseCiclo.nomeCiclo}</p>
+                      <p className="text-white font-bold">{faseCiclo.nomeBloco} · Semana {faseCiclo.semanaBloco} de {faseCiclo.semanasBloco}</p>
+                    </>
+                  ) : (
+                    <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
+                  )}
+                </div>
 
                 {/* Resumo semanal */}
                 {(() => {
@@ -1793,25 +1896,6 @@ export default function PersonalAluno() {
                     </div>
                   )
                 })()}
-
-                {/* Periodização ativa */}
-                <div
-                  onClick={() => setAbaAtiva('periodizacao')}
-                  className="cursor-pointer hover:brightness-110 transition-all"
-                  style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Periodização</p>
-                    <span className="text-zinc-500 text-xs font-bold">Ver periodização →</span>
-                  </div>
-                  {faseCiclo ? (
-                    <>
-                      <p className="text-zinc-500 text-xs mb-1">{faseCiclo.nomeCiclo}</p>
-                      <p className="text-white font-bold">{faseCiclo.nomeBloco} · Semana {faseCiclo.semanaBloco} de {faseCiclo.semanasBloco}</p>
-                    </>
-                  ) : (
-                    <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
-                  )}
-                </div>
 
                 {/* Plano nutricional ativo */}
                 {(planoNutri || restricaoNutri) && (
@@ -2550,7 +2634,7 @@ export default function PersonalAluno() {
                       </div>
 
                       {(() => {
-                        const narrativa = gerarNarrativaPMC(pontosPMC, null) // null = sem prova cadastrada ainda
+                        const narrativa = gerarNarrativaPMC(pontosPMC, dataProvaCiclo)
                         const corTexto = narrativa.cor === 'vermelho' ? 'text-red-400' : narrativa.cor === 'amarelo' ? 'text-amber-400' : 'text-emerald-400'
                         const corBg = narrativa.cor === 'vermelho' ? 'rgba(248,113,113,0.08)' : narrativa.cor === 'amarelo' ? 'rgba(251,191,36,0.08)' : 'rgba(52,211,153,0.08)'
                         const corBorder = narrativa.cor === 'vermelho' ? 'rgba(248,113,113,0.20)' : narrativa.cor === 'amarelo' ? 'rgba(251,191,36,0.20)' : 'rgba(52,211,153,0.20)'
@@ -2608,6 +2692,8 @@ export default function PersonalAluno() {
                         setFichaObjetivo(aluno?.objetivo ?? '')
                         setFichaMetaPeso(String(aluno?.meta_peso ?? ''))
                         setFichaMetaData(aluno?.meta_data_limite ?? '')
+                        setFichaFcmax(String(aluno?.fcmax ?? ''))
+                        setFichaFtp(String(aluno?.ftp ?? ''))
                       }
                       setEditandoFicha(p => !p)
                     }}
@@ -2683,6 +2769,24 @@ export default function PersonalAluno() {
                             <input type="date" value={fichaMetaData} onChange={e => setFichaMetaData(e.target.value)}
                               className="w-full bg-white/[0.07] text-white rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/30"
                               style={{ colorScheme: 'dark' }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="border-t border-white/[0.14] pt-3">
+                        <p className="text-zinc-500 text-[9px] uppercase tracking-wider mb-2.5">Performance</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">FC Máxima (bpm)</p>
+                            <input type="number" value={fichaFcmax} onChange={e => setFichaFcmax(e.target.value)}
+                              placeholder="Ex: 185"
+                              className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
+                          </div>
+                          <div>
+                            <p className="text-zinc-600 text-[9px] uppercase tracking-wider mb-1.5">FTP (watts) — opcional</p>
+                            <input type="number" value={fichaFtp} onChange={e => setFichaFtp(e.target.value)}
+                              placeholder="Ex: 220 (só para ciclistas)"
+                              className="w-full bg-white/[0.07] text-white placeholder-zinc-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/20" />
+                            <p className="text-zinc-700 text-[9px] mt-1">Potência no Limiar (ciclismo)</p>
                           </div>
                         </div>
                       </div>
@@ -3049,44 +3153,77 @@ export default function PersonalAluno() {
                     const itens = itensAderenciaSemana
                     if (!itens.length) return null
 
-                    const score = Math.round((itens.filter(it => it.status !== 'nao_realizado').length / itens.length) * 100)
-                    const corScore = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171'
+                    const realizadas = itens.filter(it => it.status !== 'nao_realizado').length
+                    const score = Math.round((realizadas / itens.length) * 100)
+                    const corScore = score >= 80 ? '#34d399' : score >= 60 ? '#fbbf24' : '#f87171'
+
+                    function linhaDados(it: typeof itens[number]): string {
+                      const ativ = it.ativ
+                      if (!ativ) return 'Não realizado'
+                      const partes: string[] = []
+                      if (ativ.duracao_min != null) partes.push(`${ativ.duracao_min}min`)
+                      if (it.sessao.modalidade === 'corrida') {
+                        if (ativ.distancia_km != null) partes.push(`${ativ.distancia_km.toFixed(1).replace('.', ',')}km`)
+                        if (it.indPace.realizado) partes.push(it.indPace.realizado)
+                      } else if (it.sessao.modalidade === 'bike') {
+                        if (ativ.distancia_km != null) partes.push(`${ativ.distancia_km.toFixed(1).replace('.', ',')}km`)
+                        if (ativ.duracao_min && ativ.distancia_km) {
+                          const vel = ativ.distancia_km / (ativ.duracao_min / 60)
+                          partes.push(`${vel.toFixed(1).replace('.', ',')}km/h`)
+                        }
+                      } else if (it.sessao.modalidade === 'natacao') {
+                        if (ativ.distancia_m != null) partes.push(`${(ativ.distancia_m / 1000).toFixed(1).replace('.', ',')}km`)
+                        if (it.indPace.realizado) partes.push(it.indPace.realizado)
+                      }
+                      return partes.length ? partes.join(' • ') : 'Sem dados'
+                    }
+
+                    function alertasItem(it: typeof itens[number]): string[] {
+                      if (it.status === 'realizado_sem_planejamento') return ['Realizado sem planejamento']
+                      const alertas: string[] = []
+                      if (it.indDuracao.icone === '⚠️' && it.prescritoMin != null && it.realizadoMin != null) {
+                        const dir = it.realizadoMin > it.prescritoMin ? 'acima' : 'abaixo'
+                        alertas.push(`Duração ${dir} do prescrito (${it.prescritoMin}min → ${it.realizadoMin}min)`)
+                      }
+                      if (it.indFC.icone === '⚠️' && it.fcMinPrescrito != null && it.fcMaxPrescrito != null && it.realizadoFC != null) {
+                        const dir = it.realizadoFC > it.fcMaxPrescrito ? 'acima' : 'abaixo'
+                        alertas.push(`FC ${dir} da zona prescrita (${it.fcMinPrescrito}-${it.fcMaxPrescrito}bpm → ${it.realizadoFC}bpm)`)
+                      }
+                      return alertas
+                    }
 
                     return (
                       <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between">
                           <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Aderência da Semana</p>
-                          <span className="text-sm font-black" style={{ color: corScore }}>Aderência: {score}%</span>
+                          <span className="text-sm font-black" style={{ color: corScore }}>{score}%</span>
                         </div>
-                        <div className="space-y-2.5">
+                        <p className="text-zinc-500 text-[11px] mt-1 mb-3">{realizadas} de {itens.length} sessões realizadas</p>
+                        <div className="divide-y divide-white/[0.05]">
                           {itens.map((it, i) => {
                             const mod = MODALIDADES_SESSAO[it.sessao.modalidade]
-                            const dataLabel = new Date(it.sessao.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', timeZone: 'America/Sao_Paulo' })
-                            const indicadores = [
-                              { label: 'Duração', ind: it.indDuracao },
-                              { label: 'Distância', ind: it.indDistancia },
-                              { label: 'Pace', ind: it.indPace },
-                              { label: 'FC', ind: it.indFC },
-                            ].filter(x => x.ind.prescrito != null)
+                            const dataObj = new Date(it.sessao.data + 'T12:00:00-03:00')
+                            const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '').toUpperCase()
+                            const diaNumero = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' })
+                            const badge = STATUS_BADGE[it.status]
+                            const alertas = alertasItem(it)
                             const ativId = it.ativ?.id
                             return (
                               <div key={i}
                                 onClick={ativId ? () => router.push(`/atividade/${ativId}`) : undefined}
-                                className={`flex items-start gap-2.5 -mx-2 px-2 py-1 rounded-lg transition-colors ${ativId ? 'cursor-pointer hover:bg-zinc-800/50' : ''}`}>
-                                <span className={`text-base ${mod.text}`}>{mod.icone}</span>
-                                <span className="text-base">{STATUS_ICON[it.status]}</span>
+                                className={`flex items-start gap-3 -mx-2 px-2 py-2.5 rounded-lg transition-colors ${ativId ? 'cursor-pointer hover:bg-zinc-800/50' : ''}`}>
+                                <span className={`text-lg shrink-0 mt-0.5 ${mod.text}`}>{mod.icone}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-white text-xs font-semibold capitalize">
-                                    {dataLabel}
-                                    {it.status === 'realizado_sem_planejamento' && <span className="text-zinc-500 font-normal normal-case"> · Realizado sem planejamento</span>}
-                                  </p>
-                                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                                    {indicadores.map(({ label, ind }) => (
-                                      <p key={label} className="text-zinc-500 text-[10px]">
-                                        {ind.icone ? `${ind.icone} ` : ''}{label}: {ind.prescrito ?? '–'}{ind.realizado != null ? ` → ${ind.realizado}` : ''}
-                                      </p>
-                                    ))}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-white text-xs font-bold tracking-wide">{diaSemana} {diaNumero}</p>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badge.color} ${badge.bg} ${badge.border}`}>
+                                      {badge.emoji} {badge.label}
+                                    </span>
                                   </div>
+                                  <p className="text-zinc-500 text-[11px] mt-1">{linhaDados(it)}</p>
+                                  {alertas.map((a, j) => (
+                                    <p key={j} className="text-amber-400/80 text-[11px] mt-0.5">⚠️ {a}</p>
+                                  ))}
                                 </div>
                                 {ativId && <span className="text-zinc-600 text-sm self-center shrink-0">›</span>}
                               </div>
@@ -3223,13 +3360,16 @@ export default function PersonalAluno() {
               }
               return dias
             })(),
-            interpretacao: pontosPMC[pontosPMC.length - 1].tsb > 10
-              ? 'Em forma — pronta para competir ou aumentar carga'
-              : pontosPMC[pontosPMC.length - 1].tsb > -10
-              ? 'Equilíbrio — manutenção'
-              : pontosPMC[pontosPMC.length - 1].tsb > -30
-              ? 'Em carga — fase de construção normal'
-              : 'Sobrecarga — reduzir volume recomendado'
+            interpretacao: (() => {
+              const narrativa = gerarNarrativaPMC(pontosPMC, dataProvaCiclo)
+              return `${narrativa.titulo}. ${narrativa.linhas.join(' ')}`
+            })(),
+          } : (aluno.tsb_atual != null && aluno.ctl_atual != null && aluno.atl_atual != null) ? {
+            tsb: aluno.tsb_atual,
+            ctl: aluno.ctl_atual,
+            atl: aluno.atl_atual,
+            diasEmSobrecarga: 0,
+            interpretacao: `TSB salvo: ${aluno.tsb_atual} (CTL: ${aluno.ctl_atual}, ATL: ${aluno.atl_atual}). PMC não recalculado nesta sessão.`,
           } : null,
         }} pacienteId={clienteId} historicoIACarregando={historicoIACarregando} />
       )}

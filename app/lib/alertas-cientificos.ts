@@ -362,7 +362,7 @@ export type PontoPMC = {
   tsb: number        // form = CTL - ATL
 }
 
-type AtividadePMC = {
+export type AtividadePMC = {
   data: string
   modalidade?: string | null
   duracao_min: number | null
@@ -391,7 +391,7 @@ function calcularPaceLimiar(atividades: AtividadePMC[], modalidade: string, divi
  * - Corrida/Natação com pace de limiar e distância disponíveis: rTSS/sTSS = (duracao_min/60) × (pace_limiar/pace_real)² × 100
  * - Demais casos (bike, musculação, outros, ou pace não calculável): FC-based = (fc_media/fcmax) × duracao_min × (100/60)
  */
-function tssAtividade(a: AtividadePMC, fcmax: number, paceLimiarCorrida: number | null, paceLimiarNatacao: number | null): number {
+export function tssAtividade(a: AtividadePMC, fcmax: number, paceLimiarCorrida: number | null, paceLimiarNatacao: number | null): number {
   if (a.fc_media == null || a.duracao_min == null) return 0
 
   if (a.modalidade === 'corrida' && paceLimiarCorrida != null && a.distancia_km && a.distancia_km > 0) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import { gerarNarrativaBloco, type BlocoNarrativa, type ModalidadeNarrativa } from '../../lib/narrativa-treino'
+import { tssAtividade } from '../../lib/alertas-cientificos'
 
 type Atividade = {
   id: string
@@ -82,6 +83,7 @@ export default function AtividadeDetalhe() {
   const [carregando, setCarregando] = useState(true)
   const [atividade, setAtividade] = useState<Atividade | null>(null)
   const [sessao, setSessao] = useState<SessaoPrescrita | null>(null)
+  const [fcmax, setFcmax] = useState<number | null>(null)
 
   useEffect(() => {
     async function carregar() {
@@ -96,6 +98,26 @@ export default function AtividadeDetalhe() {
 
       if (error || !ativ) { router.replace('/treino'); return }
       setAtividade(ativ as Atividade)
+
+      const { data: perfil } = await supabase
+        .from('perfis')
+        .select('fcmax')
+        .eq('id', ativ.usuario_id)
+        .single()
+
+      if (perfil?.fcmax) {
+        setFcmax(perfil.fcmax)
+      } else {
+        const { data: maxFc } = await supabase
+          .from('atividades_livres')
+          .select('fc_max')
+          .eq('usuario_id', ativ.usuario_id)
+          .not('fc_max', 'is', null)
+          .order('fc_max', { ascending: false })
+          .limit(1)
+          .single()
+        setFcmax(maxFc?.fc_max ?? null)
+      }
 
       const { data: sessoes } = await supabase
         .from('sessoes_prescritas')
@@ -140,7 +162,7 @@ export default function AtividadeDetalhe() {
   const calorias = atividade.calorias_wearable ?? atividade.calorias_estimadas
 
   // ── Estatísticas ──
-  const stats: { icone: string; label: string; valor: string }[] = []
+  const stats: { icone: string; label: string; valor: string; subtexto?: string }[] = []
 
   if (atividade.duracao_min != null) stats.push({ icone: '⏱️', label: 'Duração', valor: formatDuracaoMin(atividade.duracao_min) })
   if (atividade.distancia_km != null) stats.push({ icone: '📍', label: 'Distância', valor: `${atividade.distancia_km.toFixed(1).replace('.', ',')} km` })
@@ -150,6 +172,8 @@ export default function AtividadeDetalhe() {
   if (atividade.modalidade === 'bike' && atividade.distancia_km != null && atividade.duracao_min) {
     const kmh = atividade.distancia_km / (atividade.duracao_min / 60)
     stats.push({ icone: '⚡', label: 'Velocidade média', valor: `${kmh.toFixed(1).replace('.', ',')} km/h` })
+    const secPorKm = (atividade.duracao_min * 60) / atividade.distancia_km
+    stats.push({ icone: '⏱️', label: 'Ritmo', valor: `${formatSecToPace(secPorKm)} min/km` })
   }
   if (atividade.modalidade === 'corrida' && atividade.distancia_km != null && atividade.duracao_min) {
     const sec = (atividade.duracao_min * 60) / atividade.distancia_km
@@ -170,6 +194,14 @@ export default function AtividadeDetalhe() {
   if (atividade.modalidade === 'bike' && atividade.potencia_media != null) stats.push({ icone: '⚡', label: 'Potência média', valor: `${atividade.potencia_media} w` })
   if (atividade.modalidade === 'bike' && atividade.potencia_max != null) stats.push({ icone: '⚡', label: 'Potência máxima', valor: `${atividade.potencia_max} w` })
   if (atividade.modalidade === 'natacao' && atividade.voltas != null) stats.push({ icone: '🏊', label: 'Voltas', valor: `${atividade.voltas} voltas` })
+
+  if (fcmax != null && fcmax > 0 && atividade.fc_media != null && atividade.duracao_min != null) {
+    const tss = tssAtividade(
+      { data: atividade.data, modalidade: atividade.modalidade, duracao_min: atividade.duracao_min, distancia_km: atividade.distancia_km, fc_media: atividade.fc_media },
+      fcmax, null, null
+    )
+    stats.push({ icone: '⚡', label: 'Carga (TSS)', valor: `${Math.round(tss)}`, subtexto: 'Training Stress Score' })
+  }
 
   // ── Compliance ──
   let indDuracao: { prescrito: string; realizado: string; icone: '✅' | '⚠️' | null } | null = null
@@ -237,6 +269,7 @@ export default function AtividadeDetalhe() {
               <div key={i} className="rounded-2xl p-3 border border-white/[0.10]" style={{ background: 'var(--surface-1)' }}>
                 <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">{s.icone} {s.label}</p>
                 <p className="text-white font-bold text-xl">{s.valor}</p>
+                {s.subtexto && <p className="text-zinc-600 text-[10px] mt-0.5">{s.subtexto}</p>}
               </div>
             ))}
           </div>
