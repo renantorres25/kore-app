@@ -205,7 +205,12 @@ const MODALIDADES_TREINO = [
 ] as const
 
 type StatusAderencia = 'concluido' | 'parcial' | 'nao_realizado' | 'realizado_sem_planejamento'
-const STATUS_ICON: Record<StatusAderencia, string> = { concluido: '✅', parcial: '⚠️', nao_realizado: '❌', realizado_sem_planejamento: '⬜' }
+const STATUS_BADGE: Record<StatusAderencia, { emoji: string; label: string; color: string; bg: string; border: string }> = {
+  concluido:                  { emoji: '✅', label: 'Realizado',      color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  parcial:                    { emoji: '⚠️', label: 'Parcial',        color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+  nao_realizado:              { emoji: '❌', label: 'Não realizado',  color: 'text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/20' },
+  realizado_sem_planejamento: { emoji: '⬜', label: 'Sem prescrição', color: 'text-zinc-400',    bg: 'bg-white/[0.04]',   border: 'border-white/[0.08]' },
+}
 
 type IndicadorAderencia = { icone: '✅' | '⚠️' | null; prescrito: string | null; realizado: string | null }
 
@@ -615,7 +620,11 @@ export default function PersonalAluno() {
           realizado: realizadoFC != null ? `${realizadoFC}bpm` : null,
         }
 
-        return { sessao, ativ, status, indDuracao, indDistancia, indPace, indFC }
+        return {
+          sessao, ativ, status, indDuracao, indDistancia, indPace, indFC,
+          prescritoMin, realizadoMin,
+          fcMinPrescrito, fcMaxPrescrito, realizadoFC,
+        }
       })
 
     // Atividades realizadas sem sessão prescrita correspondente (mesmo dia + modalidade)
@@ -641,6 +650,8 @@ export default function PersonalAluno() {
               indDistancia: { ...indVazio, realizado: ativ.distancia_km != null ? `${ativ.distancia_km.toFixed(1)}km` : null },
               indPace: indVazio,
               indFC: { ...indVazio, realizado: ativ.fc_media != null ? `${ativ.fc_media}bpm` : null },
+              prescritoMin: null, realizadoMin: ativ.duracao_min ?? null,
+              fcMinPrescrito: null, fcMaxPrescrito: null, realizadoFC: ativ.fc_media ?? null,
             }
           })
       })
@@ -3142,44 +3153,77 @@ export default function PersonalAluno() {
                     const itens = itensAderenciaSemana
                     if (!itens.length) return null
 
-                    const score = Math.round((itens.filter(it => it.status !== 'nao_realizado').length / itens.length) * 100)
-                    const corScore = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171'
+                    const realizadas = itens.filter(it => it.status !== 'nao_realizado').length
+                    const score = Math.round((realizadas / itens.length) * 100)
+                    const corScore = score >= 80 ? '#34d399' : score >= 60 ? '#fbbf24' : '#f87171'
+
+                    function linhaDados(it: typeof itens[number]): string {
+                      const ativ = it.ativ
+                      if (!ativ) return 'Não realizado'
+                      const partes: string[] = []
+                      if (ativ.duracao_min != null) partes.push(`${ativ.duracao_min}min`)
+                      if (it.sessao.modalidade === 'corrida') {
+                        if (ativ.distancia_km != null) partes.push(`${ativ.distancia_km.toFixed(1).replace('.', ',')}km`)
+                        if (it.indPace.realizado) partes.push(it.indPace.realizado)
+                      } else if (it.sessao.modalidade === 'bike') {
+                        if (ativ.distancia_km != null) partes.push(`${ativ.distancia_km.toFixed(1).replace('.', ',')}km`)
+                        if (ativ.duracao_min && ativ.distancia_km) {
+                          const vel = ativ.distancia_km / (ativ.duracao_min / 60)
+                          partes.push(`${vel.toFixed(1).replace('.', ',')}km/h`)
+                        }
+                      } else if (it.sessao.modalidade === 'natacao') {
+                        if (ativ.distancia_m != null) partes.push(`${(ativ.distancia_m / 1000).toFixed(1).replace('.', ',')}km`)
+                        if (it.indPace.realizado) partes.push(it.indPace.realizado)
+                      }
+                      return partes.length ? partes.join(' • ') : 'Sem dados'
+                    }
+
+                    function alertasItem(it: typeof itens[number]): string[] {
+                      if (it.status === 'realizado_sem_planejamento') return ['Realizado sem planejamento']
+                      const alertas: string[] = []
+                      if (it.indDuracao.icone === '⚠️' && it.prescritoMin != null && it.realizadoMin != null) {
+                        const dir = it.realizadoMin > it.prescritoMin ? 'acima' : 'abaixo'
+                        alertas.push(`Duração ${dir} do prescrito (${it.prescritoMin}min → ${it.realizadoMin}min)`)
+                      }
+                      if (it.indFC.icone === '⚠️' && it.fcMinPrescrito != null && it.fcMaxPrescrito != null && it.realizadoFC != null) {
+                        const dir = it.realizadoFC > it.fcMaxPrescrito ? 'acima' : 'abaixo'
+                        alertas.push(`FC ${dir} da zona prescrita (${it.fcMinPrescrito}-${it.fcMaxPrescrito}bpm → ${it.realizadoFC}bpm)`)
+                      }
+                      return alertas
+                    }
 
                     return (
                       <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between">
                           <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Aderência da Semana</p>
-                          <span className="text-sm font-black" style={{ color: corScore }}>Aderência: {score}%</span>
+                          <span className="text-sm font-black" style={{ color: corScore }}>{score}%</span>
                         </div>
-                        <div className="space-y-2.5">
+                        <p className="text-zinc-500 text-[11px] mt-1 mb-3">{realizadas} de {itens.length} sessões realizadas</p>
+                        <div className="divide-y divide-white/[0.05]">
                           {itens.map((it, i) => {
                             const mod = MODALIDADES_SESSAO[it.sessao.modalidade]
-                            const dataLabel = new Date(it.sessao.data + 'T12:00:00-03:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', timeZone: 'America/Sao_Paulo' })
-                            const indicadores = [
-                              { label: 'Duração', ind: it.indDuracao },
-                              { label: 'Distância', ind: it.indDistancia },
-                              { label: 'Pace', ind: it.indPace },
-                              { label: 'FC', ind: it.indFC },
-                            ].filter(x => x.ind.prescrito != null)
+                            const dataObj = new Date(it.sessao.data + 'T12:00:00-03:00')
+                            const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '').toUpperCase()
+                            const diaNumero = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' })
+                            const badge = STATUS_BADGE[it.status]
+                            const alertas = alertasItem(it)
                             const ativId = it.ativ?.id
                             return (
                               <div key={i}
                                 onClick={ativId ? () => router.push(`/atividade/${ativId}`) : undefined}
-                                className={`flex items-start gap-2.5 -mx-2 px-2 py-1 rounded-lg transition-colors ${ativId ? 'cursor-pointer hover:bg-zinc-800/50' : ''}`}>
-                                <span className={`text-base ${mod.text}`}>{mod.icone}</span>
-                                <span className="text-base">{STATUS_ICON[it.status]}</span>
+                                className={`flex items-start gap-3 -mx-2 px-2 py-2.5 rounded-lg transition-colors ${ativId ? 'cursor-pointer hover:bg-zinc-800/50' : ''}`}>
+                                <span className={`text-lg shrink-0 mt-0.5 ${mod.text}`}>{mod.icone}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-white text-xs font-semibold capitalize">
-                                    {dataLabel}
-                                    {it.status === 'realizado_sem_planejamento' && <span className="text-zinc-500 font-normal normal-case"> · Realizado sem planejamento</span>}
-                                  </p>
-                                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                                    {indicadores.map(({ label, ind }) => (
-                                      <p key={label} className="text-zinc-500 text-[10px]">
-                                        {ind.icone ? `${ind.icone} ` : ''}{label}: {ind.prescrito ?? '–'}{ind.realizado != null ? ` → ${ind.realizado}` : ''}
-                                      </p>
-                                    ))}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-white text-xs font-bold tracking-wide">{diaSemana} {diaNumero}</p>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badge.color} ${badge.bg} ${badge.border}`}>
+                                      {badge.emoji} {badge.label}
+                                    </span>
                                   </div>
+                                  <p className="text-zinc-500 text-[11px] mt-1">{linhaDados(it)}</p>
+                                  {alertas.map((a, j) => (
+                                    <p key={j} className="text-amber-400/80 text-[11px] mt-0.5">⚠️ {a}</p>
+                                  ))}
                                 </div>
                                 {ativId && <span className="text-zinc-600 text-sm self-center shrink-0">›</span>}
                               </div>
