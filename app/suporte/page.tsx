@@ -77,6 +77,7 @@ export default function SuportePage() {
   const [carregandoMsg, setCarregandoMsg] = useState(false)
   const [resposta, setResposta] = useState('')
   const [enviandoMsg, setEnviandoMsg] = useState(false)
+  const [erroMsg, setErroMsg] = useState('')
   // Mapa ticket_id -> autor da última mensagem. 'admin' = há resposta aguardando o usuário.
   const [ultimaAutoria, setUltimaAutoria] = useState<Record<string, string>>({})
 
@@ -155,7 +156,7 @@ export default function SuportePage() {
 
   async function responder(ticketId: string) {
     if (!resposta.trim()) return
-    setEnviandoMsg(true)
+    setEnviandoMsg(true); setErroMsg('')
     const { error } = await supabase.from('ticket_mensagens').insert({
       ticket_id: ticketId,
       autor_id: userId,
@@ -166,6 +167,8 @@ export default function SuportePage() {
       setResposta('')
       await carregarMensagens(ticketId)
       setUltimaAutoria((prev) => ({ ...prev, [ticketId]: 'usuario' }))
+    } else {
+      setErroMsg('Não foi possível enviar a mensagem. Tente novamente.')
     }
     setEnviandoMsg(false)
   }
@@ -287,6 +290,7 @@ export default function SuportePage() {
                       </div>
                       <textarea value={resposta} onChange={(e) => setResposta(e.target.value)} rows={3} placeholder="Escreva uma mensagem…"
                         style={{ ...inputBase, resize: 'vertical' }} />
+                      {erroMsg && <p style={{ color: C.danger, fontSize: 12, margin: '8px 0 0' }}>{erroMsg}</p>}
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
                         <button onClick={() => responder(t.id)} disabled={enviandoMsg || !resposta.trim()}
                           style={{ background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, fontFamily: FONT_BODY, fontSize: 13, border: 'none', borderRadius: 10, padding: '9px 18px', cursor: enviandoMsg || !resposta.trim() ? 'default' : 'pointer', opacity: enviandoMsg || !resposta.trim() ? 0.4 : 1 }}>

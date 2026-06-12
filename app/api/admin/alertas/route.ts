@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, requireAdmin } from '../../../lib/supabaseAdmin'
+import { listarAuthUsers } from '../../../lib/authUsers'
 
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin(req, ['super_admin', 'admin'])
@@ -14,15 +15,11 @@ export async function GET(req: NextRequest) {
     const clienteIds = new Set((clientes || []).map((c: any) => c.id))
     const proIds = (pros || []).map((p: any) => p.id)
 
-    // Último acesso (auth) — paginado
+    // Último acesso (auth) — via helper com cache
     const ultimoAcesso: Record<string, number> = {}
     try {
-      for (let pg = 1; pg <= 50; pg++) {
-        const { data: lista } = await supabaseAdmin.auth.admin.listUsers({ page: pg, perPage: 1000 })
-        const us = (lista?.users || []) as any[]
-        for (const u of us) ultimoAcesso[u.id] = u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0
-        if (us.length < 1000) break
-      }
+      const us = await listarAuthUsers()
+      for (const u of us) ultimoAcesso[u.id] = u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0
     } catch { /* segue */ }
 
     const corte14 = Date.now() - 14 * 24 * 3600 * 1000

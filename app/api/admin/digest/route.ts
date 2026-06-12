@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { supabaseAdmin, requireAdmin } from '../../../lib/supabaseAdmin'
+import { listarAuthUsers } from '../../../lib/authUsers'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const PRECOS: Record<string, number> = { solo: 79, conectado: 129 }
@@ -38,12 +39,8 @@ export async function POST(req: NextRequest) {
     let novos7 = 0
     try {
       const d7 = Date.now() - 7 * 24 * 3600 * 1000
-      for (let pg = 1; pg <= 50; pg++) {
-        const { data: lista } = await supabaseAdmin.auth.admin.listUsers({ page: pg, perPage: 1000 })
-        const us = (lista?.users || []) as any[]
-        for (const u of us) if (u.created_at && new Date(u.created_at).getTime() >= d7) novos7 = novos7 + 1
-        if (us.length < 1000) break
-      }
+      const us = await listarAuthUsers()
+      for (const u of us) if (u.created_at && new Date(u.created_at).getTime() >= d7) novos7 = novos7 + 1
     } catch { /* segue */ }
 
     // Destinatários: admins ativos

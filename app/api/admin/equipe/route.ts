@@ -4,7 +4,7 @@ import { supabaseAdmin, requireAdmin } from '../../../lib/supabaseAdmin'
 const PAPEIS = ['super_admin', 'admin', 'financeiro', 'sac', 'analista']
 
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin(req)
+  const admin = await requireAdmin(req, ['super_admin'])
   if (!admin) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
 
   try {
@@ -51,7 +51,12 @@ export async function POST(req: NextRequest) {
       const { data: perfil } = await supabaseAdmin.from('perfis').select('id').ilike('email', email).maybeSingle()
       if (!perfil) return NextResponse.json({ erro: 'Nenhum usuário do KORE com esse e-mail.' }, { status: 404 })
       const { error } = await supabaseAdmin.from('admin_users').insert({ user_id: perfil.id, papel, ativo: true })
-      if (error) return NextResponse.json({ erro: 'Já é admin ou falha ao adicionar.' }, { status: 500 })
+      if (error) {
+        if ((error as any)?.code === '23505') {
+          return NextResponse.json({ erro: 'Esse usuário já faz parte da equipe.' }, { status: 409 })
+        }
+        return NextResponse.json({ erro: 'Falha ao adicionar admin.' }, { status: 500 })
+      }
       resultado = 'Admin adicionado.'
     } else if (acao === 'mudar_papel') {
       const userId = body?.user_id

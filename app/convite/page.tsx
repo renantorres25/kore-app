@@ -113,11 +113,13 @@ export default function ConvitePage() {
 
     const response = await fetch('/api/convite', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({
         email_convidado: email.trim(),
         tipo_profissional: getTipoParaEnvio(),
-        profissional_id: session.user.id,
         nome_profissional: perfil?.nome ?? session.user.email,
       }),
     })

@@ -11,9 +11,18 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { email_convidado, tipo_profissional, profissional_id, nome_profissional } = await req.json()
+    // Autenticação: exige sessão válida e usa o ID do usuário logado como
+    // dono do convite (não confia no profissional_id enviado pelo cliente).
+    const authHeader = req.headers.get('authorization') || ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+    if (!token) return NextResponse.json({ erro: 'Não autenticado.' }, { status: 401 })
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token)
+    if (userErr || !userData?.user) return NextResponse.json({ erro: 'Sessão inválida.' }, { status: 401 })
+    const profissionalId = userData.user.id
 
-    if (!email_convidado || !tipo_profissional || !profissional_id) {
+    const { email_convidado, tipo_profissional, nome_profissional } = await req.json()
+
+    if (!email_convidado || !['personal', 'nutricionista', 'cliente'].includes(tipo_profissional)) {
       return NextResponse.json({ erro: 'Dados incompletos.' }, { status: 400 })
     }
 
@@ -21,7 +30,7 @@ export async function POST(req: NextRequest) {
     const { data: convite, error } = await supabase
       .from('convites')
       .insert({
-        profissional_id,
+        profissional_id: profissionalId,
         tipo_profissional,
         email_convidado,
         status: 'pendente',

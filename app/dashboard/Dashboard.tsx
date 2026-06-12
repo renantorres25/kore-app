@@ -37,9 +37,7 @@ function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false)
   useEffect(() => {
     const check = () => {
-      const next = window.innerWidth >= 1024
-      console.debug('[F02-diag] Dashboard.useIsDesktop', { value: next, t: Math.round(performance.now()) })
-      setIsDesktop(next)
+      setIsDesktop(window.innerWidth >= 1024)
     }
     check()
     window.addEventListener('resize', check)
@@ -420,7 +418,6 @@ export default function Dashboard() {
       }
 
       setNotifs(notifsList)
-      console.debug('[F02-diag] Dashboard.carregando -> false', { t: Math.round(performance.now()) })
       setCarregando(false)
     }
     carregarDados()

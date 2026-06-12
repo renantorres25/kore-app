@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import crypto from 'node:crypto'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// Valida a assinatura HMAC da Terra. Header: "t=<timestamp>,v1=<hmac_hex>".
+// A mensagem assinada é `${t}.${corpoBruto}` com HMAC-SHA256 e o segredo do webhook.
+function assinaturaTerraValida(raw: string, header: string | null, secret: string): boolean {
+  if (!header) return false
+  const partes: Record<string, string> = {}
+  for (const p of header.split(',')) {
+    const [k, v] = p.split('=')
+    if (k && v) partes[k.trim()] = v.trim()
+  }
+  const t = partes['t']
+  const v1 = partes['v1']
+  if (!t || !v1) return false
+  const esperado = crypto.createHmac('sha256', secret).update(`${t}.${raw}`).digest('hex')
+  try {
+    return crypto.timingSafeEqual(Buffer.from(v1, 'hex'), Buffer.from(esperado, 'hex'))
+  } catch {
+    return false
+  }
+}
 
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -16,11 +37,19 @@ function parseDateBR(isoStr: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    // Verificação de assinatura Terra (opcional mas recomendado)
-    const terraSignature = req.headers.get('terra-signature')
-    // TODO: validar assinatura quando TERRA_WEBHOOK_SECRET estiver configurado
+    // Lê o corpo bruto (necessário para validar a assinatura antes de parsear).
+    const raw = await req.text()
 
-    const body = await req.json()
+    // Enforcement seguro: só exige assinatura quando o segredo está configurado.
+    // Assim a ingestão não quebra antes de você definir TERRA_WEBHOOK_SECRET.
+    const secret = process.env.TERRA_WEBHOOK_SECRET
+    if (secret) {
+      if (!assinaturaTerraValida(raw, req.headers.get('terra-signature'), secret)) {
+        return NextResponse.json({ erro: 'Assinatura inválida' }, { status: 401 })
+      }
+    }
+
+    const body = JSON.parse(raw)
     const { user, type, data } = body
 
     if (!user?.reference_id) {

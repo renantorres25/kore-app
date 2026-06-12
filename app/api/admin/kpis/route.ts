@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, requireAdmin } from '../../../lib/supabaseAdmin'
+import { listarAuthUsers } from '../../../lib/authUsers'
 
 // Conta resiliente: se uma coluna/tabela não existir, devolve null em vez de quebrar tudo.
 async function safeCount(build: () => any): Promise<number | null> {
@@ -43,13 +44,7 @@ export async function GET(req: NextRequest) {
     let ativosPeriodo: number | null = null
     let crescimentoSemanal: number[] = []
     try {
-      const usuariosAuth: any[] = []
-      for (let pg = 1; pg <= 50; pg++) {
-        const { data: lista } = await supabaseAdmin.auth.admin.listUsers({ page: pg, perPage: 1000 })
-        const us = lista?.users || []
-        usuariosAuth.push(...us)
-        if (us.length < 1000) break
-      }
+      const usuariosAuth = await listarAuthUsers()
       const dP = new Date(desdePeriodo).getTime()
       const semanaMs = 7 * 24 * 3600 * 1000
       const semanas = [0, 0, 0, 0, 0, 0, 0, 0]
