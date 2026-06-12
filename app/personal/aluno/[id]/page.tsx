@@ -7,10 +7,10 @@ import ProfissionalAIChat, { type ContextoProfissional } from '../../../componen
 import SidebarProfissional from '../../../components/SidebarProfissional'
 import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle, CalendarClock } from 'lucide-react'
 import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
-import { calcularPMC, type PontoPMC } from '../../../lib/alertas-cientificos'
+import { calcularPMC, type PontoPMC, computeAlertaCientifico, type AlertaNivel } from '../../../lib/alertas-cientificos'
 import { gerarNarrativaBloco } from '../../../lib/narrativa-treino'
 
-type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null }
+type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null; tsb_atual: number | null; atl_atual: number | null; ctl_atual: number | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number; grupo_muscular?: string | null; tecnica?: string | null }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; status: string; data: string | null; exercicios: Exercicio[] }
 type Monitor = {
@@ -363,6 +363,24 @@ function getZonaFC(fcMedia: number, fcmax: number): { zona: number; label: strin
   return { zona: 5, label: 'Z5 · VO2max', cor: '#f87171' }
 }
 
+function calcularIdade(dataNascimento: string | null): number | null {
+  if (!dataNascimento) return null
+  const nasc = new Date(dataNascimento + 'T12:00:00-03:00')
+  const hoje = new Date()
+  let idade = hoje.getFullYear() - nasc.getFullYear()
+  const aindaNaoFezAniversario = (hoje.getMonth() < nasc.getMonth()) ||
+    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
+  if (aindaNaoFezAniversario) idade--
+  return idade
+}
+
+const ALERTA_CFG: Record<AlertaNivel, { dot: string; border: string; bg: string; causaColor: string }> = {
+  vermelho: { dot: 'bg-red-400',     border: 'border-red-500/20',   bg: 'bg-red-500/[0.04]',   causaColor: 'text-red-300' },
+  amarelo:  { dot: 'bg-amber-400',   border: 'border-amber-500/20', bg: 'bg-amber-500/[0.04]', causaColor: 'text-amber-300' },
+  verde:    { dot: 'bg-emerald-400', border: 'border-white/[0.07]', bg: '',                    causaColor: 'text-emerald-600' },
+  cinza:    { dot: 'bg-zinc-600',    border: 'border-white/[0.07]', bg: '',                    causaColor: 'text-zinc-600' },
+}
+
 function diasSemTreinar(ultimoTreino: string | null): number {
   if (!ultimoTreino) return 999
   const d = new Date(ultimoTreino + 'T12:00:00-03:00')
@@ -470,6 +488,27 @@ export default function PersonalAluno() {
   const fcmaxEstimado = useMemo(() => {
     return aluno?.fcmax ?? (Math.max(0, ...atividadesCalendario.filter(a => a.fc_max != null).map(a => a.fc_max as number)) || null)
   }, [aluno?.fcmax, atividadesCalendario])
+  const alertaCientifico = useMemo(() => {
+    if (!aluno) return null
+    const atividades30d = atividadesCalendario.map(a => ({
+      data: a.data,
+      duracao_min: a.duracao_min ?? null,
+      fc_media: a.fc_media ?? null,
+      fc_max: a.fc_max ?? null,
+      calorias_wearable: null,
+      calorias_estimadas: a.calorias ?? null,
+    }))
+    return computeAlertaCientifico({
+      atividades30d,
+      fcmaxPerfil: aluno.fcmax,
+      idade: calcularIdade(aluno.data_nascimento),
+      totalTreinos: monitor?.totalTreinos ?? 0,
+      ultimoTreino: monitor?.ultimoTreino ?? null,
+      tsb_atual: aluno.tsb_atual,
+      ctl_atual: aluno.ctl_atual,
+      atl_atual: aluno.atl_atual,
+    })
+  }, [aluno, atividadesCalendario, monitor])
   const cargaInternaSemanas = useMemo(() => {
     if (!fcmaxEstimado) return null
     const hoje = getTodayBR()
@@ -948,7 +987,7 @@ export default function PersonalAluno() {
     const { inicio: inicioSemanaAtual, fim: fimSemanaAtual } = getInicioFimSemana(0)
 
     const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }, { data: sessoesSemanaAtual }] = await Promise.all([
-      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp').eq('id', clienteId).single(),
+      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp, tsb_atual, atl_atual, ctl_atual').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
       supabase.from('sono').select('score_recuperacao, duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).single(),
       supabase.from('bem_estar').select('data, humor, energia, motivacao, dor_muscular, notas').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
@@ -1540,6 +1579,33 @@ export default function PersonalAluno() {
             {/* ── ABA VISÃO GERAL ──────────────────────────────────────── */}
             {abaAtiva === 'visao-geral' && (
               <div className="space-y-5">
+
+                {/* Alertas científicos (TSB/ACWR/FC drift/inatividade) */}
+                {alertaCientifico && (
+                  alertaCientifico.alertas.length > 0 ? (
+                    <div className={`rounded-2xl border ${ALERTA_CFG[alertaCientifico.nivel].border} ${ALERTA_CFG[alertaCientifico.nivel].bg} overflow-hidden`}>
+                      <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${ALERTA_CFG[alertaCientifico.nivel].dot}`} />
+                        <p className="text-[11px] text-zinc-400 uppercase tracking-[0.18em] font-bold">Alertas clínicos</p>
+                      </div>
+                      <div className="px-5 py-3 flex flex-col gap-3">
+                        {alertaCientifico.alertas.map(a => (
+                          <div key={a.codigo}>
+                            <p className={`text-sm leading-relaxed font-medium ${ALERTA_CFG[a.nivel].causaColor}`}>
+                              {a.nivel === 'vermelho' ? '🔴' : '🟡'} {a.mensagem}
+                            </p>
+                            <p className="text-[11px] text-zinc-600 mt-0.5">{a.dadoTecnico}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-white/[0.07] px-5 py-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <p className="text-sm text-emerald-300/90">✅ Sem alertas clínicos no momento</p>
+                    </div>
+                  )
+                )}
 
                 {/* Alertas clínicos */}
                 {(lesoes || restricaoFisica || medicamentos) && (
