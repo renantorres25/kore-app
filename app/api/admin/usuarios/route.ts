@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const q = (searchParams.get('q') || '').trim()
     const tipo = searchParams.get('tipo') || ''
-    const limit = Math.min(parseInt(searchParams.get('limit') || '25', 10) || 25, 100)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '25', 10) || 25, 5000)
     const offset = parseInt(searchParams.get('offset') || '0', 10) || 0
 
     // Seleciona apenas colunas confirmadas (sem dados sensíveis de saúde aqui).

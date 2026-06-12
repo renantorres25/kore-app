@@ -40,6 +40,7 @@ function quando(s: string) {
 export default function AuditoriaPage() {
   const router = useRouter()
   const [logs, setLogs] = useState<Log[] | null>(null)
+  const [filtro, setFiltro] = useState('')
   const [erro, setErro] = useState('')
 
   useEffect(() => {
@@ -50,14 +51,24 @@ export default function AuditoriaPage() {
     <div style={{ fontFamily: JAKARTA, maxWidth: 900, color: C.t1 }}>
       <p style={{ color: C.energy, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em', fontWeight: 700, margin: 0 }}>Conformidade</p>
       <h1 style={{ fontFamily: SORA, fontSize: 30, fontWeight: 800, margin: '4px 0 6px' }}>Auditoria</h1>
-      <p style={{ color: C.t3, fontSize: 13, margin: '0 0 20px' }}>Registro imutável de todas as ações administrativas.</p>
+      <p style={{ color: C.t3, fontSize: 13, margin: '0 0 16px' }}>Registro imutável de todas as ações administrativas.</p>
+
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+        {[{ l: 'Todos', v: '' }, { l: 'Usuários', v: 'usuario:' }, { l: 'Equipe', v: 'equipe:' }, { l: 'Tickets', v: 'ticket:' }, { l: 'Conteúdo', v: 'conteudo:' }].map((f) => (
+          <button key={f.v} onClick={() => setFiltro(f.v)}
+            style={{ padding: '7px 12px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', fontFamily: JAKARTA, fontSize: 12.5,
+              background: filtro === f.v ? 'rgba(255,90,54,0.15)' : 'transparent', color: filtro === f.v ? C.energy : C.t2, fontWeight: filtro === f.v ? 700 : 500 }}>
+            {f.l}
+          </button>
+        ))}
+      </div>
 
       {erro && <div style={{ color: C.danger, marginBottom: 14 }}>{erro}</div>}
       {!logs && !erro && <p style={{ color: C.t2 }}>Carregando…</p>}
       {logs && logs.length === 0 && <p style={{ color: C.t3 }}>Nenhuma ação registrada ainda.</p>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {logs?.map((l) => {
+        {(logs || []).filter((l) => !filtro || l.acao.startsWith(filtro)).map((l) => {
           const linkUser = l.entidade === 'perfis' && l.entidade_id
           return (
             <div key={l.id}

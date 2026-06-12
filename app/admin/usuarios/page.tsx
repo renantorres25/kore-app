@@ -59,6 +59,26 @@ export default function UsuariosPage() {
 
   useEffect(() => { setOffset(0) }, [q, tipo])
 
+  async function exportar() {
+    try {
+      const params = new URLSearchParams()
+      if (q) params.set('q', q)
+      if (tipo) params.set('tipo', tipo)
+      params.set('limit', '5000')
+      params.set('offset', '0')
+      const data = await adminFetch<{ usuarios: Usuario[] }>(`/api/admin/usuarios?${params.toString()}`)
+      const linhas = [['nome', 'email', 'tipo'], ...data.usuarios.map((u) => [u.nome || '', u.email || '', rotuloTipo[u.tipo || ''] || u.tipo || ''])]
+      const csv = linhas.map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'usuarios_kore.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e: any) { setErro(e.message) }
+  }
+
   const filtros = [
     { label: 'Todos', val: '' },
     { label: 'Atletas', val: 'cliente' },
@@ -89,6 +109,10 @@ export default function UsuariosPage() {
             </button>
           ))}
         </div>
+        <button onClick={exportar}
+          style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(45,212,167,0.45)', background: 'transparent', color: '#2DD4A7', fontFamily: JAKARTA, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          Exportar CSV
+        </button>
       </div>
 
       {erro && <div style={{ color: '#F87171', marginBottom: 14 }}>{erro}</div>}

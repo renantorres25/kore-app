@@ -24,6 +24,7 @@ type Detalhe = {
   auth: { created_at: string | null; last_sign_in_at: string | null; email_confirmed_at: string | null; banned_until: string | null } | null
   vinculos: any[]
   assinatura: any
+  atividade: any
 }
 
 function dataBR(s: string | null | undefined) {
@@ -149,6 +150,17 @@ export default function UsuarioDetalhePage() {
           <Linha k="Vínculos (time)" v={d.vinculos?.length ?? 0} />
           <Linha k="Assinatura" v={d.assinatura ? `${d.assinatura.plano} · ${d.assinatura.status}` : 'Nenhuma'} />
           <Linha k="Status" v={susp ? 'Suspenso' : 'Ativo'} />
+        </div>
+
+        {/* Atividade no app */}
+        <div style={glass}>
+          <p style={{ color: C.energy, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 700, margin: '0 0 8px' }}>Atividade no app</p>
+          <Linha k="Registros de sono" v={d.atividade?.sono} />
+          <Linha k="Treinos" v={d.atividade?.treinos} />
+          <Linha k="Bem-estar" v={d.atividade?.bem_estar} />
+          <Linha k="Atividades livres" v={d.atividade?.atividades} />
+          <Linha k="Medidas registradas" v={d.atividade?.medidas} />
+          <Linha k="Última atividade" v={dataBR(d.atividade?.ultima)} />
         </div>
       </div>
 

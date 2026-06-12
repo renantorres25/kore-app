@@ -56,7 +56,34 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     assinatura = data || null
   } catch { /* sem assinatura */ }
 
-  return NextResponse.json({ perfil, auth, vinculos, assinatura })
+  // Atividade do usuário (contagens + última atividade)
+  const atividade: any = {}
+  const conta = async (tab: string, col: string) => {
+    try {
+      const { count, error } = await supabaseAdmin.from(tab).select('*', { count: 'exact', head: true }).eq(col, id)
+      return error ? null : (count ?? 0)
+    } catch { return null }
+  }
+  atividade.treinos = await conta('treinos', 'cliente_id')
+  atividade.sono = await conta('sono', 'usuario_id')
+  atividade.bem_estar = await conta('bem_estar', 'usuario_id')
+  atividade.atividades = await conta('atividades_livres', 'usuario_id')
+  atividade.medidas = await conta('evolucao_medidas', 'cliente_id')
+
+  const ultimaData = async (tab: string, col: string) => {
+    try {
+      const { data } = await supabaseAdmin.from(tab).select('data').eq(col, id).order('data', { ascending: false }).limit(1).maybeSingle()
+      return (data as any)?.data || null
+    } catch { return null }
+  }
+  const datas = [
+    await ultimaData('bem_estar', 'usuario_id'),
+    await ultimaData('atividades_livres', 'usuario_id'),
+    await ultimaData('evolucao_medidas', 'cliente_id'),
+  ].filter(Boolean) as string[]
+  atividade.ultima = datas.length ? datas.sort().reverse()[0] : null
+
+  return NextResponse.json({ perfil, auth, vinculos, assinatura, atividade })
 }
 
 // ── Ações administrativas sobre o usuário ────────────────────────────────────
