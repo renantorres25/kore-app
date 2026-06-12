@@ -20,17 +20,17 @@ const glass: React.CSSProperties = {
 }
 
 type Kpis = {
+  dias: number
   total: number | null
   porTipo: Record<string, number>
-  novos30: number | null
-  novos7: number | null
-  ativos7: number | null
-  ativos30: number | null
+  novosPeriodo: number | null
+  ativosPeriodo: number | null
   crescimentoSemanal: number[]
   vinculos: number | null
   assinantesAtivos: number
   mrr: number
   eventosHoje: number | null
+  eventosPeriodo: number | null
   ticketsAbertos: number | null
 }
 
@@ -49,20 +49,47 @@ function Card({ label, valor, cor, sufixo }: { label: string; valor: string; cor
   )
 }
 
+const PERIODOS = [
+  { dias: 7, label: '7 dias' },
+  { dias: 30, label: '30 dias' },
+  { dias: 90, label: '90 dias' },
+]
+
 export default function CockpitPage() {
   const [kpis, setKpis] = useState<Kpis | null>(null)
   const [alertas, setAlertas] = useState<{ nivel: string; texto: string }[]>([])
   const [erro, setErro] = useState('')
+  const [dias, setDias] = useState(30)
+  const [carregando, setCarregando] = useState(false)
 
   useEffect(() => {
-    adminFetch<Kpis>('/api/admin/kpis').then(setKpis).catch((e) => setErro(e.message))
+    setCarregando(true)
+    adminFetch<Kpis>(`/api/admin/kpis?dias=${dias}`).then(setKpis).catch((e) => setErro(e.message)).finally(() => setCarregando(false))
+  }, [dias])
+
+  useEffect(() => {
     adminFetch<{ alertas: { nivel: string; texto: string }[] }>('/api/admin/alertas').then((d) => setAlertas(d.alertas)).catch(() => {})
   }, [])
 
   return (
     <div style={{ fontFamily: JAKARTA, maxWidth: 1080 }}>
       <p style={{ color: C.energy, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em', fontWeight: 700, margin: 0 }}>Visão geral</p>
-      <h1 style={{ fontFamily: SORA, fontSize: 30, fontWeight: 800, color: C.t1, margin: '4px 0 18px' }}>Cockpit</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, margin: '4px 0 18px' }}>
+        <h1 style={{ fontFamily: SORA, fontSize: 30, fontWeight: 800, color: C.t1, margin: 0 }}>Cockpit</h1>
+        <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12, padding: 4 }}>
+          {PERIODOS.map((p) => {
+            const ativo = dias === p.dias
+            return (
+              <button key={p.dias} onClick={() => setDias(p.dias)} disabled={carregando}
+                style={{ border: 'none', borderRadius: 9, padding: '7px 14px', cursor: carregando ? 'default' : 'pointer',
+                  background: ativo ? 'rgba(255,90,54,0.16)' : 'transparent',
+                  color: ativo ? C.energy : C.t2, fontWeight: ativo ? 700 : 500, fontFamily: JAKARTA, fontSize: 13 }}>
+                {p.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
       {alertas.length > 0 && (
         <div style={{ ...glass, marginBottom: 18 }}>
@@ -86,12 +113,11 @@ export default function CockpitPage() {
 
       {kpis && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, opacity: carregando ? 0.5 : 1, transition: 'opacity 0.2s' }}>
             <Card label="Usuários totais" valor={fmt(kpis.total)} cor={C.t1} />
-            <Card label="Ativos (7 dias)" valor={fmt(kpis.ativos7)} cor={C.good} />
-            <Card label="Ativos (30 dias)" valor={fmt(kpis.ativos30)} cor={C.good} />
-            <Card label="Novos (7 dias)" valor={fmt(kpis.novos7)} cor={C.sleep} />
-            <Card label="Novos (30 dias)" valor={fmt(kpis.novos30)} cor={C.sleep} />
+            <Card label={`Ativos (${kpis.dias} dias)`} valor={fmt(kpis.ativosPeriodo)} cor={C.good} />
+            <Card label={`Novos (${kpis.dias} dias)`} valor={fmt(kpis.novosPeriodo)} cor={C.sleep} />
+            <Card label={`Eventos (${kpis.dias} dias)`} valor={fmt(kpis.eventosPeriodo)} cor={C.t1} />
             <Card label="Vínculos (triângulo)" valor={fmt(kpis.vinculos)} cor={C.recovery} />
             <Card label="Assinantes ativos" valor={fmt(kpis.assinantesAtivos)} cor={C.sleep} />
             <Card label="MRR estimado" valor={`R$ ${fmt(kpis.mrr)}`} cor={C.energy} />

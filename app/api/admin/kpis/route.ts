@@ -18,6 +18,10 @@ export async function GET(req: NextRequest) {
 
   try {
     const agora = Date.now()
+    // Período selecionável (7 / 30 / 90 dias). Padrão: 30.
+    const diasParam = Number(new URL(req.url).searchParams.get('dias'))
+    const dias = [7, 30, 90].includes(diasParam) ? diasParam : 30
+    const desdePeriodo = new Date(agora - dias * 24 * 3600 * 1000).toISOString()
     const desde30 = new Date(agora - 30 * 24 * 3600 * 1000).toISOString()
     const desde1 = new Date(agora - 24 * 3600 * 1000).toISOString()
 
@@ -35,10 +39,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Stats de auth.users: cadastro (novos) e último acesso (ativos).
-    let novos30: number | null = null
-    let novos7: number | null = null
-    let ativos7: number | null = null
-    let ativos30: number | null = null
+    let novosPeriodo: number | null = null
+    let ativosPeriodo: number | null = null
     let crescimentoSemanal: number[] = []
     try {
       const usuariosAuth: any[] = []
@@ -48,39 +50,35 @@ export async function GET(req: NextRequest) {
         usuariosAuth.push(...us)
         if (us.length < 1000) break
       }
-      const d30 = new Date(desde30).getTime()
-      const d7 = new Date(agora - 7 * 24 * 3600 * 1000).getTime()
+      const dP = new Date(desdePeriodo).getTime()
       const semanaMs = 7 * 24 * 3600 * 1000
       const semanas = [0, 0, 0, 0, 0, 0, 0, 0]
-      let n30 = 0
-      let n7 = 0
-      let a7 = 0
-      let a30 = 0
+      let nP = 0
+      let aP = 0
       for (const u of usuariosAuth) {
         const cr = u?.created_at ? new Date(u.created_at).getTime() : 0
-        if (cr >= d30) n30 = n30 + 1
-        if (cr >= d7) n7 = n7 + 1
+        if (cr >= dP) nP = nP + 1
         const ls = u?.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0
-        if (ls >= d7) a7 = a7 + 1
-        if (ls >= d30) a30 = a30 + 1
+        if (ls >= dP) aP = aP + 1
         if (cr) {
           const sem = Math.floor((agora - cr) / semanaMs)
           if (sem >= 0 && sem < 8) semanas[7 - sem] = semanas[7 - sem] + 1
         }
       }
-      novos30 = n30
-      novos7 = n7
-      ativos7 = a7
-      ativos30 = a30
+      novosPeriodo = nP
+      ativosPeriodo = aP
       crescimentoSemanal = semanas
     } catch {
-      novos30 = null
+      novosPeriodo = null
     }
     const vinculos = await safeCount(() =>
       supabaseAdmin.from('vinculos').select('*', { count: 'exact', head: true }).eq('ativo', true)
     )
     const eventosHoje = await safeCount(() =>
       supabaseAdmin.from('eventos').select('*', { count: 'exact', head: true }).gte('created_at', desde1)
+    )
+    const eventosPeriodo = await safeCount(() =>
+      supabaseAdmin.from('eventos').select('*', { count: 'exact', head: true }).gte('created_at', desdePeriodo)
     )
     const ticketsAbertos = await safeCount(() =>
       supabaseAdmin.from('tickets_sac').select('*', { count: 'exact', head: true }).eq('status', 'aberto')
@@ -102,17 +100,17 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
+      dias,
       total,
       porTipo,
-      novos30,
-      novos7,
-      ativos7,
-      ativos30,
+      novosPeriodo,
+      ativosPeriodo,
       crescimentoSemanal,
       vinculos,
       assinantesAtivos,
       mrr,
       eventosHoje,
+      eventosPeriodo,
       ticketsAbertos,
     })
   } catch {
