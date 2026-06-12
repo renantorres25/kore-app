@@ -16,6 +16,7 @@ type Aluno = {
   fcmax: number | null
   dataNascimento: string | null
   tsb_atual: number | null
+  avatar_url: string | null
 }
 
 type Stats = {
@@ -108,13 +109,14 @@ export default function PersonalAlunos() {
       if (!vinculos?.length) { setCarregando(false); return }
 
       const ids = vinculos.map(v => v.cliente_id)
-      const { data: perfis } = await supabase.from('perfis').select('id, nome, email, fcmax, data_nascimento, tsb_atual, ctl_atual, atl_atual').in('id', ids)
+      const { data: perfis } = await supabase.from('perfis').select('id, nome, email, fcmax, data_nascimento, tsb_atual, ctl_atual, atl_atual, avatar_url').in('id', ids)
 
       const alunosData: Aluno[] = vinculos.map(v => {
         const perfil = perfis?.find(p => p.id === v.cliente_id)
         return {
           id: v.id, cliente_id: v.cliente_id, nome: perfil?.nome ?? null, email: perfil?.email ?? '', ativo: v.ativo,
           fcmax: perfil?.fcmax ?? null, dataNascimento: perfil?.data_nascimento ?? null, tsb_atual: perfil?.tsb_atual ?? null,
+          avatar_url: perfil?.avatar_url ?? null,
         }
       })
       setAlunos(alunosData)
@@ -307,9 +309,13 @@ export default function PersonalAlunos() {
                       <div className="flex items-start gap-4">
                         {/* Avatar + dot de alerta */}
                         <div className="relative shrink-0 mt-0.5">
-                          <div className="w-10 h-10 rounded-xl bg-white/[0.07] flex items-center justify-center">
-                            <span className="font-bold text-sm text-zinc-300">{getInitials(aluno.nome, aluno.email)}</span>
-                          </div>
+                          {aluno.avatar_url ? (
+                            <img src={aluno.avatar_url} alt={aluno.nome ?? aluno.email} className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.07] flex items-center justify-center">
+                              <span className="font-bold text-sm text-zinc-300">{getInitials(aluno.nome, aluno.email)}</span>
+                            </div>
+                          )}
                           <div className={`absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[var(--bg-base,#0A0B0F)] ${cfg.dot}`} />
                         </div>
 

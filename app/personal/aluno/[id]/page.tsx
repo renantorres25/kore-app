@@ -10,7 +10,7 @@ import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../
 import { calcularPMC, type PontoPMC, computeAlertaCientifico, type AlertaNivel } from '../../../lib/alertas-cientificos'
 import { gerarNarrativaBloco } from '../../../lib/narrativa-treino'
 
-type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null; tsb_atual: number | null; atl_atual: number | null; ctl_atual: number | null }
+type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null; tsb_atual: number | null; atl_atual: number | null; ctl_atual: number | null; avatar_url: string | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number; grupo_muscular?: string | null; tecnica?: string | null }
 type Treino = { id: string; nome: string; descricao: string | null; plano: string; status: string; data: string | null; exercicios: Exercicio[] }
 type Monitor = {
@@ -995,7 +995,7 @@ export default function PersonalAluno() {
     const { inicio: inicioSemanaAtual, fim: fimSemanaAtual } = getInicioFimSemana(0)
 
     const [{ data: perfil }, { data: treinosData }, { data: sonoHoje }, { data: bemEstarData }, { data: treinosHist }, { data: perfilPersonal }, { data: sessoesSemanaAtual }] = await Promise.all([
-      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp, tsb_atual, atl_atual, ctl_atual').eq('id', clienteId).single(),
+      supabase.from('perfis').select('id, nome, email, peso, objetivo, altura, sexo, data_nascimento, meta_peso, meta_data_limite, nivel, fcmax, ftp, tsb_atual, atl_atual, ctl_atual, avatar_url').eq('id', clienteId).single(),
       supabase.from('treinos').select('id, nome, descricao, plano, status, data').eq('cliente_id', clienteId).eq('personal_id', session.user.id).order('plano'),
       supabase.from('sono').select('score_recuperacao, duracao_minutos').eq('usuario_id', clienteId).eq('data', hoje).single(),
       supabase.from('bem_estar').select('data, humor, energia, motivacao, dor_muscular, notas').eq('usuario_id', clienteId).gte('data', semanaStr).order('data', { ascending: false }),
@@ -1508,9 +1508,13 @@ export default function PersonalAluno() {
             </button>
             <div className="flex items-center justify-between gap-6">
               <div className="flex items-center gap-4 min-w-0">
-                <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 20px rgba(52,211,153,0.12)' }}>
-                  <span style={{ color: '#34d399', fontWeight: 900, fontSize: 16 }}>{aluno ? getInitials(aluno.nome, aluno.email) : '?'}</span>
-                </div>
+                {aluno?.avatar_url ? (
+                  <img src={aluno.avatar_url} alt={aluno.nome ?? aluno.email} className="w-12 h-12 rounded-full object-cover border-2 border-white/20" style={{ flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 48, height: 48, borderRadius: 16, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 20px rgba(52,211,153,0.12)' }}>
+                    <span style={{ color: '#34d399', fontWeight: 900, fontSize: 16 }}>{aluno ? getInitials(aluno.nome, aluno.email) : '?'}</span>
+                  </div>
+                )}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 style={{ fontSize: '1.75rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#F5F6F8', lineHeight: 1 }} className="truncate">
