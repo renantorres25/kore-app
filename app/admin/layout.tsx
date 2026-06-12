@@ -64,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const todosItens: { label: string; href: string; papeis: string[] | null }[] = [
     { label: 'Cockpit', href: '/admin', papeis: null },
     { label: 'Análise', href: '/admin/analise', papeis: null },
+    { label: 'IA', href: '/admin/ia', papeis: ['super_admin', 'admin'] },
     { label: 'Usuários', href: '/admin/usuarios', papeis: ['super_admin', 'admin', 'sac'] },
     { label: 'Financeiro', href: '/admin/financeiro', papeis: ['super_admin', 'admin', 'financeiro'] },
     { label: 'SAC', href: '/admin/sac', papeis: ['super_admin', 'admin', 'sac'] },

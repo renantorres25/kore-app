@@ -51,16 +51,30 @@ function Card({ label, valor, cor, sufixo }: { label: string; valor: string; cor
 
 export default function CockpitPage() {
   const [kpis, setKpis] = useState<Kpis | null>(null)
+  const [alertas, setAlertas] = useState<{ nivel: string; texto: string }[]>([])
   const [erro, setErro] = useState('')
 
   useEffect(() => {
     adminFetch<Kpis>('/api/admin/kpis').then(setKpis).catch((e) => setErro(e.message))
+    adminFetch<{ alertas: { nivel: string; texto: string }[] }>('/api/admin/alertas').then((d) => setAlertas(d.alertas)).catch(() => {})
   }, [])
 
   return (
     <div style={{ fontFamily: JAKARTA, maxWidth: 1080 }}>
       <p style={{ color: C.energy, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em', fontWeight: 700, margin: 0 }}>Visão geral</p>
-      <h1 style={{ fontFamily: SORA, fontSize: 30, fontWeight: 800, color: C.t1, margin: '4px 0 22px' }}>Cockpit</h1>
+      <h1 style={{ fontFamily: SORA, fontSize: 30, fontWeight: 800, color: C.t1, margin: '4px 0 18px' }}>Cockpit</h1>
+
+      {alertas.length > 0 && (
+        <div style={{ ...glass, marginBottom: 18 }}>
+          <p style={{ color: C.energy, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 700, margin: '0 0 10px' }}>Precisa de atenção</p>
+          {alertas.map((a, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: a.nivel === 'alerta' ? C.energy : C.sleep, flexShrink: 0 }} />
+              <span style={{ color: C.t1, fontSize: 13 }}>{a.texto}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {erro && (
         <div style={{ ...glass, borderColor: 'rgba(248,113,113,0.4)', color: '#F87171', marginBottom: 16 }}>
