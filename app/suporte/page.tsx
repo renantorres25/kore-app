@@ -77,6 +77,8 @@ export default function SuportePage() {
   const [carregandoMsg, setCarregandoMsg] = useState(false)
   const [resposta, setResposta] = useState('')
   const [enviandoMsg, setEnviandoMsg] = useState(false)
+  // Mapa ticket_id -> autor da última mensagem. 'admin' = há resposta aguardando o usuário.
+  const [ultimaAutoria, setUltimaAutoria] = useState<Record<string, string>>({})
 
   const carregarTickets = useCallback(async (uid: string) => {
     const { data } = await supabase
@@ -85,7 +87,21 @@ export default function SuportePage() {
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
       .limit(50)
-    setTickets((data as Ticket[]) || [])
+    const lista = (data as Ticket[]) || []
+    setTickets(lista)
+    const ids = lista.map((t) => t.id)
+    if (ids.length) {
+      const { data: msgs } = await supabase
+        .from('ticket_mensagens')
+        .select('ticket_id, autor_tipo, created_at')
+        .in('ticket_id', ids)
+        .order('created_at', { ascending: false })
+      const mapa: Record<string, string> = {}
+      for (const m of msgs || []) if (!(m.ticket_id in mapa)) mapa[m.ticket_id] = m.autor_tipo
+      setUltimaAutoria(mapa)
+    } else {
+      setUltimaAutoria({})
+    }
   }, [])
 
   useEffect(() => {
@@ -149,6 +165,7 @@ export default function SuportePage() {
     if (!error) {
       setResposta('')
       await carregarMensagens(ticketId)
+      setUltimaAutoria((prev) => ({ ...prev, [ticketId]: 'usuario' }))
     }
     setEnviandoMsg(false)
   }
@@ -229,6 +246,9 @@ export default function SuportePage() {
                 <div key={t.id} style={{ ...glass, padding: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ flex: 1, color: C.t1, fontWeight: 600, fontSize: 14 }}>{t.assunto}</span>
+                    {ultimaAutoria[t.id] === 'admin' && t.status !== 'fechado' && (
+                      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: C.good, background: 'rgba(45,212,167,0.14)', border: '1px solid rgba(45,212,167,0.35)', borderRadius: 999, padding: '3px 9px' }}>Nova resposta</span>
+                    )}
                     <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: corStatus[t.status] || C.t2 }}>{rotStatus[t.status] || t.status}</span>
                   </div>
                   {t.descricao && <p style={{ color: C.t2, fontSize: 13, margin: '8px 0 0', lineHeight: 1.5 }}>{t.descricao}</p>}

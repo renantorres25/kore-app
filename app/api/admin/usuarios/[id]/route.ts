@@ -3,6 +3,10 @@ import { supabaseAdmin, requireAdmin } from '../../../../lib/supabaseAdmin'
 
 type Ctx = { params: Promise<{ id: string }> }
 
+// Ações sensíveis sujeitas a limite de taxa, e o teto por minuto por admin.
+const ACOES_DESTRUTIVAS = ['suspender', 'reativar', 'mudar_perfil', 'reset_senha', 'excluir']
+const LIMITE_POR_MINUTO = 30
+
 // ── Detalhe do usuário ───────────────────────────────────────────────────────
 export async function GET(req: NextRequest, ctx: Ctx) {
   const admin = await requireAdmin(req, ['super_admin', 'admin', 'sac'])
@@ -97,6 +101,22 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
 
   try {
+    // Rate-limit leniente: protege contra abuso / token comprometido sem atrapalhar o uso normal.
+    // Conta as ações deste admin no último minuto pelo audit_log (consistente em serverless).
+    if (ACOES_DESTRUTIVAS.includes(acao)) {
+      try {
+        const desde = new Date(Date.now() - 60_000).toISOString()
+        const { count } = await supabaseAdmin
+          .from('audit_log')
+          .select('*', { count: 'exact', head: true })
+          .eq('admin_id', admin.userId)
+          .gte('created_at', desde)
+        if ((count ?? 0) >= LIMITE_POR_MINUTO) {
+          return NextResponse.json({ erro: 'Muitas ações em pouco tempo. Aguarde um minuto e tente novamente.' }, { status: 429 })
+        }
+      } catch { /* se a checagem falhar, não bloqueia a ação legítima */ }
+    }
+
     let resultado = ''
     const { data: antesPerfil } = await supabaseAdmin.from('perfis').select('nome, email, tipo').eq('id', id).maybeSingle()
 

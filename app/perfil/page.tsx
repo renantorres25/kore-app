@@ -94,6 +94,7 @@ function PerfilConteudo() {
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState(false)
   const [userId, setUserId] = useState('')
+  const [suporteNovas, setSuporteNovas] = useState(0)
   const [stravaConectado, setStravaConectado] = useState(false)
   const [stravaAthleta, setStravaAthleta] = useState<string | null>(null)
   const [stravaUltimaSync, setStravaUltimaSync] = useState<string | null>(null)
@@ -167,6 +168,30 @@ function PerfilConteudo() {
     }
     carregar()
   }, [router])
+
+  // Conta chamados de SAC com resposta nova aguardando o usuário (última mensagem do admin).
+  useEffect(() => {
+    if (!userId) return
+    ;(async () => {
+      try {
+        const { data: ts } = await supabase
+          .from('tickets_sac')
+          .select('id, status')
+          .eq('user_id', userId)
+          .neq('status', 'fechado')
+        const ids = (ts || []).map((t: any) => t.id)
+        if (!ids.length) { setSuporteNovas(0); return }
+        const { data: msgs } = await supabase
+          .from('ticket_mensagens')
+          .select('ticket_id, autor_tipo, created_at')
+          .in('ticket_id', ids)
+          .order('created_at', { ascending: false })
+        const ultima: Record<string, string> = {}
+        for (const m of msgs || []) if (!(m.ticket_id in ultima)) ultima[m.ticket_id] = m.autor_tipo
+        setSuporteNovas(Object.values(ultima).filter((a) => a === 'admin').length)
+      } catch { /* silencioso */ }
+    })()
+  }, [userId])
 
   function calcularIdade() {
     if (!dataNascimento) return null
@@ -817,6 +842,9 @@ function PerfilConteudo() {
                 <p style={{ color: C.t1, fontWeight: 700, fontSize: 14 }}>Suporte</p>
                 <p style={{ color: C.t3, fontSize: 12 }}>Abra um chamado e acompanhe o andamento</p>
               </div>
+              {suporteNovas > 0 && (
+                <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, color: '#fff', background: C.good, borderRadius: 999, minWidth: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>{suporteNovas}</span>
+              )}
               <span style={{ color: C.t3, fontSize: 16, flexShrink: 0 }}>{'→'}</span>
             </button>
           </div>
