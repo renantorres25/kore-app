@@ -1665,50 +1665,34 @@ export default function PersonalAluno() {
                   const cfg = SEMAFORO_CFG[nivel]
 
                   return (
-                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                      <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 16, fontWeight: 700 }}>Status de hoje</p>
-
-                      <div className="flex items-center gap-3 mb-4 px-4 py-3.5 rounded-2xl" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-                        <div className="w-4 h-4 rounded-full shrink-0" style={{ background: cfg.cor, boxShadow: `0 0 12px ${cfg.cor}` }} />
-                        <p className="text-white font-black text-base">{texto}</p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Recuperação</p>
-                          {recuperacao != null ? (
-                            <p className={`text-2xl font-black leading-none ${recuperacao >= 70 ? 'text-emerald-400' : recuperacao >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {recuperacao}<span className="text-zinc-500 text-[11px] font-normal">/100</span>
-                            </p>
-                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Sono</p>
-                          {monitor.sonoHoras ? (
-                            <p className="text-2xl font-black text-white leading-none">{monitor.sonoHoras}<span className="text-zinc-500 text-[11px] font-normal">h</span></p>
-                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Bem-estar</p>
-                          {bemHoje != null ? (
-                            <p className={`text-2xl font-black leading-none ${bemHoje >= 4 ? 'text-emerald-400' : bemHoje >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {bemHoje.toFixed(1)}<span className="text-zinc-500 text-[11px] font-normal">/4</span>
-                            </p>
-                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                          <p className="text-zinc-600 text-[11px] mt-1">hoje</p>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14 }}>
-                          <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 8 }}>Inatividade</p>
-                          {dias != null ? (
-                            <p className={`text-2xl font-black leading-none ${dias <= 2 ? 'text-emerald-400' : dias <= 4 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {dias}<span className="text-zinc-500 text-[11px] font-normal">d</span>
-                            </p>
-                          ) : <p className="text-zinc-700 text-2xl font-black leading-none">—</p>}
-                          <p className="text-zinc-600 text-[11px] mt-1">sem treinar</p>
+                    <div style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 16 }}>
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Status de hoje</p>
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.cor, boxShadow: `0 0 8px ${cfg.cor}` }} />
+                          <p className="text-white font-bold text-xs">{texto}</p>
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-4 border-t border-white/[0.09] flex flex-wrap gap-2">
+                      {nivel !== 'cinza' ? (
+                        <div className="flex items-center gap-3 text-sm text-zinc-300 mt-3 flex-wrap">
+                          <span>😴 Sono: {monitor.sonoHoras ? <span className="text-white font-semibold">{monitor.sonoHoras}h</span> : <span className="text-zinc-600">--</span>}</span>
+                          <span className="text-zinc-700">│</span>
+                          <span>💚 Bem-estar: {bemHoje != null ? <span className="text-white font-semibold">{bemHoje.toFixed(1)}/4</span> : <span className="text-zinc-600">--</span>}</span>
+                          <span className="text-zinc-700">│</span>
+                          <span>🔋 Rec: {recuperacao != null ? <span className="text-white font-semibold">{recuperacao}/100</span> : <span className="text-zinc-600">--</span>}</span>
+                          {dias != null && (
+                            <>
+                              <span className="text-zinc-700">│</span>
+                              <span>📅 {dias}d sem treinar</span>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-zinc-600 text-sm mt-3">Sem dados hoje</p>
+                      )}
+
+                      <div className="mt-3 pt-3 border-t border-white/[0.09] flex flex-wrap gap-2">
                         {aluno?.nivel && (
                           <span className="text-[10px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5">
                             Nível: {aluno.nivel}
@@ -1743,6 +1727,25 @@ export default function PersonalAluno() {
                     </div>
                   )
                 })()}
+
+                {/* Periodização ativa */}
+                <div
+                  onClick={() => setAbaAtiva('periodizacao')}
+                  className="cursor-pointer hover:brightness-110 transition-all"
+                  style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Periodização</p>
+                    <span className="text-zinc-500 text-xs font-bold">Ver periodização →</span>
+                  </div>
+                  {faseCiclo ? (
+                    <>
+                      <p className="text-zinc-500 text-xs mb-1">{faseCiclo.nomeCiclo}</p>
+                      <p className="text-white font-bold">{faseCiclo.nomeBloco} · Semana {faseCiclo.semanaBloco} de {faseCiclo.semanasBloco}</p>
+                    </>
+                  ) : (
+                    <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
+                  )}
+                </div>
 
                 {/* Resumo semanal */}
                 {(() => {
@@ -1871,25 +1874,6 @@ export default function PersonalAluno() {
                     </div>
                   )
                 })()}
-
-                {/* Periodização ativa */}
-                <div
-                  onClick={() => setAbaAtiva('periodizacao')}
-                  className="cursor-pointer hover:brightness-110 transition-all"
-                  style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20, padding: 20 }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <p style={{ fontSize: 10, color: '#7A8290', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>Periodização</p>
-                    <span className="text-zinc-500 text-xs font-bold">Ver periodização →</span>
-                  </div>
-                  {faseCiclo ? (
-                    <>
-                      <p className="text-zinc-500 text-xs mb-1">{faseCiclo.nomeCiclo}</p>
-                      <p className="text-white font-bold">{faseCiclo.nomeBloco} · Semana {faseCiclo.semanaBloco} de {faseCiclo.semanasBloco}</p>
-                    </>
-                  ) : (
-                    <p className="text-zinc-500 text-sm">Sem periodização ativa</p>
-                  )}
-                </div>
 
                 {/* Plano nutricional ativo */}
                 {(planoNutri || restricaoNutri) && (
