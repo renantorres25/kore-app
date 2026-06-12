@@ -11,7 +11,7 @@ const C = {
 const SORA = "'Sora', system-ui, sans-serif"
 const JAKARTA = "'Plus Jakarta Sans', system-ui, sans-serif"
 
-type Log = { id: number; admin_id: string; admin_nome: string; acao: string; entidade: string | null; entidade_id: string | null; created_at: string }
+type Log = { id: number; admin_id: string; admin_nome: string; acao: string; entidade: string | null; entidade_id: string | null; ip: string | null; created_at: string }
 
 const rotulo: Record<string, string> = {
   'usuario:suspender': 'Suspendeu usuário',
@@ -68,7 +68,10 @@ export default function AuditoriaPage() {
                 <span style={{ color: corAcao[l.acao] || C.t1, fontSize: 13, fontWeight: 600 }}>{descrever(l.acao)}</span>
                 {linkUser && <span style={{ color: C.t3, fontSize: 11 }}> · abrir usuário</span>}
               </div>
-              <span style={{ color: C.t2, fontSize: 12 }}>{l.admin_nome}</span>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ color: C.t2, fontSize: 12 }}>{l.admin_nome}</span>
+                {l.ip && <span style={{ color: C.t3, fontSize: 10, display: 'block' }}>{l.ip}</span>}
+              </div>
             </div>
           )
         })}

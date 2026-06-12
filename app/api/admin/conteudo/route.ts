@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     try {
       await supabaseAdmin.from('audit_log').insert({
         admin_id: admin.userId, acao: `conteudo:${acao}`, entidade: 'templates_planos', entidade_id: String(id), depois: body,
+        ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
       })
     } catch { /* silencioso */ }
 

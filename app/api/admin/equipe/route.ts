@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const acao = body?.acao
+  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
 
   try {
     let resultado = ''
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
         entidade: 'admin_users',
         entidade_id: body?.user_id || body?.email || null,
         depois: body,
+        ip,
       })
     } catch { /* silencioso */ }
 

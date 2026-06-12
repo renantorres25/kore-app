@@ -67,9 +67,11 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params
   const body = await req.json().catch(() => ({}))
   const acao = body?.acao as string
+  const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
 
   try {
     let resultado = ''
+    const { data: antesPerfil } = await supabaseAdmin.from('perfis').select('nome, email, tipo').eq('id', id).maybeSingle()
 
     if (acao === 'suspender') {
       await supabaseAdmin.auth.admin.updateUserById(id, { ban_duration: '876000h' } as any)
@@ -101,6 +103,9 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       if (error) return NextResponse.json({ erro: 'Falha ao registrar assinatura.' }, { status: 500 })
       resultado = `Assinatura ${plano} registrada (${status}).`
     } else if (acao === 'excluir') {
+      if (admin.papel !== 'super_admin') {
+        return NextResponse.json({ erro: 'Apenas super-admin pode excluir usuários.' }, { status: 403 })
+      }
       if (body?.confirmar !== 'EXCLUIR') {
         return NextResponse.json({ erro: 'Confirmação inválida.' }, { status: 400 })
       }
@@ -121,7 +126,9 @@ export async function POST(req: NextRequest, ctx: Ctx) {
         acao: `usuario:${acao}`,
         entidade: 'perfis',
         entidade_id: id,
+        antes: antesPerfil,
         depois: body,
+        ip,
       })
     } catch { /* silencioso */ }
 

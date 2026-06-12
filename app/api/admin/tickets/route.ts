@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
         acao: `ticket:status:${status}`,
         entidade: 'tickets_sac',
         entidade_id: String(id),
+        ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
       })
     } catch { /* silencioso */ }
 

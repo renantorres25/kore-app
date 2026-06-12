@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data: logs } = await supabaseAdmin
       .from('audit_log')
-      .select('id, admin_id, acao, entidade, entidade_id, created_at')
+      .select('id, admin_id, acao, entidade, entidade_id, ip, created_at')
       .order('created_at', { ascending: false })
       .limit(200)
 
