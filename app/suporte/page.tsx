@@ -44,6 +44,7 @@ const corStatus: Record<string, string> = { aberto: C.warn, em_andamento: C.slee
 const rotStatus: Record<string, string> = { aberto: 'Aberto', em_andamento: 'Em andamento', resolvido: 'Resolvido', fechado: 'Fechado' }
 
 type Ticket = { id: string; assunto: string; descricao: string | null; status: string; created_at: string }
+type Msg = { id: string; autor_tipo: string; mensagem: string; created_at: string }
 
 function useIsDesktop() {
   const [v, setV] = useState(false)
@@ -70,6 +71,12 @@ export default function SuportePage() {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState(false)
+
+  const [aberto, setAberto] = useState<string | null>(null)
+  const [mensagens, setMensagens] = useState<Msg[]>([])
+  const [carregandoMsg, setCarregandoMsg] = useState(false)
+  const [resposta, setResposta] = useState('')
+  const [enviandoMsg, setEnviandoMsg] = useState(false)
 
   const carregarTickets = useCallback(async (uid: string) => {
     const { data } = await supabase
@@ -112,6 +119,38 @@ export default function SuportePage() {
     await carregarTickets(userId)
     setEnviando(false)
     setTimeout(() => setSucesso(false), 3000)
+  }
+
+  async function carregarMensagens(ticketId: string) {
+    const { data } = await supabase
+      .from('ticket_mensagens')
+      .select('id, autor_tipo, mensagem, created_at')
+      .eq('ticket_id', ticketId)
+      .order('created_at', { ascending: true })
+    setMensagens((data as Msg[]) || [])
+  }
+
+  async function abrirConversa(ticketId: string) {
+    if (aberto === ticketId) { setAberto(null); return }
+    setAberto(ticketId); setMensagens([]); setResposta(''); setCarregandoMsg(true)
+    await carregarMensagens(ticketId)
+    setCarregandoMsg(false)
+  }
+
+  async function responder(ticketId: string) {
+    if (!resposta.trim()) return
+    setEnviandoMsg(true)
+    const { error } = await supabase.from('ticket_mensagens').insert({
+      ticket_id: ticketId,
+      autor_id: userId,
+      autor_tipo: 'usuario',
+      mensagem: resposta.trim(),
+    })
+    if (!error) {
+      setResposta('')
+      await carregarMensagens(ticketId)
+    }
+    setEnviandoMsg(false)
   }
 
   const tipoSidebar = tipo === 'personal' ? 'personal' : tipo === 'nutricionista' ? 'nutricionista' : 'cliente'
@@ -193,9 +232,49 @@ export default function SuportePage() {
                     <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: corStatus[t.status] || C.t2 }}>{rotStatus[t.status] || t.status}</span>
                   </div>
                   {t.descricao && <p style={{ color: C.t2, fontSize: 13, margin: '8px 0 0', lineHeight: 1.5 }}>{t.descricao}</p>}
-                  <p style={{ color: C.t3, fontSize: 11, margin: '10px 0 0' }}>
-                    Aberto em {new Date(t.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                    <p style={{ color: C.t3, fontSize: 11, margin: 0 }}>
+                      Aberto em {new Date(t.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                    <button onClick={() => abrirConversa(t.id)}
+                      style={{ background: 'transparent', border: `1px solid ${C.energy}`, color: C.energy, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 9, cursor: 'pointer' }}>
+                      {aberto === t.id ? 'Fechar conversa' : 'Ver conversa'}
+                    </button>
+                  </div>
+
+                  {aberto === t.id && (
+                    <div style={{ marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 12 }}>
+                      {carregandoMsg && <p style={{ color: C.t3, fontSize: 12 }}>Carregando…</p>}
+                      {!carregandoMsg && mensagens.length === 0 && (
+                        <p style={{ color: C.t3, fontSize: 12, marginBottom: 10 }}>Ainda sem respostas. Você pode adicionar mais detalhes abaixo.</p>
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                        {mensagens.map((m) => {
+                          const ehUsuario = m.autor_tipo === 'usuario'
+                          return (
+                            <div key={m.id} style={{ alignSelf: ehUsuario ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                              <div style={{
+                                background: ehUsuario ? 'rgba(255,90,54,0.14)' : 'rgba(96,165,250,0.12)',
+                                border: `1px solid ${ehUsuario ? 'rgba(255,90,54,0.3)' : 'rgba(96,165,250,0.3)'}`,
+                                borderRadius: 12, padding: '9px 12px', color: C.t1, fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                              }}>{m.mensagem}</div>
+                              <p style={{ color: C.t3, fontSize: 10, margin: '3px 4px 0', textAlign: ehUsuario ? 'right' : 'left' }}>
+                                {ehUsuario ? 'Você' : 'Suporte KORE'} · {new Date(m.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <textarea value={resposta} onChange={(e) => setResposta(e.target.value)} rows={3} placeholder="Escreva uma mensagem…"
+                        style={{ ...inputBase, resize: 'vertical' }} />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                        <button onClick={() => responder(t.id)} disabled={enviandoMsg || !resposta.trim()}
+                          style={{ background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, fontFamily: FONT_BODY, fontSize: 13, border: 'none', borderRadius: 10, padding: '9px 18px', cursor: enviandoMsg || !resposta.trim() ? 'default' : 'pointer', opacity: enviandoMsg || !resposta.trim() ? 0.4 : 1 }}>
+                          {enviandoMsg ? 'Enviando…' : 'Enviar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
