@@ -801,6 +801,26 @@ function PerfilConteudo() {
             ))}
           </div>
         )}
+
+        {/* Ajuda e suporte — todos os perfis */}
+        {!isNovo && (
+          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Ajuda</p>
+            <button onClick={() => router.push('/suporte')}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '16px', borderRadius: 16, textAlign: 'left', cursor: 'pointer',
+                border: '1px solid rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.05)',
+                fontFamily: FONT_BODY, transition: 'all .15s',
+              }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: C.t1, fontWeight: 700, fontSize: 14 }}>Suporte</p>
+                <p style={{ color: C.t3, fontSize: 12 }}>Abra um chamado e acompanhe o andamento</p>
+              </div>
+              <span style={{ color: C.t3, fontSize: 16, flexShrink: 0 }}>{'→'}</span>
+            </button>
+          </div>
+        )}
       </div>
       </div>
     </main>

@@ -18,7 +18,7 @@ const corStatus: Record<string, string> = { aberto: '#F5B544', em_andamento: '#6
 const rotStatus: Record<string, string> = { aberto: 'Aberto', em_andamento: 'Em andamento', resolvido: 'Resolvido', fechado: 'Fechado' }
 const corPri: Record<string, string> = { alta: '#FB7185', media: '#F5B544', baixa: '#9AA0AD' }
 
-type Ticket = { id: string; canal: string; assunto: string; descricao: string | null; status: string; prioridade: string; csat: number | null; created_at: string }
+type Ticket = { id: string; canal: string; assunto: string; descricao: string | null; status: string; prioridade: string; csat: number | null; created_at: string; solicitante_nome?: string | null; solicitante_email?: string | null }
 
 export default function SacPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
@@ -84,6 +84,12 @@ export default function SacPage() {
               <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: corPri[t.prioridade] || C.t2 }}>{t.prioridade}</span>
               <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: corStatus[t.status] || C.t2 }}>{rotStatus[t.status] || t.status}</span>
             </div>
+            {(t.solicitante_nome || t.solicitante_email) && (
+              <p style={{ color: C.t3, fontSize: 12, margin: '4px 0 0' }}>
+                {t.solicitante_nome || 'Usuário'}{t.solicitante_email ? ` · ${t.solicitante_email}` : ''}
+                <span style={{ marginLeft: 8, color: C.t3 }}>· {new Date(t.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+              </p>
+            )}
             {t.descricao && <p style={{ color: C.t2, fontSize: 13, margin: '8px 0 0' }}>{t.descricao}</p>}
             <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
               {t.status !== 'em_andamento' && <button onClick={() => mudarStatus(t.id, 'em_andamento')} style={mini(C.sleep)}>Em andamento</button>}

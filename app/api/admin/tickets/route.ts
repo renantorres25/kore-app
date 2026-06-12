@@ -18,7 +18,20 @@ export async function GET(req: NextRequest) {
       .limit(200)
     if (status) query = query.eq('status', status)
 
-    const { data: tickets } = await query
+    const { data: ticketsRaw } = await query
+
+    // Busca nome/e-mail dos solicitantes em uma segunda consulta (mais robusto que embed).
+    const ids = [...new Set((ticketsRaw || []).map((t: any) => t.user_id).filter(Boolean))]
+    const mapaPerfil: Record<string, { nome: string | null; email: string | null }> = {}
+    if (ids.length) {
+      const { data: perfis } = await supabaseAdmin.from('perfis').select('id, nome, email').in('id', ids)
+      for (const p of perfis || []) mapaPerfil[p.id] = { nome: p.nome ?? null, email: p.email ?? null }
+    }
+    const tickets = (ticketsRaw || []).map((t: any) => ({
+      ...t,
+      solicitante_nome: mapaPerfil[t.user_id]?.nome ?? null,
+      solicitante_email: mapaPerfil[t.user_id]?.email ?? null,
+    }))
 
     const { data: todos } = await supabaseAdmin.from('tickets_sac').select('status')
     const contagem: Record<string, number> = { aberto: 0, em_andamento: 0, resolvido: 0, fechado: 0 }
