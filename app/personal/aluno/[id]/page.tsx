@@ -193,6 +193,7 @@ type SessaoPresc = {
   distancia_km: number | null
   observacao: string | null
   status: string
+  plano_treino_id: string | null
   blocos: BlocoSessao[]
 }
 
@@ -438,20 +439,15 @@ const TIPO_SESSAO_LABEL: Record<string, string> = {
 const NOMES_BLOCO = ['Aquecimento', 'Principal', 'Desaquecimento', 'Intervalo', 'Outro'] as const
 const DIAS_SEMANA_LABEL = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
 
-function getTabsModalidadeSessao(modalidadeEscolhida: 'musculacao' | 'triathlon' | 'corrida' | 'bike' | 'natacao' | null): SessaoPresc['modalidade'][] {
-  switch (modalidadeEscolhida) {
-    case 'corrida': return ['corrida', 'musculacao', 'descanso']
-    case 'bike': return ['bike', 'musculacao', 'descanso']
-    case 'natacao': return ['natacao', 'musculacao', 'descanso']
-    default: return ['corrida', 'bike', 'natacao', 'musculacao', 'descanso']
-  }
+function getTabsModalidadeSessao(): SessaoPresc['modalidade'][] {
+  return ['corrida', 'bike', 'natacao', 'musculacao', 'descanso']
 }
 
 function vazioBloco(ordem: number): BlocoSessao {
   return { ordem, nome: 'Principal', duracao_min: null, distancia_km: null, repeticoes: null, zona_fc: null, fc_min: null, fc_max: null, pace_alvo: null, ftp_pct: null, watts_alvo: null, observacao: null }
 }
 function vazioSessao(data: string, modalidade: SessaoPresc['modalidade'] = 'corrida'): SessaoPresc {
-  return { data, modalidade, tipo_sessao: 'continuo', duracao_min: null, distancia_km: null, observacao: null, status: 'planejado', blocos: [vazioBloco(1)] }
+  return { data, modalidade, tipo_sessao: 'continuo', duracao_min: null, distancia_km: null, observacao: null, status: 'planejado', plano_treino_id: null, blocos: [vazioBloco(1)] }
 }
 
 export default function PersonalAluno() {
@@ -640,7 +636,7 @@ export default function PersonalAluno() {
           .map(ativ => {
             const sessaoFake: SessaoPresc = {
               data: d, modalidade: ativ.tipo as 'corrida' | 'bike' | 'natacao', tipo_sessao: null,
-              duracao_min: null, distancia_km: null, observacao: null, status: 'realizado_sem_planejamento', blocos: [],
+              duracao_min: null, distancia_km: null, observacao: null, status: 'realizado_sem_planejamento', plano_treino_id: null, blocos: [],
             }
             return {
               sessao: sessaoFake,
@@ -1274,6 +1270,7 @@ export default function PersonalAluno() {
         distancia_km: s.distancia_km,
         observacao: s.observacao,
         status: s.status,
+        plano_treino_id: s.plano_treino_id ?? null,
         blocos: (s.blocos_sessao ?? [])
           .slice()
           .sort((a: any, b: any) => a.ordem - b.ordem)
@@ -1318,17 +1315,18 @@ export default function PersonalAluno() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setSalvandoSessao(false); return }
 
-    const blocos = sessaoEditando.modalidade === 'descanso' ? [] : sessaoEditando.blocos
+    const blocos = (sessaoEditando.modalidade === 'descanso' || sessaoEditando.modalidade === 'musculacao') ? [] : sessaoEditando.blocos
     const payload = {
       coach_id: session.user.id,
       atleta_id: clienteId,
       data: diaEditando,
       modalidade: sessaoEditando.modalidade,
-      tipo_sessao: sessaoEditando.modalidade === 'descanso' ? null : sessaoEditando.tipo_sessao,
+      tipo_sessao: (sessaoEditando.modalidade === 'descanso' || sessaoEditando.modalidade === 'musculacao') ? null : sessaoEditando.tipo_sessao,
       duracao_min: sessaoEditando.duracao_min,
       distancia_km: sessaoEditando.distancia_km,
       observacao: sessaoEditando.observacao,
       status: sessaoEditando.status,
+      plano_treino_id: sessaoEditando.modalidade === 'musculacao' ? sessaoEditando.plano_treino_id : null,
     }
 
     let sessaoId = sessaoEditando.id
@@ -3007,10 +3005,8 @@ export default function PersonalAluno() {
                   <>
                   <div className="flex items-center justify-between">
                     <button onClick={() => setModalidadeEscolhida(null)} className="text-zinc-500 text-xs font-bold uppercase tracking-wider hover:text-white transition-all active:scale-95">← Voltar</button>
-                    {modalidadeEscolhida !== 'triathlon' && (
-                      <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
-                        {modalidadeEscolhida === 'corrida' ? 'Assessoria de Corrida' : modalidadeEscolhida === 'bike' ? 'Assessoria de Bike' : modalidadeEscolhida === 'natacao' ? 'Assessoria de Natação' : ''}
-                      </span>
+                    {modalidadeEscolhida !== 'triathlon' && periodizacaoAtiva?.modalidade === 'triathlon' && (
+                      <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Triathlon</span>
                     )}
                   </div>
 
@@ -3561,8 +3557,8 @@ export default function PersonalAluno() {
               {/* Modalidade */}
               <div>
                 <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Modalidade</label>
-                <div className={`grid gap-2 ${getTabsModalidadeSessao(modalidadeEscolhida).length === 5 ? 'grid-cols-5' : 'grid-cols-3'}`}>
-                  {getTabsModalidadeSessao(modalidadeEscolhida).map(mKey => {
+                <div className="grid gap-2 grid-cols-5">
+                  {getTabsModalidadeSessao().map(mKey => {
                     const m = MODALIDADES_SESSAO[mKey]
                     const ativo = sessaoEditando.modalidade === mKey
                     return (
@@ -3577,7 +3573,38 @@ export default function PersonalAluno() {
                 </div>
               </div>
 
-              {sessaoEditando.modalidade !== 'descanso' && (
+              {/* Plano de musculação */}
+              {sessaoEditando.modalidade === 'musculacao' && (
+                <div>
+                  <label className="text-zinc-500 text-[10px] uppercase tracking-widest block mb-2">Plano de musculação</label>
+                  {treinos.length === 0 ? (
+                    <div className="rounded-xl border border-white/[0.11] p-4 text-center" style={{ background: 'var(--surface-1)' }}>
+                      <p className="text-zinc-500 text-xs mb-2">Nenhum plano cadastrado</p>
+                      <button
+                        onClick={() => { setDiaEditando(null); setSessaoEditando(null); setModalidadeEscolhida('musculacao'); abrirNovo() }}
+                        className="text-white text-xs font-bold underline active:scale-95 transition-all">
+                        Criar plano
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {treinos.map(t => {
+                        const ativo = sessaoEditando.plano_treino_id === t.id
+                        return (
+                          <button key={t.id}
+                            onClick={() => setSessaoEditando(prev => prev ? { ...prev, plano_treino_id: t.id } : prev)}
+                            className={`w-full text-left px-4 py-3 rounded-xl border transition-all active:scale-95 ${ativo ? 'bg-white text-black border-white' : 'bg-white/[0.05] text-zinc-300 border-white/[0.11]'}`}>
+                            <p className="font-bold text-xs">Plano {t.plano} · {t.nome}</p>
+                            {t.descricao && <p className={`text-[10px] mt-0.5 ${ativo ? 'text-black/60' : 'text-zinc-500'}`}>{t.descricao}</p>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {sessaoEditando.modalidade !== 'descanso' && sessaoEditando.modalidade !== 'musculacao' && (
                 <>
                   {/* Tipo de sessão */}
                   <div>
