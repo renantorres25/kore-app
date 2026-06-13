@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sincronizarSessaoPrescrita } from '../../../lib/sincronizarSessaoPrescrita'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
           calorias_estimadas: calorias,
           strava_activity_id: stravaId,
         })
-        if (!error) inseridos++
+        if (!error) { inseridos++; await sincronizarSessaoPrescrita(supabase, usuarioId, dataStr, modalidade) }
       } else {
         const precisaAtualizar =
           (!entry.calorias_wearable && calorias) ||

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sincronizarSessaoPrescrita } from '../../../lib/sincronizarSessaoPrescrita'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
 
       const { error } = await supabase.from('atividades_livres').insert(payload)
       if (error) { erros++; console.error('[Sync]', error.message) }
-      else inseridos++
+      else { inseridos++; await sincronizarSessaoPrescrita(supabase, usuarioId, data, modalidade) }
     }
 
     await supabase.from('strava_connections')

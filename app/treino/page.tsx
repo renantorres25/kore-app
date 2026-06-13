@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { atualizarDecisaoDia } from '../lib/atualizarDecisaoDia'
+import { sincronizarSessaoPrescrita as sincronizarSessaoPrescritaBase } from '../lib/sincronizarSessaoPrescrita'
 import { gerarNarrativaBloco } from '../lib/narrativa-treino'
 import QuizIA, { RespostasQuiz } from '../components/QuizIA'
 import SidebarProfissional from '../components/SidebarProfissional'
@@ -487,6 +488,13 @@ export default function TreinoCliente() {
     setCarregandoSessoesPrescritas(false)
   }
 
+  // Marca sessoes_prescritas como concluída quando o atleta registra uma atividade
+  // correspondente (mesma data + modalidade) e atualiza a UI
+  async function sincronizarSessaoPrescrita(atletaId: string, data: string, mod: Modalidade) {
+    await sincronizarSessaoPrescritaBase(supabase, atletaId, data, mod)
+    await carregarSessoesPrescritas(atletaId, semanaOffsetPlanejado)
+  }
+
   useEffect(() => {
     async function verificarHoje() {
       const { data: { session } } = await supabase.auth.getSession()
@@ -665,6 +673,7 @@ Responda APENAS JSON válido:
     setSalvandoLivre(false); setTela('conclusao_livre')
     gerarIAAtividadeLivre(duracaoMin, cals)
     atualizarDecisaoDia(userId) // ← atualiza decisão do dia em background
+    sincronizarSessaoPrescrita(session.user.id, getTodayBR(), modalidade!)
   }
 
   async function gerarIAAtividadeLivre(duracaoMin: number, cals: number) {

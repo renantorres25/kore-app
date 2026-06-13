@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'node:crypto'
+import { sincronizarSessaoPrescrita } from '../../../lib/sincronizarSessaoPrescrita'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -153,6 +154,7 @@ export async function POST(req: NextRequest) {
         Object.keys(atividadeData).forEach(k => atividadeData[k] == null && delete atividadeData[k])
 
         await supabase.from('atividades_livres').insert(atividadeData)
+        await sincronizarSessaoPrescrita(supabase, usuarioId, dataAtividade, modalidade)
       }
     }
 
