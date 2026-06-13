@@ -92,6 +92,48 @@ type TreinoPrescrito = {
   exercicios: ExercicioPrescrito[]
 } | null
 
+type BlocoSessaoHoje = {
+  id: string
+  ordem: number
+  nome: string
+  duracao_min: number | null
+  distancia_km: number | null
+}
+
+type SessaoEnduranceHoje = {
+  id: string
+  modalidade: 'corrida' | 'bike' | 'natacao' | 'musculacao' | 'descanso' | 'outro'
+  tipo_sessao: string | null
+  duracao_min: number | null
+  distancia_km: number | null
+  observacao: string | null
+  blocos: BlocoSessaoHoje[]
+} | null
+
+const MODALIDADE_INFO: Record<string, { emoji: string; label: string }> = {
+  corrida:    { emoji: '🏃', label: 'Corrida' },
+  bike:       { emoji: '🚴', label: 'Bike' },
+  natacao:    { emoji: '🏊', label: 'Natação' },
+  musculacao: { emoji: '🏋️', label: 'Musculação' },
+  descanso:   { emoji: '🧘', label: 'Descanso' },
+  outro:      { emoji: '🏃', label: 'Treino' },
+}
+
+// Labels acentuados para os valores do enum tipo_sessao (armazenados sem acento no banco)
+const TIPO_SESSAO_LABELS: Record<string, string> = {
+  continuo: 'Contínuo', intervalado: 'Intervalado', longo: 'Longo',
+  regenerativo: 'Regenerativo', fartlek: 'Fartlek', ritmo: 'Ritmo',
+  tecnico: 'Técnico', forca: 'Força', livre: 'Livre',
+}
+
+// Stack com fallback de fonte de emoji — evita glifos quebrados (.notdef) nas fontes do design system
+const FONT_EMOJI = "'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif"
+
+function capitalizar(s: string): string {
+  if (!s) return s
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+}
+
 type BemEstar = {
   energia: number
   humor: number
@@ -316,6 +358,8 @@ export default function Dashboard() {
   const [fasePeriodizacao, setFasePeriodizacao] = useState<{ nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null>(null)
   const [alertaCientifico, setAlertaCientifico] = useState<AlertaItem[]>([])
   const [treinoPrescrito, setTreinoPrescrito] = useState<TreinoPrescrito>(null)
+  const [sessaoEnduranceHoje, setSessaoEnduranceHoje] = useState<SessaoEnduranceHoje>(null)
+  const [musculacaoPrescritaHoje, setMusculacaoPrescritaHoje] = useState(false)
 
   useEffect(() => {
     async function carregarDados() {
@@ -351,6 +395,7 @@ export default function Dashboard() {
           { data: medidasData },
           { data: planoData },
           { data: treinoPendenteData },
+          { data: sessoesHojeData },
         ] = await Promise.all([
           supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('score_recuperacao, duracao_minutos, hrv, sono_profundo, sono_rem').eq('usuario_id', session.user.id).eq('data', hoje).single(),
@@ -364,6 +409,7 @@ export default function Dashboard() {
           supabase.from('evolucao_medidas').select('peso, data').eq('cliente_id', session.user.id).not('peso', 'is', null).order('data', { ascending: false }).limit(6),
           supabase.from('planos_nutricionais').select('conteudo').eq('usuario_id', session.user.id).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
           supabase.from('treinos').select('id, nome, descricao, plano').eq('cliente_id', session.user.id).eq('concluido', false).order('plano').limit(1).maybeSingle(),
+          supabase.from('sessoes_prescritas').select('*, blocos_sessao(*)').eq('atleta_id', session.user.id).eq('data', hoje).order('created_at').limit(5),
         ])
 
         let refeicoesPlano: { nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[] = []
@@ -440,6 +486,27 @@ export default function Dashboard() {
           atl_atual: perfilData.atl_atual,
         })
         setAlertaCientifico(alertaResult.alertas)
+
+        // Sessões prescritas para hoje (pode haver mais de uma — ex.: corrida + musculação no mesmo dia)
+        if (sessoesHojeData?.length) {
+          const sessoes = sessoesHojeData as any[]
+          const sessaoEndurance = sessoes.find(s => s.modalidade !== 'descanso' && s.modalidade !== 'musculacao')
+          if (sessaoEndurance) {
+            setSessaoEnduranceHoje({
+              id: sessaoEndurance.id,
+              modalidade: sessaoEndurance.modalidade,
+              tipo_sessao: sessaoEndurance.tipo_sessao,
+              duracao_min: sessaoEndurance.duracao_min,
+              distancia_km: sessaoEndurance.distancia_km,
+              observacao: sessaoEndurance.observacao,
+              blocos: (sessaoEndurance.blocos_sessao ?? [])
+                .slice()
+                .sort((a: any, b: any) => a.ordem - b.ordem)
+                .map((b: any) => ({ id: b.id, ordem: b.ordem, nome: b.nome, duracao_min: b.duracao_min, distancia_km: b.distancia_km })),
+            })
+          }
+          if (sessoes.some(s => s.modalidade === 'musculacao')) setMusculacaoPrescritaHoje(true)
+        }
 
         // Treino prescrito de hoje (pendente)
         if (treinoPendenteData) {
@@ -696,6 +763,8 @@ Responda APENAS em JSON válido, sem markdown:
             fasePeriodizacao={fasePeriodizacao}
             alertaCientifico={alertaCientifico}
             treinoPrescrito={treinoPrescrito}
+            sessaoEnduranceHoje={sessaoEnduranceHoje}
+            musculacaoPrescritaHoje={musculacaoPrescritaHoje}
             isDesktop={isDesktop}
           />
         )}
@@ -1064,7 +1133,7 @@ function CardMeta({
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, recentDays, sonoHistorico, vinculos, treinoHoje, nutricaoHoje,
   decisaoDia, gerandoDecisao, temSonoHoje, userId, pesoAtual, pesoDelta, onSalvarMeta,
-  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao, alertaCientifico, treinoPrescrito, isDesktop,
+  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao, alertaCientifico, treinoPrescrito, sessaoEnduranceHoje, musculacaoPrescritaHoje, isDesktop,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
@@ -1077,6 +1146,8 @@ function DashboardCliente({
   fasePeriodizacao: { nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null
   alertaCientifico: AlertaItem[]
   treinoPrescrito: TreinoPrescrito
+  sessaoEnduranceHoje: SessaoEnduranceHoje
+  musculacaoPrescritaHoje: boolean
   isDesktop?: boolean
 }) {
   const router    = useRouter()
@@ -1282,48 +1353,125 @@ function DashboardCliente({
       })()}
 
       {/* 4. Treino do dia */}
-      <div style={glass({ padding: 20, marginBottom: 12 })}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-          <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
-          <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${treinoHoje?.concluido ? `${C.good}33` : `${C.warn}33`}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: treinoHoje?.concluido ? `${C.good}1a` : `${C.warn}1a`, color: treinoHoje?.concluido ? C.good : C.warn }}>
-            {treinoHoje?.concluido ? <Check size={18} /> : <Dumbbell size={18} />}
-          </div>
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: FONT_DISPLAY }}>
-            {treinoHoje ? treinoHoje.nome : (treinoPrescrito ? treinoPrescrito.nome : 'Escolha seu treino')}
-          </p>
-          {treinoHoje?.concluido ? (
-            <p style={{ color: C.good, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}><Check size={14} /> Concluído hoje</p>
-          ) : vinculoPersonal ? (
-            <p style={{ color: C.sleep, fontWeight: 700, fontSize: 14 }}>{vinculoPersonal.nome ?? vinculoPersonal.email}</p>
-          ) : (
-            <p style={{ color: C.t3, fontSize: 12 }}>Seus planos estão prontos</p>
-          )}
-        </div>
+      {(() => {
+        const temEndurance = !!sessaoEnduranceHoje && sessaoEnduranceHoje.modalidade !== 'descanso'
+        const temMusculacao = !!treinoHoje || !!(treinoPrescrito && treinoPrescrito.exercicios.length > 0) || musculacaoPrescritaHoje
 
-        {/* Lista de exercícios prescritos */}
-        {!treinoHoje?.concluido && treinoPrescrito && treinoPrescrito.exercicios.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-            {treinoPrescrito.descricao && (
-              <p style={{ color: C.t2, fontSize: 12, lineHeight: 1.5, marginBottom: 4 }}>{treinoPrescrito.descricao}</p>
-            )}
-            {treinoPrescrito.exercicios.map((ex, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }}>
-                <p style={{ color: C.t1, fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.nome}</p>
-                <span style={{ color: C.t2, fontSize: 12, fontFamily: FONT_MONO, flexShrink: 0 }}>
-                  {ex.series}x{ex.repeticoes}{ex.carga_sugerida ? ` · ${ex.carga_sugerida}kg` : ''}
-                </span>
+        // PRIORIDADE 1 — sessão de endurance prescrita para hoje
+        if (temEndurance) {
+          const s = sessaoEnduranceHoje!
+          const info = MODALIDADE_INFO[s.modalidade] ?? { emoji: '🏃', label: 'Treino' }
+          const tipoLabel = s.tipo_sessao ? (TIPO_SESSAO_LABELS[s.tipo_sessao] ?? capitalizar(s.tipo_sessao)) : null
+
+          // Duração/distância: usa o nível da sessão; se ausente, soma a partir dos blocos
+          const distanciaTotal = s.distancia_km ?? (s.blocos.reduce((acc, b) => acc + (Number(b.distancia_km) || 0), 0) || null)
+          const duracaoTotal = s.duracao_min ?? (s.blocos.reduce((acc, b) => acc + (b.duracao_min || 0), 0) || null)
+          const detalhes = [
+            distanciaTotal ? `${distanciaTotal} km` : null,
+            duracaoTotal ? `~${duracaoTotal} min` : null,
+          ].filter(Boolean).join(' · ')
+
+          return (
+            <div style={glass({ padding: 20, marginBottom: 12 })}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+                <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
+                <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${C.energy}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${C.energy}1a` }}>
+                  <span style={{ fontSize: 18, lineHeight: 1, fontFamily: FONT_EMOJI }}>{info.emoji}</span>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: FONT_DISPLAY, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontFamily: FONT_EMOJI, fontSize: 15 }}>{info.emoji}</span>
+                  {info.label}{tipoLabel ? ` · ${tipoLabel}` : ''}
+                </p>
+                {detalhes && <p style={{ color: C.t2, fontSize: 12 }}>{detalhes}</p>}
+              </div>
 
-        <button onClick={() => router.push('/treino')}
-          style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, letterSpacing: '0.03em', border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44` }}>
-          {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treino do dia →'}
-        </button>
-      </div>
+              <button onClick={() => router.push('/treino')}
+                style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, letterSpacing: '0.03em', border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44` }}>
+                Ir para treino do dia →
+              </button>
+
+              {temMusculacao && (
+                <button onClick={() => router.push('/treino')}
+                  style={{ width: '100%', marginTop: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 12px', color: C.t2, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+                  🏋️ Musculação também hoje — ver plano →
+                </button>
+              )}
+            </div>
+          )
+        }
+
+        // PRIORIDADE 3 — estado vazio (sem endurance e sem musculação)
+        if (!temMusculacao) {
+          return (
+            <div style={glass({ padding: 20, marginBottom: 12 })}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+                <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
+                <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${C.warn}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${C.warn}1a`, color: C.warn }}>
+                  <Dumbbell size={18} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: FONT_DISPLAY }}>
+                  Nenhum treino prescrito para hoje.
+                </p>
+                <p style={{ color: C.t3, fontSize: 12 }}>Dia de descanso ativo?</p>
+              </div>
+              <button onClick={() => router.push('/treino')}
+                style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, letterSpacing: '0.03em', border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44` }}>
+                Registrar atividade livre →
+              </button>
+            </div>
+          )
+        }
+
+        // PRIORIDADE 2 — plano de musculação (comportamento original)
+        return (
+          <div style={glass({ padding: 20, marginBottom: 12 })}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+              <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
+              <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${treinoHoje?.concluido ? `${C.good}33` : `${C.warn}33`}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: treinoHoje?.concluido ? `${C.good}1a` : `${C.warn}1a`, color: treinoHoje?.concluido ? C.good : C.warn }}>
+                {treinoHoje?.concluido ? <Check size={18} /> : <Dumbbell size={18} />}
+              </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: FONT_DISPLAY }}>
+                {treinoHoje ? treinoHoje.nome : (treinoPrescrito ? treinoPrescrito.nome : 'Escolha seu treino')}
+              </p>
+              {treinoHoje?.concluido ? (
+                <p style={{ color: C.good, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}><Check size={14} /> Concluído hoje</p>
+              ) : vinculoPersonal ? (
+                <p style={{ color: C.sleep, fontWeight: 700, fontSize: 14 }}>{vinculoPersonal.nome ?? vinculoPersonal.email}</p>
+              ) : (
+                <p style={{ color: C.t3, fontSize: 12 }}>Seus planos estão prontos</p>
+              )}
+            </div>
+
+            {/* Lista de exercícios prescritos */}
+            {!treinoHoje?.concluido && treinoPrescrito && treinoPrescrito.exercicios.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                {treinoPrescrito.descricao && (
+                  <p style={{ color: C.t2, fontSize: 12, lineHeight: 1.5, marginBottom: 4 }}>{treinoPrescrito.descricao}</p>
+                )}
+                {treinoPrescrito.exercicios.map((ex, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }}>
+                    <p style={{ color: C.t1, fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.nome}</p>
+                    <span style={{ color: C.t2, fontSize: 12, fontFamily: FONT_MONO, flexShrink: 0 }}>
+                      {ex.series}x{ex.repeticoes}{ex.carga_sugerida ? ` · ${ex.carga_sugerida}kg` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button onClick={() => router.push('/treino')}
+              style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, letterSpacing: '0.03em', border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44` }}>
+              {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treino do dia →'}
+            </button>
+          </div>
+        )
+      })()}
 
       {/* 5. Nutrição */}
       <button onClick={() => router.push('/nutricao')}
