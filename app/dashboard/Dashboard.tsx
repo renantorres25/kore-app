@@ -1224,7 +1224,7 @@ function DashboardCliente({
                     <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
                     <Metrica label="Humor"     valor={`${bemEstar.humor}/5`} />
                     <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                    <Metrica label="Dor musc." valor={`${6 - bemEstar.dor_muscular}/5`} />
+                    <Metrica label="Dor musc." valor={`${bemEstar.dor_muscular}/5`} />
                   </div>
                 )}
               </div>
