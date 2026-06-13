@@ -108,6 +108,8 @@ function PerfilConteudo() {
   const [sexo, setSexo] = useState('')
   const [peso, setPeso] = useState('')
   const [altura, setAltura] = useState('')
+  const [metaPeso, setMetaPeso] = useState('')
+  const [metaDataLimite, setMetaDataLimite] = useState('')
   const [objetivo, setObjetivo] = useState('')
   const [nivel, setNivel] = useState('')
 
@@ -152,6 +154,8 @@ function PerfilConteudo() {
         if (data.sexo) setSexo(data.sexo)
         if (data.peso) setPeso(String(data.peso))
         if (data.altura) setAltura(String(data.altura))
+        if (data.meta_peso) setMetaPeso(String(data.meta_peso))
+        if (data.meta_data_limite) setMetaDataLimite(data.meta_data_limite)
         if (data.objetivo) setObjetivo(data.objetivo)
         if (data.nivel) setNivel(data.nivel)
         if (data.fcmax) setFcmax(String(data.fcmax))
@@ -291,6 +295,8 @@ function PerfilConteudo() {
       sexo: sexo || null,
       peso: peso ? parseFloat(peso) : null,
       altura: altura ? parseInt(altura) : null,
+      meta_peso: metaPeso ? parseFloat(metaPeso) : null,
+      meta_data_limite: metaDataLimite || null,
       objetivo: objetivo || null,
       nivel: nivel || null,
       perfil_completo: true,
@@ -569,6 +575,14 @@ function PerfilConteudo() {
                 <div>
                   <label style={labelStyle}>Altura (cm)</label>
                   <GlassInput type="number" placeholder="175" value={altura} onChange={e => setAltura(e.target.value)} style={{ fontFamily: FONT_DATA }} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Meta de peso (kg)</label>
+                  <GlassInput type="number" step="0.5" placeholder="64" value={metaPeso} onChange={e => setMetaPeso(e.target.value)} style={{ fontFamily: FONT_DATA }} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Data-limite da meta</label>
+                  <GlassInput type="date" value={metaDataLimite} onChange={e => setMetaDataLimite(e.target.value)} style={{ fontFamily: FONT_DATA, colorScheme: 'dark' }} />
                 </div>
               </div>
             </div>

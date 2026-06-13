@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import SidebarProfissional from '../components/SidebarProfissional'
 
@@ -290,6 +291,185 @@ function CalendarioConsistencia({ atividades, onSelecionarDia }: {
   )
 }
 
+// ─── SEÇÃO MINHA META ──────────────────────────────────────────────────────
+function SecaoMinhaMeta({ perfilMeta, pesoAtual, onSalvar }: {
+  perfilMeta: { meta_peso: number | null; meta_data_limite: string | null; peso: number | null; objetivo: string | null }
+  pesoAtual: number | null
+  onSalvar: (metaPeso: number, metaData: string | null) => Promise<void>
+}) {
+  const [editando, setEditando] = useState(false)
+  const [formPeso, setFormPeso] = useState('')
+  const [formData, setFormData] = useState('')
+  const [salvando, setSalvando] = useState(false)
+
+  const metaPeso = perfilMeta.meta_peso
+  const objetivoLower = (perfilMeta.objetivo ?? '').toLowerCase()
+  const goalIsGain = objetivoLower.includes('hiper') || objetivoLower.includes('ganh') || objetivoLower.includes('mass')
+  const metaSugerida = !metaPeso && pesoAtual
+    ? (goalIsGain ? Math.round(pesoAtual * 1.08) : Math.round(pesoAtual * 0.91))
+    : null
+  const metaEfetiva = metaPeso ?? metaSugerida
+  const ehSugestao = !metaPeso && !!metaSugerida
+  const perder = metaEfetiva != null && pesoAtual != null ? pesoAtual > metaEfetiva : !goalIsGain
+
+  const pesoBase = perfilMeta.peso ?? pesoAtual
+
+  function progressoPct(): number {
+    if (ehSugestao || !metaEfetiva || pesoBase == null || pesoAtual == null) return 0
+    const total = Math.abs(metaEfetiva - pesoBase)
+    if (total === 0) return 100
+    if (perder ? pesoAtual > pesoBase : pesoAtual < pesoBase) return 0
+    const feito = Math.abs(pesoAtual - pesoBase)
+    return Math.min(100, Math.max(0, Math.round((feito / total) * 100)))
+  }
+  const pct = progressoPct()
+
+  const faltam = metaEfetiva != null && pesoAtual != null
+    ? Math.round(Math.abs(pesoAtual - metaEfetiva) * 10) / 10
+    : null
+  const atingiu = faltam !== null && faltam < 0.5
+
+  const deltaSugestao = metaSugerida != null && pesoAtual != null ? Math.abs(pesoAtual - metaSugerida) : null
+  const semanasEstimadas = deltaSugestao != null && deltaSugestao > 0 ? Math.max(1, Math.round(deltaSugestao / 0.5)) : null
+
+  function abrirEdicao() {
+    setFormPeso(metaEfetiva != null ? String(metaEfetiva) : '')
+    setFormData(perfilMeta.meta_data_limite ?? '')
+    setEditando(true)
+  }
+
+  async function handleConfirmar() {
+    if (metaSugerida == null) return
+    setSalvando(true)
+    await onSalvar(metaSugerida, null)
+    setSalvando(false)
+  }
+
+  async function handleSalvarForm() {
+    const mp = parseFloat(formPeso)
+    if (!mp || mp <= 0) return
+    setSalvando(true)
+    await onSalvar(mp, formData || null)
+    setSalvando(false)
+    setEditando(false)
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)',
+    borderRadius: 12, padding: '12px', color: C.t1, fontSize: 14, outline: 'none', fontFamily: FONT_BODY, colorScheme: 'dark',
+  }
+  const primaryBtn: React.CSSProperties = {
+    flex: 1, background: C.energy, color: '#1a0a00', fontWeight: 700, padding: '12px', borderRadius: 12,
+    fontSize: 14, border: 'none', cursor: 'pointer', fontFamily: FONT_BODY,
+  }
+  const secondaryBtn: React.CSSProperties = {
+    padding: '12px 16px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: C.t2,
+    fontSize: 14, background: 'none', cursor: 'pointer', fontFamily: FONT_BODY,
+  }
+
+  const Circ = 2 * Math.PI * 28
+
+  return (
+    <div style={{ ...glass, padding: 20, marginBottom: 20 }}>
+      <p style={{ ...labelUpper, margin: '0 0 14px' }}>Minha Meta</p>
+
+      {editando ? (
+        <div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div style={{ flex: '1 1 140px' }}>
+              <label style={{ color: C.t3, fontSize: 10, marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Peso desejado (kg)</label>
+              <input type="number" step="0.5" placeholder="Ex: 64" value={formPeso}
+                onChange={e => setFormPeso(e.target.value)} style={inputStyle} />
+            </div>
+            <div style={{ flex: '1 1 140px' }}>
+              <label style={{ color: C.t3, fontSize: 10, marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Data-limite (opcional)</label>
+              <input type="date" value={formData}
+                onChange={e => setFormData(e.target.value)} style={inputStyle} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={handleSalvarForm} disabled={salvando} style={primaryBtn}>Salvar</button>
+            <button onClick={() => setEditando(false)} style={secondaryBtn}>Cancelar</button>
+          </div>
+        </div>
+      ) : !metaEfetiva ? (
+        <div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: C.t2, margin: '0 0 14px' }}>
+            Você ainda não definiu uma meta de peso. Defina uma para acompanhar seu progresso.
+          </p>
+          <button onClick={abrirEdicao} style={{
+            padding: '12px 20px', borderRadius: 12, cursor: 'pointer', border: 'none',
+            fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: '#1a0a00',
+            background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`,
+          }}>Definir minha meta</button>
+        </div>
+      ) : ehSugestao ? (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+            <span style={{ ...dataNum(C.t1), fontWeight: 700, fontSize: 20 }}>{pesoAtual} kg</span>
+            <span style={{ color: C.t3, fontSize: 16 }}>→</span>
+            <span style={{ ...dataNum(C.energy), fontWeight: 700, fontSize: 20 }}>{metaSugerida} kg</span>
+            {semanasEstimadas != null && (
+              <span style={{ fontSize: 11, color: C.t3, fontFamily: FONT_BODY, marginLeft: 4 }}>~{semanasEstimadas} semanas (ritmo de 0,5kg/sem)</span>
+            )}
+          </div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.t3, margin: '0 0 14px' }}>
+            Esta meta foi sugerida pela IA com base no seu objetivo. Confirme para começar a acompanhar seu progresso.
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={handleConfirmar} disabled={salvando} style={{
+              padding: '12px 20px', borderRadius: 12, cursor: 'pointer', border: 'none',
+              fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: '#1a0a00',
+              background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`,
+            }}>Confirmar esta meta</button>
+            <button onClick={abrirEdicao} style={secondaryBtn}>Quero uma meta diferente</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flexShrink: 0, width: 64, height: 64 }}>
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+              {!atingiu && (
+                <circle cx="32" cy="32" r="28" fill="none" stroke={C.energy} strokeWidth="4" strokeLinecap="round"
+                  strokeDasharray={`${(pct / 100) * Circ} ${Circ}`}
+                  transform="rotate(-90 32 32)"
+                  style={{ transition: 'stroke-dasharray 0.5s ease' }} />
+              )}
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {atingiu ? <Check size={22} style={{ color: C.good }} /> : <span style={{ ...dataNum(C.t1), fontWeight: 800, fontSize: 15 }}>{pct}%</span>}
+            </div>
+          </div>
+
+          <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+            {atingiu ? (
+              <p style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, color: C.good, margin: 0 }}>Meta atingida! 🎉</p>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                <span style={{ ...dataNum(C.t1), fontWeight: 700, fontSize: 18 }}>{pesoAtual != null ? `${pesoAtual} kg` : '—'}</span>
+                <span style={{ color: C.t3, fontSize: 14 }}>→</span>
+                <span style={{ ...dataNum(C.energy), fontWeight: 700, fontSize: 18 }}>{metaEfetiva} kg</span>
+              </div>
+            )}
+            {!atingiu && (
+              <p style={{ ...labelUpper, margin: 0 }}>Faltam {faltam} kg · {pct}% concluído</p>
+            )}
+            {perfilMeta.meta_data_limite && (
+              <p style={{ fontSize: 11, color: C.t3, fontFamily: FONT_BODY, margin: '4px 0 0' }}>Prazo: {formatDateFull(perfilMeta.meta_data_limite)}</p>
+            )}
+          </div>
+
+          <button onClick={abrirEdicao} style={{
+            padding: '8px 14px', borderRadius: 10, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)',
+            background: 'none', color: C.t2, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, flexShrink: 0,
+          }}>Editar meta</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Evolucao() {
   const router = useRouter()
   const isDesktop = useIsDesktop()
@@ -306,6 +486,10 @@ export default function Evolucao() {
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
   const [medidasCP, setMedidasCP] = useState<MedidaCP[]>([])
   const [planosNutri, setPlanosNutri] = useState<PlanoNutriHist[]>([])
+  const [userId, setUserId] = useState<string | null>(null)
+  const [perfilMeta, setPerfilMeta] = useState<{ meta_peso: number | null; meta_data_limite: string | null; peso: number | null; objetivo: string | null }>({
+    meta_peso: null, meta_data_limite: null, peso: null, objetivo: null,
+  })
 
   useEffect(() => { carregar() }, [])
 
@@ -317,14 +501,24 @@ export default function Evolucao() {
     const dias30 = getLastNDays(30)
     const dataInicio = dias30[0]
 
-    const [{ data: sonoData }, { data: treinosData }, { data: atividadesData }, { data: treinosIds }, { data: medidasData }, { data: planosData }] = await Promise.all([
+    setUserId(session.user.id)
+
+    const [{ data: sonoData }, { data: treinosData }, { data: atividadesData }, { data: treinosIds }, { data: medidasData }, { data: planosData }, { data: perfilData }] = await Promise.all([
       supabase.from('sono').select('data, score_recuperacao').eq('usuario_id', session.user.id).gte('data', dataInicio).order('data'),
       supabase.from('treinos').select('id, data, plano, nome, calorias_estimadas').eq('cliente_id', session.user.id).eq('concluido', true).gte('data', dataInicio).order('data', { ascending: false }),
       supabase.from('atividades_livres').select('data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable').eq('usuario_id', session.user.id).gte('data', dataInicio).order('data', { ascending: false }),
       supabase.from('treinos').select('id, nome, plano').eq('cliente_id', session.user.id).eq('concluido', true),
       supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,braco_dir,coxa_dir,panturrilha_dir,altura,imc_calculado').eq('cliente_id', session.user.id).order('data'),
       supabase.from('planos_nutricionais').select('calorias_meta, proteina_meta, created_at, observacoes').eq('cliente_id', session.user.id).order('created_at'),
+      supabase.from('perfis').select('meta_peso, meta_data_limite, peso, objetivo').eq('id', session.user.id).single(),
     ])
+
+    if (perfilData) setPerfilMeta({
+      meta_peso: perfilData.meta_peso ?? null,
+      meta_data_limite: perfilData.meta_data_limite ?? null,
+      peso: perfilData.peso ?? null,
+      objetivo: perfilData.objetivo ?? null,
+    })
 
     const scoreMap = new Map(sonoData?.map(s => [s.data, s.score_recuperacao]) ?? [])
     const dias14 = getLastNDays(14)
@@ -393,6 +587,12 @@ export default function Evolucao() {
     setCarregando(false)
   }
 
+  async function handleSalvarMeta(metaPeso: number, metaData: string | null) {
+    if (!userId) return
+    await supabase.from('perfis').update({ meta_peso: metaPeso, meta_data_limite: metaData }).eq('id', userId)
+    setPerfilMeta(prev => ({ ...prev, meta_peso: metaPeso, meta_data_limite: metaData }))
+  }
+
   async function gerarAnaliseIA() {
     setAnalise({ texto: '', carregando: true, gerado: false })
     const scoresValidos = scores.filter(s => s.score !== null)
@@ -440,6 +640,12 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
 
   const scoreValues = scores.map(s => s.score)
   const temDados = totalAtividades > 0 || scores.some(s => s.score !== null)
+  const pesoAtualMeta = (() => {
+    for (let i = medidasCP.length - 1; i >= 0; i--) {
+      if (medidasCP[i].peso != null) return medidasCP[i].peso
+    }
+    return perfilMeta.peso
+  })()
   const atividadesPorData = atividades.slice(0, 20).reduce((acc, a) => {
     if (!acc[a.data]) acc[a.data] = []
     acc[a.data].push(a)
@@ -908,6 +1114,8 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
           <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: isDesktop ? 36 : 30, fontWeight: 800, letterSpacing: '-0.02em', color: C.t1, margin: 0 }}>Evolução</h1>
           <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: C.t3, margin: '6px 0 0' }}>Últimos 30 dias</p>
         </div>
+
+        <SecaoMinhaMeta perfilMeta={perfilMeta} pesoAtual={pesoAtualMeta} onSalvar={handleSalvarMeta} />
 
         {!temDados ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0', gap: 16 }}>

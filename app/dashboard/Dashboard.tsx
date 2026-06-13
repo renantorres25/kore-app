@@ -7,8 +7,9 @@ import OnboardingTour from '../components/OnboardingTour'
 import SidebarProfissional from '../components/SidebarProfissional'
 import {
   Bell, AlertTriangle, ChevronRight, X, Calendar, Moon, Sparkles,
-  Dumbbell, Utensils, Check, Plus, UserPlus, ClipboardList,
+  Dumbbell, Utensils, Check, Plus, UserPlus, ClipboardList, MessageCircle,
 } from 'lucide-react'
+import { computeAlertaCientifico, type AlertaItem } from '../lib/alertas-cientificos'
 
 /* ═════════════════════════════════════════════════════════════
    KORE · Dashboard — "Energetic Precision"
@@ -69,7 +70,27 @@ type Perfil = {
   objetivo: string | null
   meta_peso: number | null
   meta_data_limite: string | null
+  fcmax: number | null
+  data_nascimento: string | null
+  tsb_atual: number | null
+  ctl_atual: number | null
+  atl_atual: number | null
 }
+
+type ExercicioPrescrito = {
+  nome: string
+  series: number
+  repeticoes: number
+  carga_sugerida: number | null
+}
+
+type TreinoPrescrito = {
+  id: string
+  nome: string
+  descricao: string | null
+  plano: string
+  exercicios: ExercicioPrescrito[]
+} | null
 
 type BemEstar = {
   energia: number
@@ -83,6 +104,7 @@ type Vinculo = {
   profissional_id: string
   nome: string | null
   email: string
+  whatsapp: string | null
 } | null
 
 type NutricaoHoje = {
@@ -111,6 +133,40 @@ type Notif = {
 
 function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function getDateOffsetStr(diasAtras: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - diasAtras)
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function calcularIdade(dataNascimento: string | null): number | null {
+  if (!dataNascimento) return null
+  const nasc = new Date(dataNascimento + 'T12:00:00-03:00')
+  const hoje = new Date()
+  let idade = hoje.getFullYear() - nasc.getFullYear()
+  const aindaNaoFezAniversario = (hoje.getMonth() < nasc.getMonth()) ||
+    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
+  if (aindaNaoFezAniversario) idade--
+  return idade
+}
+
+// ─── CORES POR SEVERIDADE DE ALERTA ──────────────────────────────────────────
+function getCoresAlerta(nivel: 'vermelho' | 'amarelo') {
+  if (nivel === 'vermelho') return { cor: C.danger, bg: `${C.danger}1a`, border: `${C.danger}33` }
+  return { cor: C.warn, bg: `${C.warn}1a`, border: `${C.warn}33` }
+}
+
+// Códigos de alerta tratados pelo personal vs. nutricionista (para o CTA "Falar com")
+const ALERTAS_NUTRICIONISTA = new Set(['RED_S', 'PLATEAU_PESO', 'PROTEINA_BAIXA'])
+
+function linkWhatsappAlerta(numero: string | null, nomeProf: string, mensagemAlerta: string): string | null {
+  if (!numero) return null
+  const digitos = numero.replace(/\D/g, '')
+  if (!digitos) return null
+  const texto = `Olá ${nomeProf}, vi um alerta no KORE: ${mensagemAlerta}. Podemos conversar?`
+  return `https://wa.me/55${digitos}?text=${encodeURIComponent(texto)}`
 }
 
 function getHourBR(): number {
@@ -258,6 +314,8 @@ export default function Dashboard() {
   const [pesoDelta, setPesoDelta] = useState<number | null>(null)
   const [planoNutriRefeicoes, setPlanoNutriRefeicoes] = useState<{ nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]>([])
   const [fasePeriodizacao, setFasePeriodizacao] = useState<{ nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null>(null)
+  const [alertaCientifico, setAlertaCientifico] = useState<AlertaItem[]>([])
+  const [treinoPrescrito, setTreinoPrescrito] = useState<TreinoPrescrito>(null)
 
   useEffect(() => {
     async function carregarDados() {
@@ -266,7 +324,7 @@ export default function Dashboard() {
       setUserId(session.user.id)
 
       const { data: perfilData, error: perfilError } = await supabase
-        .from('perfis').select('tipo, nome, email, peso, objetivo, meta_peso, meta_data_limite').eq('id', session.user.id).single()
+        .from('perfis').select('tipo, nome, email, peso, objetivo, meta_peso, meta_data_limite, fcmax, data_nascimento, tsb_atual, ctl_atual, atl_atual').eq('id', session.user.id).single()
 
       // Auth/network error → session expired → back to login; no profile → onboarding
       if (!perfilData) {
@@ -292,24 +350,30 @@ export default function Dashboard() {
           { data: sonoHistData },
           { data: medidasData },
           { data: planoData },
+          { data: treinoPendenteData },
         ] = await Promise.all([
           supabase.from('bem_estar').select('energia, humor, dor_muscular, qualidade_sono').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('score_recuperacao, duracao_minutos, hrv, sono_profundo, sono_rem').eq('usuario_id', session.user.id).eq('data', hoje).single(),
-          supabase.from('treinos').select('data').eq('cliente_id', session.user.id).eq('concluido', true).order('data', { ascending: false }).limit(60),
-          supabase.from('atividades_livres').select('data').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(60),
+          supabase.from('treinos').select('data, calorias_estimadas').eq('cliente_id', session.user.id).eq('concluido', true).order('data', { ascending: false }).limit(60),
+          supabase.from('atividades_livres').select('data, duracao_min, fc_media, fc_max, calorias_estimadas, calorias_wearable').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(60),
           supabase.from('vinculos').select('tipo, profissional_id').eq('cliente_id', session.user.id).eq('ativo', true),
           supabase.from('treinos').select('nome, plano, concluido').eq('cliente_id', session.user.id).eq('data', hoje).order('concluido', { ascending: false }).limit(1).single(),
           supabase.from('nutricao').select('calorias, proteina, qualidade_alimentacao').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('decisao_dia').select('*').eq('usuario_id', session.user.id).eq('data', hoje).single(),
           supabase.from('sono').select('data, score_recuperacao, qualidade').eq('usuario_id', session.user.id).order('data', { ascending: false }).limit(7),
-          supabase.from('evolucao_medidas').select('peso, data').eq('cliente_id', session.user.id).not('peso', 'is', null).order('data', { ascending: false }).limit(2),
+          supabase.from('evolucao_medidas').select('peso, data').eq('cliente_id', session.user.id).not('peso', 'is', null).order('data', { ascending: false }).limit(6),
           supabase.from('planos_nutricionais').select('conteudo').eq('usuario_id', session.user.id).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
+          supabase.from('treinos').select('id, nome, descricao, plano').eq('cliente_id', session.user.id).eq('concluido', false).order('plano').limit(1).maybeSingle(),
         ])
 
+        let refeicoesPlano: { nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[] = []
         if (planoData?.conteudo) {
           try {
             const p = JSON.parse(planoData.conteudo)
-            if (Array.isArray(p.refeicoes)) setPlanoNutriRefeicoes(p.refeicoes)
+            if (Array.isArray(p.refeicoes)) {
+              refeicoesPlano = p.refeicoes
+              setPlanoNutriRefeicoes(p.refeicoes)
+            }
           } catch {}
         }
         if (be) setBemEstar(be)
@@ -342,6 +406,56 @@ export default function Dashboard() {
         })
         setRecentDays(d7.map(d => datasSet.has(d)))
 
+        // Alertas científicos (TSB/ACWR/FC Drift/RED-S/etc)
+        const limite35 = getDateOffsetStr(35)
+        const atividades30d = [
+          ...(treinos ?? [])
+            .filter((t: { data: string; calorias_estimadas: number | null }) => t.data >= limite35)
+            .map((t: { data: string; calorias_estimadas: number | null }) => ({
+              data: t.data, duracao_min: null, fc_media: null, fc_max: null,
+              calorias_wearable: null, calorias_estimadas: t.calorias_estimadas ?? null,
+            })),
+          ...(atvsLivres ?? [])
+            .filter((a: { data: string }) => a.data >= limite35)
+            .map((a: { data: string; duracao_min: number | null; fc_media: number | null; fc_max: number | null; calorias_estimadas: number | null; calorias_wearable: number | null }) => ({
+              data: a.data, duracao_min: a.duracao_min ?? null, fc_media: a.fc_media ?? null, fc_max: a.fc_max ?? null,
+              calorias_wearable: a.calorias_wearable ?? null, calorias_estimadas: a.calorias_estimadas ?? null,
+            })),
+        ]
+        const caloriasPrescritas = refeicoesPlano.length ? refeicoesPlano.reduce((s, r) => s + (r.calorias ?? 0), 0) : null
+        const proteinaPrescritas = refeicoesPlano.length ? refeicoesPlano.reduce((s, r) => s + (r.proteina ?? 0), 0) : null
+        const evolucaoPeso = (medidasData ?? []).map((m: { peso: number; data: string }) => ({ data: m.data, peso: m.peso }))
+        const alertaResult = computeAlertaCientifico({
+          atividades30d,
+          fcmaxPerfil: perfilData.fcmax,
+          idade: calcularIdade(perfilData.data_nascimento),
+          totalTreinos: datasUnicas.length,
+          ultimoTreino: datasUnicas[0] ?? null,
+          caloriasPrescritas,
+          proteinaPrescritas,
+          pesoKg: perfilData.peso,
+          evolucaoPeso,
+          tsb_atual: perfilData.tsb_atual,
+          ctl_atual: perfilData.ctl_atual,
+          atl_atual: perfilData.atl_atual,
+        })
+        setAlertaCientifico(alertaResult.alertas)
+
+        // Treino prescrito de hoje (pendente)
+        if (treinoPendenteData) {
+          const { data: exsData } = await supabase.from('exercicios_treino')
+            .select('nome, series, repeticoes, carga_sugerida')
+            .eq('treino_id', treinoPendenteData.id)
+            .order('ordem')
+          setTreinoPrescrito({
+            id: treinoPendenteData.id,
+            nome: treinoPendenteData.nome,
+            descricao: treinoPendenteData.descricao,
+            plano: treinoPendenteData.plano,
+            exercicios: exsData ?? [],
+          })
+        }
+
         // Decisão do dia já salva no banco?
         if (decisaoData) {
           setDecisaoDia({
@@ -359,10 +473,10 @@ export default function Dashboard() {
 
         if (vinculosData?.length) {
           const ids = vinculosData.map((v: { profissional_id: string }) => v.profissional_id)
-          const { data: perfis } = await supabase.from('perfis').select('id, nome, email').in('id', ids)
+          const { data: perfis } = await supabase.from('perfis').select('id, nome, email, whatsapp').in('id', ids)
           const vinculosComPerfil = vinculosData.map((v: { tipo: string; profissional_id: string }) => {
             const p = perfis?.find((pf: { id: string }) => pf.id === v.profissional_id)
-            return { tipo: v.tipo, profissional_id: v.profissional_id, nome: p?.nome ?? null, email: p?.email ?? '' }
+            return { tipo: v.tipo, profissional_id: v.profissional_id, nome: p?.nome ?? null, email: p?.email ?? '', whatsapp: p?.whatsapp ?? null }
           })
           setVinculos(vinculosComPerfil)
         }
@@ -580,6 +694,8 @@ Responda APENAS em JSON válido, sem markdown:
             notifCount={notifs.length}
             planoNutriRefeicoes={planoNutriRefeicoes}
             fasePeriodizacao={fasePeriodizacao}
+            alertaCientifico={alertaCientifico}
+            treinoPrescrito={treinoPrescrito}
             isDesktop={isDesktop}
           />
         )}
@@ -780,13 +896,13 @@ function CardMeta({
   router: ReturnType<typeof useRouter>
 }) {
   const [editando, setEditando] = useState(false)
+  const [hover, setHover] = useState(false)
   const [formMeta, setFormMeta] = useState({
     peso: perfil.meta_peso ? String(perfil.meta_peso) : '',
     data: perfil.meta_data_limite ?? '',
   })
 
   const metaPeso      = perfil.meta_peso
-  const metaDataLimite = perfil.meta_data_limite
   const pesoBase      = perfil.peso
   const pesoCurrent   = pesoAtual ?? pesoBase
 
@@ -799,13 +915,6 @@ function CardMeta({
   const ehSugestao    = !metaPeso && !!metaSugerida
 
   const perder = metaEfetiva != null && pesoCurrent != null ? pesoCurrent > metaEfetiva : !goalIsGain
-
-  function diasRestantes(): number | null {
-    if (!metaDataLimite) return null
-    const hoje = new Date(getTodayBR() + 'T12:00:00-03:00')
-    const meta = new Date(metaDataLimite + 'T12:00:00-03:00')
-    return Math.max(0, Math.round((meta.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)))
-  }
 
   function progressoPct(): number {
     if (ehSugestao || !metaEfetiva || !pesoBase || pesoCurrent == null) return 0
@@ -820,15 +929,7 @@ function CardMeta({
     ? Math.round(Math.abs(pesoCurrent - metaEfetiva) * 10) / 10
     : null
   const atingiu     = faltam !== null && faltam < 0.5
-  const dias        = diasRestantes()
   const pct         = progressoPct()
-  const totalGoal   = pesoCurrent != null && metaEfetiva != null ? Math.round(Math.abs(pesoCurrent - metaEfetiva) * 10) / 10 : null
-  const deltaAlcancado = pesoBase != null && pesoCurrent != null
-    ? Math.round(Math.abs(pesoBase - pesoCurrent) * 10) / 10
-    : 0
-  const progredindo = pesoBase != null && pesoCurrent != null
-    ? (perder ? pesoCurrent <= pesoBase : pesoCurrent >= pesoBase)
-    : false
 
   function handleSalvar() {
     const mp = parseFloat(formMeta.peso)
@@ -846,10 +947,9 @@ function CardMeta({
   if (!metaEfetiva && !editando) {
     return (
       <button onClick={() => setEditando(true)}
-        style={glass({ width: '100%', textAlign: 'left', padding: 20, marginBottom: 12, border: '1px dashed rgba(255,255,255,0.18)', cursor: 'pointer' })}>
-        <p style={{ ...labelStyle, marginBottom: 12 }}>Meta pessoal</p>
-        <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 20, marginBottom: 6 }}>Definir minha meta →</p>
-        <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6 }}>Onde você quer chegar? Defina seu peso-alvo e acompanhe cada kg de progresso.</p>
+        style={glass({ width: '100%', textAlign: 'left', padding: '12px 16px', marginBottom: 8, border: '1px dashed rgba(255,255,255,0.18)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 })}>
+        <p style={{ ...labelStyle, marginBottom: 0 }}>Meta pessoal</p>
+        <p style={{ color: C.energy2, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 13 }}>Definir minha meta →</p>
       </button>
     )
   }
@@ -886,123 +986,85 @@ function CardMeta({
     )
   }
 
-  const Circ = 2 * Math.PI * 30 // circumference r=30 → ~188.5
+  const MiniCirc = 2 * Math.PI * 19 // circumference r=19 → ~119.4
+  const deltaSigned = faltam != null ? (perder ? -faltam : faltam) : null
 
+  // ── Widget: anel de progresso + peso atual→meta + delta em destaque — navega para /evolucao ──
   return (
-    <div style={glass({ padding: 20, marginBottom: 12 }, `${C.energy}1f`)}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <p style={labelStyle}>Meta pessoal</p>
-          {ehSugestao && <span style={{ fontSize: 9, color: C.good, border: `1px solid ${C.good}4d`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>IA</span>}
+    <button onClick={() => router.push('/evolucao')}
+      style={{
+        width: '100%', height: 72, marginBottom: 8, padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: 14,
+        background: 'rgba(255,255,255,0.04)',
+        border: `1px solid rgba(255,255,255,${hover ? 0.25 : 0.12})`,
+        borderRadius: 12, cursor: 'pointer', transition: 'border-color 0.2s ease',
+        textAlign: 'left',
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}>
+      {/* Anel de progresso */}
+      <div style={{ position: 'relative', flexShrink: 0, width: 44, height: 44 }}>
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+          {!atingiu && (
+            <circle cx="22" cy="22" r="19" fill="none"
+              stroke={C.energy}
+              strokeWidth="3" strokeLinecap="round"
+              strokeDasharray={`${(pct / 100) * MiniCirc} ${MiniCirc}`}
+              transform="rotate(-90 22 22)"
+              style={{ transition: 'stroke-dasharray 0.5s ease' }}
+            />
+          )}
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {atingiu ? <Check size={16} style={{ color: C.good }} /> : <span style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 11 }}>{pct}%</span>}
         </div>
-        <button onClick={() => setEditando(true)}
-          style={{ color: C.t2, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '6px 12px', background: 'none', cursor: 'pointer' }}>
-          {ehSugestao ? 'confirmar' : 'editar'}
-        </button>
       </div>
 
-      {atingiu ? (
-        <p style={{ color: C.good, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 30, marginBottom: 16 }}>Meta atingida!</p>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16 }}>
-          {/* Gauge circular */}
-          <div style={{ position: 'relative', flexShrink: 0, width: 76, height: 76 }}>
-            <svg width="76" height="76" viewBox="0 0 76 76">
-              <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5.5" />
-              <circle cx="38" cy="38" r="30" fill="none"
-                stroke={ehSugestao ? C.good : (pct > 0 && progredindo ? C.good : pct === 0 ? C.t3 : C.danger)}
-                strokeWidth="5.5" strokeLinecap="round"
-                strokeDasharray={`${(pct / 100) * Circ} ${Circ}`}
-                transform="rotate(-90 38 38)"
-                style={{ transition: 'stroke-dasharray 0.7s ease' }}
-              />
-            </svg>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 16, lineHeight: 1 }}>{pct}%</span>
-            </div>
-          </div>
+      {/* Separador */}
+      <div style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
 
-          {/* Info direita */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {ehSugestao ? (
-              <>
-                <p style={{ color: C.energy, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 24, lineHeight: 1.1, marginBottom: 2 }}>
-                  {totalGoal != null ? `${perder ? '-' : '+'}${totalGoal.toFixed(1)} kg` : '—'}
-                </p>
-                <p style={{ color: C.t2, fontSize: 12, marginBottom: 12 }}>objetivo sugerido pela IA</p>
-              </>
-            ) : (
-              <>
-                <p style={{ color: C.t1, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 24, lineHeight: 1.1, marginBottom: 2 }}>
-                  {faltam != null ? `${faltam.toFixed(1)} kg` : '—'}
-                </p>
-                <p style={{ color: C.t2, fontSize: 12, marginBottom: 12 }}>
-                  {deltaAlcancado > 0 && progredindo ? `${deltaAlcancado.toFixed(1)} kg já conquistados` : 'faltam para a meta'}
-                </p>
-              </>
-            )}
-            {/* Chips INÍCIO · HOJE · META */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {!ehSugestao && pesoBase != null && (
-                <>
-                  <div>
-                    <p style={{ color: C.t2, fontSize: 12, fontWeight: 700, lineHeight: 1.1, fontFamily: FONT_MONO }}>{pesoBase} kg</p>
-                    <p style={{ color: C.t3, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>início</p>
-                  </div>
-                  <span style={{ color: C.t3, fontSize: 10 }}>→</span>
-                </>
-              )}
-              <div>
-                <p style={{ color: C.t1, fontSize: 12, fontWeight: 800, lineHeight: 1.1, fontFamily: FONT_MONO }}>{pesoCurrent != null ? `${pesoCurrent} kg` : '—'}</p>
-                <p style={{ color: C.t3, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>hoje</p>
-              </div>
-              <span style={{ color: C.t3, fontSize: 10 }}>→</span>
-              <div>
-                <p style={{ color: C.energy, fontSize: 12, fontWeight: 700, lineHeight: 1.1, fontFamily: FONT_MONO }}>{metaEfetiva} kg</p>
-                <p style={{ color: C.t3, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>meta</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Barra de progresso */}
-      {!atingiu && (
-        <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', marginBottom: 16 }}>
-          <div style={{ height: '100%', borderRadius: 99, transition: 'width 0.7s ease', width: `${pct}%`, background: ehSugestao ? `${C.good}4d` : C.good }} />
-        </div>
-      )}
-
-      {/* Rodapé */}
-      {ehSugestao ? (
-        <button onClick={() => setEditando(true)}
-          style={{ width: '100%', background: `${C.energy}1a`, border: `1px solid ${C.energy}33`, color: C.energy2, fontWeight: 700, padding: '12px', borderRadius: 12, fontSize: 14, letterSpacing: '0.04em', cursor: 'pointer' }}>
-          Confirmar esta meta →
-        </button>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
-          {!atingiu && faltam != null && (
-            <p style={{ color: C.t2, fontSize: 12, flex: 1 }}>
-              {metaDataLimite && `até ${new Date(metaDataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`}
-              {dias != null && metaDataLimite && ` · `}
-              {dias != null && <span style={{ color: C.t1, fontWeight: 600 }}>{dias}d</span>}
-            </p>
+      {/* Coluna: label + peso atual → meta */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <p style={{ color: C.t3, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', margin: 0 }}>
+            Meta pessoal
+          </p>
+          {ehSugestao && (
+            <span style={{
+              fontSize: 8, fontWeight: 700, color: C.t2, background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '2px 6px',
+              textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FONT_MONO, flexShrink: 0,
+            }}>
+              Sugestão da IA
+            </span>
           )}
-          <button onClick={() => router.push('/evolucao-medidas/' + userId)}
-            style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
-            VER EVOLUÇÃO →
-          </button>
         </div>
+        {atingiu ? (
+          <p style={{ color: C.good, fontWeight: 800, fontSize: 14, fontFamily: FONT_DISPLAY }}>Meta atingida! 🎉</p>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ color: C.t1, fontWeight: 600, fontSize: 14, fontFamily: FONT_MONO }}>{pesoCurrent != null ? `${pesoCurrent} kg` : '—'}</span>
+            <span style={{ color: C.t3, fontSize: 12 }}>→</span>
+            <span style={{ color: C.energy, fontWeight: 600, fontSize: 14, fontFamily: FONT_MONO }}>{metaEfetiva} kg</span>
+          </div>
+        )}
+      </div>
+
+      {/* Destaque: delta restante */}
+      {!atingiu && deltaSigned != null && (
+        <span style={{ color: C.energy, fontWeight: 800, fontSize: 16, fontFamily: FONT_MONO, flexShrink: 0 }}>
+          {deltaSigned > 0 ? '+' : ''}{deltaSigned.toFixed(1)} kg
+        </span>
       )}
-    </div>
+    </button>
   )
 }
 
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, recentDays, sonoHistorico, vinculos, treinoHoje, nutricaoHoje,
   decisaoDia, gerandoDecisao, temSonoHoje, userId, pesoAtual, pesoDelta, onSalvarMeta,
-  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao, isDesktop,
+  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao, alertaCientifico, treinoPrescrito, isDesktop,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
@@ -1013,6 +1075,8 @@ function DashboardCliente({
   onLogout: () => void; onOpenNotifs: () => void; notifCount: number
   planoNutriRefeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]
   fasePeriodizacao: { nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null
+  alertaCientifico: AlertaItem[]
+  treinoPrescrito: TreinoPrescrito
   isDesktop?: boolean
 }) {
   const router    = useRouter()
@@ -1020,6 +1084,10 @@ function DashboardCliente({
   const initials  = getInitials(perfil.nome, perfil.email)
   const scoreColor     = scoreRecuperacao ? getScoreHex(scoreRecuperacao) : C.good
   const vinculoNutri   = vinculos.find(v => v?.tipo === 'nutricionista')
+  const [expandedAlertas, setExpandedAlertas] = useState<string[]>([])
+  function toggleAlerta(codigo: string) {
+    setExpandedAlertas(prev => prev.includes(codigo) ? prev.filter(c => c !== codigo) : [...prev, codigo])
+  }
 
   function getRefeicaoAtual() {
     if (!planoNutriRefeicoes.length) return null
@@ -1042,7 +1110,7 @@ function DashboardCliente({
   }
 
   return (
-    <div style={{ maxWidth: isDesktop ? 1200 : 448, margin: '0 auto', padding: isDesktop ? '36px 32px' : '0 16px', paddingTop: isDesktop ? 36 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
+    <div style={{ maxWidth: isDesktop ? 640 : 448, margin: '0 auto', padding: isDesktop ? '36px 32px' : '0 16px', paddingTop: isDesktop ? 36 : 'max(3rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -1062,41 +1130,12 @@ function DashboardCliente({
         </div>
       </div>
 
-      {/* ── GRID DESKTOP: 2 colunas / Mobile: 1 coluna ── */}
-      <div style={{
-        display: isDesktop ? 'grid' : 'block',
-        gridTemplateColumns: isDesktop ? '1fr 1.4fr' : undefined,
-        gap: isDesktop ? 20 : undefined,
-        alignItems: 'start',
-      }}>
+      {/* ────────────────────────────────────────────────────────────────
+          HIERARQUIA: 1. Recuperação · 2. Decisão do dia · 3. Alertas
+          4. Treino do dia · 5. Nutrição · 6. Meta + Meu time (final)
+      ──────────────────────────────────────────────────────────────── */}
 
-      {/* COLUNA ESQUERDA */}
-      <div>
-      {/* Meta pessoal — primeiro da home, motivação central */}
-      <CardMeta
-        perfil={perfil}
-        pesoAtual={pesoAtual}
-        pesoDelta={pesoDelta}
-        userId={userId}
-        onSalvarMeta={onSalvarMeta}
-        router={router}
-      />
-
-      {/* Decisão do dia — só aparece quando há sono registrado */}
-      {temSonoHoje && (
-        <CardDecisaoDia
-          decisao={decisaoDia}
-          gerandoDecisao={gerandoDecisao}
-          temSonoHoje={temSonoHoje}
-          router={router}
-        />
-      )}
-
-      </div>{/* fim coluna esquerda */}
-
-      {/* COLUNA DIREITA */}
-      <div>
-      {/* Score de recuperação */}
+      {/* 1. Score de recuperação */}
       {scoreRecuperacao ? (
         <button onClick={() => router.push('/sono')}
           style={glass({ width: '100%', textAlign: 'left', padding: 24, marginBottom: 12, position: 'relative', overflow: 'hidden', cursor: 'pointer' }, `${scoreColor}26`)}>
@@ -1123,59 +1162,126 @@ function DashboardCliente({
           </div>
         </button>
       ) : (
-        <button onClick={() => router.push('/sono')}
-          style={glass({ width: '100%', textAlign: 'left', padding: 24, marginBottom: 12, position: 'relative', overflow: 'hidden', cursor: 'pointer' })}>
+        <div style={glass({ padding: 24, marginBottom: 12, position: 'relative', overflow: 'hidden' })}>
           <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 16 }}>Recuperação hoje</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16 }}>
             <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
               <svg width="72" height="72" viewBox="0 0 72 72" style={{ transform: 'rotate(-90deg)' }}>
                 <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
               </svg>
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 20, color: C.t3 }}>—</span>
+                <Moon size={22} style={{ color: C.t3 }} />
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 16, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, color: C.t2 }}>Sem dados ainda</p>
-              <p style={{ color: C.t3, fontSize: 12 }}>Registre seu sono para ativar seu score real →</p>
+              <p style={{ fontSize: 16, fontFamily: FONT_DISPLAY, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, color: C.t2 }}>Score ainda não disponível</p>
+              <p style={{ color: C.t3, fontSize: 12, lineHeight: 1.5 }}>Conecte um wearable ou registre seu sono de hoje para liberar sua análise de recuperação.</p>
             </div>
           </div>
-        </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => router.push('/sono')}
+              style={{ flex: 1, background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '12px', borderRadius: 12, fontSize: 13, letterSpacing: '0.03em', border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44` }}>
+              Registrar sono
+            </button>
+            <button onClick={() => router.push('/perfil')}
+              style={{ flex: 1, background: 'rgba(255,255,255,0.09)', color: C.t1, fontWeight: 700, padding: '12px', borderRadius: 12, fontSize: 13, letterSpacing: '0.03em', border: 'none', cursor: 'pointer' }}>
+              Conectar wearable
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Fase de periodização */}
-      {fasePeriodizacao && (() => {
-        const CORES_FASE: Record<string, string> = {
-          adaptacao:   C.good,
-          hipertrofia: C.good,
-          forca:       C.sleep,
-          deload:      C.t2,
-          potencia:    C.energy,
-          resistencia: C.recovery,
-        }
-        const cor = CORES_FASE[fasePeriodizacao.tipoBloco] ?? C.good
-        const pct = Math.min(100, (fasePeriodizacao.semanaBloco / fasePeriodizacao.semanasBloco) * 100)
+      {/* Meta pessoal — compacta, logo abaixo da recuperação */}
+      <CardMeta
+        perfil={perfil}
+        pesoAtual={pesoAtual}
+        pesoDelta={pesoDelta}
+        userId={userId}
+        onSalvarMeta={onSalvarMeta}
+        router={router}
+      />
+
+      {/* 2. Decisão do dia — só aparece quando há sono registrado */}
+      {temSonoHoje && (
+        <CardDecisaoDia
+          decisao={decisaoDia}
+          gerandoDecisao={gerandoDecisao}
+          temSonoHoje={temSonoHoje}
+          router={router}
+        />
+      )}
+
+      {/* 3. Alertas relevantes */}
+      {alertaCientifico.length > 0 && (() => {
+        const ordenados = [...alertaCientifico].sort((a, b) => (a.nivel === 'vermelho' ? 0 : 1) - (b.nivel === 'vermelho' ? 0 : 1))
+        const [principal, ...secundarios] = ordenados
+        const coresPrincipal = getCoresAlerta(principal.nivel)
+        const profPrincipal = ALERTAS_NUTRICIONISTA.has(principal.codigo) ? vinculoNutri : vinculoPersonal
+        const nomeProfPrincipal = profPrincipal?.nome ?? profPrincipal?.email ?? ''
+        const whatsappPrincipal = profPrincipal ? linkWhatsappAlerta(profPrincipal.whatsapp, nomeProfPrincipal, principal.mensagem) : null
         return (
-          <div style={glass({ padding: 20, marginBottom: 12, border: `1px solid ${cor}33` })}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Fase atual</p>
-              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: cor }}>
-                Sem. {fasePeriodizacao.semanaBloco}/{fasePeriodizacao.semanasBloco}
-              </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+            {/* Alerta principal — expandido, chama mais atenção */}
+            <div style={glass({ padding: 14, border: `1px solid ${coresPrincipal.border}` }, coresPrincipal.bg)}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <AlertTriangle size={16} style={{ color: coresPrincipal.cor, flexShrink: 0, marginTop: 1 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: coresPrincipal.cor, fontWeight: 800, fontSize: 13, fontFamily: FONT_DISPLAY, marginBottom: 3 }}>{principal.mensagem}</p>
+                  <p style={{ color: C.t3, fontSize: 11, lineHeight: 1.4 }}>{principal.dadoTecnico}</p>
+                </div>
+              </div>
+              {profPrincipal && (whatsappPrincipal ? (
+                <a href={whatsappPrincipal} target="_blank" rel="noopener noreferrer"
+                  style={{ marginTop: 10, width: '100%', background: coresPrincipal.bg, color: coresPrincipal.cor, fontWeight: 700, padding: '9px', borderRadius: 8, fontSize: 12, letterSpacing: '0.03em', border: `1px solid ${coresPrincipal.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+                  <MessageCircle size={13} /> Falar com {nomeProfPrincipal}
+                </a>
+              ) : (
+                <button onClick={() => router.push('/agenda')}
+                  style={{ marginTop: 10, width: '100%', background: coresPrincipal.bg, color: coresPrincipal.cor, fontWeight: 700, padding: '9px', borderRadius: 8, fontSize: 12, letterSpacing: '0.03em', border: `1px solid ${coresPrincipal.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <MessageCircle size={13} /> Falar com {nomeProfPrincipal}
+                </button>
+              ))}
             </div>
-            <p style={{ fontSize: 20, fontFamily: FONT_DISPLAY, fontWeight: 800, marginBottom: 12, color: cor }}>{fasePeriodizacao.nomeBloco}</p>
-            <div style={{ height: 8, background: 'rgba(255,255,255,0.09)', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
-              <div style={{ height: '100%', borderRadius: 99, background: cor, width: `${pct}%` }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ color: C.t3, fontSize: 10 }}>Semana {fasePeriodizacao.semanaTotal} de {fasePeriodizacao.totalSemanas} no ciclo</p>
-              {fasePeriodizacao.descricao && <p style={{ color: C.t2, fontSize: 10, maxWidth: '60%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fasePeriodizacao.descricao}</p>}
-            </div>
+
+            {/* Alertas secundários — colapsados em uma linha, expansíveis individualmente */}
+            {secundarios.map(alerta => {
+              const cores = getCoresAlerta(alerta.nivel)
+              const aberto = expandedAlertas.includes(alerta.codigo)
+              const profissional = ALERTAS_NUTRICIONISTA.has(alerta.codigo) ? vinculoNutri : vinculoPersonal
+              const nomeProf = profissional?.nome ?? profissional?.email ?? ''
+              const whatsappLink = profissional ? linkWhatsappAlerta(profissional.whatsapp, nomeProf, alerta.mensagem) : null
+              return (
+                <div key={alerta.codigo} style={glass({ padding: 0, border: `1px solid ${cores.border}` }, cores.bg)}>
+                  <button onClick={() => toggleAlerta(alerta.codigo)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                    <AlertTriangle size={12} style={{ color: cores.cor, flexShrink: 0 }} />
+                    <p style={{ flex: 1, minWidth: 0, color: cores.cor, fontWeight: 700, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{alerta.mensagem}</p>
+                    <ChevronRight size={12} style={{ color: C.t3, flexShrink: 0, transform: aberto ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
+                  </button>
+                  {aberto && (
+                    <div style={{ padding: '0 10px 10px 10px' }}>
+                      <p style={{ color: C.t3, fontSize: 10, lineHeight: 1.4, marginBottom: profissional ? 8 : 0 }}>{alerta.dadoTecnico}</p>
+                      {profissional && (whatsappLink ? (
+                        <a href={whatsappLink} target="_blank" rel="noopener noreferrer"
+                          style={{ width: '100%', background: cores.bg, color: cores.cor, fontWeight: 700, padding: '8px', borderRadius: 8, fontSize: 11, letterSpacing: '0.03em', border: `1px solid ${cores.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+                          <MessageCircle size={12} /> Falar com {nomeProf}
+                        </a>
+                      ) : (
+                        <button onClick={() => router.push('/agenda')}
+                          style={{ width: '100%', background: cores.bg, color: cores.cor, fontWeight: 700, padding: '8px', borderRadius: 8, fontSize: 11, letterSpacing: '0.03em', border: `1px solid ${cores.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <MessageCircle size={12} /> Falar com {nomeProf}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )
       })()}
 
-      {/* Treino de hoje */}
+      {/* 4. Treino do dia */}
       <div style={glass({ padding: 20, marginBottom: 12 })}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
           <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
@@ -1185,7 +1291,7 @@ function DashboardCliente({
         </div>
         <div style={{ marginBottom: 16 }}>
           <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: FONT_DISPLAY }}>
-            {treinoHoje ? treinoHoje.nome : 'Escolha seu treino'}
+            {treinoHoje ? treinoHoje.nome : (treinoPrescrito ? treinoPrescrito.nome : 'Escolha seu treino')}
           </p>
           {treinoHoje?.concluido ? (
             <p style={{ color: C.good, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}><Check size={14} /> Concluído hoje</p>
@@ -1195,13 +1301,31 @@ function DashboardCliente({
             <p style={{ color: C.t3, fontSize: 12 }}>Seus planos estão prontos</p>
           )}
         </div>
+
+        {/* Lista de exercícios prescritos */}
+        {!treinoHoje?.concluido && treinoPrescrito && treinoPrescrito.exercicios.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            {treinoPrescrito.descricao && (
+              <p style={{ color: C.t2, fontSize: 12, lineHeight: 1.5, marginBottom: 4 }}>{treinoPrescrito.descricao}</p>
+            )}
+            {treinoPrescrito.exercicios.map((ex, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }}>
+                <p style={{ color: C.t1, fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.nome}</p>
+                <span style={{ color: C.t2, fontSize: 12, fontFamily: FONT_MONO, flexShrink: 0 }}>
+                  {ex.series}x{ex.repeticoes}{ex.carga_sugerida ? ` · ${ex.carga_sugerida}kg` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button onClick={() => router.push('/treino')}
           style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, letterSpacing: '0.03em', border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44` }}>
           {treinoHoje?.concluido ? 'Ver treinos' : 'Ir para treino do dia →'}
         </button>
       </div>
 
-      {/* Nutrição */}
+      {/* 5. Nutrição */}
       <button onClick={() => router.push('/nutricao')}
         style={glass({ width: '100%', textAlign: 'left', padding: 20, marginBottom: 12, cursor: 'pointer' })}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -1253,41 +1377,73 @@ function DashboardCliente({
         </div>
       </button>
 
-      {/* Meu time */}
-      <div style={glass({ padding: 20, marginBottom: 12 })}>
-        <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 16 }}>Meu time</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[
-            { tipo: 'personal',      label: 'Personal Trainer', cor: C.sleep, Icon: Dumbbell },
-            { tipo: 'nutricionista', label: 'Nutricionista',    cor: C.good,  Icon: Utensils },
-          ].map((p, i) => {
-            const vinculo = vinculos.find(v => v?.tipo === p.tipo)
-            return (
-              <div key={p.label}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${p.cor}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${p.cor}1a`, color: p.cor }}><p.Icon size={18} /></div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.label}</p>
-                    {vinculo
-                      ? <p style={{ fontWeight: 700, fontSize: 16, marginTop: 2, color: p.cor, fontFamily: FONT_DISPLAY }}>{vinculo.nome ?? vinculo.email}</p>
-                      : <p style={{ color: C.t3, fontSize: 14, marginTop: 2 }}>Não conectado</p>}
+      {/* Fase de periodização — penúltimo card, logo antes de Meu time */}
+      {fasePeriodizacao && (() => {
+        const CORES_FASE: Record<string, string> = {
+          adaptacao:   C.good,
+          hipertrofia: C.good,
+          forca:       C.sleep,
+          deload:      C.t2,
+          potencia:    C.energy,
+          resistencia: C.recovery,
+        }
+        const cor = CORES_FASE[fasePeriodizacao.tipoBloco] ?? C.good
+        const pct = Math.min(100, (fasePeriodizacao.semanaBloco / fasePeriodizacao.semanasBloco) * 100)
+        return (
+          <div style={glass({ padding: 20, marginBottom: 12, border: `1px solid ${cor}33` })}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Fase atual</p>
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: cor }}>
+                Sem. {fasePeriodizacao.semanaBloco}/{fasePeriodizacao.semanasBloco}
+              </span>
+            </div>
+            <p style={{ fontSize: 20, fontFamily: FONT_DISPLAY, fontWeight: 800, marginBottom: 12, color: cor }}>{fasePeriodizacao.nomeBloco}</p>
+            <div style={{ height: 8, background: 'rgba(255,255,255,0.09)', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
+              <div style={{ height: '100%', borderRadius: 99, background: cor, width: `${pct}%` }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ color: C.t3, fontSize: 10 }}>Semana {fasePeriodizacao.semanaTotal} de {fasePeriodizacao.totalSemanas} no ciclo</p>
+              {fasePeriodizacao.descricao && <p style={{ color: C.t2, fontSize: 10, maxWidth: '60%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fasePeriodizacao.descricao}</p>}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 6. Meu time — colapsado, menos destaque */}
+      <div style={{ opacity: 0.85 }}>
+        <div style={glass({ padding: 16, marginBottom: 12 })}>
+          <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>Meu time</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { tipo: 'personal',      label: 'Personal Trainer', cor: C.sleep, Icon: Dumbbell },
+              { tipo: 'nutricionista', label: 'Nutricionista',    cor: C.good,  Icon: Utensils },
+            ].map((p, i) => {
+              const vinculo = vinculos.find(v => v?.tipo === p.tipo)
+              return (
+                <div key={p.label}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${p.cor}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${p.cor}1a`, color: p.cor }}><p.Icon size={16} /></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.label}</p>
+                      {vinculo
+                        ? <p style={{ fontWeight: 700, fontSize: 14, marginTop: 2, color: p.cor, fontFamily: FONT_DISPLAY }}>{vinculo.nome ?? vinculo.email}</p>
+                        : <p style={{ color: C.t3, fontSize: 13, marginTop: 2 }}>Não conectado</p>}
+                    </div>
+                    {!vinculo && (
+                      <button onClick={() => router.push('/convite')}
+                        style={{ fontSize: 10, color: C.t2, border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '6px 12px', textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Plus size={11} /> Conectar
+                      </button>
+                    )}
+                    {vinculo && <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.good, flexShrink: 0 }} />}
                   </div>
-                  {!vinculo && (
-                    <button onClick={() => router.push('/convite')}
-                      style={{ fontSize: 10, color: C.t2, border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '6px 12px', textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Plus size={11} /> Conectar
-                    </button>
-                  )}
-                  {vinculo && <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.good, flexShrink: 0 }} />}
+                  {i === 0 && <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginTop: 10 }} />}
                 </div>
-                {i === 0 && <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginTop: 12 }} />}
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
-      </div>{/* fim coluna direita */}
-      </div>{/* fim grid */}
     </div>
   )
 }
