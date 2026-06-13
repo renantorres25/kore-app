@@ -1325,7 +1325,19 @@ function DashboardCliente({
                 <AlertTriangle size={16} style={{ color: coresPrincipal.cor, flexShrink: 0, marginTop: 1 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: coresPrincipal.cor, fontWeight: 800, fontSize: 13, fontFamily: FONT_DISPLAY, marginBottom: 3 }}>{principal.mensagem}</p>
-                  <p style={{ color: C.t3, fontSize: 11, lineHeight: 1.4 }}>{principal.dadoTecnico}</p>
+                  <p style={{ color: C.t3, fontSize: 11, lineHeight: 1.4 }}>{principal.traducaoHumana ?? principal.dadoTecnico}</p>
+                  {principal.traducaoHumana && (
+                    <>
+                      <button onClick={() => toggleAlerta(`${principal.codigo}_tecnico`)}
+                        style={{ marginTop: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: C.t3, fontSize: 10, textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: 2 }}>
+                        Ver dados técnicos
+                        <ChevronRight size={10} style={{ transform: expandedAlertas.includes(`${principal.codigo}_tecnico`) ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
+                      </button>
+                      {expandedAlertas.includes(`${principal.codigo}_tecnico`) && (
+                        <p style={{ color: C.t3, fontSize: 10, lineHeight: 1.4, marginTop: 4, fontFamily: FONT_MONO }}>{principal.dadoTecnico}</p>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
               {profPrincipal && (whatsappPrincipal ? (
@@ -1358,7 +1370,19 @@ function DashboardCliente({
                   </button>
                   {aberto && (
                     <div style={{ padding: '0 10px 10px 10px' }}>
-                      <p style={{ color: C.t3, fontSize: 10, lineHeight: 1.4, marginBottom: profissional ? 8 : 0 }}>{alerta.dadoTecnico}</p>
+                      <p style={{ color: C.t3, fontSize: 10, lineHeight: 1.4, marginBottom: 4 }}>{alerta.traducaoHumana ?? alerta.dadoTecnico}</p>
+                      {alerta.traducaoHumana && (
+                        <>
+                          <button onClick={() => toggleAlerta(`${alerta.codigo}_tecnico`)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: C.t3, fontSize: 10, textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: 2, marginBottom: profissional ? 8 : 0 }}>
+                            Ver dados técnicos
+                            <ChevronRight size={10} style={{ transform: expandedAlertas.includes(`${alerta.codigo}_tecnico`) ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
+                          </button>
+                          {expandedAlertas.includes(`${alerta.codigo}_tecnico`) && (
+                            <p style={{ color: C.t3, fontSize: 10, lineHeight: 1.4, marginBottom: profissional ? 8 : 0, fontFamily: FONT_MONO }}>{alerta.dadoTecnico}</p>
+                          )}
+                        </>
+                      )}
                       {profissional && (whatsappLink ? (
                         <a href={whatsappLink} target="_blank" rel="noopener noreferrer"
                           style={{ width: '100%', background: cores.bg, color: cores.cor, fontWeight: 700, padding: '8px', borderRadius: 8, fontSize: 11, letterSpacing: '0.03em', border: `1px solid ${cores.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>

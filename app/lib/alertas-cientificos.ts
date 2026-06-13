@@ -16,6 +16,7 @@ export type AlertaItem = {
   codigo: string
   nivel: 'vermelho' | 'amarelo'
   dadoTecnico: string
+  traducaoHumana?: string
   mensagem: string
 }
 
@@ -34,6 +35,53 @@ function getDateOffsetStr(diasAtras: number): string {
   const d = new Date()
   d.setDate(d.getDate() - diasAtras)
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+/**
+ * Traduz TSB (Training Stress Balance / "forma") para linguagem humana.
+ */
+export function traduzirTSB(tsb: number): string {
+  if (tsb > 10) return 'Você está descansado e pronto para treinar forte'
+  if (tsb >= 0) return 'Forma equilibrada — bom momento para manter o ritmo'
+  if (tsb >= -10) return 'Leve fadiga acumulada — monitore sua energia'
+  if (tsb >= -30) return 'Fadiga moderada — considere reduzir intensidade'
+  return 'Fadiga elevada — risco de overtraining, reduza o volume'
+}
+
+/**
+ * Traduz CTL (Chronic Training Load / "fitness") para linguagem humana.
+ */
+export function traduzirCTL(ctl: number): string {
+  if (ctl > 80) return 'Sua base de condicionamento está alta'
+  if (ctl >= 50) return 'Condicionamento em nível intermediário'
+  return 'Base de condicionamento ainda em desenvolvimento'
+}
+
+/**
+ * Traduz o ACWR (Acute:Chronic Workload Ratio) para linguagem humana.
+ */
+export function traduzirACWR(acwr: number): string {
+  if (acwr > 1.3) return 'Carga recente muito acima do seu histórico'
+  if (acwr < 0.8) return 'Semana mais leve que o habitual'
+  return 'Carga de treino equilibrada'
+}
+
+/**
+ * Traduz a relação ATL/CTL (ACWR baseado no PMC) para linguagem humana.
+ */
+export function traduzirCargaAtual(atl: number, ctl: number): string {
+  if (ctl <= 0) return 'Carga de treino equilibrada'
+  return traduzirACWR(atl / ctl)
+}
+
+/**
+ * Combina TSB/CTL/ATL em uma linha de tradução humana para os alertas de fadiga.
+ */
+export function traduzirPMC(tsb: number, ctl: number | null, atl: number | null): string {
+  const partes = [traduzirTSB(tsb)]
+  if (ctl != null) partes.push(traduzirCTL(ctl))
+  if (ctl != null && atl != null) partes.push(traduzirCargaAtual(atl, ctl))
+  return partes.join(' — ')
 }
 
 function diasSemTreinar(ultimoTreino: string | null): number {
@@ -184,6 +232,7 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
         codigo: 'FADIGA_ACUMULADA',
         nivel: 'vermelho',
         dadoTecnico: `TSB: ${params.tsb_atual} | CTL: ${params.ctl_atual ?? '?'} | ATL: ${params.atl_atual ?? '?'}`,
+        traducaoHumana: traduzirPMC(params.tsb_atual, params.ctl_atual ?? null, params.atl_atual ?? null),
         mensagem: 'Fadiga acumulada elevada. Reduza volume por 2-3 dias.',
       })
     } else if (params.tsb_atual < -20) {
@@ -191,6 +240,7 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
         codigo: 'CARGA_INTENSA',
         nivel: 'amarelo',
         dadoTecnico: `TSB: ${params.tsb_atual} | CTL: ${params.ctl_atual ?? '?'} | ATL: ${params.atl_atual ?? '?'}`,
+        traducaoHumana: traduzirPMC(params.tsb_atual, params.ctl_atual ?? null, params.atl_atual ?? null),
         mensagem: 'Atleta em fase de carga intensa. Monitore recuperação.',
       })
     }
@@ -212,6 +262,7 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
         codigo: 'ACWR_ALTO',
         nivel: 'vermelho',
         dadoTecnico: `ACWR: ${acwr.toFixed(2)} | Zona segura: 0.8–1.3`,
+        traducaoHumana: traduzirACWR(acwr),
         mensagem: `Carga ${pct}% acima da média das últimas 4 semanas. Risco de lesão elevado.`,
       })
     } else if (acwr >= 1.3) {
@@ -219,6 +270,7 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
         codigo: 'ACWR_ELEVADO',
         nivel: 'amarelo',
         dadoTecnico: `ACWR: ${acwr.toFixed(2)} | Zona segura: 0.8–1.3`,
+        traducaoHumana: traduzirACWR(acwr),
         mensagem: 'Carga elevada. Monitore sinais de fadiga nos próximos treinos.',
       })
     } else if (acwr < 0.8) {
@@ -226,6 +278,7 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
         codigo: 'ACWR_BAIXO',
         nivel: 'amarelo',
         dadoTecnico: `ACWR: ${acwr.toFixed(2)} | Zona ideal: 0.8–1.3`,
+        traducaoHumana: traduzirACWR(acwr),
         mensagem: 'Volume abaixo do habitual. Risco de perda de adaptação ao treino.',
       })
     }
@@ -271,6 +324,7 @@ export function computeAlertaCientifico(params: ComputeAlertaParams): AlertaCien
           codigo: 'RED_S',
           nivel: 'vermelho',
           dadoTecnico: `Déficit: ${Math.round(deficit)}kcal/dia | TDEE est.: ${Math.round(tdeeEstimado)}kcal | Prescrito: ${caloriasPrescritas}kcal`,
+          traducaoHumana: `Você está comendo ${Math.round(deficit)}kcal a menos do que gasta`,
           mensagem: 'Plano calórico insuficiente para a carga de treino. Risco de perda muscular em 2–3 semanas.',
         })
       }
