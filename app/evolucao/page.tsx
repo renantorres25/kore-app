@@ -6,6 +6,12 @@ import { Check, ChevronDown, Sparkles, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import SidebarProfissional from '../components/SidebarProfissional'
 import { calcularPMC, calcularFcmaxEstimado, traduzirPMC, type AtividadePMC, type PontoPMC } from '../lib/alertas-cientificos'
+import {
+  calcularIdade, getSunday, calcularPace, formatPaceValue, linhaTendencia, calcularZonaFC, interpretarPaceZona,
+  calcularSessoesPace, calcularVolumeSemanal, calcularPaceZonaFCResumo, calcularEficienciaCardiaca,
+  VOL_LABELS, VOL_SEM_DISTANCIA, MOD_LABELS_PACE, ZONAS_ORDEM, ZONA_LABELS,
+  type SessaoPace, type SemanaVolume,
+} from '../lib/performance-evolucao'
 
 /* ─────────────────────────────────────────────────────────
    DESIGN SYSTEM · ENERGETIC PRECISION
@@ -83,104 +89,12 @@ function formatDateFull(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
 }
 
-function calcularIdade(dataNascimento: string | null): number | null {
-  if (!dataNascimento) return null
-  const hoje = new Date()
-  const nasc = new Date(dataNascimento)
-  let idade = hoje.getFullYear() - nasc.getFullYear()
-  const m = hoje.getMonth() - nasc.getMonth()
-  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--
-  return idade
-}
-
 function calcularMelhorStreak(diasAtivos: Set<string>, dias: string[]): number {
   let melhor = 0, atual = 0
   for (const d of dias) {
     if (diasAtivos.has(d)) { atual++; melhor = Math.max(melhor, atual) } else atual = 0
   }
   return melhor
-}
-
-function getSunday(d: Date): Date {
-  const r = new Date(d)
-  r.setDate(r.getDate() - r.getDay())
-  return r
-}
-
-function calcularPace(modalidade: string, duracaoMin: number, distanciaKm: number | null, distanciaM: number | null): number | null {
-  if (modalidade === 'corrida') {
-    if (!distanciaKm || distanciaKm <= 0) return null
-    return duracaoMin / distanciaKm
-  }
-  if (modalidade === 'bike') {
-    if (!distanciaKm || distanciaKm <= 0) return null
-    return distanciaKm / (duracaoMin / 60)
-  }
-  if (modalidade === 'natacao') {
-    const metros = distanciaM ?? (distanciaKm ? distanciaKm * 1000 : null)
-    if (!metros || metros <= 0) return null
-    return duracaoMin / (metros / 100)
-  }
-  return null
-}
-
-function formatPaceValue(modalidade: string, valor: number): string {
-  if (modalidade === 'bike') return valor.toFixed(1)
-  const min = Math.floor(valor)
-  const sec = Math.round((valor - min) * 60)
-  return `${min}:${sec.toString().padStart(2, '0')}`
-}
-
-function linhaTendencia(valores: number[]): number[] {
-  const n = valores.length
-  const xs = valores.map((_, i) => i)
-  const sumX = xs.reduce((a, b) => a + b, 0)
-  const sumY = valores.reduce((a, b) => a + b, 0)
-  const sumXY = xs.reduce((s, x, i) => s + x * valores[i], 0)
-  const sumX2 = xs.reduce((s, x) => s + x * x, 0)
-  const denom = n * sumX2 - sumX * sumX
-  if (denom === 0) return valores.map(() => sumY / n)
-  const slope = (n * sumXY - sumX * sumY) / denom
-  const intercept = (sumY - slope * sumX) / n
-  return xs.map(x => intercept + slope * x)
-}
-
-// Zona de FC com base em % da FCmax
-function calcularZonaFC(fcMedia: number | null, fcmax: number | null): string | null {
-  if (fcMedia == null || !fcmax) return null
-  const pct = (fcMedia / fcmax) * 100
-  if (pct < 60) return 'Z1'
-  if (pct < 70) return 'Z2'
-  if (pct < 80) return 'Z3'
-  if (pct < 90) return 'Z4'
-  return 'Z5'
-}
-
-// Interpreta a evolução do pace/velocidade dentro de uma zona de FC, com base no primeiro/último ponto e na direção da linha de tendência
-function interpretarPaceZona(modalidade: string, zona: string, valores: number[]): string {
-  if (valores.length < 3) return 'Registre mais treinos nesta zona para ver sua evolução'
-  const tendencia = linhaTendencia(valores)
-  const x = formatPaceValue(modalidade, valores[0])
-  const y = formatPaceValue(modalidade, valores[valores.length - 1])
-  const delta = tendencia[tendencia.length - 1] - tendencia[0]
-  const limiar = Math.abs(tendencia[0]) * 0.01
-
-  if (modalidade === 'corrida') {
-    if (delta < -limiar) return `Seu pace em ${zona} melhorou de ${x} para ${y} min/km — você está mais eficiente 🏃`
-    if (delta > limiar) return `Seu pace em ${zona} subiu de ${x} para ${y} min/km — pode ser sinal de fadiga acumulada`
-    return `Seu pace em ${zona} está estável em ~${y} min/km`
-  }
-  if (modalidade === 'bike') {
-    if (delta > limiar) return `Sua velocidade em ${zona} subiu de ${x} para ${y} km/h — você está pedalando mais forte 🚴`
-    if (delta < -limiar) return `Sua velocidade em ${zona} caiu de ${x} para ${y} km/h`
-    return `Sua velocidade em ${zona} está estável em ~${y} km/h`
-  }
-  if (modalidade === 'natacao') {
-    if (delta < -limiar) return `Seu pace em ${zona} melhorou de ${x} para ${y} min/100m — você está nadando melhor 🏊`
-    if (delta > limiar) return `Seu pace em ${zona} subiu de ${x} para ${y} min/100m — pode ser sinal de fadiga acumulada`
-    return `Seu pace em ${zona} está estável em ~${y} min/100m`
-  }
-  return ''
 }
 
 type AtividadeDia = { data: string; tipo: string }
@@ -191,10 +105,6 @@ type AtividadeRaw = {
   fc_media: number | null; fc_max: number | null
   calorias_estimadas: number | null; calorias_wearable: number | null
 }
-
-type SessaoPace = { data: string; modalidade: string; zona: string | null; pace: number; fc_media: number | null }
-
-type SemanaVolume = { inicio: string; total: number; porModalidade: Record<string, { km: number; sessoes: number; min: number }> }
 
 type MedidaCP = {
   data: string
@@ -216,19 +126,13 @@ const MOD_CONFIG: Record<string, { label: string; hex: string }> = {
 
 // cores para o gráfico de volume semanal (item 3)
 const VOL_COLORS: Record<string, string> = { corrida: C.energy, bike: C.sleep, natacao: '#22D3EE', musculacao: C.recovery, crossfit: C.warn, outro: C.t2 }
-const VOL_LABELS: Record<string, string> = { corrida: 'Corrida', bike: 'Bike', natacao: 'Natação', musculacao: 'Musculação', crossfit: 'Crossfit', outro: 'Outro' }
-// modalidades sem distância (km) — exibidas por tempo (sessões/min)
-const VOL_SEM_DISTANCIA = new Set(['musculacao', 'crossfit'])
 const VOL_EMOJI: Record<string, string> = { musculacao: '🏋️', crossfit: '🔥' }
-const MOD_LABELS_PACE: Record<string, string> = { corrida: 'Corrida', bike: 'Bike', natacao: 'Natação' }
-const ZONA_CONFIG: Record<string, { label: string; cor: string }> = {
-  Z1: { label: 'Z1 · Regenerativo', cor: C.t3 },
-  Z2: { label: 'Z2 · Aeróbico base', cor: C.good },
-  Z3: { label: 'Z3 · Tempo', cor: C.warn },
-  Z4: { label: 'Z4 · Limiar', cor: C.energy2 },
-  Z5: { label: 'Z5 · VO2max', cor: C.danger },
+const ZONA_CORES: Record<string, string> = {
+  Z1: C.t3, Z2: C.good, Z3: C.warn, Z4: C.energy2, Z5: C.danger,
 }
-const ZONAS_ORDEM = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5'] as const
+const ZONA_CONFIG: Record<string, { label: string; cor: string }> = Object.fromEntries(
+  ZONAS_ORDEM.map(z => [z, { label: ZONA_LABELS[z], cor: ZONA_CORES[z] }])
+)
 
 /* ─── SPARKLINE / GRÁFICO DE ÁREA ──────────────────────────── */
 function Sparkline({ data, color, height = 60, showEndDots = true, domain }: {
@@ -752,28 +656,7 @@ export default function Evolucao() {
     setMelhorStreak(Math.max(s, calcularMelhorStreak(ativoSet, dias90)))
 
     // ── Volume semanal por modalidade (8 semanas) ──
-    const hojeDate = new Date(hoje + 'T12:00:00-03:00')
-    const semanas: SemanaVolume[] = []
-    for (let w = 7; w >= 0; w--) {
-      const domingo = getSunday(hojeDate)
-      domingo.setDate(domingo.getDate() - w * 7)
-      const sabado = new Date(domingo); sabado.setDate(domingo.getDate() + 6)
-      const inicio = domingo.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-      const fim = sabado.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-      const porModalidade: Record<string, { km: number; sessoes: number; min: number }> = {}
-      atividadesData?.forEach((a: any) => {
-        if (a.data < inicio || a.data > fim) return
-        if (!VOL_LABELS[a.modalidade]) return // ignora modalidades não mapeadas (dados sujos)
-        const km = a.distancia_km ?? (a.distancia_m ? a.distancia_m / 1000 : 0)
-        const min = a.duracao_min ?? 0
-        if (!porModalidade[a.modalidade]) porModalidade[a.modalidade] = { km: 0, sessoes: 0, min: 0 }
-        porModalidade[a.modalidade].km += km
-        porModalidade[a.modalidade].min += min
-        porModalidade[a.modalidade].sessoes += 1
-      })
-      const total = Object.values(porModalidade).reduce((acc, v) => acc + v.km, 0)
-      semanas.push({ inicio, total, porModalidade })
-    }
+    const semanas = calcularVolumeSemanal((atividadesData ?? []) as any, 8)
     setSemanasVolume(semanas)
 
     // ── FCmax estimado (perfil + picos registrados) ──
@@ -781,17 +664,7 @@ export default function Evolucao() {
     const fcmax = calcularFcmaxEstimado(perfilData?.fcmax ?? null, calcularIdade(perfilData?.data_nascimento ?? null), atividadesMax)
 
     // ── Pace por zona de FC (TODAS as atividades_livres com pace calculável; zona vem de fc_media / fcmax) ──
-    const pace: SessaoPace[] = []
-    atividadesData?.forEach((a: any) => {
-      if (!['corrida', 'bike', 'natacao'].includes(a.modalidade) || !a.duracao_min) return
-      const distKm = a.distancia_km != null ? Number(a.distancia_km) : null
-      const distM = a.distancia_m != null ? Number(a.distancia_m) : null
-      const p = calcularPace(a.modalidade, a.duracao_min, distKm, distM)
-      if (p == null) return
-      const fcMedia = a.fc_media ?? null
-      pace.push({ data: a.data, modalidade: a.modalidade, zona: calcularZonaFC(fcMedia, fcmax), pace: p, fc_media: fcMedia })
-    })
-    pace.sort((a, b) => a.data.localeCompare(b.data))
+    const pace = calcularSessoesPace((atividadesData ?? []) as any, fcmax)
     setSessoesPace(pace)
     const modalidadesDisp = (['corrida', 'bike', 'natacao'] as const).filter(m => pace.some(p => p.modalidade === m))
     if (modalidadesDisp.length) {
@@ -851,7 +724,41 @@ export default function Evolucao() {
     const totalAtividades = atividades.length
     const resumoAtividades = atividades.slice(0, 10).map(a => `${MOD_CONFIG[a.tipo]?.label ?? a.tipo} (${formatDate(a.data)})`).join(', ')
 
-    const prompt = `Coach de IA do KORE. Analise a evolução deste atleta com dados reais.
+    // Pace por zona de FC — todas as modalidades/zonas com dados suficientes
+    const paceZonaLinhas = calcularPaceZonaFCResumo(sessoesPace).map(r => {
+      const grandeza = r.modalidade === 'bike' ? 'Velocidade média' : 'Pace médio'
+      return `- ${MOD_LABELS_PACE[r.modalidade]} ${r.zona}: ${grandeza} ${r.valorFormatado} ${r.unidade} (últimas ${r.count} atividades) — ${r.interpretacao}`
+    })
+
+    // Volume semanal multi-modalidade (últimas 8 semanas)
+    const volumeSemanalLinhas = semanasVolume.map(sem => {
+      const partes: string[] = []
+      VOL_MODALIDADES_KM.forEach(mod => {
+        const km = sem.porModalidade[mod]?.km ?? 0
+        if (km > 0) partes.push(`${VOL_LABELS[mod].toLowerCase()} ${km.toFixed(1)}km`)
+      })
+      VOL_MODALIDADES_TEMPO.forEach(mod => {
+        const sessoes = sem.porModalidade[mod]?.sessoes ?? 0
+        if (sessoes > 0) partes.push(`${VOL_LABELS[mod].toLowerCase()} ${sessoes} ${sessoes === 1 ? 'sessão' : 'sessões'}`)
+      })
+      return `- Semana de ${formatDate(sem.inicio)}: ${partes.join(', ') || 'sem atividades'}`
+    })
+
+    // Eficiência cardíaca (FC recente vs 4 semanas atrás)
+    const eficienciaCardiacaLinha = fcTendencia
+      ? `FC recente ${fcTendencia.recente}bpm vs 4 semanas atrás ${fcTendencia.anterior}bpm — ${fcTrendMsg}`
+      : 'sem dados suficientes'
+
+    // PMC completo (amostragem semanal das últimas 12 semanas)
+    const pmcSemanal: PontoPMC[] = []
+    for (let i = pmcPontos.length - 1; i >= 0; i -= 7) pmcSemanal.unshift(pmcPontos[i])
+    const pmcLinhas = pmcSemanal.map(p => `- ${formatDate(p.data)}: Fitness(CTL)=${Math.round(p.ctl)}, Fadiga(ATL)=${Math.round(p.atl)}, Forma(TSB)=${Math.round(p.tsb)}`)
+    const tendenciaCTL = pmcSemanal.length >= 2
+      ? (pmcSemanal[pmcSemanal.length - 1].ctl > pmcSemanal[0].ctl + 2 ? 'subindo' : pmcSemanal[pmcSemanal.length - 1].ctl < pmcSemanal[0].ctl - 2 ? 'caindo' : 'estável')
+      : 'sem dados'
+    const tsbAtualSinal = pmcPontos.length ? (pmcPontos[pmcPontos.length - 1].tsb >= 0 ? 'positivo' : 'negativo') : 'sem dados'
+
+    const prompt = `Você é um coach de performance especializado em triathlon e endurance. Analise os dados abaixo do atleta e responda em português, de forma direta e personalizada. Use os dados concretos para embasar cada recomendação — não dê conselhos genéricos.
 
 ÚLTIMOS 90 DIAS:
 - Total de atividades: ${totalAtividades}
@@ -862,6 +769,18 @@ ATIVIDADES RECENTES: ${resumoAtividades || 'sem dados'}
 
 MUSCULAÇÃO:
 ${volumeExercicios.map(e => `${e.nome}: ${e.sessoesCount}x, máx ${e.maxCarga}kg${e.evolucao !== 0 ? ` (${e.evolucao > 0 ? '+' : ''}${e.evolucao}%)` : ''}`).join(', ') || 'sem dados'}
+
+PACE POR ZONA DE FC:
+${paceZonaLinhas.length ? paceZonaLinhas.join('\n') : 'sem dados suficientes'}
+
+VOLUME ÚLTIMAS 8 SEMANAS:
+${volumeSemanalLinhas.length ? volumeSemanalLinhas.join('\n') : 'sem dados'}
+
+EFICIÊNCIA CARDÍACA: ${eficienciaCardiacaLinha}
+
+HISTÓRICO DE FORMA FÍSICA (últimas 12 semanas):
+${pmcLinhas.length ? pmcLinhas.join('\n') : 'sem dados'}
+Tendência: CTL ${tendenciaCTL}, TSB atual ${tsbAtualSinal}
 
 Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendência, Ponto mais forte, Foco para os próximos 7 dias com ação concreta`
 
@@ -1058,24 +977,9 @@ Análise em 3 partes (máx 100 palavras, sem markdown): Consistência e tendênc
   const temFCDados = atividadesRaw.some(a => a.fc_media != null)
 
   // FC média últimas 2 semanas vs 2 semanas anteriores (4 semanas atrás)
-  const fcTendencia = (() => {
-    const corte14 = getLastNDays(14)[0]
-    const corte28 = getLastNDays(28)[0]
-    const recentes = atividadesRaw.filter(a => a.fc_media != null && a.data >= corte14)
-    const anteriores = atividadesRaw.filter(a => a.fc_media != null && a.data >= corte28 && a.data < corte14)
-    if (!recentes.length || !anteriores.length) return null
-    const mediaRecente = recentes.reduce((s, a) => s + a.fc_media!, 0) / recentes.length
-    const mediaAnterior = anteriores.reduce((s, a) => s + a.fc_media!, 0) / anteriores.length
-    return { recente: Math.round(mediaRecente), anterior: Math.round(mediaAnterior), diff: mediaRecente - mediaAnterior }
-  })()
+  const fcTendencia = calcularEficienciaCardiaca(atividadesRaw as any)
   const fcTrendColor = !fcTendencia ? C.t3 : fcTendencia.diff > 5 ? C.energy2 : fcTendencia.diff < -5 ? C.good : C.t3
-  const fcTrendMsg = !fcTendencia
-    ? null
-    : fcTendencia.diff > 5
-    ? 'Sua FC está aumentando — sinal de fadiga acumulada. Considere uma semana mais leve.'
-    : fcTendencia.diff < -5
-    ? 'Sua FC está caindo para o mesmo esforço — você está mais fit. Continue assim!'
-    : 'Sua FC está estável — condicionamento mantido.'
+  const fcTrendMsg = fcTendencia?.mensagem ?? null
 
   const FCCard = (
     <div style={{ ...glass, overflow: 'hidden' }}>

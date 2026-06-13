@@ -27,11 +27,11 @@ export type AlertaCientifico = {
 
 const NIVEL_ORDER: Record<'vermelho' | 'amarelo', number> = { vermelho: 0, amarelo: 1 }
 
-function getHojeStr(): string {
+export function getHojeStr(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
-function getDateOffsetStr(diasAtras: number): string {
+export function getDateOffsetStr(diasAtras: number): string {
   const d = new Date()
   d.setDate(d.getDate() - diasAtras)
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })

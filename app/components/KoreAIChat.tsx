@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { calcularPMC, calcularFcmaxEstimado, traduzirPMC, type AtividadePMC } from '../lib/alertas-cientificos'
+import {
+  calcularIdade, calcularSessoesPace, calcularVolumeSemanal, calcularPaceZonaFCResumo, calcularEficienciaCardiaca,
+  tendenciaVolume, VOL_LABELS, VOL_SEM_DISTANCIA, MOD_LABELS_PACE,
+} from '../lib/performance-evolucao'
 
 type Mensagem = { role: 'user' | 'assistant'; content: string }
 
@@ -34,6 +39,10 @@ type ContextoAtleta = {
     suplementos: string[]
     orientacaoTreino: string | null
   } | null
+  pmc: { ctl: number; atl: number; tsb: number; interpretacao: string } | null
+  volumeSemanal: { porModalidade: { label: string; km: number; sessoes: number }[]; tendencia: 'aumentando' | 'estável' | 'reduzindo' } | null
+  paceZonaResumo: { modalidade: string; zona: string; valorFormatado: string; unidade: string; count: number; interpretacao: string }[]
+  eficienciaCardiaca: { recente: number; anterior: number; mensagem: string } | null
 }
 
 function getTodayBR(): string {
@@ -100,6 +109,30 @@ function buildSystemPrompt(ctx: ContextoAtleta): string {
   const anamneseTexto = formatAnamnese(ctx.anamneseResumo)
   if (anamneseTexto) {
     secoesAdicionais += `\n\nANAMNESE / HISTÓRICO CLÍNICO:\n${anamneseTexto}`
+  }
+
+  if (ctx.pmc || ctx.volumeSemanal || ctx.paceZonaResumo.length || ctx.eficienciaCardiaca) {
+    let perf = '\n\nPERFORMANCE E EVOLUÇÃO:'
+    if (ctx.pmc) {
+      perf += `\nForma física atual: Fitness(CTL)=${ctx.pmc.ctl}, Fadiga(ATL)=${ctx.pmc.atl}, Forma(TSB)=${ctx.pmc.tsb}\nInterpretação: ${ctx.pmc.interpretacao}`
+    }
+    if (ctx.volumeSemanal) {
+      const partes = ctx.volumeSemanal.porModalidade.map(m => VOL_SEM_DISTANCIA.has(Object.keys(VOL_LABELS).find(k => VOL_LABELS[k] === m.label) ?? '')
+        ? `${m.label.toLowerCase()} ${m.sessoes} ${m.sessoes === 1 ? 'sessão' : 'sessões'}`
+        : `${m.label.toLowerCase()} ${m.km.toFixed(1)}km`)
+      perf += `\nVolume últimas 4 semanas: ${partes.join(', ') || 'sem atividades'} — tendência: ${ctx.volumeSemanal.tendencia}`
+    }
+    if (ctx.paceZonaResumo.length) {
+      perf += '\nPace por zona de FC:'
+      ctx.paceZonaResumo.forEach(r => {
+        const grandeza = r.modalidade === 'bike' ? 'velocidade média' : 'pace médio'
+        perf += `\n- ${MOD_LABELS_PACE[r.modalidade]} ${r.zona}: ${grandeza} ${r.valorFormatado} ${r.unidade} (${r.count} atividades) — ${r.interpretacao}`
+      })
+    }
+    if (ctx.eficienciaCardiaca) {
+      perf += `\nEficiência cardíaca: FC recente ${ctx.eficienciaCardiaca.recente}bpm vs 4 semanas atrás ${ctx.eficienciaCardiaca.anterior}bpm — ${ctx.eficienciaCardiaca.mensagem}`
+    }
+    secoesAdicionais += perf
   }
 
   return `Você é o KORE AI — membro do time de alta performance do atleta ${ctx.nome ?? 'atleta'}. Você não é um chatbot nem assistente genérico. É o coach de IA que conhece TODOS os dados reais deste atleta e age como parte do time, junto com o personal trainer e a nutricionista.
@@ -183,8 +216,10 @@ export default function KoreAIChat() {
     const hoje = getTodayBR()
     const dias30 = new Date(); dias30.setDate(dias30.getDate() - 30)
     const dias7 = new Date(); dias7.setDate(dias7.getDate() - 7)
+    const dias90 = new Date(); dias90.setDate(dias90.getDate() - 90)
     const str30 = dias30.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const str7 = dias7.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const str90 = dias90.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
     const [
       { data: perfil }, { data: sonoHoje }, { data: be }, { data: macros },
@@ -194,12 +229,12 @@ export default function KoreAIChat() {
       { data: planosPrescritos }, { data: medidas }, { data: periData },
       { data: ultimaAvalData }, { data: proximaConsultaData }, { data: anamneseData },
     ] = await Promise.all([
-      supabase.from('perfis').select('nome, objetivo, peso, altura, nivel, meta_peso, meta_data_limite, fcmax, ftp').eq('id', session.user.id).single(),
+      supabase.from('perfis').select('nome, objetivo, peso, altura, nivel, meta_peso, meta_data_limite, fcmax, ftp, data_nascimento').eq('id', session.user.id).single(),
       supabase.from('sono').select('score_recuperacao, duracao_minutos, qualidade, hrv, fc_repouso').eq('usuario_id', session.user.id).eq('data', hoje).single(),
       supabase.from('bem_estar').select('energia, humor, dor_muscular, notas').eq('usuario_id', session.user.id).eq('data', hoje).single(),
       supabase.from('nutricao').select('calorias, proteina, carboidrato, gordura, copos_agua').eq('usuario_id', session.user.id).eq('data', hoje).single(),
       supabase.from('treinos').select('nome, plano, data, calorias_estimadas').eq('cliente_id', session.user.id).eq('concluido', true).gte('data', str30).order('data', { ascending: false }).limit(10),
-      supabase.from('atividades_livres').select('modalidade, duracao_min, distancia_km, calorias_estimadas, intensidade, data').eq('usuario_id', session.user.id).gte('data', str30).order('data', { ascending: false }).limit(10),
+      supabase.from('atividades_livres').select('modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, intensidade, fc_media, fc_max, data').eq('usuario_id', session.user.id).gte('data', str90).order('data', { ascending: false }),
       supabase.from('sono').select('data, score_recuperacao').eq('usuario_id', session.user.id).gte('data', str30).not('score_recuperacao', 'is', null).order('data'),
       supabase.from('nutricao').select('data, calorias, proteina').eq('usuario_id', session.user.id).gte('data', str7).order('data'),
       supabase.from('vinculos').select('tipo, profissional_id').eq('cliente_id', session.user.id).eq('ativo', true),
@@ -313,6 +348,38 @@ export default function KoreAIChat() {
       if (treinadosDatas.has(d)) { streak++; cursor.setDate(cursor.getDate() - 1) } else break
     }
 
+    // Performance e evolução (PMC, pace por zona, volume semanal, eficiência cardíaca)
+    const atividades90 = (atividadesLivres ?? []) as any[]
+    const atividadesMax = atividades90.map(a => a.fc_max).filter((x): x is number => x != null)
+    const fcmax = calcularFcmaxEstimado(perfil?.fcmax ?? null, calcularIdade(perfil?.data_nascimento ?? null), atividadesMax)
+
+    const atividadesPMC: AtividadePMC[] = atividades90.map(a => ({
+      data: a.data, modalidade: a.modalidade, duracao_min: a.duracao_min, distancia_km: a.distancia_km, fc_media: a.fc_media,
+    }))
+    const pmcPontos = calcularPMC(atividadesPMC, fcmax, 90)
+    const pmcAtual = pmcPontos[pmcPontos.length - 1] ?? null
+    const pmc = pmcAtual ? { ctl: Math.round(pmcAtual.ctl), atl: Math.round(pmcAtual.atl), tsb: Math.round(pmcAtual.tsb), interpretacao: traduzirPMC(pmcAtual.tsb, pmcAtual.ctl, pmcAtual.atl) } : null
+
+    const sessoesPace = calcularSessoesPace(atividades90, fcmax)
+    const paceZonaResumo = calcularPaceZonaFCResumo(sessoesPace, 3)
+
+    const semanas4 = calcularVolumeSemanal(atividades90, 4)
+    const volumeSemanal = semanas4.length ? {
+      porModalidade: Object.entries(
+        semanas4.reduce((acc, sem) => {
+          Object.entries(sem.porModalidade).forEach(([mod, v]) => {
+            if (!acc[mod]) acc[mod] = { km: 0, sessoes: 0 }
+            acc[mod].km += v.km; acc[mod].sessoes += v.sessoes
+          })
+          return acc
+        }, {} as Record<string, { km: number; sessoes: number }>)
+      ).map(([mod, v]) => ({ label: VOL_LABELS[mod] ?? mod, km: v.km, sessoes: v.sessoes })),
+      tendencia: tendenciaVolume(semanas4),
+    } : null
+
+    const eficienciaCalc = calcularEficienciaCardiaca(atividades90)
+    const eficienciaCardiaca = eficienciaCalc ? { recente: eficienciaCalc.recente, anterior: eficienciaCalc.anterior, mensagem: eficienciaCalc.mensagem } : null
+
     const ctx: ContextoAtleta = {
       nome: perfil?.nome ?? null, objetivo: perfil?.objetivo ?? null,
       peso: perfil?.peso ?? null, altura: perfil?.altura ?? null, nivel: perfil?.nivel ?? null,
@@ -324,7 +391,7 @@ export default function KoreAIChat() {
       scores30d: scores30d?.map((s: any) => ({ data: s.data, score: s.score_recuperacao })) ?? [],
       nutricao7d: nutricao7d?.map((n: any) => ({ data: n.data, calorias: n.calorias, proteina: n.proteina })) ?? [],
       treinosRecentes: treinos?.map((t: any) => ({ nome: t.nome, plano: t.plano, data: t.data, calorias_estimadas: t.calorias_estimadas })) ?? [],
-      atividadesRecentes: atividadesLivres?.map((a: any) => ({ modalidade: a.modalidade, duracao_min: a.duracao_min, distancia_km: a.distancia_km, calorias_estimadas: a.calorias_estimadas, intensidade: a.intensidade, data: a.data })) ?? [],
+      atividadesRecentes: atividades90.slice(0, 10).map((a: any) => ({ modalidade: a.modalidade, duracao_min: a.duracao_min, distancia_km: a.distancia_km, calorias_estimadas: a.calorias_estimadas, intensidade: a.intensidade, data: a.data })),
       evolucaoExercicios,
       personal,
       nutricionista,
@@ -336,6 +403,10 @@ export default function KoreAIChat() {
       ultimaAvaliacao: ultimaAvalData?.data ?? null,
       anamneseResumo: anamneseData ?? null,
       planoNutricional,
+      pmc,
+      volumeSemanal,
+      paceZonaResumo,
+      eficienciaCardiaca,
     }
 
     setContexto(ctx)
