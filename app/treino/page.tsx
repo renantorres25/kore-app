@@ -42,6 +42,12 @@ type SessaoPrescView = {
   blocos: BlocoSessaoView[]
 }
 
+type AtividadeCal = {
+  data: string; modalidade: string
+  duracao_min: number | null; distancia_km: number | null; distancia_m: number | null
+  calorias_estimadas: number | null; calorias_wearable: number | null
+}
+
 /* ─────────────────────────────────────────────────────────
    DESIGN SYSTEM · ENERGETIC PRECISION
    ───────────────────────────────────────────────────────── */
@@ -124,6 +130,21 @@ function getTodayBR(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
+function getLastNDays(n: number): string[] {
+  const days: string[] = []
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    days.push(d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }))
+  }
+  return days
+}
+
+function formatDateCurta(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+  return d.charAt(0).toUpperCase() + d.slice(1)
+}
+
 function calcVolume(series: Record<string, SerieRegistrada[]>): number {
   return Object.values(series).flat().filter(s => s.concluida && s.carga).reduce((a, s) => a + (s.carga! * s.repeticoes), 0)
 }
@@ -189,6 +210,15 @@ const STATUS_SESSAO_LABEL: Record<string, { label: string; hex: string }> = {
   realizado_sem_planejamento: { label: 'Realizado sem planejamento', hex: C.t2 },
 }
 const DIAS_SEMANA_LABEL = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
+
+const MOD_CAL: Record<string, { label: string; emoji: string; hex: string }> = {
+  musculacao: { label: 'Musculação', emoji: '🏋️', hex: C.good },
+  corrida:    { label: 'Corrida',    emoji: '🏃', hex: C.sleep },
+  bike:       { label: 'Bike',       emoji: '🚴', hex: C.energy2 },
+  natacao:    { label: 'Natação',    emoji: '🏊', hex: '#22D3EE' },
+  crossfit:   { label: 'Crossfit',   emoji: '🔥', hex: C.warn },
+  outro:      { label: 'Outro',      emoji: '⚡', hex: C.recovery },
+}
 
 function getInicioFimSemana(offset: number): { inicio: string; fim: string } {
   const hoje = getTodayBR()
@@ -429,6 +459,8 @@ export default function TreinoCliente() {
   const [carregandoSessoesPrescritas, setCarregandoSessoesPrescritas] = useState(false)
   const [semanaOffsetPlanejado, setSemanaOffsetPlanejado] = useState(0)
   const [diaSelecionadoPlanejado, setDiaSelecionadoPlanejado] = useState<string | null>(null)
+  const [atividadesCal, setAtividadesCal] = useState<AtividadeCal[]>([])
+  const [diaSelecionadoCal, setDiaSelecionadoCal] = useState<string | null>(null)
 
   const MENSAGENS_GERANDO = [
     'Analisando seu perfil e histórico...',
@@ -520,6 +552,35 @@ export default function TreinoCliente() {
     if (perfil?.peso) setPesoKg(perfil.peso)
     if (perfil) setPerfilUsuario(perfil)
     if (vinculo) setTemPersonal(true)
+
+    // Calendário de consistência (28 dias)
+    const dias28 = getLastNDays(28)
+    const dataInicio28 = dias28[0]
+    const [{ data: ativsCal }, { data: treinosCal }] = await Promise.all([
+      supabase.from('atividades_livres')
+        .select('data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable')
+        .eq('usuario_id', session.user.id)
+        .gte('data', dataInicio28),
+      supabase.from('treinos')
+        .select('data, calorias_estimadas')
+        .eq('cliente_id', session.user.id)
+        .eq('concluido', true)
+        .gte('data', dataInicio28),
+    ])
+    const cal: AtividadeCal[] = [
+      ...((ativsCal as any[]) ?? []).map(a => ({
+        data: a.data, modalidade: a.modalidade,
+        duracao_min: a.duracao_min, distancia_km: a.distancia_km, distancia_m: a.distancia_m,
+        calorias_estimadas: a.calorias_estimadas, calorias_wearable: a.calorias_wearable,
+      })),
+      ...((treinosCal as any[]) ?? []).filter(t => t.data).map(t => ({
+        data: t.data, modalidade: 'musculacao',
+        duracao_min: null, distancia_km: null, distancia_m: null,
+        calorias_estimadas: t.calorias_estimadas, calorias_wearable: null,
+      })),
+    ]
+    setAtividadesCal(cal)
+
     if (td?.length) {
       const ids = td.map((t: any) => t.id)
       const { data: ex } = await supabase.from('exercicios_treino').select('*').in('treino_id', ids).order('ordem')
@@ -1284,6 +1345,92 @@ Responda APENAS JSON válido:
     </div>
   )
 
+  // bloco calendário de consistência (28 dias, semana iniciando domingo)
+  const diasGridCal: (string | null)[] = (() => {
+    const dias = getLastNDays(28)
+    const offset = new Date(dias[0] + 'T12:00:00-03:00').getDay()
+    return [...Array(offset).fill(null), ...dias]
+  })()
+
+  const atividadesPorDiaCal = new Map<string, AtividadeCal[]>()
+  atividadesCal.forEach(a => {
+    const arr = atividadesPorDiaCal.get(a.data) ?? []
+    arr.push(a)
+    atividadesPorDiaCal.set(a.data, arr)
+  })
+
+  const diaSelecionado = diaSelecionadoCal ?? getTodayBR()
+  const atividadesDoDiaCal = atividadesPorDiaCal.get(diaSelecionado) ?? []
+
+  const consistenciaBox = (
+    <div style={{ ...glass, padding: 20, marginBottom: 24 }}>
+      <p style={sectionTitle(C.good)}>Consistência · 28 dias</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 12 }}>
+        {DIAS_SEMANA_LABEL.map(d => (
+          <p key={d} style={{ ...dataNum(C.t3), fontSize: 9, textAlign: 'center', margin: '0 0 2px' }}>{d}</p>
+        ))}
+        {diasGridCal.map((dia, i) => {
+          if (dia === null) return <div key={`pad-${i}`} />
+          const ativs = atividadesPorDiaCal.get(dia) ?? []
+          const principal = ativs[0]
+          const hex = principal ? (MOD_CAL[principal.modalidade]?.hex ?? C.t3) : null
+          const sel = dia === diaSelecionado
+          const isFuturo = dia > getTodayBR()
+          return (
+            <button key={dia} onClick={() => setDiaSelecionadoCal(dia)} disabled={isFuturo}
+              style={{
+                aspectRatio: '1', borderRadius: 8, cursor: isFuturo ? 'default' : 'pointer',
+                border: sel ? `2px solid ${C.t1}` : '1px solid rgba(255,255,255,0.08)',
+                background: hex ? alpha(hex, 0.35) : 'rgba(255,255,255,0.03)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: isFuturo ? 0.3 : 1,
+              }}>
+              <span style={{ ...dataNum(C.t2), fontSize: 10 }}>{Number(dia.slice(8, 10))}</span>
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+        {Object.entries(MOD_CAL).map(([key, cfg]) => (
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: alpha(cfg.hex, 0.5) }} />
+            <span style={{ color: C.t3, fontSize: 10 }}>{cfg.emoji} {cfg.label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ ...glassSubtle, padding: '14px 16px' }}>
+        <p style={{ ...dataNum(C.t1), fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
+          {diaSelecionado === getTodayBR() ? 'Hoje' : formatDateCurta(diaSelecionado)}
+        </p>
+        {atividadesDoDiaCal.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>😴</div>
+            <p style={{ color: C.t3, fontSize: 13, margin: 0 }}>Dia de descanso</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {atividadesDoDiaCal.map((a, i) => {
+              const cfg = MOD_CAL[a.modalidade] ?? MOD_CAL.outro
+              const kcal = a.calorias_wearable ?? a.calorias_estimadas
+              const dist = a.modalidade === 'natacao' && a.distancia_m ? `${a.distancia_m}m` : a.distancia_km ? `${a.distancia_km}km` : null
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: alpha(cfg.hex, 0.15), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{cfg.emoji}</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: C.t1, fontSize: 13, fontWeight: 600, margin: 0 }}>{cfg.label}</p>
+                    <p style={{ ...dataNum(C.t3), fontSize: 11, margin: 0 }}>
+                      {[a.duracao_min ? `${a.duracao_min}min` : null, dist, kcal ? `${kcal}kcal` : null].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
   return (
     <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
       <SidebarProfissional tipo="cliente" />
@@ -1309,13 +1456,14 @@ Responda APENAS JSON válido:
         {isDesktop ? (
           /* ── LAYOUT DESKTOP: 3 áreas ── */
           <>
-            {treinoPlanejadoBox}
             {blocoBox}
-            {/* Planos + Atividades em grid principal */}
+            {treinoPlanejadoBox}
+            {/* Planos + Consistência + Atividades em grid principal */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, alignItems: 'start' }}>
               <div>
                 {planosBox}
                 {iaBox}
+                {consistenciaBox}
               </div>
               <div>
                 {atividadesBox}
@@ -1324,10 +1472,11 @@ Responda APENAS JSON válido:
           </>
         ) : (
           <>
-            {treinoPlanejadoBox}
             {blocoBox}
+            {treinoPlanejadoBox}
             {planosBox}
             {iaBox}
+            {consistenciaBox}
             {divisor}
             {atividadesBox}
           </>
