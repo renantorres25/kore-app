@@ -1375,7 +1375,7 @@ function DashboardCliente({
             <div style={glass({ padding: 20, marginBottom: 12 })}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
                 <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
-                <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${C.energy}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${C.energy}1a` }}>
+                <div style={{ width: 36, height: 36, padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'rgba(255,255,255,0.08)' }}>
                   <span style={{ fontSize: 18, lineHeight: 1, fontFamily: FONT_EMOJI }}>{info.emoji}</span>
                 </div>
               </div>
