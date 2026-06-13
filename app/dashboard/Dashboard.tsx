@@ -126,6 +126,12 @@ const TIPO_SESSAO_LABELS: Record<string, string> = {
   tecnico: 'Técnico', forca: 'Força', livre: 'Livre',
 }
 
+// Categoria de esforço por tipo_sessao — usada como pill informativo no card de treino
+const TIPO_SESSAO_CATEGORIA: Record<string, string> = {
+  continuo: 'Aeróbico', longo: 'Aeróbico', regenerativo: 'Aeróbico',
+  fartlek: 'Intensidade', intervalado: 'Intensidade', ritmo: 'Intensidade', tecnico: 'Intensidade', forca: 'Força',
+}
+
 // Stack com fallback de fonte de emoji — evita glifos quebrados (.notdef) nas fontes do design system
 const FONT_EMOJI = "'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif"
 
@@ -356,6 +362,7 @@ export default function Dashboard() {
   const [pesoDelta, setPesoDelta] = useState<number | null>(null)
   const [planoNutriRefeicoes, setPlanoNutriRefeicoes] = useState<{ nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]>([])
   const [fasePeriodizacao, setFasePeriodizacao] = useState<{ nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null>(null)
+  const [provaFutura, setProvaFutura] = useState<{ nome: string; data_prova: string } | null>(null)
   const [alertaCientifico, setAlertaCientifico] = useState<AlertaItem[]>([])
   const [treinoPrescrito, setTreinoPrescrito] = useState<TreinoPrescrito>(null)
   const [sessaoEnduranceHoje, setSessaoEnduranceHoje] = useState<SessaoEnduranceHoje>(null)
@@ -549,7 +556,10 @@ export default function Dashboard() {
         }
 
         // Fase de periodização do atleta
-        const { data: periAtiva } = await supabase.from('periodizacoes').select('id,data_inicio').eq('cliente_id', session.user.id).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
+        const { data: periAtiva } = await supabase.from('periodizacoes').select('id,data_inicio,nome,data_prova').eq('cliente_id', session.user.id).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1).maybeSingle()
+        if (periAtiva?.data_prova && periAtiva.data_prova >= hoje) {
+          setProvaFutura({ nome: periAtiva.nome, data_prova: periAtiva.data_prova })
+        }
         if (periAtiva) {
           const { data: blocos } = await supabase.from('blocos_periodizacao').select('nome,tipo,semanas,descricao,ordem').eq('periodizacao_id', periAtiva.id).order('ordem')
           if (blocos?.length) {
@@ -761,6 +771,7 @@ Responda APENAS em JSON válido, sem markdown:
             notifCount={notifs.length}
             planoNutriRefeicoes={planoNutriRefeicoes}
             fasePeriodizacao={fasePeriodizacao}
+            provaFutura={provaFutura}
             alertaCientifico={alertaCientifico}
             treinoPrescrito={treinoPrescrito}
             sessaoEnduranceHoje={sessaoEnduranceHoje}
@@ -958,9 +969,10 @@ function ScoreRing({ score }: { score: number }) {
 
 // ─── CARD META PESSOAL ────────────────────────────────────────────────────────
 function CardMeta({
-  perfil, pesoAtual, pesoDelta, userId, onSalvarMeta, router
+  perfil, pesoAtual, pesoDelta, provaFutura, userId, onSalvarMeta, router
 }: {
   perfil: Perfil; pesoAtual: number | null; pesoDelta: number | null
+  provaFutura: { nome: string; data_prova: string } | null
   userId: string; onSalvarMeta: (metaPeso: number, metaData: string) => Promise<void>
   router: ReturnType<typeof useRouter>
 }) {
@@ -976,14 +988,27 @@ function CardMeta({
   const pesoCurrent   = pesoAtual ?? pesoBase
 
   const objetivoLower = (perfil.objetivo ?? '').toLowerCase()
-  const goalIsGain    = objetivoLower.includes('hiper') || objetivoLower.includes('ganh') || objetivoLower.includes('mass')
-  const metaSugerida  = !metaPeso && pesoCurrent
-    ? (goalIsGain ? Math.round(pesoCurrent * 1.08) : Math.round(pesoCurrent * 0.91))
-    : null
+  // Sugestão automática de meta: prioriza objetivo de perda de peso; se houver prova
+  // futura cadastrada na periodização, sugere peso de performance para a prova;
+  // ganho de massa sugere leve superávit. Condicionamento sem prova não sugere nada.
+  let metaSugerida: number | null = null
+  let tipoSugestao: 'perda_peso' | 'prova' | 'ganho_massa' | null = null
+  if (!metaPeso && pesoCurrent) {
+    if (objetivoLower === 'perder_peso') {
+      metaSugerida = Math.round(pesoCurrent * 0.91)
+      tipoSugestao = 'perda_peso'
+    } else if (provaFutura) {
+      metaSugerida = Math.round(pesoCurrent * 0.935)
+      tipoSugestao = 'prova'
+    } else if (objetivoLower === 'ganhar_massa') {
+      metaSugerida = Math.round(pesoCurrent * 1.04)
+      tipoSugestao = 'ganho_massa'
+    }
+  }
   const metaEfetiva   = metaPeso ?? metaSugerida
   const ehSugestao    = !metaPeso && !!metaSugerida
 
-  const perder = metaEfetiva != null && pesoCurrent != null ? pesoCurrent > metaEfetiva : !goalIsGain
+  const perder = metaEfetiva != null && pesoCurrent != null ? pesoCurrent > metaEfetiva : true
 
   function progressoPct(): number {
     if (ehSugestao || !metaEfetiva || !pesoBase || pesoCurrent == null) return 0
@@ -1015,10 +1040,10 @@ function CardMeta({
 
   if (!metaEfetiva && !editando) {
     return (
-      <button onClick={() => setEditando(true)}
+      <button onClick={() => router.push('/evolucao')}
         style={glass({ width: '100%', textAlign: 'left', padding: '12px 16px', marginBottom: 8, border: '1px dashed rgba(255,255,255,0.18)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 })}>
         <p style={{ ...labelStyle, marginBottom: 0 }}>Meta pessoal</p>
-        <p style={{ color: C.energy2, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 13 }}>Definir minha meta →</p>
+        <p style={{ color: C.energy2, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 13 }}>Defina sua meta de peso →</p>
       </button>
     )
   }
@@ -1097,7 +1122,7 @@ function CardMeta({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <p style={{ color: C.t3, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', margin: 0 }}>
-            Meta pessoal
+            {tipoSugestao === 'prova' && provaFutura ? `Meta sugerida para ${provaFutura.nome}` : 'Meta pessoal'}
           </p>
           {ehSugestao && (
             <span style={{
@@ -1105,7 +1130,7 @@ function CardMeta({
               border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '2px 6px',
               textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FONT_MONO, flexShrink: 0,
             }}>
-              Sugestão da IA
+              {tipoSugestao === 'prova' ? 'Sugestão para sua prova' : 'Sugestão da IA'}
             </span>
           )}
         </div>
@@ -1133,7 +1158,7 @@ function CardMeta({
 function DashboardCliente({
   perfil, bemEstar, scoreRecuperacao, streak, recentDays, sonoHistorico, vinculos, treinoHoje, nutricaoHoje,
   decisaoDia, gerandoDecisao, temSonoHoje, userId, pesoAtual, pesoDelta, onSalvarMeta,
-  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao, alertaCientifico, treinoPrescrito, sessaoEnduranceHoje, musculacaoPrescritaHoje, isDesktop,
+  onLogout: _onLogout, onOpenNotifs, notifCount, planoNutriRefeicoes, fasePeriodizacao, provaFutura, alertaCientifico, treinoPrescrito, sessaoEnduranceHoje, musculacaoPrescritaHoje, isDesktop,
 }: {
   perfil: Perfil; bemEstar: BemEstar; scoreRecuperacao: number | null; streak: number
   recentDays: boolean[]; sonoHistorico: { data: string; score_recuperacao: number | null; qualidade: number | null }[]
@@ -1144,6 +1169,7 @@ function DashboardCliente({
   onLogout: () => void; onOpenNotifs: () => void; notifCount: number
   planoNutriRefeicoes: { nome: string; horario: string; calorias: number; proteina: number; alimentos: { nome: string; quantidade: string }[] }[]
   fasePeriodizacao: { nomeBloco: string; tipoBloco: string; semanaBloco: number; semanasBloco: number; semanaTotal: number; totalSemanas: number; descricao: string | null } | null
+  provaFutura: { nome: string; data_prova: string } | null
   alertaCientifico: AlertaItem[]
   treinoPrescrito: TreinoPrescrito
   sessaoEnduranceHoje: SessaoEnduranceHoje
@@ -1267,6 +1293,7 @@ function DashboardCliente({
         perfil={perfil}
         pesoAtual={pesoAtual}
         pesoDelta={pesoDelta}
+        provaFutura={provaFutura}
         userId={userId}
         onSalvarMeta={onSalvarMeta}
         router={router}
@@ -1362,6 +1389,7 @@ function DashboardCliente({
           const s = sessaoEnduranceHoje!
           const info = MODALIDADE_INFO[s.modalidade] ?? { emoji: '🏃', label: 'Treino' }
           const tipoLabel = s.tipo_sessao ? (TIPO_SESSAO_LABELS[s.tipo_sessao] ?? capitalizar(s.tipo_sessao)) : null
+          const categoria = s.tipo_sessao ? (TIPO_SESSAO_CATEGORIA[s.tipo_sessao] ?? null) : null
 
           // Duração/distância: usa o nível da sessão; se ausente, soma a partir dos blocos
           const distanciaTotal = s.distancia_km ?? (s.blocos.reduce((acc, b) => acc + (Number(b.distancia_km) || 0), 0) || null)
@@ -1371,24 +1399,43 @@ function DashboardCliente({
             duracaoTotal ? `~${duracaoTotal} min` : null,
           ].filter(Boolean).join(' · ')
 
+          // Zonas de FC dos blocos da sessão — ex: "Z2" ou "Z2-Z4"
+          const zonas = Array.from(new Set((s.blocos as any[]).map((b: any) => b.zona_fc).filter(Boolean)))
+          const zonaLabel = zonas.length === 0 ? null : zonas.length === 1 ? zonas[0] : `${zonas[0]}-${zonas[zonas.length - 1]}`
+
           return (
             <div style={glass({ padding: 20, marginBottom: 12 })}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-                <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
-                <div style={{ width: 36, height: 36, padding: 8, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'rgba(255,255,255,0.08)' }}>
+                <div>
+                  <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Treino de hoje</p>
+                  {vinculoPersonal && (
+                    <p style={{ color: C.energy2, fontWeight: 700, fontSize: 14, marginTop: 2 }}>{vinculoPersonal.nome ?? vinculoPersonal.email}</p>
+                  )}
+                </div>
+                <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${C.energy}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${C.energy}1a`, color: C.energy }}>
                   <span style={{ fontSize: 18, lineHeight: 1, fontFamily: FONT_EMOJI }}>{info.emoji}</span>
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, marginBottom: 2, fontFamily: FONT_DISPLAY, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontFamily: FONT_EMOJI, fontSize: 15 }}>{info.emoji}</span>
-                  {info.label}{tipoLabel ? ` · ${tipoLabel}` : ''}
-                </p>
-                {detalhes && <p style={{ color: C.t2, fontSize: 12 }}>{detalhes}</p>}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                  <p style={{ color: C.t1, fontWeight: 700, fontSize: 16, fontFamily: FONT_DISPLAY, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontFamily: FONT_EMOJI, fontSize: 15 }}>{info.emoji}</span>
+                    {info.label}{tipoLabel ? ` · ${tipoLabel}` : ''}
+                  </p>
+                </div>
+                {detalhes && (
+                  <p style={{ color: C.t2, fontSize: 12, lineHeight: 1.6, marginBottom: 8 }}>{detalhes}</p>
+                )}
+                {(zonaLabel || categoria) && (
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    {zonaLabel && <span style={{ color: C.energy2, fontSize: 12, fontWeight: 700, fontFamily: FONT_MONO, background: `${C.energy2}26`, padding: '2px 8px', borderRadius: 4 }}>{zonaLabel}</span>}
+                    {categoria && <span style={{ color: C.sleep, fontSize: 12, fontFamily: FONT_MONO, background: `${C.sleep}26`, padding: '2px 8px', borderRadius: 4 }}>{categoria}</span>}
+                  </div>
+                )}
               </div>
 
               <button onClick={() => router.push('/treino')}
-                style={{ width: '100%', background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`, color: '#fff', fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, letterSpacing: '0.03em', border: 'none', cursor: 'pointer', boxShadow: `0 8px 24px ${C.energy}44` }}>
+                style={{ width: '100%', background: 'rgba(255,255,255,0.09)', color: C.t1, fontWeight: 700, padding: '14px', borderRadius: 12, fontSize: 14, textAlign: 'center', letterSpacing: '0.03em', border: 'none', cursor: 'pointer' }}>
                 Ir para treino do dia →
               </button>
 
