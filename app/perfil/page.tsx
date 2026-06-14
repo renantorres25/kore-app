@@ -49,6 +49,11 @@ function removeFocus(e: React.FocusEvent<HTMLInputElement>) {
   e.target.style.boxShadow = 'none'
 }
 
+function GlassInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { style, ...rest } = props
+  return <input {...rest} style={{ ...inputBase, ...(style || {}) }} onFocus={applyFocus} onBlur={removeFocus} />
+}
+
 function useIsDesktop() {
   const [v, setV] = useState(false)
   useEffect(() => {
@@ -372,11 +377,6 @@ function PerfilConteudo() {
   const sectionTitle: React.CSSProperties = {
     color: C.t3, fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700,
     textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 14,
-  }
-
-  function GlassInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-    const { style, ...rest } = props
-    return <input {...rest} style={{ ...inputBase, ...(style || {}) }} onFocus={applyFocus} onBlur={removeFocus} />
   }
 
   if (carregando) return (
