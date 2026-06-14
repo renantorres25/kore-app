@@ -301,7 +301,7 @@ export default function NutricionistaPaciente() {
         { data: perfil }, { data: treinos7d },
         { data: trHoje }, { data: atvsHoje }, { count: atvsCount }, { data: sono }, { data: bem }, { data: plano },
         { data: medidas }, { data: historicoData }, { data: periData },
-        { data: anamneseData }, { data: ultimaAvalData }, { data: proximaConsultaData },
+        { data: ultimaAvalData }, { data: proximaConsultaData },
         { data: anamneseCompletaData },
       ] = await Promise.all([
         supabase.from('perfis').select('id,nome,email,peso,objetivo,altura,sexo,data_nascimento,meta_peso,meta_data_limite,nivel,fcmax,ftp,whatsapp,avatar_url').eq('id', clienteId).single(),
@@ -315,7 +315,6 @@ export default function NutricionistaPaciente() {
         supabase.from('evolucao_medidas').select('id,data,peso,gordura_pct,massa_muscular,cintura,quadril,abdomen,peitoral,braco_dir,braco_esq,coxa_dir,coxa_esq,panturrilha_dir,panturrilha_esq,observacoes').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(20),
         supabase.from('planos_nutricionais').select('calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).order('created_at', { ascending: true }).limit(12),
         supabase.from('periodizacoes').select('id,nome,data_inicio').eq('cliente_id', clienteId).eq('status', 'ativo').order('created_at', { ascending: false }).limit(1),
-        supabase.from('anamneses').select('lesoes,restricoes_fisicas,medicamentos,alergias,restricoes_alimentares,fase_ciclo').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
         supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('agendamentos').select('data,hora,tipo').eq('cliente_id', clienteId).eq('status', 'agendado').gte('data', hoje).order('data').limit(1).maybeSingle(),
         supabase.from('anamneses').select('*').eq('cliente_id', clienteId).order('atualizado_em', { ascending: false }).limit(1).maybeSingle(),
@@ -330,28 +329,18 @@ export default function NutricionistaPaciente() {
         setProximaConsulta(proximaConsultaData.data)
         setProximaConsultaInfo({ data: proximaConsultaData.data, hora: proximaConsultaData.hora ?? null, tipo: proximaConsultaData.tipo ?? null })
       }
-      const lesoes = (anamneseData ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
-      const rf = (anamneseData ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
-      const meds = (anamneseData ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
-      const alerg = (anamneseData ?? []).map((a: any) => a.alergias).filter(Boolean).join(' · ')
-      const restAlim = (anamneseData ?? []).map((a: any) => a.restricoes_alimentares).filter(Boolean).join(' · ')
-      const faseCiclo = (anamneseData ?? []).find((a: any) => a.fase_ciclo)?.fase_ciclo ?? null
-      if (lesoes) setAnamneseLesoes(lesoes)
-      if (rf) setAnamneseRestricaoFisica(rf)
-      if (meds) setAnamneseMedicamentos(meds)
-      if (alerg) setAnamneseAlergias(alerg)
-      if (restAlim) setAnamneseRestricaoAlimentar(restAlim)
-      if (faseCiclo) setAnamneseFaseCiclo(faseCiclo)
+      if (anamneseCompletaData?.lesoes) setAnamneseLesoes(anamneseCompletaData.lesoes)
+      if (anamneseCompletaData?.restricoes_fisicas) setAnamneseRestricaoFisica(anamneseCompletaData.restricoes_fisicas)
+      if (anamneseCompletaData?.medicamentos) setAnamneseMedicamentos(anamneseCompletaData.medicamentos)
+      if (anamneseCompletaData?.alergias) setAnamneseAlergias(anamneseCompletaData.alergias)
+      if (anamneseCompletaData?.restricoes_alimentares) setAnamneseRestricaoAlimentar(anamneseCompletaData.restricoes_alimentares)
+      if (anamneseCompletaData?.fase_ciclo) setAnamneseFaseCiclo(anamneseCompletaData.fase_ciclo)
       if (anamneseCompletaData) setAnamneseCompleta(anamneseCompletaData)
 
-      // Nota clínica avulsa — armazenada na anamnese do profissional
-      const { data: anamnesePropria } = await supabase
-        .from('anamneses').select('id,observacoes')
-        .eq('cliente_id', clienteId).eq('profissional_id', session.user.id)
-        .limit(1).maybeSingle()
-      if (anamnesePropria) {
-        setNotaAnamneseId(anamnesePropria.id)
-        setNotaAvulsa(anamnesePropria.observacoes ?? '')
+      // Nota clínica avulsa — armazenada na anamnese compartilhada do cliente
+      if (anamneseCompletaData) {
+        setNotaAnamneseId(anamneseCompletaData.id)
+        setNotaAvulsa(anamneseCompletaData.observacoes ?? '')
       }
 
       setTreinoHoje(trHoje ?? null)
@@ -716,10 +705,10 @@ export default function NutricionistaPaciente() {
     if (!session) return
     setSalvandoNota(true)
     if (notaAnamneseId) {
-      await supabase.from('anamneses').update({ observacoes: notaAvulsa, atualizado_em: new Date().toISOString() }).eq('id', notaAnamneseId)
+      await supabase.from('anamneses').update({ observacoes: notaAvulsa, atualizado_por: session.user.id, atualizado_em: new Date().toISOString() }).eq('id', notaAnamneseId)
     } else {
       const { data: nova } = await supabase.from('anamneses').insert({
-        cliente_id: clienteId, profissional_id: session.user.id,
+        cliente_id: clienteId, atualizado_por: session.user.id,
         observacoes: notaAvulsa, atualizado_em: new Date().toISOString(),
       }).select('id').single()
       if (nova) setNotaAnamneseId(nova.id)
@@ -2546,11 +2535,22 @@ Alertas clínicos: ${[lesoesFilt, rfFilt, medsFilt, alergFilt].filter(Boolean).j
                   </div>
                 )}
                 {/* Objetivos */}
-                {anamneseCompleta.objetivo_detalhado && (
+                {(anamneseCompleta.objetivo_nutricional || anamneseCompleta.objetivo_treino) && (
                   <div className="md:col-span-2 rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px) saturate(130%)', WebkitBackdropFilter: 'blur(16px) saturate(130%)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: 20 }}>
                     <p className="text-zinc-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">🎯 Objetivos</p>
-                    <p className="text-zinc-200 text-sm leading-relaxed">{anamneseCompleta.objetivo_detalhado}</p>
-                    {anamneseCompleta.motivacao && <p className="text-zinc-500 text-xs mt-2">Motivação: {anamneseCompleta.motivacao}</p>}
+                    {anamneseCompleta.objetivo_nutricional && (
+                      <div>
+                        <p className="text-zinc-200 text-sm leading-relaxed">{anamneseCompleta.objetivo_nutricional}</p>
+                        {anamneseCompleta.motivacao_nutricional && <p className="text-zinc-500 text-xs mt-2">Motivação: {anamneseCompleta.motivacao_nutricional}</p>}
+                      </div>
+                    )}
+                    {anamneseCompleta.objetivo_treino && (
+                      <div className={anamneseCompleta.objetivo_nutricional ? 'mt-4 pt-4 border-t border-white/10' : ''}>
+                        <p className="text-zinc-600 text-xs mb-1">Objetivo de treino (definido pelo personal)</p>
+                        <p className="text-zinc-200 text-sm leading-relaxed">{anamneseCompleta.objetivo_treino}</p>
+                        {anamneseCompleta.motivacao_treino && <p className="text-zinc-500 text-xs mt-2">Motivação: {anamneseCompleta.motivacao_treino}</p>}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

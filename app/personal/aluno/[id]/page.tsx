@@ -1046,14 +1046,13 @@ export default function PersonalAluno() {
     const seteStr = seteAtras.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
     const [
       { data: treinosCompletos }, { data: atvsLivres30 }, { data: medidasData },
-      { data: planoNutriData }, { data: anamneseNutri }, { data: ultimaAvalData },
+      { data: planoNutriData }, { data: ultimaAvalData },
       { data: anamneseCompletaData }, { data: sonoHistData }, { data: proximaConsultaData },
     ] = await Promise.all([
       supabase.from('treinos').select('id, nome, plano, data, calorias_estimadas').eq('cliente_id', clienteId).eq('concluido', true).order('data', { ascending: false }).limit(30),
       supabase.from('atividades_livres').select('id, data, modalidade, duracao_min, distancia_km, distancia_m, calorias_estimadas, calorias_wearable, fc_media, fc_max').eq('usuario_id', clienteId).gte('data', trintaStr).order('data', { ascending: false }),
       supabase.from('evolucao_medidas').select('data,peso,gordura_pct,massa_muscular,cintura,quadril,braco_dir,coxa_dir').eq('cliente_id', clienteId).order('data', { ascending: true }).limit(10),
       supabase.from('planos_nutricionais').select('id,conteudo,calorias_meta,proteina_meta,created_at').eq('usuario_id', clienteId).eq('ativo', true).order('created_at', { ascending: false }).limit(1).single(),
-      supabase.from('anamneses').select('restricoes_alimentares,suplementos,lesoes,restricoes_fisicas,medicamentos,alergias').eq('cliente_id', clienteId).not('profissional_id', 'is', null).order('criado_em', { ascending: false }).limit(5),
       supabase.from('agendamentos').select('data').eq('cliente_id', clienteId).eq('profissional_id', session.user.id).eq('status', 'realizado').order('data', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('anamneses').select('*').eq('cliente_id', clienteId).order('atualizado_em', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('sono').select('data,score_recuperacao,duracao_minutos').eq('usuario_id', clienteId).gte('data', seteStr).order('data', { ascending: true }),
@@ -1085,17 +1084,12 @@ export default function PersonalAluno() {
     if (anamneseCompletaData) setAnamneseCompleta(anamneseCompletaData)
     if (sonoHistData?.length) setSonoHistorico7d(sonoHistData.map((s: any) => ({ data: s.data, score: s.score_recuperacao, duracaoMin: s.duracao_minutos })))
     if (proximaConsultaData?.data) setProximaConsultaInfo({ data: proximaConsultaData.data, hora: proximaConsultaData.hora ?? null, tipo: proximaConsultaData.tipo ?? null })
-    // Collect food restrictions from any professional's anamnese
-    const restricoes = (anamneseNutri ?? []).map((a: any) => a.restricoes_alimentares).filter(Boolean).join(' · ')
-    if (restricoes) setRestricaoNutri(restricoes)
-    const lesoesCombined = (anamneseNutri ?? []).map((a: any) => a.lesoes).filter(Boolean).join(' · ')
-    const rfCombined = (anamneseNutri ?? []).map((a: any) => a.restricoes_fisicas).filter(Boolean).join(' · ')
-    const medsCombined = (anamneseNutri ?? []).map((a: any) => a.medicamentos).filter(Boolean).join(' · ')
-    const alergiasCombined = (anamneseNutri ?? []).map((a: any) => a.alergias).filter(Boolean).join(' · ')
-    if (lesoesCombined) setLesoes(lesoesCombined)
-    if (rfCombined) setRestricaoFisica(rfCombined)
-    if (medsCombined) setMedicamentos(medsCombined)
-    if (alergiasCombined) setAlergias(alergiasCombined)
+    // Dados clínicos/nutricionais da anamnese compartilhada
+    if (anamneseCompletaData?.restricoes_alimentares) setRestricaoNutri(anamneseCompletaData.restricoes_alimentares)
+    if (anamneseCompletaData?.lesoes) setLesoes(anamneseCompletaData.lesoes)
+    if (anamneseCompletaData?.restricoes_fisicas) setRestricaoFisica(anamneseCompletaData.restricoes_fisicas)
+    if (anamneseCompletaData?.medicamentos) setMedicamentos(anamneseCompletaData.medicamentos)
+    if (anamneseCompletaData?.alergias) setAlergias(anamneseCompletaData.alergias)
     if (ultimaAvalData?.data) setUltimaAvaliacao(ultimaAvalData.data)
 
     const modLabelCalendario: Record<string, string> = { corrida: 'Corrida', bike: 'Bike', natacao: 'Natação', crossfit: 'Crossfit', outro: 'Atividade' }

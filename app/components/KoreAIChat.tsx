@@ -55,9 +55,12 @@ function getHourBR(): number {
 function formatAnamnese(a: Record<string, any> | null | undefined): string | null {
   if (!a) return null
   const linhas: (string | false | null)[] = [
-    a.objetivo_detalhado && `Objetivo detalhado: ${a.objetivo_detalhado}`,
-    a.motivacao && `Motivação: ${a.motivacao}`,
-    a.prazo_semanas && `Prazo desejado: ${a.prazo_semanas} semanas`,
+    a.objetivo_treino && `Objetivo de treino: ${a.objetivo_treino}`,
+    a.motivacao_treino && `Motivação (treino): ${a.motivacao_treino}`,
+    a.prazo_treino_semanas && `Prazo desejado (treino): ${a.prazo_treino_semanas} semanas`,
+    a.objetivo_nutricional && `Objetivo nutricional: ${a.objetivo_nutricional}`,
+    a.motivacao_nutricional && `Motivação (nutrição): ${a.motivacao_nutricional}`,
+    a.prazo_nutricional_semanas && `Prazo desejado (nutrição): ${a.prazo_nutricional_semanas} semanas`,
     a.nivel_atividade && `Nível de atividade: ${a.nivel_atividade}`,
     a.historico_esportivo && `Histórico esportivo: ${a.historico_esportivo}`,
     a.patologias && `Patologias: ${a.patologias}`,

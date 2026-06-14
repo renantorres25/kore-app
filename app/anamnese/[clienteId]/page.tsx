@@ -8,8 +8,10 @@ import { HeartPulse, Leaf, Dumbbell, Salad, Target, Activity, Moon, Scale, Chevr
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type AnamneseForm = {
-  // Objetivo
-  objetivo_detalhado: string; motivacao: string; prazo_semanas: string
+  // Objetivo de treino (personal)
+  objetivo_treino: string; motivacao_treino: string; prazo_treino_semanas: string
+  // Objetivo nutricional (nutricionista)
+  objetivo_nutricional: string; motivacao_nutricional: string; prazo_nutricional_semanas: string
   // Identificação extra
   profissao: string
   // Histórico clínico
@@ -39,11 +41,12 @@ type AnamneseForm = {
   // Legado
   lesoes: string; restricoes_fisicas: string; observacoes: string
 }
-type OutraAnamnese = AnamneseForm & { profissional_nome: string | null; profissional_tipo: string | null }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const FORM_VAZIO: AnamneseForm = {
-  objetivo_detalhado: '', motivacao: '', prazo_semanas: '', profissao: '',
+  objetivo_treino: '', motivacao_treino: '', prazo_treino_semanas: '',
+  objetivo_nutricional: '', motivacao_nutricional: '', prazo_nutricional_semanas: '',
+  profissao: '',
   patologias: '', medicamentos: '', alergias: '', intolerancias: '',
   cirurgias: '', historico_familiar: '', exames_laboratoriais: '',
   peso_maximo: '', peso_minimo: '', peso_habitual: '',
@@ -243,8 +246,7 @@ export default function AnamnesePage() {
 
   const [form, setForm] = useState<AnamneseForm>(FORM_VAZIO)
   const [anamneseId, setAnamneseId] = useState<string | null>(null)
-  const [outraAnamnese, setOutraAnamnese] = useState<OutraAnamnese | null>(null)
-  const [verOutra, setVerOutra] = useState(false)
+  const [temVinculoAtivo, setTemVinculoAtivo] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [sucesso, setSucesso] = useState(false)
@@ -261,31 +263,31 @@ export default function AnamnesePage() {
     if (!session) { router.push('/login'); return }
     const meuId = session.user.id
 
-    const [{ data: perfil }, { data: clientePerfil }] = await Promise.all([
+    const [{ data: perfil }, { data: clientePerfil }, { data: anamnese }, { data: vinculosAtivos }] = await Promise.all([
       supabase.from('perfis').select('tipo, nome').eq('id', meuId).single(),
       supabase.from('perfis').select('nome, email, sexo').eq('id', clienteId).single(),
+      supabase.from('anamneses').select('*').eq('cliente_id', clienteId).maybeSingle(),
+      supabase.from('vinculos').select('tipo').eq('cliente_id', clienteId).eq('ativo', true),
     ])
     setMeuPerfil(perfil)
     setClienteNome(clientePerfil?.nome ?? clientePerfil?.email ?? null)
     setClienteSexo(clientePerfil?.sexo ?? null)
+    setTemVinculoAtivo((vinculosAtivos?.length ?? 0) > 0)
 
     if (perfil?.tipo === 'personal') setBackUrl(`/personal/aluno/${clienteId}`)
     else if (perfil?.tipo === 'nutricionista') setBackUrl(`/nutricionista/paciente/${clienteId}`)
     else setBackUrl('/perfil')
 
-    const isProfissional = perfil?.tipo === 'personal' || perfil?.tipo === 'nutricionista'
-
-    const propria = isProfissional
-      ? await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).eq('profissional_id', meuId).limit(1).single()
-      : await supabase.from('anamneses').select('*').eq('cliente_id', clienteId).is('profissional_id', null).limit(1).single()
-
-    if (propria.data) {
-      const e = propria.data
+    if (anamnese) {
+      const e = anamnese
       setAnamneseId(e.id)
       setForm({
-        objetivo_detalhado: e.objetivo_detalhado ?? '',
-        motivacao: e.motivacao ?? '',
-        prazo_semanas: e.prazo_semanas != null ? String(e.prazo_semanas) : '',
+        objetivo_treino: e.objetivo_treino ?? '',
+        motivacao_treino: e.motivacao_treino ?? '',
+        prazo_treino_semanas: e.prazo_treino_semanas != null ? String(e.prazo_treino_semanas) : '',
+        objetivo_nutricional: e.objetivo_nutricional ?? '',
+        motivacao_nutricional: e.motivacao_nutricional ?? '',
+        prazo_nutricional_semanas: e.prazo_nutricional_semanas != null ? String(e.prazo_nutricional_semanas) : '',
         profissao: e.profissao ?? '',
         patologias: e.patologias ?? '',
         medicamentos: e.medicamentos ?? '',
@@ -336,43 +338,6 @@ export default function AnamnesePage() {
         observacoes: e.observacoes ?? '',
       })
     }
-
-    if (isProfissional) {
-      const { data: outras } = await supabase
-        .from('anamneses').select('*').eq('cliente_id', clienteId).neq('profissional_id', meuId)
-        .order('criado_em', { ascending: false }).limit(1)
-      if (outras?.length) {
-        const o = outras[0]
-        const { data: outroPerfil } = o.profissional_id
-          ? await supabase.from('perfis').select('nome, tipo').eq('id', o.profissional_id).single()
-          : { data: null }
-        setOutraAnamnese({
-          objetivo_detalhado: o.objetivo_detalhado ?? '', motivacao: o.motivacao ?? '', prazo_semanas: o.prazo_semanas != null ? String(o.prazo_semanas) : '',
-          profissao: o.profissao ?? '', patologias: o.patologias ?? '', medicamentos: o.medicamentos ?? '',
-          alergias: o.alergias ?? '', intolerancias: o.intolerancias ?? '', cirurgias: o.cirurgias ?? '',
-          historico_familiar: o.historico_familiar ?? '', exames_laboratoriais: o.exames_laboratoriais ?? '',
-          peso_maximo: o.peso_maximo != null ? String(o.peso_maximo) : '', peso_minimo: o.peso_minimo != null ? String(o.peso_minimo) : '',
-          peso_habitual: o.peso_habitual != null ? String(o.peso_habitual) : '', efeito_sanfona: o.efeito_sanfona ?? null,
-          tentativas_emagrecimento: o.tentativas_emagrecimento ?? '', refeicoes_por_dia: o.refeicoes_por_dia != null ? String(o.refeicoes_por_dia) : '',
-          horarios_refeicoes: o.horarios_refeicoes ?? '', onde_come: o.onde_come ?? '', quem_prepara: o.quem_prepara ?? '',
-          preferencias_alimentares: o.preferencias_alimentares ?? '', aversoes_alimentares: o.aversoes_alimentares ?? '',
-          restricoes_alimentares: o.restricoes_alimentares ?? '', consumo_agua_litros: o.consumo_agua_litros != null ? String(o.consumo_agua_litros) : '',
-          consumo_ultraprocessados: o.consumo_ultraprocessados ?? '', suplementos: o.suplementos ?? '',
-          habitos_alimentares: o.habitos_alimentares ?? '', horas_sono: o.horas_sono != null ? String(o.horas_sono) : '',
-          qualidade_sono: o.qualidade_sono ?? '', nivel_estresse: o.nivel_estresse ?? 0, fuma: o.fuma ?? false,
-          alcool: o.alcool ?? '', rotina_trabalho: o.rotina_trabalho ?? '', nivel_atividade: o.nivel_atividade ?? '',
-          modalidade_treino: o.modalidade_treino ?? '', frequencia_treino: o.frequencia_treino ?? '',
-          duracao_treino_min: o.duracao_treino_min != null ? String(o.duracao_treino_min) : '',
-          horario_treino: o.horario_treino ?? '', historico_esportivo: o.historico_esportivo ?? '',
-          funcionamento_intestinal: o.funcionamento_intestinal ?? '', bristol_escala: o.bristol_escala != null ? String(o.bristol_escala) : '',
-          refluxo: o.refluxo ?? null, distensao_abdominal: o.distensao_abdominal ?? null, usa_probioticos: o.usa_probioticos ?? null,
-          ciclo_regular: o.ciclo_regular ?? null, duracao_ciclo_dias: o.duracao_ciclo_dias != null ? String(o.duracao_ciclo_dias) : '',
-          fase_ciclo: o.fase_ciclo ?? '', sintomas_ciclo: Array.isArray(o.sintomas_ciclo) ? o.sintomas_ciclo : [],
-          lesoes: o.lesoes ?? '', restricoes_fisicas: o.restricoes_fisicas ?? '', observacoes: o.observacoes ?? '',
-          profissional_nome: outroPerfil?.nome ?? null, profissional_tipo: outroPerfil?.tipo ?? null,
-        })
-      }
-    }
     setCarregando(false)
   }
 
@@ -385,15 +350,23 @@ export default function AnamnesePage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/login'); return }
 
-    const isProfissional = meuperfil?.tipo === 'personal' || meuperfil?.tipo === 'nutricionista'
+    const papel = meuperfil?.tipo === 'personal' ? 'personal' : meuperfil?.tipo === 'nutricionista' ? 'nutricionista' : 'atleta'
     const n = (v: string) => v.trim() || null
     const f = (v: string) => v ? parseFloat(v) : null
     const i = (v: string) => v ? parseInt(v) : null
 
-    const payload = {
+    const campoTreino = {
+      objetivo_treino: n(form.objetivo_treino), motivacao_treino: n(form.motivacao_treino),
+      prazo_treino_semanas: i(form.prazo_treino_semanas),
+    }
+    const campoNutricional = {
+      objetivo_nutricional: n(form.objetivo_nutricional), motivacao_nutricional: n(form.motivacao_nutricional),
+      prazo_nutricional_semanas: i(form.prazo_nutricional_semanas),
+    }
+
+    const payload: Record<string, unknown> = {
       cliente_id: clienteId,
-      profissional_id: isProfissional ? session.user.id : null,
-      objetivo_detalhado: n(form.objetivo_detalhado), motivacao: n(form.motivacao), prazo_semanas: i(form.prazo_semanas),
+      atualizado_por: session.user.id,
       profissao: n(form.profissao),
       patologias: n(form.patologias), medicamentos: n(form.medicamentos),
       alergias: n(form.alergias), intolerancias: n(form.intolerancias),
@@ -427,6 +400,10 @@ export default function AnamnesePage() {
       atualizado_em: new Date().toISOString(),
     }
 
+    if (papel === 'personal') Object.assign(payload, campoTreino)
+    else if (papel === 'nutricionista') Object.assign(payload, campoNutricional)
+    else Object.assign(payload, campoTreino, campoNutricional)
+
     let error
     if (anamneseId) {
       const res = await supabase.from('anamneses').update(payload).eq('id', anamneseId)
@@ -458,11 +435,11 @@ export default function AnamnesePage() {
     </main>
   )
 
-  const isProfissional = meuperfil?.tipo === 'personal' || meuperfil?.tipo === 'nutricionista'
+  const papel = meuperfil?.tipo === 'personal' ? 'personal' : meuperfil?.tipo === 'nutricionista' ? 'nutricionista' : 'atleta'
+  const isProfissional = papel !== 'atleta'
   const isFeminino = clienteSexo === 'feminino' || clienteSexo === 'f' || clienteSexo === 'F'
   const tipoSidebar = meuperfil?.tipo === 'personal' ? 'personal' : 'nutricionista'
-  const outraTipoLabel = outraAnamnese?.profissional_tipo === 'personal' ? 'Personal' : 'Nutricionista'
-  const outraNome = outraAnamnese?.profissional_nome ?? outraTipoLabel
+  const somenteLeitura = papel === 'atleta' && temVinculoAtivo
 
   return (
     <main className="min-h-[100dvh] text-white md:flex">
@@ -484,31 +461,79 @@ export default function AnamnesePage() {
           )}
         </div>
 
+        {somenteLeitura && (
+          <div className="mb-4 rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-blue-300">
+            Sua anamnese é gerenciada pelo seu personal e/ou nutricionista. Os dados abaixo são somente leitura.
+          </div>
+        )}
+
+        <fieldset disabled={somenteLeitura} className="contents">
         <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
 
           {/* ── 1. Objetivo da consulta ────────────────────────────────── */}
           <SectionCard icon={<Target size={14} />} titulo="Objetivo da consulta" subtitulo="O que o paciente quer alcançar">
-            <Field label="Objetivo principal">
-              <textarea value={form.objetivo_detalhado} onChange={e => set('objetivo_detalhado', e.target.value)}
-                placeholder="Ex: Perder 8kg em 4 meses, principalmente abdômen e flancos..." rows={3} className={TEXTAREA} />
+            {(papel === 'personal' || papel === 'atleta') && (
+              <>
+                <Field label={papel === 'personal' ? 'Qual o objetivo do atleta com o treino?' : 'Qual o seu objetivo com o treino?'}>
+                  <textarea value={form.objetivo_treino} onChange={e => set('objetivo_treino', e.target.value)}
+                    placeholder="Ex: Ganhar 3kg de massa magra em 4 meses, melhorar resistência na corrida..." rows={3} className={TEXTAREA} />
+                </Field>
+                <Field label="Motivação para o treino" optional>
+                  <input value={form.motivacao_treino} onChange={e => set('motivacao_treino', e.target.value)}
+                    placeholder="Ex: Prova em novembro, retorno ao esporte..." className={INPUT} />
+                </Field>
+                <Field label="Prazo desejado" optional>
+                  <div className="relative">
+                    <input type="number" value={form.prazo_treino_semanas} onChange={e => set('prazo_treino_semanas', e.target.value)}
+                      placeholder="16" min={1} className={INPUT + ' pr-16'} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">sem.</span>
+                  </div>
+                </Field>
+              </>
+            )}
+
+            {papel === 'nutricionista' && (form.objetivo_treino || form.motivacao_treino || form.prazo_treino_semanas) && (
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Objetivo de treino (definido pelo personal)</p>
+                <ReadRow label="Objetivo" value={form.objetivo_treino} />
+                <ReadRow label="Motivação" value={form.motivacao_treino} />
+                <ReadRow label="Prazo" value={form.prazo_treino_semanas ? `${form.prazo_treino_semanas} sem.` : null} />
+              </div>
+            )}
+
+            {(papel === 'nutricionista' || papel === 'atleta') && (
+              <>
+                <Field label={papel === 'nutricionista' ? 'Qual o objetivo nutricional do paciente?' : 'Qual o seu objetivo nutricional?'}>
+                  <textarea value={form.objetivo_nutricional} onChange={e => set('objetivo_nutricional', e.target.value)}
+                    placeholder="Ex: Reeducação alimentar, emagrecimento com preservação de massa magra..." rows={3} className={TEXTAREA} />
+                </Field>
+                <Field label="Motivação para o acompanhamento nutricional" optional>
+                  <input value={form.motivacao_nutricional} onChange={e => set('motivacao_nutricional', e.target.value)}
+                    placeholder="Ex: Exames alterados, melhora de performance, estética..." className={INPUT} />
+                </Field>
+                <Field label="Prazo desejado" optional>
+                  <div className="relative">
+                    <input type="number" value={form.prazo_nutricional_semanas} onChange={e => set('prazo_nutricional_semanas', e.target.value)}
+                      placeholder="16" min={1} className={INPUT + ' pr-16'} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">sem.</span>
+                  </div>
+                </Field>
+              </>
+            )}
+
+            {papel === 'personal' && (form.objetivo_nutricional || form.motivacao_nutricional || form.prazo_nutricional_semanas) && (
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Objetivo nutricional (definido pela nutricionista)</p>
+                <ReadRow label="Objetivo" value={form.objetivo_nutricional} />
+                <ReadRow label="Motivação" value={form.motivacao_nutricional} />
+                <ReadRow label="Prazo" value={form.prazo_nutricional_semanas ? `${form.prazo_nutricional_semanas} sem.` : null} />
+              </div>
+            )}
+
+            <Field label="Profissão" optional>
+              <input value={form.profissao} onChange={e => set('profissao', e.target.value)}
+                placeholder="Ex: Professora, engenheiro..." className={INPUT} />
             </Field>
-            <Field label="Motivação" optional>
-              <input value={form.motivacao} onChange={e => set('motivacao', e.target.value)}
-                placeholder="Ex: Casamento em novembro, recomendação médica, saúde..." className={INPUT} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Prazo desejado" optional>
-                <div className="relative">
-                  <input type="number" value={form.prazo_semanas} onChange={e => set('prazo_semanas', e.target.value)}
-                    placeholder="16" min={1} className={INPUT + ' pr-16'} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 text-sm">sem.</span>
-                </div>
-              </Field>
-              <Field label="Profissão" optional>
-                <input value={form.profissao} onChange={e => set('profissao', e.target.value)}
-                  placeholder="Ex: Professora, engenheiro..." className={INPUT} />
-              </Field>
-            </div>
           </SectionCard>
 
           {/* ── 2. Histórico Clínico ───────────────────────────────────── */}
@@ -806,40 +831,17 @@ export default function AnamnesePage() {
             </SectionCard>
           </div>
 
-          {/* ── Notas do outro profissional (read-only) ───────────────── */}
-          {outraAnamnese && (
-            <div className="md:col-span-2 rounded-2xl border border-blue-500/20 overflow-hidden" style={{ background: '#0d1520' }}>
-              <button onClick={() => setVerOutra(v => !v)}
-                className="w-full px-5 py-4 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
-                  <span className="text-sm">{outraAnamnese.profissional_tipo === 'nutricionista' ? '🥗' : '🏋️'}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-blue-300 font-bold text-sm">Anamnese de {outraNome}</p>
-                  <p className="text-zinc-500 text-xs">{outraTipoLabel} · somente leitura</p>
-                </div>
-                <ChevronDown size={14} className={`text-zinc-600 transition-transform duration-200 ${verOutra ? 'rotate-180' : ''}`} />
-              </button>
-              {verOutra && (
-                <div className="px-5 pb-5 space-y-4 border-t border-blue-500/10">
-                  {outraAnamnese.patologias && <div className="pt-3"><p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Clínico</p><ReadRow label="Patologias" value={outraAnamnese.patologias} /><ReadRow label="Medicamentos" value={outraAnamnese.medicamentos} /><ReadRow label="Alergias" value={outraAnamnese.alergias} /><ReadRow label="Intolerâncias" value={outraAnamnese.intolerancias} /></div>}
-                  {outraAnamnese.peso_maximo && <div><p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Peso</p><ReadRow label="Máx/Mín/Hab." value={[outraAnamnese.peso_maximo, outraAnamnese.peso_minimo, outraAnamnese.peso_habitual].filter(Boolean).join(' / ') + ' kg'} /><ReadRow label="Efeito sanfona" value={outraAnamnese.efeito_sanfona} /></div>}
-                  {outraAnamnese.objetivo_detalhado && <div><p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Objetivo</p><ReadRow label="Objetivo" value={outraAnamnese.objetivo_detalhado} /><ReadRow label="Motivação" value={outraAnamnese.motivacao} /></div>}
-                  {outraAnamnese.nivel_atividade && <div><p className="text-[9px] uppercase tracking-[0.15em] text-zinc-600 mb-2">Atividade física</p><ReadRow label="Nível" value={outraAnamnese.nivel_atividade} /><ReadRow label="Modalidade" value={outraAnamnese.modalidade_treino} /><ReadRow label="Frequência" value={outraAnamnese.frequencia_treino} /></div>}
-                  {outraAnamnese.observacoes && <div><ReadRow label="Observações" value={outraAnamnese.observacoes} /></div>}
-                </div>
-              )}
-            </div>
-          )}
-
         </div>
+        </fieldset>
 
         {erro && <p className="text-red-400 text-sm text-center mt-4 bg-red-500/10 rounded-xl py-3">{erro}</p>}
 
-        <button onClick={handleSalvar} disabled={salvando}
-          className="w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-30 text-sm tracking-widest uppercase">
-          {salvando ? 'Salvando...' : anamneseId ? 'Atualizar anamnese' : 'Salvar anamnese'}
-        </button>
+        {!somenteLeitura && (
+          <button onClick={handleSalvar} disabled={salvando}
+            className="w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-100 active:scale-95 transition-all disabled:opacity-30 text-sm tracking-widest uppercase">
+            {salvando ? 'Salvando...' : anamneseId ? 'Atualizar anamnese' : 'Salvar anamnese'}
+          </button>
+        )}
 
       </div>
       </div>
