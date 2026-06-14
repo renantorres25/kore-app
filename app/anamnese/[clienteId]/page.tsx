@@ -406,15 +406,16 @@ export default function AnamnesePage() {
 
     let error
     if (anamneseId) {
-      const res = await supabase.from('anamneses').update(payload).eq('id', anamneseId)
+      const res = await supabase.from('anamneses').update(payload).eq('cliente_id', clienteId).select('id')
       error = res.error
+      if (!error && (res.data?.length ?? 0) === 0) error = new Error('Nenhuma linha atualizada')
     } else {
       const res = await supabase.from('anamneses').insert(payload).select('id').single()
       error = res.error
       if (!error && res.data) setAnamneseId(res.data.id)
     }
 
-    if (error) { setErro('Erro ao salvar. Tente novamente.'); setSalvando(false); return }
+    if (error) { setErro('Erro ao salvar — verifique permissões.'); setSalvando(false); return }
     setSucesso(true)
     setTimeout(() => { setSucesso(false); router.push(backUrl) }, 1400)
   }
