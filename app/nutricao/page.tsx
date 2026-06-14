@@ -251,7 +251,7 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta, isDesk
     const getAlimentos = (ref: Refeicao, vIdx = 0) => ref.variacoes ? (ref.variacoes[vIdx]?.alimentos ?? ref.variacoes[0]?.alimentos ?? ref.alimentos) : ref.alimentos
     const totalCalDia = e ? e.refeicoes.reduce((s, r) => s + getAlimentos(r, 0).reduce((ss, a) => ss + a.calorias, 0), 0) : 0
     const totalProtDia = e ? e.refeicoes.reduce((s, r) => s + getAlimentos(r, 0).reduce((ss, a) => ss + a.proteina, 0), 0) : 0
-    const isPlanoProfissional = vinculoNutri && plano.criado_por === vinculoNutri.id
+    const isPlanoProfissional = plano.criado_por === 'nutricionista'
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -260,10 +260,11 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta, isDesk
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.2em', color: C.good, fontWeight: 700, fontFamily: FONT_BODY }}>
-                Plano Alimentar · {isPlanoProfissional ? (vinculoNutri!.nome ?? 'Nutricionista') : 'IA'}
+                Plano Alimentar{isPlanoProfissional ? '' : ' · IA'}
               </span>
               <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: C.good, background: alpha(C.good, 0.1), border: `1px solid ${alpha(C.good, 0.22)}`, borderRadius: 999, padding: '2px 8px', fontFamily: FONT_BODY, fontWeight: 600 }}>Ativo</span>
             </div>
+            {isPlanoProfissional && <p style={{ color: C.t3, fontSize: 10.5, fontFamily: FONT_BODY }}>Por {vinculoNutri?.nome ?? 'Nutricionista'}</p>}
             <p style={{ color: C.t3, fontSize: 10.5, fontFamily: FONT_BODY }}>Criado em {dataCriacao}</p>
           </div>
           {!isPlanoProfissional && (
@@ -511,8 +512,8 @@ function AbaPlano({ plano, gerandoPlano, vinculoNutri, onIniciarConsulta, isDesk
 /* ─────────────────────────────────────────────
    ABA HOJE
 ───────────────────────────────────────────── */
-function AbaHoje({ perfil, scoreHoje, treinouHoje, planoAtivo, vinculoNutri, userId, registroId, setRegistroId, qualidade, setQualidade, calorias, setCalorias, proteina, setProteina, coposAgua, setCoposAgua, observacoes, setObservacoes, jaRegistrou, setJaRegistrou }: {
-  perfil: Perfil; scoreHoje: number | null; treinouHoje: boolean; planoAtivo: PlanoNutricional | null
+function AbaHoje({ perfil, scoreHoje, treinouHoje, vinculoNutri, userId, registroId, setRegistroId, qualidade, setQualidade, calorias, setCalorias, proteina, setProteina, coposAgua, setCoposAgua, observacoes, setObservacoes, jaRegistrou, setJaRegistrou }: {
+  perfil: Perfil; scoreHoje: number | null; treinouHoje: boolean
   vinculoNutri: { nome: string | null; id: string } | null; userId: string; registroId: string | null
   setRegistroId: (v: string | null) => void; qualidade: number | null; setQualidade: (v: number | null) => void
   calorias: string; setCalorias: (v: string) => void; proteina: string; setProteina: (v: string) => void
@@ -520,7 +521,6 @@ function AbaHoje({ perfil, scoreHoje, treinouHoje, planoAtivo, vinculoNutri, use
   jaRegistrou: boolean; setJaRegistrou: (v: boolean) => void
 }) {
   const [salvando, setSalvando] = useState(false)
-  const [analise, setAnalise] = useState({ texto: '', carregando: false, gerado: false })
 
   const metaCal = getMetaCalorias(perfil.peso, perfil.objetivo)
   const metaProt = getMetaProteina(perfil.peso, perfil.objetivo)
@@ -539,28 +539,6 @@ function AbaHoje({ perfil, scoreHoje, treinouHoje, planoAtivo, vinculoNutri, use
     }
     setJaRegistrou(true)
     setSalvando(false)
-    gerarAnalise()
-  }
-
-  async function gerarAnalise() {
-    setAnalise({ texto: '', carregando: true, gerado: false })
-    const hora = getHourBR()
-    const qualLabel = QUALIDADE_OPCOES.find(q => q.valor === qualidade)?.label ?? '?'
-    const prompt = `Coach de nutrição KORE. Feedback direto e personalizado.
-CONTEXTO: ${perfil.nome ?? 'Atleta'} | ${OBJETIVO_LABEL[perfil.objetivo ?? ''] ?? '?'} | ${perfil.peso ?? '?'}kg | Meta ${metaCal ?? '?'}kcal/${metaProt ?? '?'}g${planoAtivo ? ' | Plano ativo' : ''}
-HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g prot | Água ${coposAgua}/8 | Treino ${treinouHoje ? 'sim' : 'não'} | Recup. ${scoreHoje ?? '?'}/100${observacoes ? ` | ${observacoes}` : ''}
-3 parágrafos curtos, máx 80 palavras total, sem markdown, sem títulos em maiúsculas, tom de coach direto:`
-    try {
-      const res = await fetch('/api/analise-treino', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      })
-      const data = await res.json()
-      setAnalise({ texto: data.analise ?? '', carregando: false, gerado: true })
-    } catch {
-      setAnalise({ texto: 'Não foi possível gerar análise.', carregando: false, gerado: true })
-    }
   }
 
   async function atualizarAgua(copos: number) {
@@ -686,37 +664,6 @@ HOJE (${hora}h): ${qualLabel} | ${calorias || '?'}kcal | ${proteina || '?'}g pro
             ))}
           </div>
           <button onClick={() => atualizarAgua(coposAgua + 1)} style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', color: C.t1, fontSize: 18, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>+</button>
-        </div>
-      </div>
-
-      {/* Feedback IA */}
-      <div style={{ ...glassCard, overflow: 'hidden', border: `1px solid ${alpha(C.good, 0.22)}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ width: 30, height: 30, borderRadius: 10, background: alpha(C.good, 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: C.good, fontWeight: 800, fontSize: 12, fontFamily: FONT_DISPLAY }}>IA</div>
-          <div style={{ flex: 1 }}>
-            <p style={{ color: C.good, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600, fontFamily: FONT_BODY }}>Feedback do dia · IA</p>
-            <p style={{ color: C.t3, fontSize: 10, fontFamily: FONT_BODY }}>Cruza treino, sono, recuperação e plano</p>
-          </div>
-          {analise.carregando && <div style={{ width: 16, height: 16, border: `2px solid ${C.good}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />}
-        </div>
-        <div style={{ padding: '16px 20px' }}>
-          {!analise.gerado && !analise.carregando && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <p style={{ color: C.t2, fontSize: 14, fontFamily: FONT_BODY }}>{jaRegistrou ? 'Registro salvo. Gere o feedback personalizado.' : 'Registre sua alimentação acima primeiro.'}</p>
-              {jaRegistrou && <button onClick={gerarAnalise} style={{ width: '100%', background: alpha(C.good, 0.12), border: `1px solid ${alpha(C.good, 0.3)}`, color: C.good, fontWeight: 700, padding: '12px 0', borderRadius: 12, fontSize: 14, cursor: 'pointer', fontFamily: FONT_BODY }}>Gerar feedback do dia</button>}
-            </div>
-          )}
-          {analise.carregando && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[1, 0.8, 0.6].map((w, i) => <div key={i} style={{ height: 12, background: 'rgba(255,255,255,0.08)', borderRadius: 999, width: `${w * 100}%`, animation: 'pulse 1.2s ease infinite' }} />)}
-            </div>
-          )}
-          {analise.gerado && !analise.carregando && (
-            <div>
-              <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.7, fontFamily: FONT_BODY }}>{analise.texto}</p>
-              <button onClick={gerarAnalise} style={{ marginTop: 12, fontSize: 10.5, color: C.t3, background: 'none', border: 'none', textDecoration: 'underline', textUnderlineOffset: 4, cursor: 'pointer', fontFamily: FONT_BODY }}>Nova análise</button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -915,7 +862,7 @@ Responda APENAS JSON válido:
   const periodo = isManha ? { label: 'Manhã', cor: C.warn } : isTarde ? { label: 'Tarde', cor: C.sleep } : { label: 'Noite', cor: C.recovery }
 
   const abaPlanoEl = <AbaPlano plano={planoAtivo} gerandoPlano={gerandoPlano} vinculoNutri={vinculoNutri} onIniciarConsulta={() => setMostrarQuiz(true)} isDesktop={isDesktop} />
-  const abaHojeEl = <AbaHoje perfil={perfil} scoreHoje={scoreHoje} treinouHoje={treinouHoje} planoAtivo={planoAtivo} vinculoNutri={vinculoNutri} userId={userId} registroId={registroId} setRegistroId={setRegistroId} qualidade={qualidade} setQualidade={setQualidade} calorias={calorias} setCalorias={setCalorias} proteina={proteina} setProteina={setProteina} coposAgua={coposAgua} setCoposAgua={setCoposAgua} observacoes={observacoes} setObservacoes={setObservacoes} jaRegistrou={jaRegistrou} setJaRegistrou={setJaRegistrou} />
+  const abaHojeEl = <AbaHoje perfil={perfil} scoreHoje={scoreHoje} treinouHoje={treinouHoje} vinculoNutri={vinculoNutri} userId={userId} registroId={registroId} setRegistroId={setRegistroId} qualidade={qualidade} setQualidade={setQualidade} calorias={calorias} setCalorias={setCalorias} proteina={proteina} setProteina={setProteina} coposAgua={coposAgua} setCoposAgua={setCoposAgua} observacoes={observacoes} setObservacoes={setObservacoes} jaRegistrou={jaRegistrou} setJaRegistrou={setJaRegistrou} />
 
   return (
     <main className="md:flex" style={{ minHeight: '100dvh', color: C.t1, fontFamily: FONT_BODY }}>
