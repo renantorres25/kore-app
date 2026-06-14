@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import OnboardingTour from '../components/OnboardingTour'
 import SidebarProfissional from '../components/SidebarProfissional'
+import ModalPerfilProfissional, { type ProfissionalEquipe } from '../components/ModalPerfilProfissional'
 import {
   Bell, AlertTriangle, ChevronRight, X, Calendar, Moon, Sparkles,
   Dumbbell, Utensils, Check, Plus, UserPlus, ClipboardList, MessageCircle,
@@ -153,6 +154,13 @@ type Vinculo = {
   nome: string | null
   email: string
   whatsapp: string | null
+  especialidade: string | null
+  registro_profissional: string | null
+  avatar_url: string | null
+  foto_url: string | null
+  instagram: string | null
+  formacao: string | null
+  modalidades: string[] | null
 } | null
 
 type NutricaoHoje = {
@@ -547,10 +555,15 @@ export default function Dashboard() {
 
         if (vinculosData?.length) {
           const ids = vinculosData.map((v: { profissional_id: string }) => v.profissional_id)
-          const { data: perfis } = await supabase.from('perfis').select('id, nome, email, whatsapp').in('id', ids)
+          const { data: perfis } = await supabase.from('perfis').select('id, nome, email, whatsapp, especialidade, registro_profissional, avatar_url, foto_url, instagram, formacao, modalidades').in('id', ids)
           const vinculosComPerfil = vinculosData.map((v: { tipo: string; profissional_id: string }) => {
             const p = perfis?.find((pf: { id: string }) => pf.id === v.profissional_id)
-            return { tipo: v.tipo, profissional_id: v.profissional_id, nome: p?.nome ?? null, email: p?.email ?? '', whatsapp: p?.whatsapp ?? null }
+            return {
+              tipo: v.tipo, profissional_id: v.profissional_id, nome: p?.nome ?? null, email: p?.email ?? '', whatsapp: p?.whatsapp ?? null,
+              especialidade: p?.especialidade ?? null, registro_profissional: p?.registro_profissional ?? null,
+              avatar_url: p?.avatar_url ?? null, foto_url: p?.foto_url ?? null,
+              instagram: p?.instagram ?? null, formacao: p?.formacao ?? null, modalidades: p?.modalidades ?? null,
+            }
           })
           setVinculos(vinculosComPerfil)
         }
@@ -1182,6 +1195,7 @@ function DashboardCliente({
   const scoreColor     = scoreRecuperacao ? getScoreHex(scoreRecuperacao) : C.good
   const vinculoNutri   = vinculos.find(v => v?.tipo === 'nutricionista')
   const [expandedAlertas, setExpandedAlertas] = useState<string[]>([])
+  const [profissionalModal, setProfissionalModal] = useState<ProfissionalEquipe | null>(null)
   function toggleAlerta(codigo: string) {
     setExpandedAlertas(prev => prev.includes(codigo) ? prev.filter(c => c !== codigo) : [...prev, codigo])
   }
@@ -1638,10 +1652,16 @@ function DashboardCliente({
               { tipo: 'nutricionista', label: 'Nutricionista',    cor: C.good,  Icon: Utensils },
             ].map((p, i) => {
               const vinculo = vinculos.find(v => v?.tipo === p.tipo)
+              const fotoUrl = vinculo?.avatar_url || vinculo?.foto_url
               return (
                 <div key={p.label}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${p.cor}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${p.cor}1a`, color: p.cor }}><p.Icon size={16} /></div>
+                  <div onClick={() => vinculo && setProfissionalModal(vinculo)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: vinculo ? 'pointer' : 'default' }}>
+                    {fotoUrl ? (
+                      <img src={fotoUrl} alt={vinculo?.nome ?? ''} style={{ width: 36, height: 36, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${p.cor}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${p.cor}1a`, color: p.cor }}><p.Icon size={16} /></div>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ color: C.t3, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{p.label}</p>
                       {vinculo
@@ -1663,6 +1683,8 @@ function DashboardCliente({
           </div>
         </div>
       </div>
+
+      <ModalPerfilProfissional prof={profissionalModal} onClose={() => setProfissionalModal(null)} isDesktop={!!isDesktop} emailUsuario={perfil.email} />
     </div>
   )
 }

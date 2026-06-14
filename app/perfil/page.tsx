@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import SidebarProfissional from '../components/SidebarProfissional'
-import { X } from 'lucide-react'
+import ModalPerfilProfissional, { type ProfissionalEquipe } from '../components/ModalPerfilProfissional'
+import { Camera } from 'lucide-react'
 
 /* Design System: Energetic Precision */
 const C = {
@@ -137,14 +138,13 @@ function PerfilConteudo() {
   const [valorConsulta, setValorConsulta] = useState('')
   const [formacao, setFormacao] = useState('')
 
+  // Foto de perfil (profissionais)
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  const [enviandoFoto, setEnviandoFoto] = useState(false)
+
   // Minha equipe (profissionais vinculados, clientes)
-  const [equipe, setEquipe] = useState<{
-    tipo: string; nome: string | null; email: string; whatsapp: string | null
-    especialidade: string | null; registro_profissional: string | null
-    avatar_url: string | null; foto_url: string | null
-    instagram: string | null; formacao: string | null; modalidades: string[] | null
-  }[]>([])
-  const [profissionalModal, setProfissionalModal] = useState<typeof equipe[number] | null>(null)
+  const [equipe, setEquipe] = useState<ProfissionalEquipe[]>([])
+  const [profissionalModal, setProfissionalModal] = useState<ProfissionalEquipe | null>(null)
 
   // Mostra toast quando Strava conecta/desconecta
   useEffect(() => {
@@ -182,6 +182,7 @@ function PerfilConteudo() {
         if (data.instagram) setInstagram(data.instagram)
         if (data.valor_consulta) setValorConsulta(data.valor_consulta)
         if (data.formacao) setFormacao(data.formacao)
+        setFotoUrl(data.avatar_url || data.foto_url || null)
 
         // Minha equipe — mesma query do dashboard ("Meu time")
         if (data.tipo !== 'personal' && data.tipo !== 'nutricionista') {
@@ -351,6 +352,30 @@ function PerfilConteudo() {
     else { setSucesso(true); setTimeout(() => setSucesso(false), 2000) }
   }
 
+  async function handleUploadFoto(file: File) {
+    if (!userId) return
+    if (!file.type.startsWith('image/')) { setErro('Selecione um arquivo de imagem.'); return }
+    if (file.size > 2 * 1024 * 1024) { setErro('A imagem deve ter no máximo 2MB.'); return }
+
+    setEnviandoFoto(true)
+    setErro('')
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const path = `${userId}/avatar-${Date.now()}.${ext}`
+
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    if (uploadError) { setErro('Erro ao enviar a foto. Tente novamente.'); setEnviandoFoto(false); return }
+
+    const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(path)
+    const novaUrl = publicUrlData.publicUrl
+
+    const { error: updateError } = await supabase.from('perfis').update({ foto_url: novaUrl }).eq('id', userId)
+    if (updateError) { setErro('Erro ao salvar a foto. Tente novamente.'); setEnviandoFoto(false); return }
+
+    setFotoUrl(novaUrl)
+    setEnviandoFoto(false)
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
@@ -441,14 +466,38 @@ function PerfilConteudo() {
         {/* Card identidade */}
         <div style={{ ...glass, padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{
-              width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
-              background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(255,90,54,0.35)',
-            }}>
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 800, color: '#fff' }}>{iniciais}</span>
-            </div>
+            {isProf ? (
+              <label style={{
+                width: 60, height: 60, borderRadius: '50%', flexShrink: 0, position: 'relative',
+                background: fotoUrl ? 'transparent' : `linear-gradient(135deg, ${C.energy}, ${C.energy2})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(255,90,54,0.35)', cursor: 'pointer', overflow: 'hidden',
+              }}>
+                {fotoUrl ? (
+                  <img src={fotoUrl} alt={nome || ''} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 800, color: '#fff' }}>{iniciais}</span>
+                )}
+                <div style={{
+                  position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                }}>
+                  <Camera size={12} />
+                </div>
+                <input type="file" accept="image/*" disabled={enviandoFoto} style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFoto(f); e.target.value = '' }} />
+              </label>
+            ) : (
+              <div style={{
+                width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
+                background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(255,90,54,0.35)',
+              }}>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 800, color: '#fff' }}>{iniciais}</span>
+              </div>
+            )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontFamily: FONT_DISPLAY, color: C.t1, fontWeight: 700, fontSize: 18, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nome || 'Sem nome'}</p>
               <p style={{ color: C.t3, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</p>
@@ -957,112 +1006,7 @@ function PerfilConteudo() {
       </div>
 
       {/* MODAL · PERFIL DO PROFISSIONAL */}
-      {profissionalModal && (() => {
-        const prof = profissionalModal
-        const label = prof.tipo === 'personal' ? 'Personal Trainer' : 'Nutricionista Esportivo'
-        const profIniciais = (prof.nome || prof.email || '?').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase()
-        const fotoUrl = prof.avatar_url || prof.foto_url
-        const whatsappDigitos = prof.whatsapp?.replace(/\D/g, '')
-        const whatsappLink = whatsappDigitos ? `https://wa.me/55${whatsappDigitos}` : null
-        const instagramHandle = prof.instagram?.replace(/^@/, '').trim()
-        const instagramLink = instagramHandle ? `https://instagram.com/${instagramHandle}` : null
-
-        return (
-          <div onClick={() => setProfissionalModal(null)} style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50,
-            display: 'flex', alignItems: isDesktop ? 'center' : 'flex-end', justifyContent: 'center',
-            animation: 'fadeIn .15s ease',
-          }}>
-            <div onClick={e => e.stopPropagation()} style={{
-              ...glass, maxWidth: 440, width: '100%', maxHeight: '85vh', overflowY: 'auto',
-              borderRadius: isDesktop ? 20 : '20px 20px 0 0',
-              animation: isDesktop ? 'scaleIn .18s ease' : 'slideUp .2s ease',
-            }}>
-              {/* Header */}
-              <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'relative' }}>
-                <button onClick={() => setProfissionalModal(null)} aria-label="Fechar"
-                  style={{ position: 'absolute', top: 16, right: 16, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', color: C.t2 }}>
-                  <X size={16} />
-                </button>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 }}>
-                  {fotoUrl ? (
-                    <img src={fotoUrl} alt={prof.nome || ''} style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', marginBottom: 8 }} />
-                  ) : (
-                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 26, color: C.t2, marginBottom: 8 }}>
-                      {profIniciais}
-                    </div>
-                  )}
-                  <p style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 20, color: C.t1 }}>{prof.nome || 'Profissional'}</p>
-                  <p style={{ color: C.energy2, fontSize: 13, fontWeight: 700 }}>{label}</p>
-                  {prof.registro_profissional && (
-                    <p style={{ color: C.t3, fontSize: 12 }}>{prof.registro_profissional}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Corpo */}
-              <div style={{ padding: '20px 24px' }}>
-                {/* Contato */}
-                <p style={sectionTitle}>Contato</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: (prof.formacao || prof.modalidades?.length) ? 24 : 0 }}>
-                  {whatsappLink ? (
-                    <a href={whatsappLink} target="_blank" rel="noopener noreferrer"
-                      style={{
-                        display: 'block', textAlign: 'center', padding: '14px 0', borderRadius: 14,
-                        fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: '#fff', textDecoration: 'none',
-                        background: `linear-gradient(135deg, ${C.energy}, ${C.energy2})`,
-                        boxShadow: '0 10px 30px rgba(255,90,54,0.35), 0 0 0 1px rgba(255,90,54,0.2)',
-                      }}>
-                      Chamar no WhatsApp
-                    </a>
-                  ) : (
-                    <p style={{ color: C.t3, fontSize: 12 }}>Sem WhatsApp cadastrado</p>
-                  )}
-                  {instagramLink && (
-                    <a href={instagramLink} target="_blank" rel="noopener noreferrer"
-                      style={{ color: C.t2, fontSize: 13, textDecoration: 'none', fontWeight: 600 }}>
-                      @{instagramHandle}
-                    </a>
-                  )}
-                  {prof.email && prof.email !== email && (
-                    <p style={{ color: C.t3, fontSize: 13 }}>{prof.email}</p>
-                  )}
-                </div>
-
-                {/* Experiência */}
-                {(prof.formacao || (prof.modalidades && prof.modalidades.length > 0)) && (
-                  <div>
-                    <p style={sectionTitle}>Experiência</p>
-                    {prof.formacao && (
-                      <p style={{ color: C.t2, fontSize: 13, lineHeight: 1.6, marginBottom: prof.modalidades?.length ? 12 : 0 }}>{prof.formacao}</p>
-                    )}
-                    {prof.modalidades && prof.modalidades.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {prof.modalidades.map(m => (
-                          <span key={m} style={{ fontSize: 11, color: C.t2, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 999, padding: '4px 12px' }}>{m}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div style={{ padding: '0 24px 24px' }}>
-                <button onClick={() => setProfissionalModal(null)}
-                  style={{ width: '100%', padding: '12px 0', borderRadius: 14, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: C.t2, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', cursor: 'pointer' }}>
-                  Fechar
-                </button>
-              </div>
-            </div>
-            <style>{`
-              @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-              @keyframes scaleIn { from { opacity: 0; transform: scale(0.96) } to { opacity: 1; transform: scale(1) } }
-              @keyframes slideUp { from { opacity: 0; transform: translateY(24px) } to { opacity: 1; transform: translateY(0) } }
-            `}</style>
-          </div>
-        )
-      })()}
+      <ModalPerfilProfissional prof={profissionalModal} onClose={() => setProfissionalModal(null)} isDesktop={isDesktop} emailUsuario={email} />
     </main>
   )
 }
