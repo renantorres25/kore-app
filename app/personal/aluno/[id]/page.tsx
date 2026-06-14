@@ -9,6 +9,7 @@ import { LayoutDashboard, Dumbbell, TrendingUp, UserCircle, CalendarClock } from
 import CalendarioConsistencia, { type AtividadeDia, MOD_CONFIG } from '../../../components/CalendarioConsistencia'
 import { calcularPMC, type PontoPMC, computeAlertaCientifico, type AlertaNivel } from '../../../lib/alertas-cientificos'
 import { gerarNarrativaBloco } from '../../../lib/narrativa-treino'
+import { calcularCargaInternaSemana } from '../../../lib/performance-evolucao'
 
 type Aluno = { id: string; nome: string | null; email: string; peso: number | null; objetivo: string | null; altura: number | null; sexo: string | null; data_nascimento: string | null; meta_peso: number | null; meta_data_limite: string | null; nivel: string | null; fcmax: number | null; ftp: number | null; tsb_atual: number | null; atl_atual: number | null; ctl_atual: number | null; avatar_url: string | null }
 type Exercicio = { id?: string; nome: string; series: number; repeticoes: number; carga_sugerida: number | null; observacoes: string; ordem: number; grupo_muscular?: string | null; tecnica?: string | null }
@@ -1808,6 +1809,11 @@ export default function PersonalAluno() {
                   const cargaAnt   = sumCarga(antStartStr, antEndStr)
                   const cargaAtual = sumCarga(currStartStr, hoje)
 
+                  // Fallback para atletas sem volume de musculação: carga interna semanal (mesmo cálculo da aba Evolução)
+                  const tssPrev  = fcmaxEstimado != null ? calcularCargaInternaSemana(atividadesCalendario, fcmaxEstimado, prevStartStr, prevEndStr).carga : 0
+                  const tssAnt   = fcmaxEstimado != null ? calcularCargaInternaSemana(atividadesCalendario, fcmaxEstimado, antStartStr, antEndStr).carga : 0
+                  const tssAtual = fcmaxEstimado != null ? calcularCargaInternaSemana(atividadesCalendario, fcmaxEstimado, currStartStr, hoje).carga : 0
+
                   const semDelta = (curr: number, prev: number): number | null => {
                     if (prev === 0 || curr === 0) return null
                     return Math.round(((curr - prev) / prev) * 100)
@@ -1855,13 +1861,23 @@ export default function PersonalAluno() {
                             <div>
                               <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Carga total</p>
                               <div className="flex items-center leading-none">
-                                <span className="text-2xl font-black text-blue-300">{cargaPrev > 0 ? fmtCarga(cargaPrev) : '—'}</span>
+                                <span className="text-2xl font-black text-blue-300">
+                                  {cargaPrev > 0 ? fmtCarga(cargaPrev) : tssPrev > 0 ? `${Math.round(tssPrev)} TSS` : '—'}
+                                </span>
                                 {cargaPrev > 0 && (() => {
                                   const d = semDelta(cargaPrev, cargaAnt)
                                   if (d === null) return null
                                   return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-2 ${d >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>{d >= 0 ? '+' : ''}{d}%</span>
                                 })()}
+                                {cargaPrev === 0 && tssPrev > 0 && (() => {
+                                  const d = semDelta(tssPrev, tssAnt)
+                                  if (d === null) return null
+                                  return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-2 ${d >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>{d >= 0 ? '+' : ''}{d}%</span>
+                                })()}
                               </div>
+                              {(cargaPrev > 0 || tssPrev > 0) && (
+                                <p className="text-[10px] text-zinc-500 mt-0.5">{cargaPrev > 0 ? 'Volume de musculação' : 'Carga de treino (TSS)'}</p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1881,7 +1897,12 @@ export default function PersonalAluno() {
                             </div>
                             <div>
                               <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">Carga acumulada</p>
-                              <p className="text-2xl font-black text-blue-300 leading-none">{cargaAtual > 0 ? fmtCarga(cargaAtual) : '—'}</p>
+                              <p className="text-2xl font-black text-blue-300 leading-none">
+                                {cargaAtual > 0 ? fmtCarga(cargaAtual) : tssAtual > 0 ? `${Math.round(tssAtual)} TSS` : '—'}
+                              </p>
+                              {(cargaAtual > 0 || tssAtual > 0) && (
+                                <p className="text-[10px] text-zinc-500 mt-0.5">{cargaAtual > 0 ? 'Volume de musculação' : 'Carga de treino (TSS)'}</p>
+                              )}
                             </div>
                           </div>
                           <div className="mt-4">
@@ -2538,21 +2559,9 @@ export default function PersonalAluno() {
                     const fimStr = fmtISO(fim)
                     const atual = n === 0
 
-                    const ativs = atividadesCalendario.filter(a =>
-                      a.data >= iniStr && a.data <= (atual ? hoje : fimStr) && a.fc_media != null && a.duracao_min != null
-                    )
+                    const { carga, pctMedio } = calcularCargaInternaSemana(atividadesCalendario, fcmaxEstimado, iniStr, atual ? hoje : fimStr)
 
-                    let cargaTotal = 0, pctPonderado = 0, minTotal = 0
-                    ativs.forEach(a => {
-                      const min = a.duracao_min ?? 0
-                      const pct = (a.fc_media as number) / fcmaxEstimado
-                      cargaTotal += pct * min
-                      pctPonderado += pct * min
-                      minTotal += min
-                    })
-                    const pctMedio = minTotal > 0 ? pctPonderado / minTotal : 0
-
-                    return { label: atual ? 'Esta sem.' : `Sem ${4 - n}`, carga: Math.round(cargaTotal), pctMedio, atual }
+                    return { label: atual ? 'Esta sem.' : `Sem ${4 - n}`, carga, pctMedio, atual }
                   })
 
                   if (!semanas.some(s => s.carga > 0)) return null

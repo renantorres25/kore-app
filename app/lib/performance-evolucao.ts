@@ -185,6 +185,31 @@ export function tendenciaVolume(semanas: SemanaVolume[]): 'aumentando' | 'estáv
   return 'estável'
 }
 
+export type CargaInterna = { carga: number; pctMedio: number }
+
+/**
+ * Carga interna de um período: soma de (fc_media/fcmax) × duracao_min das atividades
+ * com FC e duração registradas. pctMedio = % médio da FCmax ponderado pela duração.
+ */
+export function calcularCargaInternaSemana(
+  atividades: { data: string; fc_media?: number | null; duracao_min?: number | null }[],
+  fcmax: number,
+  start: string,
+  end: string
+): CargaInterna {
+  const ativs = atividades.filter(a => a.data >= start && a.data <= end && a.fc_media != null && a.duracao_min != null)
+  let cargaTotal = 0, pctPonderado = 0, minTotal = 0
+  ativs.forEach(a => {
+    const min = a.duracao_min ?? 0
+    const pct = (a.fc_media as number) / fcmax
+    cargaTotal += pct * min
+    pctPonderado += pct * min
+    minTotal += min
+  })
+  const pctMedio = minTotal > 0 ? pctPonderado / minTotal : 0
+  return { carga: Math.round(cargaTotal), pctMedio }
+}
+
 export type ResumoPaceZona = {
   modalidade: string; zona: string; valorFormatado: string; unidade: string
   count: number; interpretacao: string
